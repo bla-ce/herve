@@ -3,14 +3,16 @@ global _start
 STDOUT  equ 2
 
 ; socket constants
-INADDR_ANY    equ 0
-SOCK_STREAM   equ 1
-SOL_SOCKET    equ 1
-BACKLOG       equ 1
-SO_REUSEADDR  equ 2
-SO_REUSEPORT  equ 15
-AF_INET       equ 2
-PORT          equ 14597 
+INADDR_ANY      equ 0
+SOCK_STREAM     equ 1
+SOL_SOCKET      equ 1
+BACKLOG         equ 1
+SO_REUSEADDR    equ 2
+SO_REUSEPORT    equ 15
+AF_INET         equ 2
+PORT            equ 14597 
+REQUEST_MAX_LEN equ 8*1024
+MSG_TRUNC       equ 32
 
 ; syscall values
 SYS_WRITE       equ 1
@@ -18,6 +20,7 @@ SYS_CLOSE       equ 3
 SYS_SOCKET      equ 41
 SYS_ACCEPT      equ 43
 SYS_SENDTO      equ 44
+SYS_RECVFROM    equ 45
 SYS_BIND        equ 49
 SYS_LISTEN      equ 50
 SYS_SETSOCKOPT  equ 54
@@ -98,6 +101,21 @@ _start:
 
   mov   [clientfd], rax
 
+  ; receive client request
+  mov   rax, SYS_RECVFROM
+  mov   rdi, [clientfd]
+  lea   rsi, [request]
+  mov   rdx, REQUEST_MAX_LEN
+  xor   r10, r10
+  xor   r9, r9
+  xor   r8, r8
+  syscall
+
+  cmp   rax, 0
+  jl    error
+
+  mov   qword [request_len], rax
+
   ; send back message
   mov   rax, SYS_SENDTO
   mov   rdi, [clientfd]
@@ -156,4 +174,7 @@ section .data
 
   hello db "Hello from Netwide Assembly!", LINE_FEED
   len   equ $ - hello
+
+  request     times REQUEST_MAX_LEN db 0
+  request_len dq 0
 
