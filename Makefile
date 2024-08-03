@@ -6,6 +6,7 @@ server.o: server.s
 
 test:
 	gcc -o main main.c
+	./main
 
 run:
 	nasm -felf64 -o server.o server.s -g
