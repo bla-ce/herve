@@ -1,5 +1,6 @@
-global _start
+global  _start
 
+; constants
 STDOUT  equ 2
 
 ; socket constants
@@ -29,6 +30,7 @@ SYS_SETSOCKOPT  equ 54
 SYS_EXIT        equ 60
 
 ; ascii
+NULL_CHAR equ 0
 LINE_FEED equ 10
 SPACE     equ 32
 
@@ -85,6 +87,62 @@ return_method:
   pop   rbp
   ret
 
+check_method:
+  ; rax -> method
+  ; rdi -> method length
+  push  rbp
+  mov   rbp, rsp
+  sub   rsp, 16 
+
+  mov   qword [rsp], 0 ; string index
+  mov   qword [rsp+8], 0 ; substring index
+  
+  mov   rcx, rdi
+
+  lea   rsi, [rax]
+  xor   rax, rax
+  lea   rdi, [methods_list]
+  xor   rbx, rbx
+
+check_next_char:
+  cmp   qword [rsp], methods_list_len
+  je    method_not_allowed
+  
+  mov   al, byte [rsi]
+  mov   bl, byte [rdi]
+  cmp   al, bl
+  jne   char_mismatch
+
+  inc   qword [rsp]
+  inc   qword [rsp+8]
+  inc   rsi
+  inc   rdi
+
+  cmp   rcx, qword [rsp+8]
+  je    method_allowed
+  jmp   check_next_char
+
+char_mismatch:
+  sub   rsi, qword [rsp+8]
+  mov   qword [rsp+8], 0
+
+  inc   qword [rsp]
+  inc   rdi
+
+  jmp   check_next_char
+  
+method_not_allowed:
+  mov   rax, -1
+  jmp   cleanup
+
+method_allowed:
+  mov   rax, qword [rsp]
+
+cleanup:
+  add   rsp, 16
+  pop   rbp
+  ret
+
 extract_route:
   ; rax -> request pointer
   ; rdi -> request length
@@ -127,8 +185,6 @@ return_route:
   add   rsp, 8 
   pop   rbp
   ret
-
-
 
 section .text
 _start:
@@ -225,6 +281,11 @@ _start:
   sub   rcx, [method_len]
   dec   rcx
 
+  ; check if method is allowed
+  funcall2 check_method, method, [method_len]
+  cmp   rax, 0
+  jl    error
+
   ; extract route
   funcall2 extract_route, rsi, rcx 
   cmp   rax, 0
@@ -305,3 +366,5 @@ section .data
   route      times ROUTE_MAX_LEN db 0
   route_len  dq 0
 
+  methods_list     db "GET POST PUT DELETE", NULL_CHAR
+  methods_list_len equ $ - methods_list
