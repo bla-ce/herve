@@ -30,9 +30,10 @@ SYS_SETSOCKOPT  equ 54
 SYS_EXIT        equ 60
 
 ; ascii
-NULL_CHAR equ 0
-LINE_FEED equ 10
-SPACE     equ 32
+NULL_CHAR       equ 0
+LINE_FEED       equ 10
+CARRIAGE_RETURN equ 13
+SPACE           equ 32
 
 ; exit code
 SUCCESS_CODE equ 0
@@ -272,13 +273,31 @@ _start:
   ; extract method
   funcall2 extract_method, request, [request_len] 
   cmp   rax, 0
-  jl    error
+  jge   move_to_check_method
 
+  mov   rax, SYS_WRITE
+  mov   rdi, [clientfd]
+  mov   rsi, response_400
+  mov   rdx, response_400_len
+  syscall
+
+  jmp exit
+
+move_to_check_method:  
   ; check if method is allowed
   funcall2 check_method, method, [method_len]
   cmp   rax, 0
-  jl    error
+  jge   move_to_route
 
+  mov   rax, SYS_WRITE
+  mov   rdi, [clientfd]
+  mov   rsi, response_405
+  mov   rdx, response_405_len
+  syscall
+
+  jmp exit
+
+move_to_route:
   lea   rsi, [request]
   add   rsi, [method_len] ; move to route (add one for the space)
   inc   rsi
@@ -289,8 +308,17 @@ _start:
   ; extract route
   funcall2 extract_route, rsi, rcx 
   cmp   rax, 0
-  jl    error
+  jge   move_to_rest_of_request
 
+  mov   rax, SYS_WRITE
+  mov   rdi, [clientfd]
+  mov   rsi, response_400
+  mov   rdx, response_400_len
+  syscall
+
+  jmp exit
+
+move_to_rest_of_request:
   lea   rsi, [request]
   add   rsi, [route_len] ; move to rest of request (add one for the space)
   inc   rsi
@@ -298,16 +326,13 @@ _start:
   sub   rcx, [route_len]
   dec   rcx
 
-  ; send back message
-  mov   rax, SYS_SENDTO
+  mov   rax, SYS_WRITE
   mov   rdi, [clientfd]
-  lea   rsi, [hello]
-  mov   rdx, len
-  xor   r10, r10
-  xor   r9, r9
-  xor   r8, r8
+  mov   rsi, response_200
+  mov   rdx, response_200_len
   syscall
 
+exit:
   ; close sockets
   mov   rax, SYS_CLOSE
   mov   rdi, [sockfd] 
@@ -368,3 +393,29 @@ section .data
 
   methods_list     db "GET POST PUT DELETE", NULL_CHAR
   methods_list_len equ $ - methods_list
+
+  ; responses
+  response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
+                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+                    db CARRIAGE_RETURN, LINE_FEED
+  response_200_len  equ $ - response_200
+
+  response_405      db "HTTP/1.1 405 Method Not Allowed", CARRIAGE_RETURN, LINE_FEED
+                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+                    db CARRIAGE_RETURN, LINE_FEED
+  response_405_len  equ $ - response_405
+
+  response_400      db "HTTP/1.1 400 Bad Request", CARRIAGE_RETURN, LINE_FEED
+                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+                    db CARRIAGE_RETURN, LINE_FEED
+  response_400_len  equ $ - response_400
+
+  response_500      db "HTTP/1.1 500 Internal Server Error", CARRIAGE_RETURN, LINE_FEED
+                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+                    db CARRIAGE_RETURN, LINE_FEED
+  response_500_len  equ $ - response_500
+
