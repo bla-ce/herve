@@ -274,17 +274,17 @@ _start:
   cmp   rax, 0
   jl    error
 
+  ; check if method is allowed
+  funcall2 check_method, method, [method_len]
+  cmp   rax, 0
+  jl    error
+
   lea   rsi, [request]
   add   rsi, [method_len] ; move to route (add one for the space)
   inc   rsi
   mov   rcx, [request_len]
   sub   rcx, [method_len]
   dec   rcx
-
-  ; check if method is allowed
-  funcall2 check_method, method, [method_len]
-  cmp   rax, 0
-  jl    error
 
   ; extract route
   funcall2 extract_route, rsi, rcx 
