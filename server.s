@@ -96,6 +96,9 @@ check_method:
   mov   rbp, rsp
   sub   rsp, 16 
 
+  cmp   rdi, METHOD_MAX_LEN
+  jg    error
+
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
   
@@ -152,6 +155,9 @@ check_route:
   mov   rbp, rsp
   sub   rsp, 72 
 
+  cmp   rdi, ROUTE_MAX_LEN
+  jg    error
+
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
   
@@ -185,6 +191,7 @@ check_next_route_char:
   jmp   check_next_route_char
 
 route_char_mismatch:
+  ; TODO: if too big, move to next as we know the size
   sub   rsi, qword [rsp+8]
   mov   qword [rsp+8], 0
 
@@ -253,8 +260,10 @@ add_route:
   ; rdi -> route length
   push  rbp
 
-  mov   rcx, rdi
+  cmp   rdi, ROUTE_MAX_LEN
+  jg    error
 
+  mov   rcx, rdi
 
   lea   rsi, [rax]
   lea   rdi, [routes_list]
