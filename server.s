@@ -16,7 +16,7 @@ REQUEST_MAX_LEN   equ 8*1024
 MSG_TRUNC         equ 32
 METHOD_MAX_LEN    equ 8
 ROUTE_MAX_LEN     equ 32
-MAX_ROUTES_COUNT  equ 2
+MAX_ROUTES_COUNT  equ 10
 
 ; syscall values
 SYS_WRITE       equ 1
@@ -142,6 +142,66 @@ method_allowed:
 
 cleanup:
   add   rsp, 16
+  pop   rbp
+  ret
+
+check_route:
+  ; rax -> route
+  ; rdi -> route length
+  push  rbp
+  mov   rbp, rsp
+  sub   rsp, 72 
+
+  mov   qword [rsp], 0 ; string index
+  mov   qword [rsp+8], 0 ; substring index
+  
+  mov   rcx, rdi
+
+  lea   rsi, [rax]
+  xor   rax, rax
+  lea   rdi, [routes_list]
+  xor   rbx, rbx
+
+check_next_route_char:
+  mov   rax, [routes_list_len]
+  mov   rbx, ROUTE_MAX_LEN
+  mul   rbx
+
+  cmp   qword [rsp], rax
+  je    route_not_found
+  
+  mov   al, byte [rsi]
+  mov   bl, byte [rdi]
+  cmp   al, bl
+  jne   route_char_mismatch
+
+  inc   qword [rsp]
+  inc   qword [rsp+8]
+  inc   rsi
+  inc   rdi
+
+  cmp   rcx, qword [rsp+8]
+  je    route_found
+  jmp   check_next_route_char
+
+route_char_mismatch:
+  sub   rsi, qword [rsp+8]
+  mov   qword [rsp+8], 0
+
+  inc   qword [rsp]
+  inc   rdi
+
+  jmp   check_next_route_char
+  
+route_not_found:
+  mov   rax, -1
+  jmp   route_cleanup
+
+route_found:
+  mov   rax, qword [rsp]
+
+route_cleanup:
+  add   rsp, 72
   pop   rbp
   ret
 
@@ -284,6 +344,11 @@ _start:
 
   mov   [clientfd], rax
 
+  ; test add route 
+  funcall2 add_route, test_route_1, test_route_1_len
+  funcall2 add_route, test_route_2, test_route_2_len
+  funcall2 add_route, test_route_3, test_route_3_len
+
   ; receive client request
   mov   rax, SYS_RECVFROM
   mov   rdi, [clientfd]
@@ -337,7 +402,7 @@ move_to_route:
   ; extract route
   funcall2 extract_route, rsi, rcx 
   cmp   rax, 0
-  jge   move_to_rest_of_request
+  jge   test_route
 
   mov   rax, SYS_WRITE
   mov   rdi, [clientfd]
@@ -345,13 +410,20 @@ move_to_route:
   mov   rdx, response_400_len
   syscall
 
-move_to_rest_of_request:
-  ; test add route 
-  funcall2 add_route, route, [route_len]
-  funcall2 add_route, test_route_1, test_route_1_len
-  funcall2 add_route, test_route_2, test_route_2_len
-  funcall2 add_route, test_route_3, test_route_3_len
+test_route:
+  funcall2 check_route, route, [route_len]
+  cmp   rax, 0
+  jge   move_to_rest_of_request
 
+  mov   rax, SYS_WRITE
+  mov   rdi, [clientfd]
+  mov   rsi, response_404
+  mov   rdx, response_404_len
+  syscall
+
+  jmp   exit
+
+move_to_rest_of_request:
   lea   rsi, [request]
   add   rsi, [route_len] ; move to rest of request (add one for the space)
   inc   rsi
@@ -468,6 +540,12 @@ section .data
                     db "Connection: close", CARRIAGE_RETURN, LINE_FEED
                     db CARRIAGE_RETURN, LINE_FEED
   response_400_len  equ $ - response_400
+
+  response_404      db "HTTP/1.1 404 Not Found", CARRIAGE_RETURN, LINE_FEED
+                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+                    db CARRIAGE_RETURN, LINE_FEED
+  response_404_len  equ $ - response_404
 
   response_500      db "HTTP/1.1 500 Internal Server Error", CARRIAGE_RETURN, LINE_FEED
                     db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
