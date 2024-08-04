@@ -4,18 +4,19 @@ global  _start
 STDOUT  equ 2
 
 ; socket constants
-INADDR_ANY      equ 0
-SOCK_STREAM     equ 1
-SOL_SOCKET      equ 1
-BACKLOG         equ 1
-SO_REUSEADDR    equ 2
-SO_REUSEPORT    equ 15
-AF_INET         equ 2
-PORT            equ 14597 
-REQUEST_MAX_LEN equ 8*1024
-MSG_TRUNC       equ 32
-METHOD_MAX_LEN  equ 8
-ROUTE_MAX_LEN   equ 128
+INADDR_ANY        equ 0
+SOCK_STREAM       equ 1
+SOL_SOCKET        equ 1
+BACKLOG           equ 1
+SO_REUSEADDR      equ 2
+SO_REUSEPORT      equ 15
+AF_INET           equ 2
+PORT              equ 14597 
+REQUEST_MAX_LEN   equ 8*1024
+MSG_TRUNC         equ 32
+METHOD_MAX_LEN    equ 8
+ROUTE_MAX_LEN     equ 32
+MAX_ROUTES_COUNT  equ 2
 
 ; syscall values
 SYS_WRITE       equ 1
@@ -187,6 +188,34 @@ return_route:
   pop   rbp
   ret
 
+add_route:
+  ; rax -> route
+  ; rdi -> route length
+  push  rbp
+
+  mov   rcx, rdi
+
+
+  lea   rsi, [rax]
+  lea   rdi, [routes_list]
+
+  mov   rax, qword [routes_list_len]
+
+  mov   rbx, ROUTE_MAX_LEN
+  mul   rbx
+
+  add   rdi, rax
+  rep   movsb
+
+  inc   qword [routes_list_len]
+
+  mov   rax, qword [routes_list_len]
+  cmp   rax, MAX_ROUTES_COUNT
+  jg    error
+
+  pop   rbp
+  ret
+
 section .text
 _start:
   ; create socket
@@ -211,7 +240,7 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl error
+  jl    error
 
   mov   rax, SYS_SETSOCKOPT
   mov   rdi, [sockfd]
@@ -222,7 +251,7 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl error
+  jl    error
 
   ; bind socket
   mov   rax, SYS_BIND
@@ -281,7 +310,7 @@ _start:
   mov   rdx, response_400_len
   syscall
 
-  jmp exit
+  jmp   exit
 
 move_to_check_method:  
   ; check if method is allowed
@@ -295,7 +324,7 @@ move_to_check_method:
   mov   rdx, response_405_len
   syscall
 
-  jmp exit
+  jmp   exit
 
 move_to_route:
   lea   rsi, [request]
@@ -316,9 +345,13 @@ move_to_route:
   mov   rdx, response_400_len
   syscall
 
-  jmp exit
-
 move_to_rest_of_request:
+  ; test add route 
+  funcall2 add_route, route, [route_len]
+  funcall2 add_route, test_route_1, test_route_1_len
+  funcall2 add_route, test_route_2, test_route_2_len
+  funcall2 add_route, test_route_3, test_route_3_len
+
   lea   rsi, [request]
   add   rsi, [route_len] ; move to rest of request (add one for the space)
   inc   rsi
@@ -337,7 +370,6 @@ exit:
   mov   rax, SYS_CLOSE
   mov   rdi, [sockfd] 
   syscall
-
   mov   rax, SYS_CLOSE
   mov   rdi, [clientfd] 
   syscall
@@ -347,14 +379,26 @@ exit:
   mov   rdi, SUCCESS_CODE
   syscall
 
+send_400:
+  mov   rax, SYS_WRITE
+  mov   rdi, [clientfd]
+  mov   rsi, response_400
+  mov   rdx, response_400_len
+  syscall
+
+  mov   qword [clientfd], 0
+
 error:
   ; close sockets
+  cmp   qword [clientfd], 0
+  jg    send_400
+  
   mov   rax, SYS_CLOSE
-  mov   rdi, [sockfd] 
+  mov   rdi, [clientfd] 
   syscall
 
   mov   rax, SYS_CLOSE
-  mov   rdi, [clientfd] 
+  mov   rdi, [sockfd] 
   syscall
 
   mov   rax, SYS_EXIT
@@ -393,6 +437,18 @@ section .data
 
   methods_list     db "GET POST PUT DELETE", NULL_CHAR
   methods_list_len equ $ - methods_list
+
+  routes_list     times MAX_ROUTES_COUNT * ROUTE_MAX_LEN db 0
+  routes_list_len dq 0
+
+  test_route_1      db "/", NULL_CHAR
+  test_route_1_len  equ $ - test_route_1
+
+  test_route_2      db "/style/style.css", NULL_CHAR
+  test_route_2_len  equ $ - test_route_2
+
+  test_route_3      db "/js/index.js", NULL_CHAR
+  test_route_3_len  equ $ - test_route_3
 
   ; responses
   response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
