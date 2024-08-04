@@ -191,12 +191,13 @@ check_next_route_char:
   jmp   check_next_route_char
 
 route_char_mismatch:
-  ; TODO: if too big, move to next as we know the size
   sub   rsi, qword [rsp+8]
+  sub   rdi, qword [rsp+8]
+  add   rdi, ROUTE_MAX_LEN
+
   mov   qword [rsp+8], 0
 
   inc   qword [rsp]
-  inc   rdi
 
   jmp   check_next_route_char
   
