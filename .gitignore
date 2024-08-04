@@ -2,3 +2,5 @@
 *.c
 musl*
 main
+server
+server.o

@@ -13,6 +13,8 @@ AF_INET         equ 2
 PORT            equ 14597 
 REQUEST_MAX_LEN equ 8*1024
 MSG_TRUNC       equ 32
+METHOD_MAX_LEN  equ 8
+ROUTE_MAX_LEN   equ 128
 
 ; syscall values
 SYS_WRITE       equ 1
@@ -28,10 +30,105 @@ SYS_EXIT        equ 60
 
 ; ascii
 LINE_FEED equ 10
+SPACE     equ 32
 
 ; exit code
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1
+
+%macro funcall2 3
+  mov   rax, %2
+  mov   rdi, %3
+  call  %1
+%endmacro
+
+extract_method:
+  ; rax -> request pointer
+  ; rdi -> request length
+  push  rbp
+  mov   rbp, rsp
+
+  sub   rsp, 8 ; current index
+  mov   qword [rsp], 0
+
+  lea   rsi, [rax]
+  mov   rcx, rdi
+  xor   rax, rax
+
+next_method_char:
+  mov   al, byte [rsi]
+  cmp   al, SPACE
+  je    return_method
+
+  inc   rsi
+  inc   qword [rsp]
+
+  cmp   qword [rsp], rcx
+  jl    next_method_char
+
+  ; bad request
+  mov   rax, -1
+  add   rsp, 8
+  pop   rbp
+  ret
+
+return_method:
+  mov   rax, qword [rsp]
+  mov   qword [method_len], rax
+
+  sub   rsi, rax
+  lea   rdi, [method]
+  mov   rcx, rax
+  rep   movsb
+
+  add   rsp, 8 
+  pop   rbp
+  ret
+
+extract_route:
+  ; rax -> request pointer
+  ; rdi -> request length
+  push  rbp
+  mov   rbp, rsp
+
+  sub   rsp, 8 ; current index
+  mov   qword [rsp], 0
+
+  lea   rsi, [rax]
+  mov   rcx, rdi
+  xor   rax, rax
+
+next_route_char:
+  mov   al, byte [rsi]
+  cmp   al, SPACE
+  je    return_route
+
+  inc   rsi
+  inc   qword [rsp]
+
+  cmp   qword [rsp], rcx
+  jl    next_route_char
+
+  ; bad request
+  mov   rax, -1
+  add   rsp, 8
+  pop   rbp
+  ret
+
+return_route:
+  mov   rax, qword [rsp]
+  mov   qword [route_len], rax
+
+  sub   rsi, rax
+  lea   rdi, [route]
+  mov   rcx, rax
+  rep   movsb
+
+  add   rsp, 8 
+  pop   rbp
+  ret
+
+
 
 section .text
 _start:
@@ -116,6 +213,30 @@ _start:
 
   mov   qword [request_len], rax
 
+  ; extract method
+  funcall2 extract_method, request, [request_len] 
+  cmp   rax, 0
+  jl    error
+
+  lea   rsi, [request]
+  add   rsi, [method_len] ; move to route (add one for the space)
+  inc   rsi
+  mov   rcx, [request_len]
+  sub   rcx, [method_len]
+  dec   rcx
+
+  ; extract route
+  funcall2 extract_route, rsi, rcx 
+  cmp   rax, 0
+  jl    error
+
+  lea   rsi, [request]
+  add   rsi, [route_len] ; move to rest of request (add one for the space)
+  inc   rsi
+  mov   rcx, [request_len]
+  sub   rcx, [route_len]
+  dec   rcx
+
   ; send back message
   mov   rax, SYS_SENDTO
   mov   rdi, [clientfd]
@@ -177,4 +298,10 @@ section .data
 
   request     times REQUEST_MAX_LEN db 0
   request_len dq 0
+
+  method      times METHOD_MAX_LEN db 0
+  method_len  dq 0
+
+  route      times ROUTE_MAX_LEN db 0
+  route_len  dq 0
 
