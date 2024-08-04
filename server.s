@@ -60,11 +60,10 @@ extract_method:
   xor   rax, rax
 
 next_method_char:
-  mov   al, byte [rsi]
+  lodsb
   cmp   al, SPACE
   je    return_method
 
-  inc   rsi
   inc   qword [rsp]
 
   cmp   qword [rsp], rcx
@@ -77,6 +76,7 @@ next_method_char:
   ret
 
 return_method:
+  dec   rsi
   mov   rax, qword [rsp]
   mov   qword [method_len], rax
 
@@ -96,15 +96,12 @@ check_method:
   mov   rbp, rsp
   sub   rsp, 16 
 
-  cmp   rdi, METHOD_MAX_LEN
-  jle   proceed_check_method
-
   lea   rsi, [error_method_too_big]
   mov   rdx, error_method_too_big_len
 
-  jmp   error
+  cmp   rdi, METHOD_MAX_LEN
+  jg    error
 
-proceed_check_method:
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
   
@@ -119,26 +116,23 @@ check_next_char:
   cmp   qword [rsp], methods_list_len
   je    method_not_allowed
   
-  mov   al, byte [rsi]
-  mov   bl, byte [rdi]
-  cmp   al, bl
+  cld
+  cmpsb
   jne   char_mismatch
 
   inc   qword [rsp]
   inc   qword [rsp+8]
-  inc   rsi
-  inc   rdi
 
   cmp   rcx, qword [rsp+8]
   je    method_allowed
   jmp   check_next_char
 
 char_mismatch:
+  dec   rsi
   sub   rsi, qword [rsp+8]
   mov   qword [rsp+8], 0
 
   inc   qword [rsp]
-  inc   rdi
 
   jmp   check_next_char
   
@@ -161,15 +155,12 @@ check_route:
   mov   rbp, rsp
   sub   rsp, 72 
 
-  cmp   rdi, ROUTE_MAX_LEN
-  jle   proceed_check_route
-
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  jmp   error
+  cmp   rdi, ROUTE_MAX_LEN
+  jg    error
 
-proceed_check_route:
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
   
@@ -182,27 +173,23 @@ proceed_check_route:
 
 check_next_route_char:
   mov   rax, [routes_list_len]
-  mov   rbx, ROUTE_MAX_LEN
-  mul   rbx
-
   cmp   qword [rsp], rax
   je    route_not_found
   
-  mov   al, byte [rsi]
-  mov   bl, byte [rdi]
-  cmp   al, bl
+  cld
+  cmpsb
   jne   route_char_mismatch
 
-  inc   qword [rsp]
   inc   qword [rsp+8]
-  inc   rsi
-  inc   rdi
 
   cmp   rcx, qword [rsp+8]
   je    route_found
   jmp   check_next_route_char
 
 route_char_mismatch:
+  dec   rsi
+  dec   rdi
+
   sub   rsi, qword [rsp+8]
   sub   rdi, qword [rsp+8]
   add   rdi, ROUTE_MAX_LEN
@@ -239,11 +226,10 @@ extract_route:
   xor   rax, rax
 
 next_route_char:
-  mov   al, byte [rsi]
+  lodsb
   cmp   al, SPACE
   je    return_route
 
-  inc   rsi
   inc   qword [rsp]
 
   cmp   qword [rsp], rcx
@@ -256,6 +242,7 @@ next_route_char:
   ret
 
 return_route:
+  dec   rsi
   mov   rax, qword [rsp]
   mov   qword [route_len], rax
 
@@ -273,15 +260,12 @@ add_route:
   ; rdi -> route length
   push  rbp
 
-  cmp   rdi, ROUTE_MAX_LEN
-  jle   proceed_add_route
-
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  jmp   error
+  cmp   rdi, ROUTE_MAX_LEN
+  jg    error
 
-proceed_add_route:
   mov   rcx, rdi
 
   lea   rsi, [rax]
@@ -297,16 +281,13 @@ proceed_add_route:
 
   inc   qword [routes_list_len]
 
-  mov   rax, qword [routes_list_len]
-  cmp   rax, MAX_ROUTES_COUNT
-  jle   leave_add_route
-
   lea   rsi, [error_max_route]
   mov   rdx, error_max_route_len
 
-  jmp   error
+  mov   rax, qword [routes_list_len]
+  cmp   rax, MAX_ROUTES_COUNT
+  jg    error
 
-leave_add_route:
   pop   rbp
   ret
 
@@ -319,15 +300,12 @@ _start:
   mov   rdx, 0
   syscall
 
-  cmp   rax, 0
-  jge   set_socket_option
-
   lea   rsi, [error_creating_socket]
   mov   rdx, error_creating_socket_len
 
-  jmp   error
+  cmp   rax, 0
+  jl    error
 
-set_socket_option:
   mov   qword [sockfd], rax
 
   ; set socket options
@@ -339,15 +317,12 @@ set_socket_option:
   mov   r8, 4 
   syscall
 
-  cmp   rax, 0
-  jge   next_option
-
   lea   rsi, [error_setting_socket_option]
   mov   rdx, error_setting_socket_option_len
 
-  jmp   error
+  cmp   rax, 0
+  jl    error
 
-next_option:
   mov   rax, SYS_SETSOCKOPT
   mov   rdi, [sockfd]
   mov   rsi, SOL_SOCKET
@@ -356,15 +331,12 @@ next_option:
   mov   r8, 4 
   syscall
 
-  cmp   rax, 0
-  jge   bind
-
   lea   rsi, [error_setting_socket_option]
   mov   rdx, error_setting_socket_option_len
 
-  jmp   error
+  cmp   rax, 0
+  jl    error
 
-bind:
   ; bind socket
   mov   rax, SYS_BIND
   mov   rdi, [sockfd]
@@ -372,46 +344,38 @@ bind:
   mov   rdx, server_addrlen
   syscall
 
-  cmp   rax, 0
-  jge   listen
-
   lea   rsi, [error_binding]
   mov   rdx, error_binding_len
 
-  jmp   error
+  cmp   rax, 0
+  jl    error
 
-listen:
   ; listen socket
   mov   rax, SYS_LISTEN
   mov   rdi, [sockfd]
   mov   rsi, BACKLOG
   syscall
 
-  cmp   rax, 0
-  jge   accept 
-
   lea   rsi, [error_listening]
   mov   rdx, error_listening_len
 
-  jmp   error
+  cmp   rax, 0
+  jl    error
 
-accept:
   ; accept connection
+accept:
   mov   rax, SYS_ACCEPT
   mov   rdi, [sockfd]
   lea   rsi, [client_sin_family]
   lea   rdx, [client_addrlen]
   syscall
 
-  cmp   rax, 0
-  jge   continue_to_add_route
-
   lea   rsi, [error_accepting]
   mov   rdx, error_accepting_len
 
-  jmp   error
+  cmp   rax, 0
+  jl    error
 
-continue_to_add_route:
   mov   [clientfd], rax
 
   ; test add route 
@@ -427,15 +391,12 @@ continue_to_add_route:
   xor   r8, r8
   syscall
 
-  cmp   rax, 0
-  jge   continue_to_extract_method
-
   lea   rsi, [error_reading_request]
   mov   rdx, error_reading_request_len
 
-  jmp   error
+  cmp   rax, 0
+  jl    error
 
-continue_to_extract_method:
   mov   qword [request_len], rax
 
   ; extract method
@@ -449,7 +410,11 @@ continue_to_extract_method:
   mov   rdx, response_400_len
   syscall
 
-  jmp   exit
+  mov   rax, SYS_CLOSE
+  mov   rdi, [clientfd] 
+  syscall
+
+  jmp   accept
 
 move_to_check_method:  
   ; check if method is allowed
@@ -463,7 +428,11 @@ move_to_check_method:
   mov   rdx, response_405_len
   syscall
 
-  jmp   exit
+  mov   rax, SYS_CLOSE
+  mov   rdi, [clientfd] 
+  syscall
+
+  jmp   accept
 
 move_to_route:
   lea   rsi, [request]
@@ -495,7 +464,11 @@ test_route:
   mov   rdx, response_404_len
   syscall
 
-  jmp   exit
+  mov   rax, SYS_CLOSE
+  mov   rdi, [clientfd] 
+  syscall
+
+  jmp   accept
 
 move_to_rest_of_request:
   lea   rsi, [request]
@@ -511,11 +484,18 @@ move_to_rest_of_request:
   mov   rdx, response_200_len
   syscall
 
+  mov   rax, SYS_CLOSE
+  mov   rdi, [clientfd] 
+  syscall
+
+  jmp   accept
+
 exit:
   ; close sockets
   mov   rax, SYS_CLOSE
   mov   rdi, [sockfd] 
   syscall
+
   mov   rax, SYS_CLOSE
   mov   rdi, [clientfd] 
   syscall
