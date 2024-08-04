@@ -97,8 +97,14 @@ check_method:
   sub   rsp, 16 
 
   cmp   rdi, METHOD_MAX_LEN
-  jg    error
+  jle   proceed_check_method
 
+  lea   rsi, [error_method_too_big]
+  mov   rdx, error_method_too_big_len
+
+  jmp   error
+
+proceed_check_method:
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
   
@@ -156,8 +162,14 @@ check_route:
   sub   rsp, 72 
 
   cmp   rdi, ROUTE_MAX_LEN
-  jg    error
+  jle   proceed_check_route
 
+  lea   rsi, [error_route_too_big]
+  mov   rdx, error_route_too_big_len
+
+  jmp   error
+
+proceed_check_route:
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
   
@@ -262,8 +274,14 @@ add_route:
   push  rbp
 
   cmp   rdi, ROUTE_MAX_LEN
-  jg    error
+  jle   proceed_add_route
 
+  lea   rsi, [error_route_too_big]
+  mov   rdx, error_route_too_big_len
+
+  jmp   error
+
+proceed_add_route:
   mov   rcx, rdi
 
   lea   rsi, [rax]
@@ -281,8 +299,14 @@ add_route:
 
   mov   rax, qword [routes_list_len]
   cmp   rax, MAX_ROUTES_COUNT
-  jg    error
+  jle   leave_add_route
 
+  lea   rsi, [error_max_route]
+  mov   rdx, error_max_route_len
+
+  jmp   error
+
+leave_add_route:
   pop   rbp
   ret
 
@@ -296,8 +320,14 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl    error
+  jge   set_socket_option
 
+  lea   rsi, [error_creating_socket]
+  mov   rdx, error_creating_socket_len
+
+  jmp   error
+
+set_socket_option:
   mov   qword [sockfd], rax
 
   ; set socket options
@@ -310,8 +340,14 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl    error
+  jge   next_option
 
+  lea   rsi, [error_setting_socket_option]
+  mov   rdx, error_setting_socket_option_len
+
+  jmp   error
+
+next_option:
   mov   rax, SYS_SETSOCKOPT
   mov   rdi, [sockfd]
   mov   rsi, SOL_SOCKET
@@ -321,8 +357,14 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl    error
+  jge   bind
 
+  lea   rsi, [error_setting_socket_option]
+  mov   rdx, error_setting_socket_option_len
+
+  jmp   error
+
+bind:
   ; bind socket
   mov   rax, SYS_BIND
   mov   rdi, [sockfd]
@@ -331,8 +373,14 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl    error
+  jge   listen
 
+  lea   rsi, [error_binding]
+  mov   rdx, error_binding_len
+
+  jmp   error
+
+listen:
   ; listen socket
   mov   rax, SYS_LISTEN
   mov   rdi, [sockfd]
@@ -340,8 +388,14 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl    error
+  jge   accept 
 
+  lea   rsi, [error_listening]
+  mov   rdx, error_listening_len
+
+  jmp   error
+
+accept:
   ; accept connection
   mov   rax, SYS_ACCEPT
   mov   rdi, [sockfd]
@@ -350,14 +404,18 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl    error
+  jge   continue_to_add_route
 
+  lea   rsi, [error_accepting]
+  mov   rdx, error_accepting_len
+
+  jmp   error
+
+continue_to_add_route:
   mov   [clientfd], rax
 
   ; test add route 
-  funcall2 add_route, test_route_1, test_route_1_len
-  funcall2 add_route, test_route_2, test_route_2_len
-  funcall2 add_route, test_route_3, test_route_3_len
+  funcall2 add_route, default_route, default_route_len
 
   ; receive client request
   mov   rax, SYS_RECVFROM
@@ -370,8 +428,14 @@ _start:
   syscall
 
   cmp   rax, 0
-  jl    error
+  jge   continue_to_extract_method
 
+  lea   rsi, [error_reading_request]
+  mov   rdx, error_reading_request_len
+
+  jmp   error
+
+continue_to_extract_method:
   mov   qword [request_len], rax
 
   ; extract method
@@ -461,20 +525,12 @@ exit:
   mov   rdi, SUCCESS_CODE
   syscall
 
-send_400:
-  mov   rax, SYS_WRITE
-  mov   rdi, [clientfd]
-  mov   rsi, response_400
-  mov   rdx, response_400_len
-  syscall
-
-  mov   qword [clientfd], 0
-
 error:
-  ; close sockets
-  cmp   qword [clientfd], 0
-  jg    send_400
-  
+  ; write error message
+  mov   rax, SYS_WRITE
+  mov   rdi, STDOUT
+  syscall
+ 
   mov   rax, SYS_CLOSE
   mov   rdi, [clientfd] 
   syscall
@@ -523,14 +579,8 @@ section .data
   routes_list     times MAX_ROUTES_COUNT * ROUTE_MAX_LEN db 0
   routes_list_len dq 0
 
-  test_route_1      db "/", NULL_CHAR
-  test_route_1_len  equ $ - test_route_1
-
-  test_route_2      db "/style/style.css", NULL_CHAR
-  test_route_2_len  equ $ - test_route_2
-
-  test_route_3      db "/js/index.js", NULL_CHAR
-  test_route_3_len  equ $ - test_route_3
+  default_route      db "/", NULL_CHAR
+  default_route_len  equ $ - default_route
 
   ; responses
   response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
@@ -563,3 +613,30 @@ section .data
                     db CARRIAGE_RETURN, LINE_FEED
   response_500_len  equ $ - response_500
 
+  ; error messages
+  error_method_too_big      db "[ERROR] request method length exceeds allowed bounds", LINE_FEED
+  error_method_too_big_len  equ $ - error_method_too_big
+
+  error_route_too_big      db "[ERROR] request route length exceeds allowed bounds", LINE_FEED
+  error_route_too_big_len  equ $ - error_route_too_big
+
+  error_max_route      db "[ERROR] maximum number of routes reached", LINE_FEED
+  error_max_route_len  equ $ - error_max_route
+
+  error_creating_socket      db "[ERROR] failed to create socket", LINE_FEED
+  error_creating_socket_len  equ $ - error_creating_socket
+
+  error_binding      db "[ERROR] failed to bind socket", LINE_FEED
+  error_binding_len  equ $ - error_binding
+
+  error_listening      db "[ERROR] failed to listen to socket", LINE_FEED
+  error_listening_len  equ $ - error_listening
+
+  error_accepting      db "[ERROR] failed to accept connection", LINE_FEED
+  error_accepting_len  equ $ - error_accepting
+
+  error_setting_socket_option			db "[ERROR] failed to set socket option", LINE_FEED
+  error_setting_socket_option_len	equ $ - error_setting_socket_option
+
+  error_reading_request			db "[ERROR] failed to read request", LINE_FEED
+  error_reading_request_len	equ $ - error_reading_request
