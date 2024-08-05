@@ -11,7 +11,7 @@ BACKLOG           equ 1
 SO_REUSEADDR      equ 2
 SO_REUSEPORT      equ 15
 AF_INET           equ 2
-PORT              equ 1337
+PORT              equ 80
 REQUEST_MAX_LEN   equ 8*1024
 MSG_TRUNC         equ 32
 METHOD_MAX_LEN    equ 8
@@ -270,8 +270,9 @@ route_found:
   jg    error
 %endmacro
 
-section .text
-_start:
+%macro server_init 1
+  sub   rsp, 64
+  mov   qword [rsp], 0  ; sockfd
   ; create socket
   mov   rax, SYS_SOCKET
   mov   rdi, AF_INET
@@ -285,11 +286,11 @@ _start:
   cmp   rax, 0
   jl    error
 
-  mov   qword [sockfd], rax
+  mov   qword [rsp], rax
 
   ; set socket options
   mov   rax, SYS_SETSOCKOPT
-  mov   rdi, [sockfd]
+  mov   rdi, qword [rsp]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEPORT
   mov   r10, enable
@@ -303,7 +304,7 @@ _start:
   jl    error
 
   mov   rax, SYS_SETSOCKOPT
-  mov   rdi, [sockfd]
+  mov   rdi, qword [rsp]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEADDR
   mov   r10, enable
@@ -319,10 +320,10 @@ _start:
 
   ; bind socket
   xor   rax, rax
-  htons PORT
+  htons %1
   mov   dword [server_sin_port], eax
   mov   rax, SYS_BIND
-  mov   rdi, [sockfd]
+  mov   rdi, qword [rsp]
   lea   rsi, [server_sin_family]
   mov   rdx, server_addrlen
   syscall
@@ -335,7 +336,7 @@ _start:
 
   ; listen socket
   mov   rax, SYS_LISTEN
-  mov   rdi, [sockfd]
+  mov   rdi, qword [rsp]
   mov   rsi, BACKLOG
   syscall
 
@@ -345,10 +346,21 @@ _start:
   cmp   rax, 0
   jl    error
 
+  mov   rax, qword [rsp]
+  add   rsp, 64
+%endmacro
+
+%macro accept 1
+  ; %1 -> sockfd
+  sub   rsp, 128
+  mov   rax, %1
+  mov   qword [rsp], rax
+  mov   qword [rsp+64], 0 ; client fd
+
+%%loop:
   ; accept connection
-accept:
   mov   rax, SYS_ACCEPT
-  mov   rdi, [sockfd]
+  mov   rdi, qword [rsp]
   lea   rsi, [client_sin_family]
   lea   rdx, [client_addrlen]
   syscall
@@ -359,14 +371,11 @@ accept:
   cmp   rax, 0
   jl    error
 
-  mov   [clientfd], rax
-
-  ; test add route 
-  add_route default_route, default_route_len
+  mov   qword [rsp+64], rax
 
   ; receive client request
   mov   rax, SYS_RECVFROM
-  mov   rdi, [clientfd]
+  mov   rdi, qword [rsp+64]
   lea   rsi, [request]
   mov   rdx, REQUEST_MAX_LEN
   xor   r10, r10
@@ -388,16 +397,16 @@ accept:
   jge   move_to_check_method
 
   mov   rax, SYS_WRITE
-  mov   rdi, [clientfd]
+  mov   rdi, qword [rsp+64]
   mov   rsi, response_400
   mov   rdx, response_400_len
   syscall
 
   mov   rax, SYS_CLOSE
-  mov   rdi, [clientfd] 
+  mov   rdi, qword [rsp+64] 
   syscall
 
-  jmp   accept
+  jmp   %%loop
 
 move_to_check_method:  
   ; check if method is allowed
@@ -406,16 +415,16 @@ move_to_check_method:
   jge   move_to_route
 
   mov   rax, SYS_WRITE
-  mov   rdi, [clientfd]
+  mov   rdi, qword [rsp+64]
   mov   rsi, response_405
   mov   rdx, response_405_len
   syscall
 
   mov   rax, SYS_CLOSE
-  mov   rdi, [clientfd] 
+  mov   rdi, qword [rsp+64] 
   syscall
 
-  jmp   accept
+  jmp   %%loop
 
 move_to_route:
   lea   rsi, [request]
@@ -431,7 +440,7 @@ move_to_route:
   jge   test_route
 
   mov   rax, SYS_WRITE
-  mov   rdi, [clientfd]
+  mov   rdi, qword [rsp+64]
   mov   rsi, response_400
   mov   rdx, response_400_len
   syscall
@@ -442,16 +451,16 @@ test_route:
   jge   move_to_rest_of_request
 
   mov   rax, SYS_WRITE
-  mov   rdi, [clientfd]
+  mov   rdi, qword [rsp+64]
   mov   rsi, response_404
   mov   rdx, response_404_len
   syscall
 
   mov   rax, SYS_CLOSE
-  mov   rdi, [clientfd] 
+  mov   rdi, qword [rsp+64] 
   syscall
 
-  jmp   accept
+  jmp   %%loop
 
 move_to_rest_of_request:
   lea   rsi, [request]
@@ -462,31 +471,27 @@ move_to_rest_of_request:
   dec   rcx
 
   mov   rax, SYS_WRITE
-  mov   rdi, [clientfd]
+  mov   rdi, qword [rsp+64]
   mov   rsi, response_200
   mov   rdx, response_200_len
   syscall
 
   mov   rax, SYS_CLOSE
-  mov   rdi, [clientfd] 
+  mov   rdi, qword [rsp+64] 
   syscall
 
-  jmp   accept
+  jmp   %%loop
 
 exit:
   ; close sockets
   mov   rax, SYS_CLOSE
-  mov   rdi, [sockfd] 
+  mov   rdi, qword [rsp] 
   syscall
 
   mov   rax, SYS_CLOSE
-  mov   rdi, [clientfd] 
+  mov   rdi, qword [rsp+64] 
   syscall
-
-  ; exit
-  mov   rax, SYS_EXIT
-  mov   rdi, SUCCESS_CODE
-  syscall
+%endmacro
 
 error:
   ; write error message
@@ -495,21 +500,34 @@ error:
   syscall
  
   mov   rax, SYS_CLOSE
-  mov   rdi, [clientfd] 
+  mov   rdi, qword [rsp+64] 
   syscall
 
   mov   rax, SYS_CLOSE
-  mov   rdi, [sockfd] 
+  mov   rdi, qword [rsp]
   syscall
 
   mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
   syscall
 
+section .text
+_start:
+  server_init 1337
+  mov   qword [sockfd], rax
+
+  add_route default_route, default_route_len
+
+  accept qword [sockfd]
+
+  ; exit
+  mov   rax, SYS_EXIT
+  mov   rdi, SUCCESS_CODE
+  syscall
+
+
 section .data
   sockfd    dq 0
-  clientfd  dq 0
-
   enable    dw 0
 
   server_sin_family  dw AF_INET
