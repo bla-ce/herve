@@ -1,4 +1,4 @@
-*.sh
+git.sh
 *.c
 musl*
 main
