@@ -40,34 +40,25 @@ SPACE           equ 32
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1
 
-%macro funcall2 3
-  mov   rax, %2
-  mov   rdi, %3
-  call  %1
-%endmacro
-
-extract_method:
-  ; rax -> request pointer
-  ; rdi -> request length
-  push  rbp
-  mov   rbp, rsp
-
+%macro extract_method 2
+  ; %1 -> request pointer
+  ; %2 -> request length
   sub   rsp, 8 ; current index
   mov   qword [rsp], 0
 
-  lea   rsi, [rax]
-  mov   rcx, rdi
+  mov   rsi, %1
+  mov   rcx, %2
   xor   rax, rax
 
-next_method_char:
+%%loop:
   lodsb
   cmp   al, SPACE
-  je    return_method
+  je    %%return
 
   inc   qword [rsp]
 
   cmp   qword [rsp], rcx
-  jl    next_method_char
+  jl    %%loop
 
   ; bad request
   mov   rax, -1
@@ -75,7 +66,7 @@ next_method_char:
   pop   rbp
   ret
 
-return_method:
+%%return:
   dec   rsi
   mov   rax, qword [rsp]
   mov   qword [method_len], rax
@@ -86,107 +77,99 @@ return_method:
   rep   movsb
 
   add   rsp, 8 
-  pop   rbp
-  ret
+%endmacro
 
-check_method:
-  ; rax -> method
-  ; rdi -> method length
-  push  rbp
-  mov   rbp, rsp
+%macro check_method 2
+  ; %1 -> method
+  ; %2 -> method length
   sub   rsp, 16 
 
   lea   rsi, [error_method_too_big]
   mov   rdx, error_method_too_big_len
 
-  cmp   rdi, METHOD_MAX_LEN
+  mov   rcx, %2
+  cmp   rcx, METHOD_MAX_LEN
   jg    error
 
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
-  
-  mov   rcx, rdi
 
-  lea   rsi, [rax]
+  mov   rsi, %1
   xor   rax, rax
   lea   rdi, [methods_list]
   xor   rbx, rbx
 
-check_next_char:
+%%loop:
   cmp   qword [rsp], methods_list_len
   je    method_not_allowed
   
   cld
   cmpsb
-  jne   char_mismatch
+  jne   %%mismatch
 
   inc   qword [rsp]
   inc   qword [rsp+8]
 
   cmp   rcx, qword [rsp+8]
   je    method_allowed
-  jmp   check_next_char
+  jmp   %%loop
 
-char_mismatch:
+%%mismatch:
   dec   rsi
   sub   rsi, qword [rsp+8]
   mov   qword [rsp+8], 0
 
   inc   qword [rsp]
 
-  jmp   check_next_char
+  jmp   %%loop
   
 method_not_allowed:
   mov   rax, -1
-  jmp   cleanup
+  jmp   %%return
 
 method_allowed:
   mov   rax, qword [rsp]
 
-cleanup:
+%%return:
   add   rsp, 16
-  pop   rbp
-  ret
+%endmacro
 
-check_route:
-  ; rax -> route
-  ; rdi -> route length
-  push  rbp
-  mov   rbp, rsp
+%macro check_route 2
+  ; %1 -> route
+  ; %2 -> route length
   sub   rsp, 72 
 
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  cmp   rdi, ROUTE_MAX_LEN
+  mov   rcx, %2
+  cmp   rcx, ROUTE_MAX_LEN
   jg    error
 
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
-  
-  mov   rcx, rdi
 
-  lea   rsi, [rax]
+  mov   rsi, %1
   xor   rax, rax
   lea   rdi, [routes_list]
   xor   rbx, rbx
 
-check_next_route_char:
+%%loop:
   mov   rax, [routes_list_len]
   cmp   qword [rsp], rax
   je    route_not_found
   
   cld
   cmpsb
-  jne   route_char_mismatch
+  jne   %%mismatch
 
   inc   qword [rsp+8]
 
   cmp   rcx, qword [rsp+8]
   je    route_found
-  jmp   check_next_route_char
+  jmp   %%loop
 
-route_char_mismatch:
+%%mismatch:
   dec   rsi
   dec   rdi
 
@@ -198,50 +181,45 @@ route_char_mismatch:
 
   inc   qword [rsp]
 
-  jmp   check_next_route_char
+  jmp   %%loop
   
 route_not_found:
   mov   rax, -1
-  jmp   route_cleanup
+  jmp   %%return
 
 route_found:
   mov   rax, qword [rsp]
 
-route_cleanup:
+%%return:
   add   rsp, 72
-  pop   rbp
-  ret
+%endmacro
 
-extract_route:
-  ; rax -> request pointer
-  ; rdi -> request length
-  push  rbp
-  mov   rbp, rsp
-
+%macro extract_route 2
+  ; %1 -> request pointer
+  ; %2 -> request length
   sub   rsp, 8 ; current index
   mov   qword [rsp], 0
 
-  lea   rsi, [rax]
-  mov   rcx, rdi
+  mov   rsi, %1
+  mov   rcx, %2
   xor   rax, rax
 
-next_route_char:
+%%loop:
   lodsb
   cmp   al, SPACE
-  je    return_route
+  je    %%return
 
   inc   qword [rsp]
 
   cmp   qword [rsp], rcx
-  jl    next_route_char
+  jl    %%loop
 
   ; bad request
   mov   rax, -1
   add   rsp, 8
-  pop   rbp
   ret
 
-return_route:
+%%return:
   dec   rsi
   mov   rax, qword [rsp]
   mov   qword [route_len], rax
@@ -252,23 +230,20 @@ return_route:
   rep   movsb
 
   add   rsp, 8 
-  pop   rbp
-  ret
+%endmacro
 
-add_route:
-  ; rax -> route
-  ; rdi -> route length
-  push  rbp
-
+%macro add_route 2
+  ; %1 -> route
+  ; %2 -> route length
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  cmp   rdi, ROUTE_MAX_LEN
+  mov   rcx, %2
+
+  cmp   rcx, ROUTE_MAX_LEN
   jg    error
 
-  mov   rcx, rdi
-
-  lea   rsi, [rax]
+  mov   rsi, %1
   lea   rdi, [routes_list]
 
   mov   rax, qword [routes_list_len]
@@ -287,9 +262,7 @@ add_route:
   mov   rax, qword [routes_list_len]
   cmp   rax, MAX_ROUTES_COUNT
   jg    error
-
-  pop   rbp
-  ret
+%endmacro
 
 section .text
 _start:
@@ -379,7 +352,7 @@ accept:
   mov   [clientfd], rax
 
   ; test add route 
-  funcall2 add_route, default_route, default_route_len
+  add_route default_route, default_route_len
 
   ; receive client request
   mov   rax, SYS_RECVFROM
@@ -400,7 +373,7 @@ accept:
   mov   qword [request_len], rax
 
   ; extract method
-  funcall2 extract_method, request, [request_len] 
+  extract_method request, [request_len] 
   cmp   rax, 0
   jge   move_to_check_method
 
@@ -418,7 +391,7 @@ accept:
 
 move_to_check_method:  
   ; check if method is allowed
-  funcall2 check_method, method, [method_len]
+  check_method method, [method_len]
   cmp   rax, 0
   jge   move_to_route
 
@@ -443,7 +416,7 @@ move_to_route:
   dec   rcx
 
   ; extract route
-  funcall2 extract_route, rsi, rcx 
+  extract_route rsi, rcx 
   cmp   rax, 0
   jge   test_route
 
@@ -454,7 +427,7 @@ move_to_route:
   syscall
 
 test_route:
-  funcall2 check_route, route, [route_len]
+  check_route route, [route_len]
   cmp   rax, 0
   jge   move_to_rest_of_request
 
