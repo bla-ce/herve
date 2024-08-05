@@ -11,7 +11,7 @@ BACKLOG           equ 1
 SO_REUSEADDR      equ 2
 SO_REUSEPORT      equ 15
 AF_INET           equ 2
-PORT              equ 14597 
+PORT              equ 1337
 REQUEST_MAX_LEN   equ 8*1024
 MSG_TRUNC         equ 32
 METHOD_MAX_LEN    equ 8
@@ -39,6 +39,12 @@ SPACE           equ 32
 ; exit code
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1
+
+%macro htons 1
+  ; %1 -> port
+  mov   eax, %1
+  xchg  al, ah ; bswap 16-bit registers
+%endmacro
 
 %macro extract_method 2
   ; %1 -> request pointer
@@ -310,7 +316,11 @@ _start:
   cmp   rax, 0
   jl    error
 
+
   ; bind socket
+  xor   rax, rax
+  htons PORT
+  mov   dword [server_sin_port], eax
   mov   rax, SYS_BIND
   mov   rdi, [sockfd]
   lea   rsi, [server_sin_family]
@@ -503,7 +513,7 @@ section .data
   enable    dw 0
 
   server_sin_family  dw AF_INET
-  server_sin_port    dw PORT
+  server_sin_port    dw 0
   server_sin_addr    dd INADDR_ANY
   server_sa_zero     dq 0
   server_addrlen     equ $ - server_sin_family
