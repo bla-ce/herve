@@ -15,6 +15,7 @@ tests=(
   "localhost:1337/ CONNECT 405"
   "localhost:1337/index GET 200"
   "localhost:1337/not-found GET 404"
+  "localhost:1337/not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found GET 400"
 )
 
 total_tests=${#tests[@]}

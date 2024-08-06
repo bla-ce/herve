@@ -69,9 +69,7 @@ FAILURE_CODE equ -1
 
   ; bad request
   mov   rax, -1
-  add   rsp, 8
-  pop   rbp
-  ret
+  jmp   %%skip
 
 %%return:
   dec   rsi
@@ -83,6 +81,7 @@ FAILURE_CODE equ -1
   mov   rcx, rax
   rep   movsb
 
+%%skip:
   add   rsp, 8 
 %endmacro
 
@@ -212,6 +211,9 @@ route_found:
   xor   rax, rax
 
 %%loop:
+  cmp   qword [rsp], ROUTE_MAX_LEN
+  jge   %%bad_request
+
   lodsb
   cmp   al, SPACE
   je    %%return
@@ -221,10 +223,10 @@ route_found:
   cmp   qword [rsp], rcx
   jl    %%loop
 
+%%bad_request:
   ; bad request
   mov   rax, -1
-  add   rsp, 8
-  ret
+  jmp   %%skip
 
 %%return:
   dec   rsi
@@ -236,6 +238,7 @@ route_found:
   mov   rcx, rax
   rep   movsb
 
+%%skip:
   add   rsp, 8 
 %endmacro
 
@@ -446,6 +449,12 @@ move_to_route:
   mov   rsi, response_400
   mov   rdx, response_400_len
   syscall
+
+  mov   rax, SYS_CLOSE
+  mov   rdi, qword [rsp+64] 
+  syscall
+
+  jmp   %%loop
 
 test_route:
   check_route route, [route_len]
