@@ -1,6 +1,7 @@
+; TODO: Logs
 ; TODO: URL Parameters
-; TODO: Basic Auth
 ; TODO: URL Anchors
+; TODO: Basic Auth
 ; TODO: Serve Files
 ; TODO: Read Request body
 
@@ -8,7 +9,8 @@
 %define SERVER_INC
 
 ; constants
-STDOUT  equ 2
+STDOUT    equ 2
+LONG_SIZE equ 10
 
 ; socket constants
 INADDR_ANY        equ 0
@@ -26,16 +28,17 @@ ROUTE_MAX_LEN     equ 32
 MAX_ROUTES_COUNT  equ 10
 
 ; syscall values
-SYS_WRITE       equ 1
-SYS_CLOSE       equ 3
-SYS_SOCKET      equ 41
-SYS_ACCEPT      equ 43
-SYS_SENDTO      equ 44
-SYS_RECVFROM    equ 45
-SYS_BIND        equ 49
-SYS_LISTEN      equ 50
-SYS_SETSOCKOPT  equ 54
-SYS_EXIT        equ 60
+SYS_WRITE         equ 1
+SYS_CLOSE         equ 3
+SYS_SOCKET        equ 41
+SYS_ACCEPT        equ 43
+SYS_SENDTO        equ 44
+SYS_RECVFROM      equ 45
+SYS_BIND          equ 49
+SYS_LISTEN        equ 50
+SYS_SETSOCKOPT    equ 54
+SYS_EXIT          equ 60
+SYS_CLOCK_GETTIME equ 228
 
 ; ascii
 NULL_CHAR       equ 0
@@ -44,12 +47,48 @@ LINE_FEED       equ 10
 CARRIAGE_RETURN equ 13
 SPACE           equ 32
 NUMBER_SIGN     equ 35
+DOT             equ 46
 SLASH           equ 47
+ZERO_CHAR       equ 48
 QUESTION_MARK   equ 63
+LOW_N_CHAR      equ 110
+LOW_S_CHAR      equ 115
 
 ; exit code
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1
+
+%macro log_add_duration 0
+  sub   rsp, 8 ; duration_str length
+  mov   qword [rsp], 0
+
+  lea   rsi, [log_duration]
+  add   rsi, LONG_SIZE
+
+  ; print ns backwards
+  mov   byte [rsi], LOW_S_CHAR
+  dec   rsi
+  mov   byte [rsi], LOW_N_CHAR
+  dec   rsi
+
+  mov   rax, qword [duration]
+  
+%%loop:
+  xor   rdx, rdx
+  mov   rcx, 0xA              ; divisor, dividend in rax
+  div   rcx                   ; quotient in rax and remainder in edx
+
+  add   rdx, ZERO_CHAR
+
+  mov   byte [rsi], dl
+
+  dec   rsi
+
+  cmp   rax, 0
+  jne   %%loop
+
+  add   rsp, 8
+  %endmacro
 
 %macro htons 1
   ; %1 -> port
@@ -427,6 +466,63 @@ route_found:
   mov   qword [rsp+64], 0 ; client fd
 
 %%loop:
+  ; set end timer
+  mov   rax, SYS_CLOCK_GETTIME
+  mov   rdi, 0
+  lea   rsi, [end_tv_sec]
+  syscall
+
+  cmp   qword [start_tv_sec], 0
+  je    timer_not_defined
+
+  mov   rax, qword [end_tv_nsec]
+  sub   rax, qword [start_tv_nsec]
+
+  mov   qword [duration], rax
+
+print_log:
+  mov   rcx, METHOD_MAX_LEN
+  mov   rax, SPACE
+  lea   rdi, [log_method]
+  rep   stosb
+
+  mov   rcx, ROUTE_MAX_LEN
+  mov   rax, SPACE
+  lea   rdi, [log_route]
+  rep   stosb
+
+  mov   rcx, LONG_SIZE
+  add   rcx, 2
+  mov   rax, SPACE
+  lea   rdi, [log_duration]
+  rep   stosb
+
+  lea   rsi, [method]
+  lea   rdi, [log_method]
+  mov   rcx, [method_len] 
+  rep   movsb
+
+  lea   rsi, [route]
+
+  mov   al, byte [rsi]
+  cmp   al, NULL_CHAR
+  je    jump_log_route
+
+  lea   rdi, [log_route]
+  mov   rcx, [route_len]
+  rep   movsb
+
+jump_log_route:
+
+  log_add_duration
+
+  mov   rax, SYS_WRITE
+  mov   rdi, STDOUT
+  lea   rsi, [log_start]
+  mov   rdx, log_len
+  syscall
+
+timer_not_defined:
   ; clear route and method
   mov   rcx, ROUTE_MAX_LEN
   xor   rax, rax
@@ -452,6 +548,12 @@ route_found:
   jl    error
 
   mov   qword [rsp+64], rax
+
+  ; set start timer
+  mov   rax, SYS_CLOCK_GETTIME
+  mov   rdi, 0
+  lea   rsi, [start_tv_sec]
+  syscall
 
   ; receive client request
   mov   rax, SYS_RECVFROM
@@ -718,6 +820,25 @@ section .data
 
   error_reading_request			db "[ERROR] failed to read request", LINE_FEED
   error_reading_request_len	equ $ - error_reading_request
+
+  ; timers
+  start_tv_sec  dq 0
+  start_tv_nsec dq 0
+
+  end_tv_sec  dq 0
+  end_tv_nsec dq 0
+
+  duration dq 0
+
+  ; log
+  log_start     db " [LOG] "
+  log_method    times METHOD_MAX_LEN db SPACE
+  log_delim     db " | "
+  log_route     times ROUTE_MAX_LEN db SPACE
+  log_delim2    db " | " 
+  log_duration  times LONG_SIZE+2 db SPACE
+  log_end       db " | ", LINE_FEED
+  log_len       equ $ - log_start
 
 %endif
 
