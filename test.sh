@@ -8,13 +8,13 @@ NC='\033[0m' # No color
 
 # Define the tests
 tests=(
-  "localhost:1337/ GET 200"
-  "localhost:1337/ PUT 200"
-  "localhost:1337/ POST 200"
-  "localhost:1337/ DELETE 200"
-  "localhost:1337/ CONNECT 405"
   "localhost:1337/index GET 200"
-  "localhost:1337/not-found GET 404"
+  "localhost:1337/ GET 200"
+  "localhost:1337/ POST 404"
+  "localhost:1337/ CONNECT 405"
+  "localhost:1337/api/v1 GET 200"
+  "localhost:1337/api/v1/ GET 200"
+  "localhost:1337/api/v1/ PUT 404"
   "localhost:1337/not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found GET 400"
 )
 
@@ -34,7 +34,7 @@ perform_test() {
 
   # Check if the actual status code matches the expected one
   if [ "$status_code" -eq "$expected" ]; then
-    echo -e "[${YELLOW}TEST $test_number/$total_tests${NC}] : $method $url -> ${GREEN}PASSED${NC}"
+    echo -e "[${YELLOW}TEST $test_number/$total_tests${NC}] : $method $url -> ${GREEN}PASSED${NC} (expected: $expected)"
     passed_tests=$((passed_tests + 1))
   else
     echo -e "[${YELLOW}TEST $test_number/$total_tests${NC}] : $method $url -> ${RED}FAILED${NC} (expected: $expected, got: $status_code)"

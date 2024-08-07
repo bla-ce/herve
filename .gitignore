@@ -4,3 +4,4 @@ musl*
 main
 server
 server.o
+server.s

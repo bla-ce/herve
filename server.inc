@@ -36,6 +36,7 @@ NULL_CHAR       equ 0
 LINE_FEED       equ 10
 CARRIAGE_RETURN equ 13
 SPACE           equ 32
+SLASH           equ 47
 
 ; exit code
 SUCCESS_CODE equ 0
@@ -155,7 +156,23 @@ method_allowed:
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
 
-  mov   rsi, %1
+  mov   rdi, %1
+  add   rdi, rcx
+  dec   rdi
+  lea   rsi, [rdi]
+  lodsb
+  sub   rsi, rcx
+
+  cmp   rcx, 1
+  je    %%jump
+
+  mov   rbx, rcx
+  dec   rbx
+
+  cmp   al, SLASH
+  cmove rcx, rbx
+
+%%jump:
   xor   rax, rax
   lea   rdi, [routes_list]
   xor   rbx, rbx
@@ -182,6 +199,7 @@ method_allowed:
   sub   rsi, qword [rsp+8]
   sub   rdi, qword [rsp+8]
   add   rdi, ROUTE_MAX_LEN
+  add   rdi, METHOD_MAX_LEN
 
   mov   qword [rsp+8], 0
 
@@ -194,6 +212,17 @@ route_not_found:
   jmp   %%return
 
 route_found:
+  ; test method
+  sub   rdi, rcx
+  add   rdi, ROUTE_MAX_LEN
+
+  lea   rsi, [method]
+
+  cld
+  mov   rcx, qword [method_len]
+  rep   cmpsb
+  jne   route_not_found
+
   mov   rax, qword [rsp]
 
 %%return:
@@ -242,26 +271,37 @@ route_found:
   add   rsp, 8 
 %endmacro
 
-%macro add_route 2
-  ; %1 -> route
-  ; %2 -> route length
+%macro add_route 4
+  ; %1 -> method
+  ; %2 -> method length
+  ; %3 -> route
+  ; %4 -> route length
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  mov   rcx, %2
+  mov   rcx, %4
 
   cmp   rcx, ROUTE_MAX_LEN
   jg    error
 
-  mov   rsi, %1
+  mov   rsi, %3
+
   lea   rdi, [routes_list]
 
   mov   rax, qword [routes_list_len]
-
   mov   rbx, ROUTE_MAX_LEN
+  add   rbx, METHOD_MAX_LEN
   mul   rbx
 
   add   rdi, rax
+  rep   movsb
+
+  mov   rax, ROUTE_MAX_LEN
+  sub   rax, %4
+  add   rdi, rax
+
+  mov   rsi, %1
+  mov   rcx, %2
   rep   movsb
 
   inc   qword [routes_list_len]
@@ -321,7 +361,8 @@ route_found:
   cmp   rax, 0
   jl    error
 
-  add_route root_route, root_route_len
+  br1:
+  add_route http_get, http_get_len, root_route, root_route_len
 
   ; bind socket
   xor   rax, rax
@@ -544,18 +585,21 @@ section .data
   method      times METHOD_MAX_LEN db 0
   method_len  dq 0
 
-  route      times ROUTE_MAX_LEN db 0
+  route      times ROUTE_MAX_LEN + METHOD_MAX_LEN db 0
   route_len  dq 0
 
   methods_list     db "GET POST PUT DELETE", NULL_CHAR
-  methods_list_len equ $ - methods_list
+  methods_list_len equ $ - methods_list-1
 
-  routes_list     times MAX_ROUTES_COUNT * ROUTE_MAX_LEN db 0
+  routes_list     times MAX_ROUTES_COUNT * (ROUTE_MAX_LEN+METHOD_MAX_LEN) db 0
   routes_list_len dq 0
+
+  http_get      db "GET", NULL_CHAR
+  http_get_len  equ $ - http_get-1
 
   ; route
   root_route      db "/", NULL_CHAR
-  root_route_len  equ $ - root_route
+  root_route_len  equ $ - root_route-1
 
   ; responses
   response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
