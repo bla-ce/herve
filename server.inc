@@ -608,14 +608,39 @@ section .data
   route      times ROUTE_MAX_LEN + METHOD_MAX_LEN db 0
   route_len  dq 0
 
-  methods_list     db "GET POST PUT DELETE", SPACE
+  methods_list     db "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add space for method checking
   methods_list_len equ $ - methods_list
 
   routes_list     times MAX_ROUTES_COUNT * (ROUTE_MAX_LEN+METHOD_MAX_LEN) db 0
   routes_list_len dq 0
 
+  ; methods
   http_get      db "GET", NULL_CHAR
   http_get_len  equ $ - http_get
+
+  http_post     db "POST", NULL_CHAR
+  http_post_len equ $ - http_post
+
+  http_put      db "PUT", NULL_CHAR
+  http_put_len  equ $ - http_put
+
+  http_delete   db "DELETE", NULL_CHAR
+  http_delete_len equ $ - http_delete
+
+  http_head     db "HEAD", NULL_CHAR
+  http_head_len equ $ - http_head
+
+  http_options  db "OPTIONS", NULL_CHAR
+  http_options_len equ $ - http_options
+
+  http_patch    db "PATCH", NULL_CHAR
+  http_patch_len equ $ - http_patch
+
+  http_trace    db "TRACE", NULL_CHAR
+  http_trace_len equ $ - http_trace
+
+  http_connect  db "CONNECT", NULL_CHAR
+  http_connect_len equ $ - http_connect
 
   ; route
   root_route      db "/", NULL_CHAR
