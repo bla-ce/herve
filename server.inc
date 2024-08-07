@@ -33,6 +33,7 @@ SYS_EXIT        equ 60
 
 ; ascii
 NULL_CHAR       equ 0
+END_OF_TEXT     equ 3
 LINE_FEED       equ 10
 CARRIAGE_RETURN equ 13
 SPACE           equ 32
@@ -135,6 +136,10 @@ method_not_allowed:
   jmp   %%return
 
 method_allowed:
+  mov   al, byte [rdi]
+  cmp   al, SPACE
+  jne   method_not_allowed
+
   mov   rax, qword [rsp]
 
 %%return:
@@ -212,6 +217,10 @@ route_not_found:
   jmp   %%return
 
 route_found:
+  mov   al, byte [rdi]
+  cmp   al, NULL_CHAR
+  jne   route_not_found
+
   ; test method
   sub   rdi, rcx
   add   rdi, ROUTE_MAX_LEN
@@ -404,6 +413,17 @@ route_found:
   mov   qword [rsp+64], 0 ; client fd
 
 %%loop:
+  ; clear route and method
+  mov   rcx, ROUTE_MAX_LEN
+  xor   rax, rax
+  lea   rdi, [route]
+  rep   stosb
+
+  mov   rcx, METHOD_MAX_LEN
+  xor   rax, rax
+  lea   rdi, [method]
+  rep   stosb
+
   ; accept connection
   mov   rax, SYS_ACCEPT
   mov   rdi, qword [rsp]
@@ -588,18 +608,18 @@ section .data
   route      times ROUTE_MAX_LEN + METHOD_MAX_LEN db 0
   route_len  dq 0
 
-  methods_list     db "GET POST PUT DELETE", NULL_CHAR
-  methods_list_len equ $ - methods_list-1
+  methods_list     db "GET POST PUT DELETE", SPACE
+  methods_list_len equ $ - methods_list
 
   routes_list     times MAX_ROUTES_COUNT * (ROUTE_MAX_LEN+METHOD_MAX_LEN) db 0
   routes_list_len dq 0
 
   http_get      db "GET", NULL_CHAR
-  http_get_len  equ $ - http_get-1
+  http_get_len  equ $ - http_get
 
   ; route
   root_route      db "/", NULL_CHAR
-  root_route_len  equ $ - root_route-1
+  root_route_len  equ $ - root_route
 
   ; responses
   response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
