@@ -9,7 +9,7 @@
 %define SERVER_INC
 
 ; constants
-STDOUT    equ 2
+STDOUT    equ 1
 LONG_SIZE equ 10
 
 ; socket constants
@@ -26,6 +26,7 @@ MSG_TRUNC         equ 32
 METHOD_MAX_LEN    equ 8
 ROUTE_MAX_LEN     equ 32
 MAX_ROUTES_COUNT  equ 10
+STATUS_CODE_LEN   equ 3
 
 ; syscall values
 SYS_WRITE         equ 1
@@ -47,6 +48,7 @@ LINE_FEED       equ 10
 CARRIAGE_RETURN equ 13
 SPACE           equ 32
 NUMBER_SIGN     equ 35
+HYPHEN          equ 45
 DOT             equ 46
 SLASH           equ 47
 ZERO_CHAR       equ 48
@@ -57,6 +59,28 @@ LOW_S_CHAR      equ 115
 ; exit code
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1
+
+%macro log_add_status 0
+  lea   rsi, [log_status]
+  add   rsi, STATUS_CODE_LEN
+  dec   rsi
+
+  mov   eax, dword [http_status_code]
+  
+%%loop:
+  xor   edx, edx
+  mov   ecx, 0xA              ; divisor, dividend in rax
+  div   ecx                   ; quotient in rax and remainder in edx
+
+  add   edx, ZERO_CHAR
+
+  mov   byte [rsi], dl
+
+  dec   esi
+
+  cmp   eax, 0
+  jne   %%loop
+%endmacro
 
 %macro log_add_duration 0
   sub   rsp, 8 ; duration_str length
@@ -516,6 +540,8 @@ jump_log_route:
 
   log_add_duration
 
+  log_add_status
+
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT
   lea   rsi, [log_start]
@@ -584,6 +610,8 @@ timer_not_defined:
   mov   rdx, response_400_len
   syscall
 
+  mov   dword [http_status_code], 400
+
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+64] 
   syscall
@@ -601,6 +629,8 @@ move_to_check_method:
   mov   rsi, response_405
   mov   rdx, response_405_len
   syscall
+
+  mov   dword [http_status_code], 405
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+64] 
@@ -627,6 +657,8 @@ move_to_route:
   mov   rdx, response_400_len
   syscall
 
+  mov   dword [http_status_code], 400
+
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+64] 
   syscall
@@ -643,6 +675,8 @@ test_route:
   mov   rsi, response_404
   mov   rdx, response_404_len
   syscall
+
+  mov   dword [http_status_code], 404
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+64] 
@@ -663,6 +697,8 @@ move_to_rest_of_request:
   mov   rsi, response_200
   mov   rdx, response_200_len
   syscall
+
+  mov   dword [http_status_code], 200
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+64] 
@@ -758,6 +794,8 @@ section .data
   http_connect  db "CONNECT", NULL_CHAR
   http_connect_len equ $ - http_connect
 
+  http_status_code dw 0
+
   ; route
   root_route      db "/", NULL_CHAR
   root_route_len  equ $ - root_route
@@ -831,13 +869,15 @@ section .data
   duration dq 0
 
   ; log
-  log_start     db " [LOG] "
+  log_start     db LINE_FEED, " [LOG] "
   log_method    times METHOD_MAX_LEN db SPACE
   log_delim     db " | "
   log_route     times ROUTE_MAX_LEN db SPACE
   log_delim2    db " | " 
   log_duration  times LONG_SIZE+2 db SPACE
-  log_end       db " | ", LINE_FEED
+  log_delim3    db " | "
+  log_status    times STATUS_CODE_LEN db SPACE
+  log_end       db " | "
   log_len       equ $ - log_start
 
 %endif
