@@ -1,3 +1,9 @@
+; TODO: URL Parameters
+; TODO: Basic Auth
+; TODO: URL Anchors
+; TODO: Serve Files
+; TODO: Read Request body
+
 %ifndef SERVER_INC
 %define SERVER_INC
 
@@ -37,7 +43,9 @@ END_OF_TEXT     equ 3
 LINE_FEED       equ 10
 CARRIAGE_RETURN equ 13
 SPACE           equ 32
+NUMBER_SIGN     equ 35
 SLASH           equ 47
+QUESTION_MARK   equ 63
 
 ; exit code
 SUCCESS_CODE equ 0
@@ -254,6 +262,12 @@ route_found:
 
   lodsb
   cmp   al, SPACE
+  je    %%return
+
+  cmp   al, QUESTION_MARK
+  je    %%return
+
+  cmp   al, NUMBER_SIGN
   je    %%return
 
   inc   qword [rsp]
@@ -654,9 +668,9 @@ section .data
   response_200_len  equ $ - response_200
 
   response_400      db "HTTP/1.1 400 Bad Request", CARRIAGE_RETURN, LINE_FEED
-  db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-  db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-  db CARRIAGE_RETURN, LINE_FEED
+                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+                    db CARRIAGE_RETURN, LINE_FEED
   response_400_len  equ $ - response_400
 
   response_405      db "HTTP/1.1 405 Method Not Allowed", CARRIAGE_RETURN, LINE_FEED
