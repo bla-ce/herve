@@ -59,6 +59,7 @@ shutdown
 ```
 
 Full Example Code
+
 Here is the complete code for your server.s file:
 
 ``` assembly
@@ -103,7 +104,9 @@ To run the server, use:
 ```
 
 ### Step 10: Test the Routes
-You can test the routes using the test.sh script. Make sure to configure it by adding the routes and expected HTTP status codes. Then, make the script executable and run it:
+You can test the routes using the test.sh script. 
+
+Make sure to configure it by adding the routes and expected HTTP status codes. Then, make the script executable and run it:
 
 ``` bash
 chmod +x test.sh
