@@ -1,32 +1,35 @@
-; TODO: Logs
-; TODO: URL Parameters
-; TODO: URL Anchors
-; TODO: Basic Auth
-; TODO: Serve Files
-; TODO: Read Request body
+; TODO: add date and time to log
+; TODO; error handling
+; TODO: add https
+; TODO: basic auth
+; TODO: serve files
+; TODO: add function to route
+; TODO: read request body
+; TODO: url parameters
+; TODO: url anchors
 
 %ifndef SERVER_INC
 %define SERVER_INC
 
 ; constants
-STDOUT    equ 1
-LONG_SIZE equ 10
+CLOCK_REALTIME  equ 0
+STDOUT          equ 1
+LONG_SIZE       equ 10
 
 ; socket constants
-INADDR_ANY        equ 0
-SOCK_STREAM       equ 1
-SOL_SOCKET        equ 1
-BACKLOG           equ 1
-SO_REUSEADDR      equ 2
-SO_REUSEPORT      equ 15
-AF_INET           equ 2
-PORT              equ 80
-REQUEST_MAX_LEN   equ 8*1024
-MSG_TRUNC         equ 32
-METHOD_MAX_LEN    equ 8
-ROUTE_MAX_LEN     equ 32
-MAX_ROUTES_COUNT  equ 10
-STATUS_CODE_LEN   equ 3
+INADDR_ANY          equ 0
+SOCK_STREAM         equ 1
+SOL_SOCKET          equ 1
+BACKLOG             equ 1
+SO_REUSEADDR        equ 2
+SO_REUSEPORT        equ 15
+AF_INET             equ 2
+REQUEST_MAX_LEN     equ 8*1024
+MSG_TRUNC           equ 32
+METHOD_MAX_LEN      equ 8
+ROUTE_MAX_LEN       equ 32
+MAX_ROUTES_COUNT    equ 10
+STATUS_CODE_LEN     equ 3
 
 ; syscall values
 SYS_WRITE         equ 1
@@ -59,6 +62,48 @@ LOW_S_CHAR      equ 115
 ; exit code
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1
+
+%macro strpos 4
+  ; %1 -> string
+  ; %2 -> string length
+  ; %3 -> substring
+  ; %4 -> substring length
+  sub   rsp, 8 ; string index and substring index
+  mov   qword [rsp], 0
+
+  mov   rsi, %1
+  mov   rax, %2
+  mov   rdi, %3
+  mov   rbx, %4
+
+%%loop:
+  mov   rcx, rbx
+  cld
+  rep   cmpsb 
+  je    %%found
+
+  add   qword [rsp], rbx
+  sub   qword [rsp], rcx
+
+  cmp   qword [rsp], rax
+  jg    %%not_found
+
+  add   rdi, rcx
+  sub   rdi, rbx
+
+  jmp   %%loop
+
+%%found:
+  mov   rax, qword [rsp]
+  jmp   %%return
+
+%%not_found:
+  mov   rax, -1
+  jmp   %%return
+  
+%%return:
+  add   rsp, 8
+%endmacro
 
 %macro log_add_status 0
   lea   rsi, [log_status]
@@ -123,7 +168,7 @@ FAILURE_CODE equ -1
 %macro extract_method 2
   ; %1 -> request pointer
   ; %2 -> request length
-  sub   rsp, 8 ; current index
+  sub   rsp, 8 ; current inde[x
   mov   qword [rsp], 0
 
   mov   rsi, %1
@@ -357,6 +402,39 @@ route_found:
   add   rsp, 8 
 %endmacro
 
+%macro disallow_method 2
+  ; %1 -> method
+  ; %2 -> method_len
+  mov   rsi, %1
+
+  mov   rbx, %2
+  mov   [method_len], rbx
+
+  lea   rdi, [method]
+  mov   rcx, rbx
+  rep   movsb
+
+  push  rbx
+
+  strpos methods_list, methods_list_len, method, [method_len]
+
+  lea   rsi, [method_doesnt_exist]
+  mov   rdi, method_doesnt_exist_len
+  cmp   rax, 0
+  jl    error
+
+  pop   rbx
+
+  lea   rdi, [methods_list]
+  add   rdi, rax
+
+  mov   al, SPACE
+  mov   rcx, rbx
+  rep   stosb
+
+  xor   rax, rax
+%endmacro
+
 %macro add_route 4
   ; %1 -> method
   ; %2 -> method length
@@ -398,6 +476,7 @@ route_found:
   mov   rax, qword [routes_list_len]
   cmp   rax, MAX_ROUTES_COUNT
   jg    error
+
 %endmacro
 
 %macro server_init 1
@@ -447,7 +526,6 @@ route_found:
   cmp   rax, 0
   jl    error
 
-  br1:
   add_route http_get, http_get_len, root_route, root_route_len
 
   ; bind socket
@@ -492,7 +570,7 @@ route_found:
 %%loop:
   ; set end timer
   mov   rax, SYS_CLOCK_GETTIME
-  mov   rdi, 0
+  mov   rdi, CLOCK_REALTIME
   lea   rsi, [end_tv_sec]
   syscall
 
@@ -577,7 +655,7 @@ timer_not_defined:
 
   ; set start timer
   mov   rax, SYS_CLOCK_GETTIME
-  mov   rdi, 0
+  mov   rdi, CLOCK_REALTIME
   lea   rsi, [start_tv_sec]
   syscall
 
@@ -767,31 +845,31 @@ section .data
   routes_list_len dq 0
 
   ; methods
-  http_get      db "GET", NULL_CHAR
+  http_get      db "GET"
   http_get_len  equ $ - http_get
 
-  http_post     db "POST", NULL_CHAR
+  http_post     db "POST"
   http_post_len equ $ - http_post
 
-  http_put      db "PUT", NULL_CHAR
+  http_put      db "PUT"
   http_put_len  equ $ - http_put
 
-  http_delete   db "DELETE", NULL_CHAR
+  http_delete   db "DELETE"
   http_delete_len equ $ - http_delete
 
-  http_head     db "HEAD", NULL_CHAR
+  http_head     db "HEAD"
   http_head_len equ $ - http_head
 
-  http_options  db "OPTIONS", NULL_CHAR
+  http_options  db "OPTIONS"
   http_options_len equ $ - http_options
 
-  http_patch    db "PATCH", NULL_CHAR
+  http_patch    db "PATCH"
   http_patch_len equ $ - http_patch
 
-  http_trace    db "TRACE", NULL_CHAR
+  http_trace    db "TRACE"
   http_trace_len equ $ - http_trace
 
-  http_connect  db "CONNECT", NULL_CHAR
+  http_connect  db "CONNECT"
   http_connect_len equ $ - http_connect
 
   http_status_code dw 0
@@ -858,6 +936,9 @@ section .data
 
   error_reading_request			db "[ERROR] failed to read request", LINE_FEED
   error_reading_request_len	equ $ - error_reading_request
+
+  method_doesnt_exist      db "[ERROR] method doesn't exist", LINE_FEED
+  method_doesnt_exist_len  equ $ - method_doesnt_exist
 
   ; timers
   start_tv_sec  dq 0
