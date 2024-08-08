@@ -235,7 +235,7 @@ FAILURE_CODE equ -1
   inc   qword [rsp+8]
 
   cmp   rcx, qword [rsp+8]
-  je    method_allowed
+  je    method_exists
   jmp   %%loop
 
 %%mismatch:
@@ -251,10 +251,25 @@ method_not_allowed:
   mov   rax, -1
   jmp   %%return
 
-method_allowed:
+method_exists:
+  ; make sure we checked the entire method
   mov   al, byte [rdi]
   cmp   al, SPACE
   jne   method_not_allowed
+
+  ; check if the method is allowed
+  mov   rsi, methods_list
+  sub   rdi, rsi
+  mov   rbx, rdi
+  sub   rbx, %2
+
+  lea   rsi, %1
+  lea   rdi, [not_allowed_methods]
+  add   rdi, rbx
+
+  mov   rcx, %2
+  rep   cmpsb
+  je    method_not_allowed
 
   mov   rax, qword [rsp]
 
@@ -416,6 +431,7 @@ route_found:
 
   push  rbx
 
+  dec   qword [method_len] ; remove null_char 
   strpos methods_list, methods_list_len, method, [method_len]
 
   lea   rsi, [method_doesnt_exist]
@@ -425,30 +441,61 @@ route_found:
 
   pop   rbx
 
-  lea   rdi, [methods_list]
+  lea   rdi, [not_allowed_methods]
   add   rdi, rax
 
-  mov   al, SPACE
+  lea   rsi, [method]
   mov   rcx, rbx
-  rep   stosb
+  rep   movsb
 
   xor   rax, rax
 %endmacro
 
-%macro add_route 4
+%macro add_route 2
   ; %1 -> method
-  ; %2 -> method length
-  ; %3 -> route
-  ; %4 -> route length
+  ; %2 -> route
+  sub   rsp, 16
+  mov   qword [rsp], 0 ; route_len
+  mov   qword [rsp+8], 0 ; method_len
+
+  mov   rdi, %2
+
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  mov   rcx, %4
+  mov   rcx, ROUTE_MAX_LEN
 
-  cmp   rcx, ROUTE_MAX_LEN
-  jg    error
+%%loop:
+  mov   al, NULL_CHAR
+  cmp   byte [rdi], al
+  je    %%get_method_len
 
-  mov   rsi, %3
+  inc   rdi
+  dec   rcx
+
+  cmp   rcx, 0
+  jl    error
+
+  jmp   %%loop
+
+%%get_method_len:
+  cmp   qword [rsp], 0
+  jg    %%continue ; means we are done with route and method length
+
+  mov   qword [rsp], ROUTE_MAX_LEN
+  sub   qword [rsp], rcx
+
+  ; get method length
+  mov   rcx, METHOD_MAX_LEN
+  mov   rdi, %1
+  jmp   %%loop
+
+%%continue:
+  mov   qword [rsp+8], METHOD_MAX_LEN
+  sub   qword [rsp+8], rcx
+
+  mov   rcx, qword [rsp]
+  mov   rsi, %2
 
   lea   rdi, [routes_list]
 
@@ -461,11 +508,11 @@ route_found:
   rep   movsb
 
   mov   rax, ROUTE_MAX_LEN
-  sub   rax, %4
+  sub   rax, qword [rsp]
   add   rdi, rax
 
   mov   rsi, %1
-  mov   rcx, %2
+  mov   rcx, qword [rsp+8]
   rep   movsb
 
   inc   qword [routes_list_len]
@@ -477,6 +524,7 @@ route_found:
   cmp   rax, MAX_ROUTES_COUNT
   jg    error
 
+  add   rsp, 16
 %endmacro
 
 %macro server_init 1
@@ -526,7 +574,8 @@ route_found:
   cmp   rax, 0
   jl    error
 
-  add_route http_get, http_get_len, root_route, root_route_len
+  n0:
+  add_route http_get, root_route
 
   ; bind socket
   xor   rax, rax
@@ -841,35 +890,37 @@ section .data
   methods_list     db "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add space for method checking
   methods_list_len equ $ - methods_list
 
+  not_allowed_methods times methods_list_len db 0
+
   routes_list     times MAX_ROUTES_COUNT * (ROUTE_MAX_LEN+METHOD_MAX_LEN) db 0
   routes_list_len dq 0
 
   ; methods
-  http_get      db "GET"
+  http_get      db "GET", NULL_CHAR
   http_get_len  equ $ - http_get
 
-  http_post     db "POST"
+  http_post     db "POST", NULL_CHAR
   http_post_len equ $ - http_post
 
-  http_put      db "PUT"
+  http_put      db "PUT", NULL_CHAR
   http_put_len  equ $ - http_put
 
-  http_delete   db "DELETE"
+  http_delete   db "DELETE", NULL_CHAR
   http_delete_len equ $ - http_delete
 
-  http_head     db "HEAD"
+  http_head     db "HEAD", NULL_CHAR
   http_head_len equ $ - http_head
 
-  http_options  db "OPTIONS"
+  http_options  db "OPTIONS", NULL_CHAR
   http_options_len equ $ - http_options
 
-  http_patch    db "PATCH"
+  http_patch    db "PATCH", NULL_CHAR
   http_patch_len equ $ - http_patch
 
-  http_trace    db "TRACE"
+  http_trace    db "TRACE", NULL_CHAR
   http_trace_len equ $ - http_trace
 
-  http_connect  db "CONNECT"
+  http_connect  db "CONNECT", NULL_CHAR
   http_connect_len equ $ - http_connect
 
   http_status_code dw 0
