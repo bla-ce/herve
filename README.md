@@ -91,7 +91,7 @@ section .data
     health_response db "ok", NULL_CHAR
 
     index_response  db "/views/index.html", NULL_CHAR
-    css_response  db "/views/style.css", NULL_CHAR
+    css_response    db "/views/style.css", NULL_CHAR
 ``` 
 
 ### Step 8: Assemble and Link the Code

@@ -4,189 +4,13 @@
 ; TODO: basic auth
 ; TODO: add function to route
 ; TODO: read request body
-; TODO: url parameters
-; TODO: url anchors
 
 %ifndef SERVER_INC
 %define SERVER_INC
 
-; constants
-CLOCK_REALTIME  equ 0
-STDOUT          equ 1
-LONG_SIZE       equ 10
-
-; socket constants
-INADDR_ANY          equ 0
-SOCK_STREAM         equ 1
-SOL_SOCKET          equ 1
-BACKLOG             equ 1
-SO_REUSEADDR        equ 2
-SO_REUSEPORT        equ 15
-AF_INET             equ 2
-REQUEST_MAX_LEN     equ 8*1024
-MSG_TRUNC           equ 32
-METHOD_MAX_LEN      equ 8
-ROUTE_MAX_LEN       equ 32
-MAX_ROUTES_COUNT    equ 10
-STATUS_CODE_LEN     equ 3
-RESPONSE_MAX_LEN    equ 32
-STRUCT_ROUTE_LEN    equ ROUTE_MAX_LEN + METHOD_MAX_LEN + RESPONSE_MAX_LEN
-
-; syscall values
-SYS_READ          equ 0
-SYS_WRITE         equ 1
-SYS_OPEN          equ 2
-SYS_CLOSE         equ 3
-SYS_SOCKET        equ 41
-SYS_ACCEPT        equ 43
-SYS_SENDTO        equ 44
-SYS_RECVFROM      equ 45
-SYS_BIND          equ 49
-SYS_LISTEN        equ 50
-SYS_SETSOCKOPT    equ 54
-SYS_EXIT          equ 60
-SYS_CLOCK_GETTIME equ 228
-
-; ascii
-NULL_CHAR       equ 0
-END_OF_TEXT     equ 3
-LINE_FEED       equ 10
-CARRIAGE_RETURN equ 13
-SPACE           equ 32
-NUMBER_SIGN     equ 35
-HYPHEN          equ 45
-DOT             equ 46
-SLASH           equ 47
-ZERO_CHAR       equ 48
-QUESTION_MARK   equ 63
-LOW_N_CHAR      equ 110
-LOW_S_CHAR      equ 115
-
-; file constants
-O_RDONLY      equ 0
-FILE_MAX_LEN  equ 8*1024
-
-; exit code
-SUCCESS_CODE equ 0
-FAILURE_CODE equ -1
-
-%macro strpos 4
-  ; %1 -> string
-  ; %2 -> string length
-  ; %3 -> substring
-  ; %4 -> substring length
-  sub   rsp, 8 ; string index and substring index
-  mov   qword [rsp], 0
-
-  mov   rsi, %1
-  mov   rax, %2
-  mov   rdi, %3
-  mov   rbx, %4
-
-%%loop:
-  mov   rcx, rbx
-  cld
-  rep   cmpsb 
-  je    %%found
-
-  add   qword [rsp], rbx
-  sub   qword [rsp], rcx
-
-  cmp   qword [rsp], rax
-  jg    %%not_found
-
-  add   rdi, rcx
-  sub   rdi, rbx
-
-  jmp   %%loop
-
-%%found:
-  mov   rax, qword [rsp]
-  jmp   %%return
-
-%%not_found:
-  mov   rax, -1
-  jmp   %%return
-  
-%%return:
-  add   rsp, 8
-%endmacro
-
-%macro get_length 1
-  ; %1 -> str
-  mov   rsi, %1
-  mov   rcx, 0
-
-  cmp   rsi, 0
-  je    %%return
-
-%%loop:
-  mov   al, NULL_CHAR
-  cmp   byte [rsi], al
-  je    %%return
-
-  inc   rsi
-  inc   rcx
-
-  jmp   %%loop
-
-%%return:
-  mov   rax, rcx
-%endmacro
-
-%macro log_add_status 0
-  lea   rsi, [log_status]
-  add   rsi, STATUS_CODE_LEN
-  dec   rsi
-
-  mov   eax, dword [http_status_code]
-  
-%%loop:
-  xor   edx, edx
-  mov   ecx, 0xA              ; divisor, dividend in rax
-  div   ecx                   ; quotient in rax and remainder in edx
-
-  add   edx, ZERO_CHAR
-
-  mov   byte [rsi], dl
-
-  dec   esi
-
-  cmp   eax, 0
-  jne   %%loop
-%endmacro
-
-%macro log_add_duration 0
-  sub   rsp, 8 ; duration_str length
-  mov   qword [rsp], 0
-
-  lea   rsi, [log_duration]
-  add   rsi, LONG_SIZE
-
-  ; print ns backwards
-  mov   byte [rsi], LOW_S_CHAR
-  dec   rsi
-  mov   byte [rsi], LOW_N_CHAR
-  dec   rsi
-
-  mov   rax, qword [duration]
-  
-%%loop:
-  xor   rdx, rdx
-  mov   rcx, 0xA              ; divisor, dividend in rax
-  div   rcx                   ; quotient in rax and remainder in edx
-
-  add   rdx, ZERO_CHAR
-
-  mov   byte [rsi], dl
-
-  dec   rsi
-
-  cmp   rax, 0
-  jne   %%loop
-
-  add   rsp, 8
-  %endmacro
+%include "constants.inc"
+%include "log.inc"
+%include "string.inc"
 
 %macro htons 1
   ; %1 -> port
@@ -659,60 +483,7 @@ route_found:
 
   mov   qword [duration], rax
 
-print_log:
-  ; clear log buffers
-  mov   rcx, METHOD_MAX_LEN
-  mov   rax, SPACE
-  lea   rdi, [log_method]
-  rep   stosb
-
-  mov   rcx, ROUTE_MAX_LEN
-  mov   rax, SPACE
-  lea   rdi, [log_route]
-  rep   stosb
-
-  mov   rcx, LONG_SIZE
-  add   rcx, 2
-  mov   rax, SPACE
-  lea   rdi, [log_duration]
-  rep   stosb
-
-  mov   rcx, RESPONSE_MAX_LEN
-  mov   rax, SPACE
-  lea   rdi, [log_file]
-  rep   stosb
-
-  lea   rsi, [method]
-  lea   rdi, [log_method]
-  mov   rcx, [method_len] 
-  rep   movsb
-
-  lea   rsi, [route]
-
-  mov   al, byte [rsi]
-  cmp   al, NULL_CHAR
-  je    jump_log_route
-
-  lea   rdi, [log_route]
-  mov   rcx, [route_len]
-  rep   movsb
-
-jump_log_route:
-
-  log_add_duration
-
-  log_add_status
-
-  lea   rsi, [response]
-  lea   rdi, [log_file]
-  mov   rcx, [response_len]
-  rep   movsb
-
-  mov   rax, SYS_WRITE
-  mov   rdi, STDOUT
-  lea   rsi, [log_start]
-  mov   rdx, log_len
-  syscall
+  log_request
 
   ; clear prev response
   mov   rcx, qword [response_len]
@@ -1061,9 +832,9 @@ section .data
   response_400_len  equ $ - response_400
 
   response_404      db "HTTP/1.1 404 Not Found", CARRIAGE_RETURN, LINE_FEED
-  db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-  db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-  db CARRIAGE_RETURN, LINE_FEED
+                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+                    db CARRIAGE_RETURN, LINE_FEED
   response_404_len  equ $ - response_404
 
   response_405      db "HTTP/1.1 405 Method Not Allowed", CARRIAGE_RETURN, LINE_FEED
