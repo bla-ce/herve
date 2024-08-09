@@ -20,7 +20,7 @@ tests=(
   "localhost:1337/api/v1 GET 200"
   "localhost:1337/api/v1/ GET 200"
   "localhost:1337/api/v1/ PUT 404"
-  "localhost:1337/not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found GET 400"
+  "localhost:1337/not-found-not-found-not-found-not-found-not-found GET 400"
   "localhost:1337/index?id=1 GET 200"
   "localhost:1337/index#anchor GET 200"
 )

@@ -21,11 +21,8 @@ Include the server library in your code by adding the following line:
 Define your routes inside the .data section:
 
 ``` assembly
-api_v1_route      db "/api/v1", NULL_CHAR
-api_v1_route_len  equ $ - api_v1_route
-
-index_route       db "/index", NULL_CHAR
-index_route_len   equ $ - index_route
+index_route   db "/index", NULL_CHAR
+health_route  db "/health", NULL_CHAR
 ```
 
 ### Step 4: Initialize the Server
@@ -37,11 +34,11 @@ mov   qword [sockfd], rax
 ```
 
 ### Step 5: Add Routes
-Add routes to the server:
+Add routes to the server, associating a method and a response :
 
 ``` assembly
-add_route http_get, http_get_len, api_v1_route, api_v1_route_len
-add_route http_get, http_get_len, index_route, index_route_len
+add_route http_get, index_route, index_response
+add_route http_get, css_route, css_response
 ```
 
 ### Step 6: Run the Server
@@ -72,21 +69,29 @@ _start:
     server_init 1337
     mov   qword [sockfd], rax
 
-    add_route http_get, http_get_len, api_v1_route, api_v1_route_len
-    add_route http_get, http_get_len, index_route, index_route_len
+    disallow_method http_connect, http_connect_len
+
+    add_route http_get, health_route, health_response
+
+    add_route http_get, index_route, index_response
+    add_route http_get, css_route, css_response
 
     run_server qword [sockfd]
 
     shutdown
 
 section .data
-sockfd            dq 0
+    sockfd  dq 0
+   
+    health_route    db "/health", NULL_CHAR
 
-api_v1_route      db "/api/v1", NULL_CHAR
-api_v1_route_len  equ $ - api_v1_route
+    index_route db "/index", NULL_CHAR
+    css_route   db "/style.css", NULL_CHAR
 
-index_route       db "/index", NULL_CHAR
-index_route_len   equ $ - index_route
+    health_response db "ok", NULL_CHAR
+
+    index_response  db "/views/index.html", NULL_CHAR
+    css_response  db "/views/style.css", NULL_CHAR
 ``` 
 
 ### Step 8: Assemble and Link the Code

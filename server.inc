@@ -2,7 +2,6 @@
 ; TODO; error handling
 ; TODO: add https
 ; TODO: basic auth
-; TODO: serve files
 ; TODO: add function to route
 ; TODO: read request body
 ; TODO: url parameters
