@@ -30,6 +30,8 @@ METHOD_MAX_LEN      equ 8
 ROUTE_MAX_LEN       equ 32
 MAX_ROUTES_COUNT    equ 10
 STATUS_CODE_LEN     equ 3
+RESPONSE_MAX_LEN    equ 128
+STRUCT_ROUTE_LEN    equ ROUTE_MAX_LEN + METHOD_MAX_LEN + RESPONSE_MAX_LEN
 
 ; syscall values
 SYS_WRITE         equ 1
@@ -103,6 +105,28 @@ FAILURE_CODE equ -1
   
 %%return:
   add   rsp, 8
+%endmacro
+
+%macro get_length 1
+  ; %1 -> str
+  mov   rsi, %1
+  mov   rcx, 0
+
+  cmp   rsi, 0
+  je    %%return
+
+%%loop:
+  mov   al, NULL_CHAR
+  cmp   byte [rsi], al
+  je    %%return
+
+  inc   rsi
+  inc   rcx
+
+  jmp   %%loop
+
+%%return:
+  mov   rax, rcx
 %endmacro
 
 %macro log_add_status 0
@@ -292,6 +316,7 @@ method_exists:
   mov   qword [rsp], 0 ; string index
   mov   qword [rsp+8], 0 ; substring index
 
+  ; check if last char is a slash
   mov   rdi, %1
   add   rdi, rcx
   dec   rdi
@@ -334,8 +359,7 @@ method_exists:
 
   sub   rsi, qword [rsp+8]
   sub   rdi, qword [rsp+8]
-  add   rdi, ROUTE_MAX_LEN
-  add   rdi, METHOD_MAX_LEN
+  add   rdi, STRUCT_ROUTE_LEN
 
   mov   qword [rsp+8], 0
 
@@ -451,70 +475,70 @@ route_found:
   xor   rax, rax
 %endmacro
 
-%macro add_route 2
+%macro add_route 3
   ; %1 -> method
   ; %2 -> route
-  sub   rsp, 16
+  ; %3 -> response
+  sub   rsp, 24
   mov   qword [rsp], 0 ; route_len
   mov   qword [rsp+8], 0 ; method_len
-
-  mov   rdi, %2
 
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
   mov   rcx, ROUTE_MAX_LEN
 
-%%loop:
-  mov   al, NULL_CHAR
-  cmp   byte [rdi], al
-  je    %%get_method_len
+  ; method_length
+  get_length %1
+  mov   qword [rsp], rax
 
-  inc   rdi
-  dec   rcx
+  ; route_length
+  get_length %2
 
-  cmp   rcx, 0
-  jl    error
+  lea   rsi, [error_route_too_big]
+  mov   rdx, error_route_too_big_len
 
-  jmp   %%loop
+  cmp   rax, ROUTE_MAX_LEN
+  jg    error
 
-%%get_method_len:
-  cmp   qword [rsp], 0
-  jg    %%continue ; means we are done with route and method length
+  mov   qword [rsp+8], rax
 
-  mov   qword [rsp], ROUTE_MAX_LEN
-  sub   qword [rsp], rcx
+  ; response_length
+  get_length %3
+  mov   qword [rsp+16], rax
 
-  ; get method length
-  mov   rcx, METHOD_MAX_LEN
-  mov   rdi, %1
-  jmp   %%loop
-
-%%continue:
-  mov   qword [rsp+8], METHOD_MAX_LEN
-  sub   qword [rsp+8], rcx
-
-  mov   rcx, qword [rsp]
+  mov   rcx, qword [rsp+8]
   mov   rsi, %2
 
   lea   rdi, [routes_list]
 
   mov   rax, qword [routes_list_len]
-  mov   rbx, ROUTE_MAX_LEN
-  add   rbx, METHOD_MAX_LEN
+  mov   rbx, STRUCT_ROUTE_LEN
   mul   rbx
 
   add   rdi, rax
   rep   movsb
 
   mov   rax, ROUTE_MAX_LEN
-  sub   rax, qword [rsp]
+  sub   rax, qword [rsp+8]
   add   rdi, rax
 
   mov   rsi, %1
-  mov   rcx, qword [rsp+8]
+  mov   rcx, qword [rsp]
   rep   movsb
 
+  cmp   qword [rsp+16], 0
+  jle   %%continue 
+
+  mov   rax, METHOD_MAX_LEN
+  sub   rax, qword [rsp]
+  add   rdi, rax
+
+  mov   rsi, %3
+  mov   rcx, qword [rsp+16]
+  rep   movsb
+
+%%continue:
   inc   qword [routes_list_len]
 
   lea   rsi, [error_max_route]
@@ -524,7 +548,7 @@ route_found:
   cmp   rax, MAX_ROUTES_COUNT
   jg    error
 
-  add   rsp, 16
+  add   rsp, 24
 %endmacro
 
 %macro server_init 1
@@ -574,8 +598,7 @@ route_found:
   cmp   rax, 0
   jl    error
 
-  n0:
-  add_route http_get, root_route
+  add_route http_get, root_route, ""
 
   ; bind socket
   xor   rax, rax
@@ -819,13 +842,36 @@ move_to_rest_of_request:
   sub   rcx, [route_len]
   dec   rcx
 
+  ; inside rax is the index of the route inside routes_list 
+  mov   rbx, STRUCT_ROUTE_LEN
+  mul   rbx
+
+  add   rax, ROUTE_MAX_LEN
+  add   rax, METHOD_MAX_LEN
+
+  lea   rsi, [routes_list]
+  add   rsi, rax
+
+  lea   rdi, [response]
+  mov   rcx, RESPONSE_MAX_LEN
+  rep   movsb
+
+  get_length response
+  mov   qword [response_len], rax
+
+  mov   dword [http_status_code], 200
+
   mov   rax, SYS_WRITE
   mov   rdi, qword [rsp+64]
   mov   rsi, response_200
   mov   rdx, response_200_len
   syscall
 
-  mov   dword [http_status_code], 200
+  mov   rax, SYS_WRITE
+  mov   rdi, qword [rsp+64]
+  lea   rsi, [response]
+  mov   rdx, qword [response_len]
+  syscall
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+64] 
@@ -887,12 +933,15 @@ section .data
   route      times ROUTE_MAX_LEN + METHOD_MAX_LEN db 0
   route_len  dq 0
 
+  response      times RESPONSE_MAX_LEN db 0
+  response_len  dq 0
+
   methods_list     db "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add space for method checking
   methods_list_len equ $ - methods_list
 
   not_allowed_methods times methods_list_len db 0
 
-  routes_list     times MAX_ROUTES_COUNT * (ROUTE_MAX_LEN+METHOD_MAX_LEN) db 0
+  routes_list     times MAX_ROUTES_COUNT * STRUCT_ROUTE_LEN db 0
   routes_list_len dq 0
 
   ; methods
