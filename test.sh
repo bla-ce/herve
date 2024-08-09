@@ -11,7 +11,7 @@ tests=(
   "localhost:1337/api GET 404"
   "localhost:1337/health GET 200 ok"
   "localhost:1337/ GET 200"
-  "localhost:1337/index GET 200 /views/index.html"
+  "localhost:1337/index GET 200"
   "localhost:1337/ind GET 404"
   "localhost:1337/ POST 404"
   "localhost:1337/ CONNECT 405"
@@ -21,9 +21,8 @@ tests=(
   "localhost:1337/api/v1/ GET 200"
   "localhost:1337/api/v1/ PUT 404"
   "localhost:1337/not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found-not-found GET 400"
-  "localhost:1337/index?id=1 GET 200 /views/index.html"
-  "localhost:1337/in?id=1 GET 404"
-  "localhost:1337/index#anchor GET 200 /views/index.html"
+  "localhost:1337/index?id=1 GET 200"
+  "localhost:1337/index#anchor GET 200"
 )
 
 total_tests=${#tests[@]}

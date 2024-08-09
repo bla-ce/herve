@@ -1,9 +1,12 @@
-git.sh
-*.c
-musl*
 main
 server
+
 server.o
 server.s
 
+git.sh
+*.c
+
+musl*
 gin/
+views/

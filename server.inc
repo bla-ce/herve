@@ -30,11 +30,13 @@ METHOD_MAX_LEN      equ 8
 ROUTE_MAX_LEN       equ 32
 MAX_ROUTES_COUNT    equ 10
 STATUS_CODE_LEN     equ 3
-RESPONSE_MAX_LEN    equ 128
+RESPONSE_MAX_LEN    equ 32
 STRUCT_ROUTE_LEN    equ ROUTE_MAX_LEN + METHOD_MAX_LEN + RESPONSE_MAX_LEN
 
 ; syscall values
+SYS_READ          equ 0
 SYS_WRITE         equ 1
+SYS_OPEN          equ 2
 SYS_CLOSE         equ 3
 SYS_SOCKET        equ 41
 SYS_ACCEPT        equ 43
@@ -60,6 +62,10 @@ ZERO_CHAR       equ 48
 QUESTION_MARK   equ 63
 LOW_N_CHAR      equ 110
 LOW_S_CHAR      equ 115
+
+; file constants
+O_RDONLY      equ 0
+FILE_MAX_LEN  equ 8*1024
 
 ; exit code
 SUCCESS_CODE equ 0
@@ -655,6 +661,7 @@ route_found:
   mov   qword [duration], rax
 
 print_log:
+  ; clear log buffers
   mov   rcx, METHOD_MAX_LEN
   mov   rax, SPACE
   lea   rdi, [log_method]
@@ -669,6 +676,11 @@ print_log:
   add   rcx, 2
   mov   rax, SPACE
   lea   rdi, [log_duration]
+  rep   stosb
+
+  mov   rcx, RESPONSE_MAX_LEN
+  mov   rax, SPACE
+  lea   rdi, [log_file]
   rep   stosb
 
   lea   rsi, [method]
@@ -692,11 +704,22 @@ jump_log_route:
 
   log_add_status
 
+  lea   rsi, [response]
+  lea   rdi, [log_file]
+  mov   rcx, [response_len]
+  rep   movsb
+
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT
   lea   rsi, [log_start]
   mov   rdx, log_len
   syscall
+
+  ; clear prev response
+  mov   rcx, qword [response_len]
+  mov   rax, NULL_CHAR
+  lea   rdi, [response]
+  rep   stosb
 
 timer_not_defined:
   ; clear route and method
@@ -867,12 +890,56 @@ move_to_rest_of_request:
   mov   rdx, response_200_len
   syscall
 
+  lea   rsi, [response]
+  lodsb
+
+  cmp   al, SLASH
+  je    serve_html
+
   mov   rax, SYS_WRITE
   mov   rdi, qword [rsp+64]
   lea   rsi, [response]
   mov   rdx, qword [response_len]
   syscall
 
+  jmp   serve_string
+
+serve_html:
+  mov   rax, SYS_OPEN
+  lea   rdi, [response]
+  inc   rdi
+  mov   rsi, O_RDONLY
+  mov   rdx, 0
+  syscall
+
+  lea   rsi, [error_open]
+  mov   rdx, error_open_len
+
+  cmp   rax, 0
+  jl    error
+
+  mov   rdi, rax
+
+  mov   rax, SYS_READ
+  lea   rsi, [file]
+  mov   rdx, FILE_MAX_LEN
+  syscall
+
+  lea   rsi, [error_read_file]
+  mov   rdx, error_read_file_len
+
+  cmp   rax, 0
+  jl    error
+
+  mov   qword [file_len], rax
+
+  mov   rax, SYS_WRITE
+  mov   rdi, qword [rsp+64]
+  lea   rsi, [file]
+  mov   rdx, qword [file_len]
+  syscall
+
+serve_string:
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+64] 
   syscall
@@ -936,6 +1003,9 @@ section .data
   response      times RESPONSE_MAX_LEN db 0
   response_len  dq 0
 
+  file      times FILE_MAX_LEN db 0
+  file_len  dq 0
+
   methods_list     db "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add space for method checking
   methods_list_len equ $ - methods_list
 
@@ -991,17 +1061,17 @@ section .data
                     db CARRIAGE_RETURN, LINE_FEED
   response_400_len  equ $ - response_400
 
+  response_404      db "HTTP/1.1 404 Not Found", CARRIAGE_RETURN, LINE_FEED
+  db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+  db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+  db CARRIAGE_RETURN, LINE_FEED
+  response_404_len  equ $ - response_404
+
   response_405      db "HTTP/1.1 405 Method Not Allowed", CARRIAGE_RETURN, LINE_FEED
                     db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
                     db "Connection: close", CARRIAGE_RETURN, LINE_FEED
                     db CARRIAGE_RETURN, LINE_FEED
   response_405_len  equ $ - response_405
-
-  response_404      db "HTTP/1.1 404 Not Found", CARRIAGE_RETURN, LINE_FEED
-                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-                    db CARRIAGE_RETURN, LINE_FEED
-  response_404_len  equ $ - response_404
 
   response_500      db "HTTP/1.1 500 Internal Server Error", CARRIAGE_RETURN, LINE_FEED
                     db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
@@ -1037,6 +1107,12 @@ section .data
   error_reading_request			db "[ERROR] failed to read request", LINE_FEED
   error_reading_request_len	equ $ - error_reading_request
 
+  error_open			db "[ERROR] failed to open file", LINE_FEED
+  error_open_len	equ $ - error_open
+
+  error_read_file			db "[ERROR] failed to read file", LINE_FEED
+  error_read_file_len	equ $ - error_read_file
+
   method_doesnt_exist      db "[ERROR] method doesn't exist", LINE_FEED
   method_doesnt_exist_len  equ $ - method_doesnt_exist
 
@@ -1058,7 +1134,8 @@ section .data
   log_duration  times LONG_SIZE+2 db SPACE
   log_delim3    db " | "
   log_status    times STATUS_CODE_LEN db SPACE
-  log_end       db " | "
+  log_delim4    db " | "
+  log_file      times RESPONSE_MAX_LEN db SPACE
   log_len       equ $ - log_start
 
 %endif
