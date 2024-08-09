@@ -1,3 +1,5 @@
+; TODO: add strpos to route check
+; TODO: Clean refactor
 ; TODO: add date and time to log
 ; TODO; error handling
 ; TODO: add https
@@ -44,7 +46,7 @@ section .data
   file      times FILE_MAX_LEN db 0
   file_len  dq 0
 
-  methods_list     db "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add space for method checking
+  methods_list     db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
   methods_list_len equ $ - methods_list
 
   not_allowed_methods times methods_list_len db 0

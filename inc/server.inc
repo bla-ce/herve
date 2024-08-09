@@ -48,7 +48,7 @@
 %macro check_method 2
   ; %1 -> method
   ; %2 -> method length
-  sub   rsp, 16 
+  sub   rsp, 8 
 
   lea   rsi, [error_method_too_big]
   mov   rdx, error_method_too_big_len
@@ -58,65 +58,43 @@
   jg    error
 
   mov   qword [rsp], 0 ; string index
-  mov   qword [rsp+8], 0 ; substring index
 
-  mov   rsi, %1
-  xor   rax, rax
-  lea   rdi, [methods_list]
-  xor   rbx, rbx
-
-%%loop:
-  cmp   qword [rsp], methods_list_len
-  je    method_not_allowed
-  
-  cld
-  cmpsb
-  jne   %%mismatch
-
-  inc   qword [rsp]
-  inc   qword [rsp+8]
-
-  cmp   rcx, qword [rsp+8]
-  je    method_exists
-  jmp   %%loop
-
-%%mismatch:
-  dec   rsi
-  sub   rsi, qword [rsp+8]
-  mov   qword [rsp+8], 0
-
-  inc   qword [rsp]
-
-  jmp   %%loop
+  strpos methods_list, methods_list_len, %1, %2
+  cmp   rax, 0
+  jge   method_exists
   
 method_not_allowed:
   mov   rax, -1
   jmp   %%return
 
 method_exists:
+  mov   qword [rsp], rax
+
+  lea   rdi, [methods_list]
+  add   rdi, qword [rsp]
+  add   rdi, %2
+
   ; make sure we checked the entire method
   mov   al, byte [rdi]
   cmp   al, SPACE
   jne   method_not_allowed
 
+  mov   rax, %2
+  sub   rdi, rax 
+  dec   rdi
+  mov   al, byte [rdi]
+  cmp   al, SPACE
+  jne   method_not_allowed
+
   ; check if the method is allowed
-  mov   rsi, methods_list
-  sub   rdi, rsi
-  mov   rbx, rdi
-  sub   rbx, %2
-
-  lea   rsi, %1
-  lea   rdi, [not_allowed_methods]
-  add   rdi, rbx
-
-  mov   rcx, %2
-  rep   cmpsb
-  je    method_not_allowed
+  strpos not_allowed_methods, methods_list_len, %1, %2
+  cmp   rax, 0
+  jge   method_not_allowed
 
   mov   rax, qword [rsp]
 
 %%return:
-  add   rsp, 16
+  add   rsp, 8
 %endmacro
 
 %macro check_route 2
@@ -278,6 +256,20 @@ route_found:
 
   push  rbx
 
+  ; check route arg, variable should be between GET and CONNECT
+  mov   rdi, %1
+  lea   rax, [GET]
+  lea   rbx, [CONNECT]
+
+  lea   rsi, [method_doesnt_exist]
+  mov   rdx, method_doesnt_exist_len
+
+  cmp   rdi, rax
+  jl    error
+
+  cmp   rdi, rbx
+  jg    error
+
   dec   qword [method_len] ; remove null_char 
   strpos methods_list, methods_list_len, method, [method_len]
 
@@ -314,6 +306,20 @@ route_found:
   ; method_length
   get_length %1
   mov   qword [rsp], rax
+
+  ; check route arg, variable should be between GET and CONNECT
+  mov   rdi, %1
+  lea   rax, [GET]
+  lea   rbx, [CONNECT]
+
+  lea   rsi, [method_doesnt_exist]
+  mov   rdx, method_doesnt_exist_len
+
+  cmp   rdi, rax
+  jl    error
+
+  cmp   rdi, rbx
+  jg    error
 
   ; route_length
   get_length %2
