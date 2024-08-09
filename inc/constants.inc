@@ -60,5 +60,23 @@ FILE_MAX_LEN  equ 8*1024
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1
 
+; methods
+GET     db "GET", NULL_CHAR
+POST    db "POST", NULL_CHAR
+PUT     db "PUT", NULL_CHAR
+DELETE  db "DELETE", NULL_CHAR
+HEAD    db "HEAD", NULL_CHAR
+OPTIONS db "OPTIONS", NULL_CHAR
+PATCH   db "PATCH", NULL_CHAR
+TRACE   db "TRACE", NULL_CHAR
+CONNECT db "CONNECT", NULL_CHAR
+
+; status code
+OK                    equ 200
+BAD_REQUEST           equ 400
+NOT_FOUND             equ 404
+METHOD_NOT_ALLOWED    equ 405
+INTERNAL_SERVER_ERROR equ 500
+
 %endif
 

@@ -14,7 +14,7 @@ touch server.s
 Include the server library in your code by adding the following line:
 
 ``` assembly
-%include "server.inc"
+%include "bytasm.inc"
 ```
 
 ### Step 3: Define Routes
@@ -37,8 +37,8 @@ mov   qword [sockfd], rax
 Add routes to the server, associating a method and a response :
 
 ``` assembly
-add_route http_get, index_route, index_response
-add_route http_get, css_route, css_response
+add_route GET, index_route, index_response
+add_route GET, css_route, css_response
 ```
 
 ### Step 6: Run the Server
@@ -62,19 +62,19 @@ Here is the complete code for your server.s file:
 ``` assembly
 global  _start
 
-%include "server.inc"
+%include "bytasm.inc"
 
 section .text
 _start:
     server_init 1337
     mov   qword [sockfd], rax
 
-    disallow_method http_connect, http_connect_len
+    disallow_method CONNECT
 
-    add_route http_get, health_route, health_response
+    add_route GET, health_route, health_response
 
-    add_route http_get, index_route, index_response
-    add_route http_get, css_route, css_response
+    add_route GET, index_route, index_response
+    add_route GET, css_route, css_response
 
     run_server qword [sockfd]
 
