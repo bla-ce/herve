@@ -73,11 +73,6 @@
   lea   rdi, [log_duration]
   rep   stosb
 
-  mov   rcx, RESPONSE_MAX_LEN
-  mov   rax, SPACE
-  lea   rdi, [log_file]
-  rep   stosb
-
   lea   rsi, [method]
   lea   rdi, [log_method]
   mov   rcx, [method_len] 
@@ -98,11 +93,6 @@ jump_log_route:
   log_add_duration
 
   log_add_status
-
-  lea   rsi, [response]
-  lea   rdi, [log_file]
-  mov   rcx, [response_len]
-  rep   movsb
 
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT

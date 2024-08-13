@@ -34,14 +34,11 @@ section .data
   request     times REQUEST_MAX_LEN db 0
   request_len dq 0
 
-  method      times METHOD_MAX_LEN db 0
-  method_len  dq 0
+  route     times ROUTE_MAX_LEN db 0
+  method    times METHOD_MAX_LEN db 0
 
-  route      times ROUTE_MAX_LEN db 0
-  route_len  dq 0
-
-  response      times RESPONSE_MAX_LEN db 0
-  response_len  dq 0
+  method_len    dq 0
+  route_len     dq 0
 
   file      times FILE_MAX_LEN db 0
   file_len  dq 0
@@ -52,7 +49,8 @@ section .data
   not_allowed_methods times methods_list_len db 0
 
   routes_list     times MAX_ROUTES_COUNT * STRUCT_ROUTE_LEN db 0
-  routes_list_len dq 0
+  routes_list_len equ $ - routes_list
+  routes_count dq 0
 
   http_status_code dw 0
 
@@ -145,8 +143,6 @@ section .data
   log_duration  times LONG_SIZE+2 db SPACE
   log_delim3    db " | "
   log_status    times STATUS_CODE_LEN db SPACE
-  log_delim4    db " | "
-  log_file      times RESPONSE_MAX_LEN db SPACE
   log_len       equ $ - log_start
 
 %endif

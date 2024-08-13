@@ -7,6 +7,59 @@
   xchg  al, ah ; bswap 16-bit registers
 %endmacro
 
+%macro disallow_method 1
+  ; %1 -> method
+  mov   rsi, %1
+
+  push rsi
+
+  get_length rsi
+  mov   rbx, rax
+
+  pop rsi
+
+  mov   [method_len], rbx
+
+  lea   rdi, [method]
+  mov   rcx, rbx
+  rep   movsb
+
+  push  rbx
+
+  ; check route arg, variable should be between GET and CONNECT
+  mov   rdi, %1
+  lea   rax, [GET]
+  lea   rbx, [CONNECT]
+
+  lea   rsi, [method_doesnt_exist]
+  mov   rdx, method_doesnt_exist_len
+
+  cmp   rdi, rax
+  jl    error
+
+  cmp   rdi, rbx
+  jg    error
+
+  dec   qword [method_len] ; remove null_char 
+  strpos methods_list, methods_list_len, method, [method_len]
+
+  lea   rsi, [method_doesnt_exist]
+  mov   rdi, method_doesnt_exist_len
+  cmp   rax, 0
+  jl    error
+
+  pop   rbx
+
+  lea   rdi, [not_allowed_methods]
+  add   rdi, rax
+
+  lea   rsi, [method]
+  mov   rcx, rbx
+  rep   movsb
+
+  xor   rax, rax
+%endmacro
+
 %macro extract_method 2
   ; %1 -> request pointer
   ; %2 -> request length
@@ -100,7 +153,7 @@ method_exists:
 %macro check_route 2
   ; %1 -> route
   ; %2 -> route length
-  sub   rsp, 72 
+  sub   rsp, 8 
 
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
@@ -109,84 +162,74 @@ method_exists:
   cmp   rcx, ROUTE_MAX_LEN
   jg    error
 
-  mov   qword [rsp], 0 ; string index
-  mov   qword [rsp+8], 0 ; substring index
+  mov   qword [rsp], rcx ; string index
 
-  ; check if last char is a slash
-  mov   rdi, %1
-  add   rdi, rcx
-  dec   rdi
-  lea   rsi, [rdi]
-  lodsb
-  sub   rsi, rcx
-
-  cmp   rcx, 1
+  ; check if route ends by slash, if yes trim it
+  mov   rsi, %1
+  cmp   qword [rsp], 1
   je    %%jump
 
-  mov   rbx, rcx
-  dec   rbx
+  add   rsi, qword [rsp]
+  dec   rsi
+  lodsb
+
+  dec   rsi
 
   cmp   al, SLASH
-  cmove rcx, rbx
+  jne   %%dont_trim_slash
+  
+  mov   byte [rsi], NULL_CHAR
+  dec   qword [rsp]
+  dec   rsi
+  
+%%dont_trim_slash:
+  sub   rsi, qword [rsp]
+  inc   rsi
 
 %%jump:
-  xor   rax, rax
-  lea   rdi, [routes_list]
-  xor   rbx, rbx
-
-%%loop:
-  mov   rax, [routes_list_len]
-  cmp   qword [rsp], rax
-  je    route_not_found
-  
-  cld
-  cmpsb
-  jne   %%mismatch
-
-  inc   qword [rsp+8]
-
-  cmp   rcx, qword [rsp+8]
-  je    route_found
-  jmp   %%loop
-
-%%mismatch:
-  dec   rsi
-  dec   rdi
-
-  sub   rsi, qword [rsp+8]
-  sub   rdi, qword [rsp+8]
-  add   rdi, STRUCT_ROUTE_LEN
-
-  mov   qword [rsp+8], 0
-
-  inc   qword [rsp]
-
-  jmp   %%loop
+  strpos routes_list, routes_list_len, %1, %2
+  cmp   rax, 0
+  jge   route_found
   
 route_not_found:
   mov   rax, -1
   jmp   %%return
 
 route_found:
+  mov   qword [rsp], rax
+
+  lea   rdi, [routes_list]
+  add   rdi, qword [rsp]
+  add   rdi, %2
+
+  ; make sure we checked the entire method
   mov   al, byte [rdi]
   cmp   al, NULL_CHAR
   jne   route_not_found
 
-  ; test method
-  sub   rdi, rcx
+  mov   rax, %2
+  sub   rdi, rax 
+  dec   rdi
+  mov   al, byte [rdi]
+  cmp   al, NULL_CHAR
+  jne   route_not_found
+
+  inc   rdi
+
+  get_length method
+
+  ; check the method is correct
+  ; rdi points to the beginning of the route
   add   rdi, ROUTE_MAX_LEN
-
-  lea   rsi, [method]
-
-  cld
-  mov   rcx, qword [method_len]
+  lea   rsi, [method] 
+  mov   rcx, rax
   rep   cmpsb
+
   jne   route_not_found
 
   mov   rax, qword [rsp]
-
 %%return:
-  add   rsp, 72
+  add   rsp, 8
 %endmacro
 
 %macro extract_route 2
@@ -237,66 +280,13 @@ route_found:
   add   rsp, 8 
 %endmacro
 
-%macro disallow_method 1
-  ; %1 -> method
-  mov   rsi, %1
 
-  push rsi
-
-  get_length rsi
-  mov   rbx, rax
-
-  pop rsi
-
-  mov   [method_len], rbx
-
-  lea   rdi, [method]
-  mov   rcx, rbx
-  rep   movsb
-
-  push  rbx
-
-  ; check route arg, variable should be between GET and CONNECT
-  mov   rdi, %1
-  lea   rax, [GET]
-  lea   rbx, [CONNECT]
-
-  lea   rsi, [method_doesnt_exist]
-  mov   rdx, method_doesnt_exist_len
-
-  cmp   rdi, rax
-  jl    error
-
-  cmp   rdi, rbx
-  jg    error
-
-  dec   qword [method_len] ; remove null_char 
-  strpos methods_list, methods_list_len, method, [method_len]
-
-  lea   rsi, [method_doesnt_exist]
-  mov   rdi, method_doesnt_exist_len
-  cmp   rax, 0
-  jl    error
-
-  pop   rbx
-
-  lea   rdi, [not_allowed_methods]
-  add   rdi, rax
-
-  lea   rsi, [method]
-  mov   rcx, rbx
-  rep   movsb
-
-  xor   rax, rax
-%endmacro
-
-%macro add_route 3
+%macro add_route 2
   ; %1 -> method
   ; %2 -> route
-  ; %3 -> response
-  sub   rsp, 24
-  mov   qword [rsp], 0 ; route_len
-  mov   qword [rsp+8], 0 ; method_len
+  sub   rsp, 16
+  mov   qword [rsp], 0 ; method_len
+  mov   qword [rsp+8], 0 ; route_len
 
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
@@ -307,81 +297,55 @@ route_found:
   get_length %1
   mov   qword [rsp], rax
 
-  ; check route arg, variable should be between GET and CONNECT
-  mov   rdi, %1
-  lea   rax, [GET]
-  lea   rbx, [CONNECT]
-
-  lea   rsi, [method_doesnt_exist]
-  mov   rdx, method_doesnt_exist_len
-
-  cmp   rdi, rax
-  jl    error
-
-  cmp   rdi, rbx
-  jg    error
-
   ; route_length
   get_length %2
-
-  lea   rsi, [error_route_too_big]
-  mov   rdx, error_route_too_big_len
-
-  cmp   rax, ROUTE_MAX_LEN
-  jg    error
-
   mov   qword [rsp+8], rax
 
-  ; response_length
-  get_length %3
-  mov   qword [rsp+16], rax
-
-  mov   rcx, qword [rsp+8]
   mov   rsi, %2
+  cmp   qword [rsp+8], 1
+  je    %%jump
 
-  lea   rdi, [routes_list]
+  add   rsi, qword [rsp+8]
+  dec   rsi
+  lodsb
 
-  mov   rax, qword [routes_list_len]
+  dec   rsi
+
+  cmp   al, SLASH
+  jne   %%dont_trim_slash
+  
+  mov   byte [rsi], NULL_CHAR
+  dec   qword [rsp+8]
+  dec   rsi
+  
+%%dont_trim_slash:
+  sub   rsi, qword [rsp+8]
+  inc   rsi
+
+%%jump:
+  mov   rax, qword [routes_count]
   mov   rbx, STRUCT_ROUTE_LEN
   mul   rbx
 
+  lea   rdi, [routes_list] 
   add   rdi, rax
+  mov   rcx, qword [rsp+8]
   rep   movsb
 
-  mov   rax, ROUTE_MAX_LEN
-  sub   rax, qword [rsp+8]
-  add   rdi, rax
+  add   rdi, ROUTE_MAX_LEN
+  sub   rdi, qword [rsp+8]
 
   mov   rsi, %1
   mov   rcx, qword [rsp]
   rep   movsb
 
-  cmp   qword [rsp+16], 0
-  jle   %%continue 
+  inc   qword [routes_count]
 
-  mov   rax, METHOD_MAX_LEN
-  sub   rax, qword [rsp]
-  add   rdi, rax
-
-  mov   rsi, %3
-  mov   rcx, qword [rsp+16]
-  rep   movsb
-
-%%continue:
-  inc   qword [routes_list_len]
-
-  lea   rsi, [error_max_route]
-  mov   rdx, error_max_route_len
-
-  mov   rax, qword [routes_list_len]
-  cmp   rax, MAX_ROUTES_COUNT
-  jg    error
-
-  add   rsp, 24
+  add   rsp, 16
 %endmacro
 
 %macro server_init 1
-  sub   rsp, 64
+  sub   rsp, 8
   mov   qword [rsp], 0  ; sockfd
   ; create socket
   mov   rax, SYS_SOCKET
@@ -427,7 +391,7 @@ route_found:
   cmp   rax, 0
   jl    error
 
-  add_route GET, root_route, ""
+  add_route GET, root_route
 
   ; bind socket
   xor   rax, rax
@@ -458,15 +422,15 @@ route_found:
   jl    error
 
   mov   rax, qword [rsp]
-  add   rsp, 64
+  add   rsp, 8
 %endmacro
 
 %macro run_server 1
   ; %1 -> sockfd
-  sub   rsp, 128
+  sub   rsp, 16
   mov   rax, %1
   mov   qword [rsp], rax
-  mov   qword [rsp+64], 0 ; client fd
+  mov   qword [rsp+8], 0 ; client fd
 
 %%loop:
   ; set end timer
@@ -484,12 +448,6 @@ route_found:
   mov   qword [duration], rax
 
   log_request
-
-  ; clear prev response
-  mov   rcx, qword [response_len]
-  mov   rax, NULL_CHAR
-  lea   rdi, [response]
-  rep   stosb
 
 timer_not_defined:
   ; clear route and method
@@ -516,7 +474,7 @@ timer_not_defined:
   cmp   rax, 0
   jl    error
 
-  mov   qword [rsp+64], rax
+  mov   qword [rsp+8], rax
 
   ; set start timer
   mov   rax, SYS_CLOCK_GETTIME
@@ -526,7 +484,7 @@ timer_not_defined:
 
   ; receive client request
   mov   rax, SYS_RECVFROM
-  mov   rdi, qword [rsp+64]
+  mov   rdi, qword [rsp+8]
   lea   rsi, [request]
   mov   rdx, REQUEST_MAX_LEN
   xor   r10, r10
@@ -548,7 +506,7 @@ timer_not_defined:
   jge   move_to_check_method
 
   mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+64]
+  mov   rdi, qword [rsp+8]
   mov   rsi, response_400
   mov   rdx, response_400_len
   syscall
@@ -556,7 +514,7 @@ timer_not_defined:
   mov   dword [http_status_code], BAD_REQUEST
 
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+64] 
+  mov   rdi, qword [rsp+8] 
   syscall
 
   jmp   %%loop
@@ -568,7 +526,7 @@ move_to_check_method:
   jge   move_to_route
 
   mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+64]
+  mov   rdi, qword [rsp+8]
   mov   rsi, response_405
   mov   rdx, response_405_len
   syscall
@@ -576,7 +534,7 @@ move_to_check_method:
   mov   dword [http_status_code], METHOD_NOT_ALLOWED
 
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+64] 
+  mov   rdi, qword [rsp+8] 
   syscall
 
   jmp   %%loop
@@ -595,7 +553,7 @@ move_to_route:
   jge   test_route
 
   mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+64]
+  mov   rdi, qword [rsp+8]
   mov   rsi, response_400
   mov   rdx, response_400_len
   syscall
@@ -603,7 +561,7 @@ move_to_route:
   mov   dword [http_status_code], BAD_REQUEST
 
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+64] 
+  mov   rdi, qword [rsp+8] 
   syscall
 
   jmp   %%loop
@@ -614,7 +572,7 @@ test_route:
   jge   move_to_rest_of_request
 
   mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+64]
+  mov   rdi, qword [rsp+8]
   mov   rsi, response_404
   mov   rdx, response_404_len
   syscall
@@ -622,7 +580,7 @@ test_route:
   mov   dword [http_status_code], 404
 
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+64] 
+  mov   rdi, qword [rsp+8] 
   syscall
 
   jmp   %%loop
@@ -645,86 +603,26 @@ move_to_rest_of_request:
   lea   rsi, [routes_list]
   add   rsi, rax
 
-  lea   rdi, [response]
-  mov   rcx, RESPONSE_MAX_LEN
-  rep   movsb
-
-  get_length response
-  mov   qword [response_len], rax
-
   mov   dword [http_status_code], OK
 
   mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+64]
+  mov   rdi, qword [rsp+8]
   mov   rsi, response_200
   mov   rdx, response_200_len
   syscall
 
-  lea   rsi, [response]
-  lodsb
-
-  cmp   al, SLASH
-  je    serve_html
-
-  mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+64]
-  lea   rsi, [response]
-  mov   rdx, qword [response_len]
-  syscall
-
-  jmp   serve_string
-
-serve_html:
-  mov   rax, SYS_OPEN
-  lea   rdi, [response]
-  inc   rdi
-  mov   rsi, O_RDONLY
-  mov   rdx, 0
-  syscall
-
-  lea   rsi, [error_open]
-  mov   rdx, error_open_len
-
-  cmp   rax, 0
-  jl    error
-
-  mov   rdi, rax
-
-  mov   rax, SYS_READ
-  lea   rsi, [file]
-  mov   rdx, FILE_MAX_LEN
-  syscall
-
-  lea   rsi, [error_read_file]
-  mov   rdx, error_read_file_len
-
-  cmp   rax, 0
-  jl    error
-
-  mov   qword [file_len], rax
-
-  mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+64]
-  lea   rsi, [file]
-  mov   rdx, qword [file_len]
-  syscall
-
-serve_string:
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+64] 
+  mov   rdi, qword [rsp+8]
   syscall
 
   jmp   %%loop
+
 %endmacro
 
-%macro shutdown 0
+%macro shutdown 1
   ; close sockets
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp] 
-  syscall
-
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+64] 
+  mov   rdi, %1
   syscall
 %endmacro
 
@@ -735,7 +633,7 @@ error:
   syscall
  
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+64] 
+  mov   rdi, qword [rsp+8] 
   syscall
 
   mov   rax, SYS_CLOSE
