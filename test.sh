@@ -10,7 +10,7 @@ NC='\033[0m' # No color
 tests=(
   "localhost:1337/api GET 404"
   "localhost:1337/health GET 200"
-  "localhost:1337/ GET 200"
+  "localhost:1337/ GET 404"
   "localhost:1337/index GET 200"
   "localhost:1337/ind GET 404"
   "localhost:1337/ POST 404"

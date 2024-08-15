@@ -73,10 +73,15 @@
   lea   rdi, [log_duration]
   rep   stosb
 
+  get_length method
+  mov   rcx, rax
+
   lea   rsi, [method]
   lea   rdi, [log_method]
-  mov   rcx, [method_len] 
   rep   movsb
+
+  get_length route
+  mov   rcx, rax
 
   lea   rsi, [route]
 
@@ -85,7 +90,6 @@
   je    jump_log_route
 
   lea   rdi, [log_route]
-  mov   rcx, [route_len]
   rep   movsb
 
 jump_log_route:

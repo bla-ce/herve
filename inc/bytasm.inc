@@ -1,4 +1,6 @@
-; TODO: add strpos to route check
+; TODO: atoi
+; TODO: add port length to log_init
+; TODO: log available route after server init
 ; TODO: Clean refactor
 ; TODO: add date and time to log
 ; TODO; error handling
@@ -18,6 +20,8 @@
 
 section .data
   enable    dw 0
+
+  port  dq 0
 
   server_sin_family  dw AF_INET
   server_sin_port    dw 0
@@ -52,10 +56,10 @@ section .data
   routes_list_len equ $ - routes_list
   routes_count dq 0
 
-  http_status_code dw 0
+  callback_list times MAX_ROUTES_COUNT dq 0
+  callback      dq 0
 
-  ; route
-  root_route      db "/", NULL_CHAR
+  http_status_code dq 0
 
   ; responses
   response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
@@ -125,6 +129,9 @@ section .data
   method_doesnt_exist      db "[ERROR] method doesn't exist", LINE_FEED
   method_doesnt_exist_len  equ $ - method_doesnt_exist
 
+  callback_address_missing  db "[ERROR] callback missing", LINE_FEED
+  callback_address_missing_len equ $ - callback_address_missing
+
   ; timers
   start_tv_sec  dq 0
   start_tv_nsec dq 0
@@ -133,7 +140,7 @@ section .data
   end_tv_nsec dq 0
 
   duration dq 0
-
+  
   ; log
   log_start     db LINE_FEED, " [LOG] "
   log_method    times METHOD_MAX_LEN db SPACE
@@ -144,6 +151,9 @@ section .data
   log_delim3    db " | "
   log_status    times STATUS_CODE_LEN db SPACE
   log_len       equ $ - log_start
+
+  log_server_init     db "[DEBUG] Listening and serving HTTP on :"
+  log_server_init_len equ $ - log_server_init
 
 %endif
 

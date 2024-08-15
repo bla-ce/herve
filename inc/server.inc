@@ -162,7 +162,7 @@ method_exists:
   cmp   rcx, ROUTE_MAX_LEN
   jg    error
 
-  mov   qword [rsp], rcx ; string index
+  mov   qword [rsp], rcx
 
   ; check if route ends by slash, if yes trim it
   mov   rsi, %1
@@ -227,6 +227,26 @@ route_found:
 
   jne   route_not_found
 
+  add   rdi, METHOD_MAX_LEN
+  sub   rdi, rax
+
+  ; load callback
+  lea   rdi, [callback_list]
+  mov   rax, qword [rsp] 
+
+  xor   rdx, rdx
+  mov   rbx, STRUCT_ROUTE_LEN
+  div   rbx
+
+  xor   rdx, rdx
+  mov   rbx, 8
+  mul   rbx
+
+  add   rdi, rax
+
+  mov   rax, [rdi]
+  call  rax
+
   mov   rax, qword [rsp]
 %%return:
   add   rsp, 8
@@ -281,12 +301,15 @@ route_found:
 %endmacro
 
 
-%macro add_route 2
+%macro add_route 3
   ; %1 -> method
   ; %2 -> route
+  ; %3 -> callback
   sub   rsp, 16
   mov   qword [rsp], 0 ; method_len
   mov   qword [rsp+8], 0 ; route_len
+
+  mov   qword [rel callback], %3
 
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
@@ -323,6 +346,7 @@ route_found:
   inc   rsi
 
 %%jump:
+  xor   rdx, rdx
   mov   rax, qword [routes_count]
   mov   rbx, STRUCT_ROUTE_LEN
   mul   rbx
@@ -339,6 +363,18 @@ route_found:
   mov   rcx, qword [rsp]
   rep   movsb
 
+  ; store callback in the right index
+  xor   rdx, rdx
+  lea   rdi, [callback_list]
+
+  mov   rax, qword [routes_count]
+  mov   rbx, 8
+  mul   rbx
+  add   rdi, rax
+
+  mov   rax, [rel callback]
+  mov   qword [rdi], rax
+
   inc   qword [routes_count]
 
   add   rsp, 16
@@ -346,10 +382,11 @@ route_found:
 
 %macro server_init 1
   sub   rsp, 8
+ 
   mov   qword [rsp], 0  ; sockfd
   ; create socket
   mov   rax, SYS_SOCKET
-  mov   rdi, AF_INET
+  mov   edi, AF_INET
   mov   rsi, SOCK_STREAM
   mov   rdx, 0
   syscall
@@ -391,8 +428,6 @@ route_found:
   cmp   rax, 0
   jl    error
 
-  add_route GET, root_route
-
   ; bind socket
   xor   rax, rax
   htons %1
@@ -422,6 +457,7 @@ route_found:
   jl    error
 
   mov   rax, qword [rsp]
+
   add   rsp, 8
 %endmacro
 
@@ -511,7 +547,7 @@ timer_not_defined:
   mov   rdx, response_400_len
   syscall
 
-  mov   dword [http_status_code], BAD_REQUEST
+  mov   qword [http_status_code], BAD_REQUEST
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
@@ -531,7 +567,7 @@ move_to_check_method:
   mov   rdx, response_405_len
   syscall
 
-  mov   dword [http_status_code], METHOD_NOT_ALLOWED
+  mov   qword [http_status_code], METHOD_NOT_ALLOWED
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
@@ -558,7 +594,7 @@ move_to_route:
   mov   rdx, response_400_len
   syscall
 
-  mov   dword [http_status_code], BAD_REQUEST
+  mov   qword [http_status_code], BAD_REQUEST
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
@@ -577,7 +613,7 @@ test_route:
   mov   rdx, response_404_len
   syscall
 
-  mov   dword [http_status_code], 404
+  mov   qword [http_status_code], BAD_REQUEST
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
@@ -586,24 +622,7 @@ test_route:
   jmp   %%loop
 
 move_to_rest_of_request:
-  lea   rsi, [request]
-  add   rsi, [route_len] ; move to rest of request (add one for the space)
-  inc   rsi
-  mov   rcx, [request_len]
-  sub   rcx, [route_len]
-  dec   rcx
-
-  ; inside rax is the index of the route inside routes_list 
-  mov   rbx, STRUCT_ROUTE_LEN
-  mul   rbx
-
-  add   rax, ROUTE_MAX_LEN
-  add   rax, METHOD_MAX_LEN
-
-  lea   rsi, [routes_list]
-  add   rsi, rax
-
-  mov   dword [http_status_code], OK
+  mov   qword [http_status_code], OK
 
   mov   rax, SYS_WRITE
   mov   rdi, qword [rsp+8]
