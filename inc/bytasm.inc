@@ -1,3 +1,5 @@
+; TODO: update function revoking macros
+; TODO: callback arguments
 ; TODO: atoi
 ; TODO: add port length to log_init
 ; TODO: log available route after server init
@@ -6,7 +8,6 @@
 ; TODO; error handling
 ; TODO: add https
 ; TODO: basic auth
-; TODO: add function to route
 ; TODO: read request body
 ; TODO: doc
 
@@ -19,7 +20,7 @@
 %include "server.inc"
 
 section .data
-  enable    dw 0
+  enable  dw 0
 
   port  dq 0
 
@@ -29,9 +30,9 @@ section .data
   server_sa_zero     dq 0
   server_addrlen     equ $ - server_sin_family
 
-  client_sin_family  dw 0 
-  client_sin_port    dw 0 
-  client_sin_addr    dd 0 
+  client_sin_family  dw 0
+  client_sin_port    dw 0
+  client_sin_addr    dd 0
   client_sa_zero     dq 0
   client_addrlen     dq server_addrlen
 
@@ -73,6 +74,12 @@ section .data
                     db "Connection: close", CARRIAGE_RETURN, LINE_FEED
                     db CARRIAGE_RETURN, LINE_FEED
   response_400_len  equ $ - response_400
+
+  response_401      db "HTTP/1.1 401 Unauthorized", CARRIAGE_RETURN, LINE_FEED
+                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
+                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
+                    db CARRIAGE_RETURN, LINE_FEED
+  response_401_len  equ $ - response_401
 
   response_404      db "HTTP/1.1 404 Not Found", CARRIAGE_RETURN, LINE_FEED
                     db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED

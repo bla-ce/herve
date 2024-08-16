@@ -34,11 +34,11 @@ mov   qword [sockfd], rax
 ```
 
 ### Step 5: Add Routes
-Add routes to the server, associating a method and a response :
+Add routes to the server, associating a method:
+add_route function supports zero arguments callback function
 
 ``` assembly
-add_route GET, index_route, index_response
-add_route GET, css_route, css_response
+add_route GET, index_route, print_hello 
 ```
 
 ### Step 6: Run the Server
@@ -65,16 +65,20 @@ global  _start
 %include "bytasm.inc"
 
 section .text
+print_hello:
+    mov   rax, 1
+    mo    rdi, 1
+    lea   rsi, [hello]
+    mov   rdx, len
+    syscall
+
 _start:
     server_init 1337
     mov   qword [sockfd], rax
 
     disallow_method CONNECT
 
-    add_route GET, health_route, health_response
-
-    add_route GET, index_route, index_response
-    add_route GET, css_route, css_response
+    add_route GET, index_route, print_hello
 
     run_server qword [sockfd]
 
@@ -83,15 +87,10 @@ _start:
 section .data
     sockfd  dq 0
    
-    health_route    db "/health", NULL_CHAR
-
     index_route db "/index", NULL_CHAR
-    css_route   db "/style.css", NULL_CHAR
 
-    health_response db "ok", NULL_CHAR
-
-    index_response  db "/views/index.html", NULL_CHAR
-    css_response    db "/views/style.css", NULL_CHAR
+    hello db "Hello, World", LINE_FEED
+    len   equ $ - hello
 ``` 
 
 ### Step 8: Assemble and Link the Code

@@ -638,12 +638,12 @@ move_to_rest_of_request:
 
 %endmacro
 
-%macro shutdown 1
+shutdown:
   ; close sockets
   mov   rax, SYS_CLOSE
-  mov   rdi, %1
   syscall
-%endmacro
+
+  ret
 
 error:
   ; write error message

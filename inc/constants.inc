@@ -73,6 +73,7 @@ CONNECT db "CONNECT", NULL_CHAR
 ; status code
 OK                    equ 200
 BAD_REQUEST           equ 400
+UNAUTHORIZED          equ 401
 NOT_FOUND             equ 404
 METHOD_NOT_ALLOWED    equ 405
 INTERNAL_SERVER_ERROR equ 500
