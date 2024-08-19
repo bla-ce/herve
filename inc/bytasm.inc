@@ -1,8 +1,5 @@
-; TODO: remove method variables
-; TODO: use hex insted of dec
-; TODO: request struct
+; TODO: request and response struct
 ; TODO: update function revoking macros
-; TODO: callback arguments
 ; TODO: convert ns to ms
 ; TODO: atoi
 ; TODO: add port length to log_init
@@ -13,7 +10,7 @@
 ; TODO: add https
 ; TODO: basic auth
 ; TODO: read request body
-; TODO: doc
+; TODO: doc and comments
 
 %ifndef BYT_ASM_INC
 %define BYT_ASM_INC
@@ -42,20 +39,26 @@ section .data
 
   request     times REQUEST_MAX_LEN db 0
 
-  ; request struct
-  method          times METHOD_MAX_LEN db 0
-  url             times ROUTE_MAX_LEN db 0
-  proto           times PROTO_MAX_LEN db 0
-  proto_major     dd 0
-  proto_minor     dd 0
-  body            times BODY_MAX_LEN db 0
-  content_length  dw 0
-  close           db 0
-  host            times HOST_MAX_LEN db 0
-  response        times RESPONSE_MAX_LEN db 0
+  ; request struct - missing headers
+  request_method          times METHOD_MAX_LEN db 0
+  request_url             times URL_MAX_LEN db 0
+  request_proto           times PROTO_MAX_LEN db 0
+  request_proto_major     dd 0
+  request_proto_minor     dd 0
+  request_body            times BODY_MAX_LEN db 0
+  request_content_length  dw 0
+  request_close           db 0
+  request_host            times HOST_MAX_LEN db 0
 
-  ; TODO: update to url
-  route     times ROUTE_MAX_LEN db 0
+  ; response struct - missing headers
+  response_status           times STATUS_MAX_LEN db 0
+  response_status_code      dq 0
+  response_proto            times PROTO_MAX_LEN db 0
+  response_proto_major      dd 0
+  response_proto_minor      dd 0
+  response_body             times BODY_MAX_LEN db 0
+  response_content_length   dw 0
+  response_close            db 0
 
   file      times FILE_MAX_LEN db 0
   file_len  dq 0
@@ -71,8 +74,6 @@ section .data
 
   callback_list times MAX_ROUTES_COUNT dq 0
   callback      dq 0
-
-  http_status_code dq 0
 
   ; responses
   response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
@@ -164,7 +165,7 @@ section .data
   log_start     db LINE_FEED, " [LOG] "
   log_method    times METHOD_MAX_LEN db SPACE
   log_delim     db " | "
-  log_route     times ROUTE_MAX_LEN db SPACE
+  log_url       times URL_MAX_LEN db SPACE
   log_delim2    db " | " 
   log_duration  times LONG_SIZE+2 db SPACE
   log_delim3    db " | "

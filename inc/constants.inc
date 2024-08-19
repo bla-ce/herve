@@ -5,6 +5,17 @@ CLOCK_REALTIME  equ 0
 STDOUT          equ 1
 LONG_SIZE       equ 10
 
+; request struct constants
+METHOD_MAX_LEN      equ 8
+URL_MAX_LEN         equ 32    ; change to 128 when prod
+PROTO_MAX_LEN       equ 8
+BODY_MAX_LEN        equ 4096
+HOST_MAX_LEN        equ 256
+RESPONSE_MAX_LEN    equ 8192
+
+; response struct constants
+STATUS_MAX_LEN equ 64
+
 ; socket constants
 INADDR_ANY          equ 0
 SOCK_STREAM         equ 1
@@ -17,15 +28,7 @@ REQUEST_MAX_LEN     equ 8*1024
 MSG_TRUNC           equ 32
 MAX_ROUTES_COUNT    equ 10
 STATUS_CODE_LEN     equ 3
-STRUCT_ROUTE_LEN    equ ROUTE_MAX_LEN + METHOD_MAX_LEN
-
-; request struct constants
-METHOD_MAX_LEN      equ 8
-ROUTE_MAX_LEN       equ 32    ; change to 128 when prod
-PROTO_MAX_LEN       equ 8
-BODY_MAX_LEN        equ 4096
-HOST_MAX_LEN        equ 256
-RESPONSE_MAX_LEN    equ 8192
+STRUCT_ROUTE_LEN    equ URL_MAX_LEN + METHOD_MAX_LEN
 
 ; syscall values
 SYS_READ          equ 0

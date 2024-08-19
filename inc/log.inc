@@ -6,7 +6,7 @@
   add   rsi, STATUS_CODE_LEN
   dec   rsi
 
-  mov   eax, dword [http_status_code]
+  mov   eax, dword [response_status_code]
   
 %%loop:
   xor   edx, edx
@@ -62,9 +62,9 @@
   lea   rdi, [log_method]
   rep   stosb
 
-  mov   rcx, ROUTE_MAX_LEN
+  mov   rcx, URL_MAX_LEN
   mov   rax, SPACE
-  lea   rdi, [log_route]
+  lea   rdi, [log_url]
   rep   stosb
 
   mov   rcx, LONG_SIZE
@@ -73,23 +73,23 @@
   lea   rdi, [log_duration]
   rep   stosb
 
-  get_length method
+  get_length request_method
   mov   rcx, rax
 
-  lea   rsi, [method]
+  lea   rsi, [request_method]
   lea   rdi, [log_method]
   rep   movsb
 
-  get_length route
+  get_length request_url
   mov   rcx, rax
 
-  lea   rsi, [route]
+  lea   rsi, [request_url]
 
   mov   al, byte [rsi]
   cmp   al, NULL_CHAR
   je    jump_log_route
 
-  lea   rdi, [log_route]
+  lea   rdi, [log_url]
   rep   movsb
 
 jump_log_route:

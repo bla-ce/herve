@@ -19,7 +19,7 @@
 
   mov   qword [rsp], rax
 
-  lea   rdi, [method]
+  lea   rdi, [request_method]
   mov   rcx, rax
   rep   movsb
 
@@ -39,7 +39,7 @@
 
   dec   qword [rsp] ; remove null_char 
   mov   r10, qword [rsp]
-  strpos methods_list, methods_list_len, method, r10
+  strpos methods_list, methods_list_len, request_method, r10
 
   inc   qword [rsp]
 
@@ -51,7 +51,7 @@
   lea   rdi, [not_allowed_methods]
   add   rdi, rax
 
-  lea   rsi, [method]
+  lea   rsi, [request_method]
   mov   rcx, qword [rsp]
   rep   movsb
 
@@ -88,7 +88,7 @@
   mov   rax, qword [rsp]
 
   sub   rsi, rax
-  lea   rdi, [method]
+  lea   rdi, [request_method]
   mov   rcx, rax
   rep   movsb
 
@@ -157,7 +157,7 @@ method_exists:
   mov   rdx, error_route_too_big_len
 
   mov   rcx, %2
-  cmp   rcx, ROUTE_MAX_LEN
+  cmp   rcx, URL_MAX_LEN
   jg    error
 
   mov   qword [rsp], rcx
@@ -214,12 +214,12 @@ route_found:
 
   inc   rdi
 
-  get_length method
+  get_length request_method
 
   ; check the method is correct
   ; rdi points to the beginning of the route
-  add   rdi, ROUTE_MAX_LEN
-  lea   rsi, [method] 
+  add   rdi, URL_MAX_LEN
+  lea   rsi, [request_method] 
   mov   rcx, rax
   rep   cmpsb
 
@@ -252,7 +252,6 @@ route_found:
   call  rax
 
 skip_exec:
-
   mov   rax, qword [rsp]
 %%return:
   add   rsp, 8
@@ -269,7 +268,7 @@ skip_exec:
   xor   rax, rax
 
 %%loop:
-  cmp   qword [rsp], ROUTE_MAX_LEN
+  cmp   qword [rsp], URL_MAX_LEN
   jge   %%bad_request
 
   lodsb
@@ -297,7 +296,7 @@ skip_exec:
   mov   rax, qword [rsp]
 
   sub   rsi, rax
-  lea   rdi, [route]
+  lea   rdi, [request_url]
   mov   rcx, rax
   rep   movsb
 
@@ -319,7 +318,7 @@ skip_exec:
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  mov   rcx, ROUTE_MAX_LEN
+  mov   rcx, URL_MAX_LEN
 
   ; method_length
   get_length %1
@@ -361,7 +360,7 @@ skip_exec:
   mov   rcx, qword [rsp+8]
   rep   movsb
 
-  add   rdi, ROUTE_MAX_LEN
+  add   rdi, URL_MAX_LEN
   sub   rdi, qword [rsp+8]
 
   mov   rsi, %1
@@ -492,14 +491,14 @@ skip_exec:
 
 timer_not_defined:
   ; clear route and method
-  mov   rcx, ROUTE_MAX_LEN
+  mov   rcx, URL_MAX_LEN
   xor   rax, rax
-  lea   rdi, [route]
+  lea   rdi, [request_url]
   rep   stosb
 
   mov   rcx, METHOD_MAX_LEN
   xor   rax, rax
-  lea   rdi, [method]
+  lea   rdi, [request_method]
   rep   stosb
 
   ; accept connection
@@ -550,7 +549,7 @@ timer_not_defined:
   mov   rdx, response_400_len
   syscall
 
-  mov   qword [http_status_code], BAD_REQUEST
+  mov   qword [response_status_code], BAD_REQUEST
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
@@ -559,10 +558,11 @@ timer_not_defined:
   jmp   %%loop
 
 move_to_check_method:  
-  get_length  method
+  get_length  request_method
   mov   r10, rax
+
   ; check if method is allowed
-  check_method method, r10
+  check_method request_method, r10
   cmp   rax, 0
   jge   move_to_route
 
@@ -572,7 +572,7 @@ move_to_check_method:
   mov   rdx, response_405_len
   syscall
 
-  mov   qword [http_status_code], METHOD_NOT_ALLOWED
+  mov   qword [response_status_code], METHOD_NOT_ALLOWED
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
@@ -583,7 +583,7 @@ move_to_check_method:
 move_to_route:
   get_length request
   mov   r10, rax
-  get_length method
+  get_length request_method
   mov   r9, rax
 
   lea   rsi, [request]
@@ -604,7 +604,7 @@ move_to_route:
   mov   rdx, response_400_len
   syscall
 
-  mov   qword [http_status_code], BAD_REQUEST
+  mov   qword [response_status_code], BAD_REQUEST
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
@@ -613,9 +613,9 @@ move_to_route:
   jmp   %%loop
 
 test_route:
-  get_length route
+  get_length request_url
   mov   r10, rax
-  check_route route, r10
+  check_route request_url, r10
   cmp   rax, 0
   jge   move_to_rest_of_request
 
@@ -625,7 +625,7 @@ test_route:
   mov   rdx, response_404_len
   syscall
 
-  mov   qword [http_status_code], BAD_REQUEST
+  mov   qword [response_status_code], BAD_REQUEST
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
@@ -634,7 +634,7 @@ test_route:
   jmp   %%loop
 
 move_to_rest_of_request:
-  mov   qword [http_status_code], OK
+  mov   qword [response_status_code], OK
 
   mov   rax, SYS_WRITE
   mov   rdi, qword [rsp+8]
