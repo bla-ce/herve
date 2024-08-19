@@ -1,5 +1,9 @@
+; TODO: remove method, route and request variables
+; TODO: use hex insted of dec
+; TODO: request struct
 ; TODO: update function revoking macros
 ; TODO: callback arguments
+; TODO: convert ns to ms
 ; TODO: atoi
 ; TODO: add port length to log_init
 ; TODO: log available route after server init
@@ -20,7 +24,7 @@
 %include "server.inc"
 
 section .data
-  enable  dw 0
+  enable  dw 1
 
   port  dq 0
 
@@ -37,7 +41,6 @@ section .data
   client_addrlen     dq server_addrlen
 
   request     times REQUEST_MAX_LEN db 0
-  request_len dq 0
 
   route     times ROUTE_MAX_LEN db 0
   method    times METHOD_MAX_LEN db 0

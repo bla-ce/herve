@@ -244,8 +244,16 @@ route_found:
 
   add   rdi, rax
 
+  ; get callback
   mov   rax, [rdi]
+
+  ; check it's not null
+  cmp   rax, 0
+  je    skip_exec
+
   call  rax
+
+skip_exec:
 
   mov   rax, qword [rsp]
 %%return:
@@ -534,10 +542,8 @@ timer_not_defined:
   cmp   rax, 0
   jl    error
 
-  mov   qword [request_len], rax
-
   ; extract method
-  extract_method request, [request_len] 
+  extract_method request, rax
   cmp   rax, 0
   jge   move_to_check_method
 
@@ -576,10 +582,11 @@ move_to_check_method:
   jmp   %%loop
 
 move_to_route:
+  get_length request
   lea   rsi, [request]
   add   rsi, [method_len] ; move to route (add one for the space)
   inc   rsi
-  mov   rcx, [request_len]
+  mov   rcx, rax
   sub   rcx, [method_len]
   dec   rcx
 
