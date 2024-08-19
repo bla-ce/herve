@@ -57,8 +57,6 @@ section .data
   ; TODO: update to url
   route     times ROUTE_MAX_LEN db 0
 
-  method_len    dq 0
-
   file      times FILE_MAX_LEN db 0
   file_len  dq 0
 

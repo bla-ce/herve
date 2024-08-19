@@ -11,22 +11,19 @@
   ; %1 -> method
   mov   rsi, %1
 
-  push rsi
+  sub   rsp, 0x8
 
+  push  rsi
   get_length rsi
-  mov   rbx, rax
+  pop   rsi
 
-  pop rsi
-
-  mov   [method_len], rbx
+  mov   qword [rsp], rax
 
   lea   rdi, [method]
-  mov   rcx, rbx
+  mov   rcx, rax
   rep   movsb
 
-  push  rbx
-
-  ; check route arg, variable should be between GET and CONNECT
+  ; check method arg, variable should be between GET and CONNECT
   mov   rdi, %1
   lea   rax, [GET]
   lea   rbx, [CONNECT]
@@ -40,24 +37,26 @@
   cmp   rdi, rbx
   jg    error
 
-  dec   qword [method_len] ; remove null_char 
-  strpos methods_list, methods_list_len, method, [method_len]
+  dec   qword [rsp] ; remove null_char 
+  mov   r10, qword [rsp]
+  strpos methods_list, methods_list_len, method, r10
+
+  inc   qword [rsp]
 
   lea   rsi, [method_doesnt_exist]
   mov   rdi, method_doesnt_exist_len
   cmp   rax, 0
   jl    error
 
-  pop   rbx
-
   lea   rdi, [not_allowed_methods]
   add   rdi, rax
 
   lea   rsi, [method]
-  mov   rcx, rbx
+  mov   rcx, qword [rsp]
   rep   movsb
 
   xor   rax, rax
+  add   rsp, 0x8
 %endmacro
 
 %macro extract_method 2
@@ -87,7 +86,6 @@
 %%return:
   dec   rsi
   mov   rax, qword [rsp]
-  mov   qword [method_len], rax
 
   sub   rsi, rax
   lea   rdi, [method]
@@ -561,8 +559,10 @@ timer_not_defined:
   jmp   %%loop
 
 move_to_check_method:  
+  get_length  method
+  mov   r10, rax
   ; check if method is allowed
-  check_method method, [method_len]
+  check_method method, r10
   cmp   rax, 0
   jge   move_to_route
 
@@ -582,11 +582,15 @@ move_to_check_method:
 
 move_to_route:
   get_length request
+  mov   r10, rax
+  get_length method
+  mov   r9, rax
+
   lea   rsi, [request]
-  add   rsi, [method_len] ; move to route (add one for the space)
+  add   rsi, r9 ; move to route (add one for the space)
   inc   rsi
-  mov   rcx, rax
-  sub   rcx, [method_len]
+  mov   rcx, r10
+  sub   rcx, r9
   dec   rcx
 
   ; extract route
