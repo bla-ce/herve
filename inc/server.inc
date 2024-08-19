@@ -297,7 +297,6 @@ skip_exec:
 %%return:
   dec   rsi
   mov   rax, qword [rsp]
-  mov   qword [route_len], rax
 
   sub   rsi, rax
   lea   rdi, [route]
@@ -610,7 +609,9 @@ move_to_route:
   jmp   %%loop
 
 test_route:
-  check_route route, [route_len]
+  get_length route
+  mov   r10, rax
+  check_route route, r10
   cmp   rax, 0
   jge   move_to_rest_of_request
 

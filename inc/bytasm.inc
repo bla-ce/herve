@@ -1,4 +1,4 @@
-; TODO: remove method, route and request variables
+; TODO: remove method variables
 ; TODO: use hex insted of dec
 ; TODO: request struct
 ; TODO: update function revoking macros
@@ -42,11 +42,22 @@ section .data
 
   request     times REQUEST_MAX_LEN db 0
 
+  ; request struct
+  method          times METHOD_MAX_LEN db 0
+  url             times ROUTE_MAX_LEN db 0
+  proto           times PROTO_MAX_LEN db 0
+  proto_major     dd 0
+  proto_minor     dd 0
+  body            times BODY_MAX_LEN db 0
+  content_length  dw 0
+  close           db 0
+  host            times HOST_MAX_LEN db 0
+  response        times RESPONSE_MAX_LEN db 0
+
+  ; TODO: update to url
   route     times ROUTE_MAX_LEN db 0
-  method    times METHOD_MAX_LEN db 0
 
   method_len    dq 0
-  route_len     dq 0
 
   file      times FILE_MAX_LEN db 0
   file_len  dq 0
