@@ -11,10 +11,11 @@ URL_MAX_LEN         equ 32    ; change to 128 when prod
 PROTO_MAX_LEN       equ 8
 BODY_MAX_LEN        equ 4096
 HOST_MAX_LEN        equ 256
-RESPONSE_MAX_LEN    equ 8192
+HEADERS_MAX_LEN     equ 8192
 
 ; response struct constants
-STATUS_MAX_LEN equ 64
+STATUS_MAX_LEN      equ 64
+RESPONSE_MAX_LEN    equ 8192
 
 ; socket constants
 INADDR_ANY          equ 0

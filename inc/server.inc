@@ -158,7 +158,7 @@ method_exists:
 
   mov   rcx, %2
   cmp   rcx, URL_MAX_LEN
-  jg    error
+  jg    route_not_found
 
   mov   qword [rsp], rcx
 
@@ -538,116 +538,23 @@ timer_not_defined:
   cmp   rax, 0
   jl    error
 
-  ; extract method
-  extract_method request, rax
-  cmp   rax, 0
-  jge   move_to_check_method
+  mov   qword [request_len], rax
 
-  mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+8]
-  mov   rsi, response_400
-  mov   rdx, response_400_len
-  syscall
+  ; parse_request
+  parse_request
 
-  mov   qword [response_status_code], BAD_REQUEST
+  ; verify request
+  verify_request
 
+  ; ; send_response
+  mov   rax, qword [rsp+8]
+  send_response rax
+ 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
   syscall
-
+ 
   jmp   %%loop
-
-move_to_check_method:  
-  get_length  request_method
-  mov   r10, rax
-
-  ; check if method is allowed
-  check_method request_method, r10
-  cmp   rax, 0
-  jge   move_to_route
-
-  mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+8]
-  mov   rsi, response_405
-  mov   rdx, response_405_len
-  syscall
-
-  mov   qword [response_status_code], METHOD_NOT_ALLOWED
-
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+8] 
-  syscall
-
-  jmp   %%loop
-
-move_to_route:
-  get_length request
-  mov   r10, rax
-  get_length request_method
-  mov   r9, rax
-
-  lea   rsi, [request]
-  add   rsi, r9 ; move to route (add one for the space)
-  inc   rsi
-  mov   rcx, r10
-  sub   rcx, r9
-  dec   rcx
-
-  ; extract route
-  extract_route rsi, rcx 
-  cmp   rax, 0
-  jge   test_route
-
-  mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+8]
-  mov   rsi, response_400
-  mov   rdx, response_400_len
-  syscall
-
-  mov   qword [response_status_code], BAD_REQUEST
-
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+8] 
-  syscall
-
-  jmp   %%loop
-
-test_route:
-  get_length request_url
-  mov   r10, rax
-  check_route request_url, r10
-  cmp   rax, 0
-  jge   move_to_rest_of_request
-
-  mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+8]
-  mov   rsi, response_404
-  mov   rdx, response_404_len
-  syscall
-
-  mov   qword [response_status_code], BAD_REQUEST
-
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+8] 
-  syscall
-
-  jmp   %%loop
-
-move_to_rest_of_request:
-  mov   qword [response_status_code], OK
-
-  mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+8]
-  mov   rsi, response_200
-  mov   rdx, response_200_len
-  syscall
-
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+8]
-  syscall
-
-  jmp   %%loop
-
 %endmacro
 
 shutdown:

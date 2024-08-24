@@ -1,4 +1,8 @@
+; TODO: extract headers
+; TODO: check for anchor and parameters in links
+; TODO: send error bad request 
 ; TODO: request and response struct
+; TODO: remove response message and construct them with response struct
 ; TODO: update function revoking macros
 ; TODO: convert ns to ms
 ; TODO: atoi
@@ -19,6 +23,7 @@
 %include "log.inc"
 %include "string.inc"
 %include "server.inc"
+%include "request.inc"
 
 section .data
   enable  dw 1
@@ -38,6 +43,7 @@ section .data
   client_addrlen     dq server_addrlen
 
   request     times REQUEST_MAX_LEN db 0
+  request_len dq 0
 
   ; request struct - missing headers
   request_method          times METHOD_MAX_LEN db 0
@@ -47,6 +53,7 @@ section .data
   request_proto_minor     dd 0
   request_body            times BODY_MAX_LEN db 0
   request_content_length  dw 0
+  request_headers         times HEADERS_MAX_LEN db 0
   request_close           db 0
   request_host            times HOST_MAX_LEN db 0
 
@@ -74,6 +81,9 @@ section .data
 
   callback_list times MAX_ROUTES_COUNT dq 0
   callback      dq 0
+
+  post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED
+  post_headers_len  equ $ - post_headers
 
   ; responses
   response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 

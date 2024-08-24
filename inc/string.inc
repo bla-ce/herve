@@ -1,6 +1,43 @@
 %ifndef STRING_INC
 %define STRING_INC
 
+; returns the index of the next occurence of the char
+; relative to current address
+%macro find_next_char 2
+  ; %1 -> string
+  ; %2 -> char
+  ; return value -> rax: index
+  mov   rsi, %1
+  mov   rbx, %2
+
+  sub   rsp, 0x8
+  mov   qword [rsp], 0
+
+%%next:
+  mov   al, byte [rsi]
+  cmp   al, bl
+  je    %%found
+
+  cmp   al, NULL_CHAR
+  je    %%not_found
+
+  inc   qword [rsp]
+
+  inc   rsi
+  jmp   %%next
+
+%%not_found:
+  mov   rax, -1
+  jmp   %%return
+
+%%found:
+  mov   rax, qword [rsp]
+
+%%return:
+  sub   rsi, qword [rsp]
+  add   rsp, 0x8
+%endmacro
+
 %macro strpos 4
   ; %1 -> string
   ; %2 -> string length
@@ -41,6 +78,7 @@
   
 %%return:
   add   rsp, 8
+
 %endmacro
 
 %macro get_length 1
