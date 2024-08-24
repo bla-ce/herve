@@ -36,6 +36,7 @@ mov   qword [sockfd], rax
 ### Step 5: Add Routes
 Add routes to the server, associating a method:
 add_route function supports zero arguments callback function
+callback function has the request object inside rsi
 
 ``` assembly
 add_route GET, index_route, print_hello 

@@ -1,19 +1,19 @@
-; TODO: extract headers
+; TODO: add request to callback function
+; TODO: add port length to log_init
+; TODO: log available route after server init
+; TODO: read basic auth
+
+; TODO: add date and time to log
 ; TODO: check for anchor and parameters in links
 ; TODO: send error bad request 
-; TODO: request and response struct
+; TODO: response struct
 ; TODO: remove response message and construct them with response struct
 ; TODO: update function revoking macros
 ; TODO: convert ns to ms
 ; TODO: atoi
-; TODO: add port length to log_init
-; TODO: log available route after server init
 ; TODO: Clean refactor
-; TODO: add date and time to log
 ; TODO; error handling
 ; TODO: add https
-; TODO: basic auth
-; TODO: read request body
 ; TODO: doc and comments
 
 %ifndef BYT_ASM_INC
@@ -82,8 +82,8 @@ section .data
   callback_list times MAX_ROUTES_COUNT dq 0
   callback      dq 0
 
-  post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED
-  post_headers_len  equ $ - post_headers
+  post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
+  post_headers_len  equ $ - post_headers - 1
 
   ; responses
   response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
@@ -172,7 +172,7 @@ section .data
   duration dq 0
   
   ; log
-  log_start     db LINE_FEED, " [LOG] "
+  log_start     db " [LOG] "
   log_method    times METHOD_MAX_LEN db SPACE
   log_delim     db " | "
   log_url       times URL_MAX_LEN db SPACE
@@ -180,10 +180,13 @@ section .data
   log_duration  times LONG_SIZE+2 db SPACE
   log_delim3    db " | "
   log_status    times STATUS_CODE_LEN db SPACE
+  log_new_line  db LINE_FEED
   log_len       equ $ - log_start
 
-  log_server_init     db "[DEBUG] Listening and serving HTTP on :"
-  log_server_init_len equ $ - log_server_init
+  log_server_init_msg db "[DEBUG] Listening and serving HTTP on :"
+  log_server_init_len equ $ - log_server_init_msg
+
+  log_port  times LOG_PORT_LEN db 0
 
 %endif
 

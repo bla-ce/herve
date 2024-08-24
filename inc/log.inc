@@ -1,6 +1,22 @@
 %ifndef LOG_INC
 %define LOG_INC
 
+%macro log_server_init 0
+  mov   rax, SYS_WRITE
+  mov   rdi, STDOUT
+  lea   rsi, [log_server_init_msg]
+  mov   rdx, log_server_init_len
+  syscall
+
+  to_string qword [port], log_port, LOG_PORT_LEN
+  mov   rsi, rdi
+  mov   rax, SYS_WRITE
+  mov   rdi, STDOUT
+
+  mov   rdx, LOG_PORT_LEN
+  syscall
+%endmacro
+
 %macro log_add_status 0
   lea   rsi, [log_status]
   add   rsi, STATUS_CODE_LEN
@@ -106,4 +122,4 @@ jump_log_route:
 %endmacro
 
 %endif
-
+    

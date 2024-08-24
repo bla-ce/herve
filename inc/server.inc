@@ -249,6 +249,7 @@ route_found:
   cmp   rax, 0
   je    skip_exec
 
+  lea   rsi, [request]
   call  rax
 
 skip_exec:
@@ -386,6 +387,8 @@ skip_exec:
 
 %macro server_init 1
   sub   rsp, 8
+
+  mov   qword [port], %1
  
   mov   qword [rsp], 0  ; sockfd
   ; create socket
@@ -459,6 +462,8 @@ skip_exec:
 
   cmp   rax, 0
   jl    error
+
+  log_server_init
 
   mov   rax, qword [rsp]
 

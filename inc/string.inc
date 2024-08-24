@@ -1,6 +1,41 @@
 %ifndef STRING_INC
 %define STRING_INC
 
+; converts int into string
+%macro to_string 3
+  ; %1 -> int
+  ; %2 -> string
+  ; %3 -> string max len
+
+  mov   rdi, %2
+  add   rdi, %3
+  dec   rdi
+
+  ; null char at the end of the string
+  mov   rax, NULL_CHAR
+  stosb
+
+  sub   rdi, 2
+
+  mov   rax, %1
+  
+%%loop:
+  xor   rdx, rdx
+  mov   rcx, 0xA              ; divisor, dividend in rax
+  div   rcx                   ; quotient in rax and remainder in edx
+
+  add   rdx, ZERO_CHAR
+
+  mov   byte [rdi], dl
+
+  dec   rdi
+
+  cmp   rax, 0
+  jne   %%loop
+
+  inc   rdi
+%endmacro
+
 ; returns the index of the next occurence of the char
 ; relative to current address
 %macro find_next_char 2
