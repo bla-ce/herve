@@ -42,40 +42,43 @@ to_string_loop:
 
 ; returns the index of the next occurence of the char
 ; relative to current address
-%macro find_next_char 2
-  ; %1 -> string
-  ; %2 -> char
+; returns the preserved address into rsi
+find_next_char:
+  ; rdi -> string
+  ; rsi -> char
   ; return value -> rax: index
-  mov   rsi, %1
-  mov   rbx, %2
+  push  rsi
+
+  lea   rsi, [rdi]
+
+  pop   rdx
 
   sub   rsp, 0x8
   mov   qword [rsp], 0
 
-%%next:
+find_next_char_loop:
   mov   al, byte [rsi]
-  cmp   al, bl
-  je    %%found
+  cmp   al, dl
+  je    find_next_char_found
 
   cmp   al, NULL_CHAR
-  je    %%not_found
+  je   find_next_char_not_found 
 
   inc   qword [rsp]
 
   inc   rsi
-  jmp   %%next
+  jmp   find_next_char_loop
 
-%%not_found:
+find_next_char_not_found:
   mov   rax, -1
-  jmp   %%return
+  jmp   find_next_char_return
 
-%%found:
+find_next_char_found:
   mov   rax, qword [rsp]
 
-%%return:
-  sub   rsi, qword [rsp]
+find_next_char_return:
   add   rsp, 0x8
-%endmacro
+  ret
 
 %macro strpos 4
   ; %1 -> string

@@ -6,11 +6,16 @@
   mov   rcx, qword [request_len]
 
   ; extract method
-  lea   rdi, [request_method]
+  push  rsi
 
-  find_next_char rsi, SPACE
+  lea   rdi, [rsi]
+  mov   rsi, SPACE
+  call  find_next_char
   cmp   rax, 0x0
   jl    %%error
+
+  lea   rdi, [request_method]
+  pop   rsi
 
   mov   rcx, rax
   rep   movsb
@@ -19,10 +24,16 @@
   inc   rsi
 
   ; extract url
-  lea   rdi, [request_url]
-  find_next_char rsi, SPACE
+  push  rsi
+
+  lea   rdi, [rsi]
+  mov   rsi, SPACE
+  call  find_next_char
   cmp   rax, 0x0
   jl    %%error
+
+  lea   rdi, [request_url]
+  pop   rsi
 
   mov   rcx, rax
   rep   movsb
@@ -31,10 +42,16 @@
   inc   rsi
 
   ; extract proto
-  lea   rdi, [request_proto]
-  find_next_char rsi, CARRIAGE_RETURN
+  push  rsi
+
+  lea   rdi, [rsi]
+  mov   rsi, CARRIAGE_RETURN
+  call  find_next_char
   cmp   rax, 0x0
   jl    %%error
+
+  lea   rdi, [request_proto]
+  pop   rsi
 
   mov   rcx, rax
   rep   movsb
@@ -42,8 +59,9 @@
   push  rsi
 
   ; parse proto
-  lea   rsi, [request_proto]
-  find_next_char rsi, SLASH
+  lea   rdi, [request_proto]
+  mov   rsi, SLASH
+  call  find_next_char
   cmp   rax, 0x0
   jl    %%error
 
@@ -98,10 +116,17 @@
   ; move to new line (skip 4 char \r\n\r\n)
   add   rsi, 0x4
 
+  push  rsi
+
   lea   rdi, [request_body]
-  find_next_char rsi, NULL_CHAR
+  mov   rsi, NULL_CHAR
+
+  call  find_next_char
   cmp   rax, 0x0
   jl    %%error
+
+  lea   rdi, [request_body]
+  pop   rsi
 
   mov   rcx, rax
   rep   movsb
