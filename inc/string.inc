@@ -80,48 +80,53 @@ find_next_char_return:
   add   rsp, 0x8
   ret
 
-%macro strpos 4
-  ; %1 -> string
-  ; %2 -> string length
-  ; %3 -> substring
-  ; %4 -> substring length
+strpos:
+  ; rdi -> string
+  ; rsi -> string length
+  ; rdx -> substring
+  ; rcx -> substring length
+  ; return value: rax -> substring position
   sub   rsp, 8 ; string index and substring index
   mov   qword [rsp], 0
 
-  mov   rsi, %1
-  mov   rax, %2
-  mov   rdi, %3
-  mov   rbx, %4
+  mov   rbx, rcx
 
-%%loop:
+  push  rdx
+  push  rsi
+  push  rdi
+
+  pop   rsi
+  pop   rax
+  pop   rdi
+
+strpos_loop:
   mov   rcx, rbx
   cld
   rep   cmpsb 
-  je    %%found
+  je    strpos_found
 
   add   qword [rsp], rbx
   sub   qword [rsp], rcx
 
   cmp   qword [rsp], rax
-  jg    %%not_found
+  jg    strpos_not_found
 
   add   rdi, rcx
   sub   rdi, rbx
 
-  jmp   %%loop
+  jmp   strpos_loop
 
-%%found:
+strpos_found:
   mov   rax, qword [rsp]
-  jmp   %%return
+  jmp   strpos_return
 
-%%not_found:
+strpos_not_found:
   mov   rax, -1
-  jmp   %%return
+  jmp   strpos_return
   
-%%return:
+strpos_return:
   add   rsp, 8
-
-%endmacro
+  ret
 
 get_length:
   ; rdi -> *str

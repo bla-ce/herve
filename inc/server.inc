@@ -40,7 +40,12 @@
 
   dec   qword [rsp] ; remove null_char 
   mov   r10, qword [rsp]
-  strpos methods_list, methods_list_len, request_method, r10
+
+  lea   rdi, [methods_list]
+  mov   rsi, methods_list_len
+  lea   rdx, [request_method]
+  mov   rcx, r10
+  call  strpos
 
   inc   qword [rsp]
 
@@ -111,7 +116,12 @@
 
   mov   qword [rsp], 0 ; string index
 
-  strpos methods_list, methods_list_len, %1, %2
+  lea   rdi, [methods_list]
+  mov   rsi, methods_list_len
+  lea   rdx, %1
+  mov   rcx, %2
+  call  strpos
+
   cmp   rax, 0
   jge   method_exists
   
@@ -139,7 +149,12 @@ method_exists:
   jne   method_not_allowed
 
   ; check if the method is allowed
-  strpos not_allowed_methods, methods_list_len, %1, %2
+  lea   rdi, [not_allowed_methods]
+  mov   rsi, methods_list_len
+  mov   rdx, %1
+  mov   rcx, %2
+  call  strpos
+
   cmp   rax, 0
   jge   method_not_allowed
 
@@ -186,7 +201,11 @@ method_exists:
   inc   rsi
 
 %%jump:
-  strpos routes_list, routes_list_len, %1, %2
+  lea   rdi, [routes_list]
+  mov   rsi, routes_list_len
+  mov   rdx, %1
+  mov   rcx, %2
+  call  strpos
   cmp   rax, 0
   jge   route_found
   

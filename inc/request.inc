@@ -103,9 +103,15 @@
   ; mov to new line (skip 2 char \r\n)
   add   rsi, 0x2
 
-  push  rsi
   ; get headers
-  strpos rsi, [request_len], post_headers, post_headers_len
+  push  rsi
+
+  lea   rdi, [rsi]
+  mov   rsi, qword [request_len]
+  lea   rdx, [post_headers]
+  mov   rcx, post_headers_len
+  call  strpos
+
   pop rsi
 
   lea   rdi, [request_headers]
