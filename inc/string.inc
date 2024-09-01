@@ -2,13 +2,15 @@
 %define STRING_INC
 
 ; converts int into string
-%macro to_string 3
-  ; %1 -> int
-  ; %2 -> string
-  ; %3 -> string max len
+to_string:
+  ; rdi -> int
+  ; rsi -> string
+  ; rdx -> string max len
 
-  mov   rdi, %2
-  add   rdi, %3
+  push  rdi
+
+  lea   rdi, [rsi]
+  add   rdi, rdx
   dec   rdi
 
   ; null char at the end of the string
@@ -17,9 +19,9 @@
 
   sub   rdi, 2
 
-  mov   rax, %1
+  pop   rax
   
-%%loop:
+to_string_loop:
   xor   rdx, rdx
   mov   rcx, 0xA              ; divisor, dividend in rax
   div   rcx                   ; quotient in rax and remainder in edx
@@ -31,10 +33,12 @@
   dec   rdi
 
   cmp   rax, 0
-  jne   %%loop
+  jne   to_string_loop
 
   inc   rdi
-%endmacro
+
+  mov   rax, 0
+  ret
 
 ; returns the index of the next occurence of the char
 ; relative to current address
@@ -116,27 +120,27 @@
 
 %endmacro
 
-%macro get_length 1
-  ; %1 -> str
-  mov   rsi, %1
+get_length:
+  ; rdi -> *str
+  lea   rsi, [rdi]
   mov   rcx, 0
 
   cmp   rsi, 0
-  je    %%return
+  je    get_length_return
 
-%%loop:
+get_length_loop:
   mov   al, NULL_CHAR
   cmp   byte [rsi], al
-  je    %%return
+  je    get_length_return
 
   inc   rsi
   inc   rcx
 
-  jmp   %%loop
+  jmp   get_length_loop
 
-%%return:
+get_length_return:
   mov   rax, rcx
-%endmacro
+  ret
 
 %endif
 

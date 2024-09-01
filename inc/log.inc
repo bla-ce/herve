@@ -1,30 +1,35 @@
 %ifndef LOG_INC
 %define LOG_INC
 
-%macro log_server_init 0
+log_server_init:
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT
   lea   rsi, [log_server_init_msg]
   mov   rdx, log_server_init_len
   syscall
 
-  to_string qword [port], log_port, LOG_PORT_LEN
+  mov   rdi, qword [port]
+  lea   rsi, [log_port]
+  mov   rdx, LOG_PORT_LEN
+  call  to_string
   mov   rsi, rdi
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT
 
   mov   rdx, LOG_PORT_LEN
   syscall
-%endmacro
 
-%macro log_add_status 0
+  mov   rax, 0
+  ret
+
+log_add_status:
   lea   rsi, [log_status]
   add   rsi, STATUS_CODE_LEN
   dec   rsi
 
   mov   eax, dword [response_status_code]
   
-%%loop:
+log_add_status_loop:
   xor   edx, edx
   mov   ecx, 0xA              ; divisor, dividend in rax
   div   ecx                   ; quotient in rax and remainder in edx
@@ -36,10 +41,12 @@
   dec   esi
 
   cmp   eax, 0
-  jne   %%loop
-%endmacro
+  jne   log_add_status_loop
 
-%macro log_add_duration 0
+  mov   rax, 0
+  ret
+
+log_add_duration:
   sub   rsp, 8 ; duration_str length
   mov   qword [rsp], 0
 
@@ -54,7 +61,7 @@
 
   mov   rax, qword [duration]
   
-%%loop:
+log_add_duration_loop:
   xor   rdx, rdx
   mov   rcx, 0xA              ; divisor, dividend in rax
   div   rcx                   ; quotient in rax and remainder in edx
@@ -66,12 +73,13 @@
   dec   rsi
 
   cmp   rax, 0
-  jne   %%loop
+  jne   log_add_duration_loop
 
   add   rsp, 8
-%endmacro
+  mov   rax, 0
+  ret
 
-%macro log_request 0
+log_request:
   ; clear log buffers
   mov   rcx, METHOD_MAX_LEN
   mov   rax, SPACE
@@ -89,14 +97,16 @@
   lea   rdi, [log_duration]
   rep   stosb
 
-  get_length request_method
+  lea   rdi, [request_method]
+  call  get_length
   mov   rcx, rax
 
   lea   rsi, [request_method]
   lea   rdi, [log_method]
   rep   movsb
 
-  get_length request_url
+  lea   rdi, [request_url]
+  call  get_length
   mov   rcx, rax
 
   lea   rsi, [request_url]
@@ -110,16 +120,18 @@
 
 jump_log_route:
 
-  log_add_duration
+  call log_add_duration
 
-  log_add_status
+  call log_add_status
 
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT
   lea   rsi, [log_start]
   mov   rdx, log_len
   syscall
-%endmacro
+
+  mov   rax, 0
+  ret
 
 %endif
     

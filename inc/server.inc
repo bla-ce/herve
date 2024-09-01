@@ -14,7 +14,8 @@
   sub   rsp, 0x8
 
   push  rsi
-  get_length rsi
+  lea   rdi, [rsi]
+  call  get_length
   pop   rsi
 
   mov   qword [rsp], rax
@@ -214,7 +215,12 @@ route_found:
 
   inc   rdi
 
-  get_length request_method
+  push  rdi
+
+  lea   rdi, [request_method]
+  call  get_length
+
+  pop   rdi
 
   ; check the method is correct
   ; rdi points to the beginning of the route
@@ -322,11 +328,13 @@ skip_exec:
   mov   rcx, URL_MAX_LEN
 
   ; method_length
-  get_length %1
+  lea   rdi, %1
+  call  get_length
   mov   qword [rsp], rax
 
   ; route_length
-  get_length %2
+  lea   rdi, %2
+  call  get_length
   mov   qword [rsp+8], rax
 
   mov   rsi, %2
@@ -463,7 +471,7 @@ skip_exec:
   cmp   rax, 0
   jl    error
 
-  log_server_init
+  call  log_server_init
 
   mov   rax, qword [rsp]
 
@@ -492,7 +500,7 @@ skip_exec:
 
   mov   qword [duration], rax
 
-  log_request
+  call  log_request
 
 timer_not_defined:
   ; clear route and method

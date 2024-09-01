@@ -115,14 +115,16 @@
 %endmacro
 
 %macro verify_request 0
-  get_length request_method
+  lea   rdi, [request_method]
+  call  get_length
   mov   r10, rax
 
   check_method request_method, r10  
   cmp   rax, 0
   jl    %%method_not_allowed
 
-  get_length request_url
+  lea   rdi, [request_url]
+  call  get_length
   mov   r10, rax
   check_route request_url, r10
   cmp   rax, 0

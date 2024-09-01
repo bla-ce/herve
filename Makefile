@@ -15,3 +15,7 @@ run:
 clean:
 	rm -f server server.o
 
+test: test.c
+	gcc -o test test.c
+	./test
+
