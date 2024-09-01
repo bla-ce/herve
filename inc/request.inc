@@ -1,7 +1,7 @@
 %ifndef REQUEST_INC
 %define REQUEST_INC
 
-%macro parse_request 0
+parse_request:
   lea   rsi, [request]
   mov   rcx, qword [request_len]
 
@@ -12,7 +12,7 @@
   mov   rsi, SPACE
   call  find_next_char
   cmp   rax, 0x0
-  jl    %%error
+  jl    parse_request_error
 
   lea   rdi, [request_method]
   pop   rsi
@@ -30,7 +30,7 @@
   mov   rsi, SPACE
   call  find_next_char
   cmp   rax, 0x0
-  jl    %%error
+  jl    parse_request_error
 
   lea   rdi, [request_url]
   pop   rsi
@@ -48,7 +48,7 @@
   mov   rsi, CARRIAGE_RETURN
   call  find_next_char
   cmp   rax, 0x0
-  jl    %%error
+  jl    parse_request_error
 
   lea   rdi, [request_proto]
   pop   rsi
@@ -63,7 +63,7 @@
   mov   rsi, SLASH
   call  find_next_char
   cmp   rax, 0x0
-  jl    %%error
+  jl    parse_request_error
 
   pop   rsi
 
@@ -77,10 +77,10 @@
 
   ; check proto major is digit
   cmp   eax, 0x0
-  jl    %%error
+  jl    parse_request_error
 
   cmp   eax, 0x9
-  jg    %%error
+  jg    parse_request_error
 
   mov   dword [request_proto_major], eax
 
@@ -93,10 +93,10 @@
 
   ; check proto minor is digit
   cmp   eax, 0x0
-  jl    %%error
+  jl    parse_request_error
 
   cmp   eax, 0x9
-  jg    %%error
+  jg    parse_request_error
 
   mov   dword [request_proto_minor], eax
 
@@ -129,7 +129,7 @@
 
   call  find_next_char
   cmp   rax, 0x0
-  jl    %%error
+  jl    parse_request_error
 
   lea   rdi, [request_body]
   pop   rsi
@@ -137,103 +137,101 @@
   mov   rcx, rax
   rep   movsb
 
-  jmp   %%return
+  jmp   parse_request_return
 
-%%error:
+parse_request_error:
   mov   qword [response_status_code], BAD_REQUEST
 
-%%return:
-%endmacro
+parse_request_return:
+  ret
 
-%macro verify_request 0
+verify_request:
   lea   rdi, [request_method]
   call  get_length
   mov   r10, rax
 
   check_method request_method, r10  
   cmp   rax, 0
-  jl    %%method_not_allowed
+  jl    verify_request_method_not_allowed
 
   lea   rdi, [request_url]
   call  get_length
   mov   r10, rax
   check_route request_url, r10
   cmp   rax, 0
-  jl    %%not_found
+  jl    verify_request_not_found
 
   mov   qword [response_status_code], OK
-  jmp   %%return
+  jmp   verify_request_return
 
-%%method_not_allowed:
+verify_request_method_not_allowed:
   mov   qword [response_status_code], METHOD_NOT_ALLOWED
-  jmp   %%return
+  jmp   verify_request_return
 
-%%not_found:
+verify_request_not_found:
   mov   qword [response_status_code], NOT_FOUND
-  jmp   %%return
+  jmp   verify_request_return
 
-%%return:
-%endmacro
+verify_request_return:
+  ret
 
-%macro send_response 1
-  ; %1 -> client
-  mov   rdi, %1
-
+send_response:
+  ; rdi -> client
   cmp   qword [response_status_code], OK 
-  je    %%send_200
+  je    send_200
 
   cmp   qword [response_status_code], BAD_REQUEST
-  je    %%send_400
+  je    send_400
 
   cmp   qword [response_status_code], NOT_FOUND
-  je    %%send_404
+  je    send_404
 
   cmp   qword [response_status_code], METHOD_NOT_ALLOWED
-  je    %%send_405
+  je    send_405
 
-  jmp   %%return
+  jmp   return
 
-%%send_200:
+send_200:
   mov   rax, SYS_WRITE
   mov   rsi, response_200
   mov   rdx, response_200_len
   syscall
 
-  jmp   %%return
+  jmp   return
 
-%%send_400:
+send_400:
   mov   rax, SYS_WRITE
   mov   rsi, response_400
   mov   rdx, response_400_len
   syscall
 
-  jmp   %%return
+  jmp   return
 
-%%send_404:
+send_404:
   mov   rax, SYS_WRITE
   mov   rsi, response_404
   mov   rdx, response_404_len
   syscall
 
-  jmp   %%return
+  jmp   return
 
-%%send_405:
+send_405:
   mov   rax, SYS_WRITE
   mov   rsi, response_405
   mov   rdx, response_405_len
   syscall
 
-  jmp   %%return
+  jmp   return
 
-%%send_500:
+send_500:
   mov   rax, SYS_WRITE
   mov   rsi, response_500
   mov   rdx, response_500_len
   syscall
 
-  jmp   %%return
+  jmp   return
 
-%%return:
-%endmacro
+return:
+  ret
 
 %endif

@@ -573,14 +573,15 @@ timer_not_defined:
   mov   qword [request_len], rax
 
   ; parse_request
-  parse_request
+  call  parse_request
 
   ; verify request
-  verify_request
+  call  verify_request
 
   ; ; send_response
   mov   rax, qword [rsp+8]
-  send_response rax
+  mov   rdi, rax
+  call  send_response
  
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+8] 
