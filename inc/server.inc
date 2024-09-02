@@ -65,15 +65,18 @@ disallow_method:
   add   rsp, 0x8
   ret
 
-%macro check_method 2
+check_method:
   ; rdi -> method
   ; rsi -> method length
-  sub   rsp, 8
+  sub   rsp, 0x18
+
+  mov   [rsp+0x8], rdi 
+  mov   qword [rsp+0x10], rsi
 
   lea   rsi, [error_method_too_big]
   mov   rdx, error_method_too_big_len
 
-  mov   rcx, %2
+  mov   rcx, qword [rsp+0x10]
   cmp   rcx, METHOD_MAX_LEN
   jg    error
 
@@ -81,8 +84,9 @@ disallow_method:
 
   lea   rdi, [methods_list]
   mov   rsi, methods_list_len
-  lea   rdx, %1
-  mov   rcx, %2
+  lea   rax, [rsp+0x8]
+  mov   rdx, [rax]
+  mov   rcx, qword [rsp+0x10]
   call  strpos
 
   cmp   rax, 0
@@ -97,14 +101,14 @@ method_exists:
 
   lea   rdi, [methods_list]
   add   rdi, qword [rsp]
-  add   rdi, %2
+  add   rdi, qword [rsp+0x10]
 
   ; make sure we checked the entire method
   mov   al, byte [rdi]
   cmp   al, SPACE
   jne   method_not_allowed
 
-  mov   rax, %2 
+  mov   rax, qword [rsp+0x10]
   sub   rdi, rax 
   dec   rdi
   mov   al, byte [rdi]
@@ -114,8 +118,9 @@ method_exists:
   ; check if the method is allowed
   lea   rdi, [not_allowed_methods]
   mov   rsi, methods_list_len
-  lea   rdx, %1 
-  mov   rcx, %2 
+  lea   rax, [rsp+0x8]
+  mov   rdx, [rax]
+  mov   rcx, qword [rsp+0x10] 
   call  strpos
 
   cmp   rax, 0
@@ -124,27 +129,31 @@ method_exists:
   mov   rax, qword [rsp]
 
 check_method_return:
-  add   rsp, 8
-%endmacro
+  add   rsp, 0x18
+  ret
 
-%macro check_route 2
-  ; %1 -> route
-  ; %2 -> route length
-  sub   rsp, 8 
+check_route:
+  ; rdi -> route
+  ; rsi -> route length
+  sub   rsp, 0x18 
+
+  mov   [rsp+0x8], rdi
+  mov   qword [rsp+0x10], rsi
 
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  mov   rcx, %2
+  mov   rcx, qword [rsp+0x10]
   cmp   rcx, URL_MAX_LEN
   jg    route_not_found
 
   mov   qword [rsp], rcx
 
   ; check if route ends by slash, if yes trim it
-  mov   rsi, %1
+  lea   rax, [rsp+0x8]
+  mov   rsi, [rax]
   cmp   qword [rsp], 1
-  je    %%jump
+  je    check_route_jump
 
   add   rsi, qword [rsp]
   dec   rsi
@@ -153,42 +162,43 @@ check_method_return:
   dec   rsi
 
   cmp   al, SLASH
-  jne   %%dont_trim_slash
+  jne   dont_trim_slash
   
   mov   byte [rsi], NULL_CHAR
   dec   qword [rsp]
   dec   rsi
   
-%%dont_trim_slash:
+dont_trim_slash:
   sub   rsi, qword [rsp]
   inc   rsi
 
-%%jump:
+check_route_jump:
   lea   rdi, [routes_list]
   mov   rsi, routes_list_len
-  mov   rdx, %1
-  mov   rcx, %2
+  lea   rax, [rsp+0x8]
+  mov   rdx, [rax]
+  mov   rcx, qword [rsp+0x10]
   call  strpos
   cmp   rax, 0
   jge   route_found
   
 route_not_found:
   mov   rax, -1
-  jmp   %%return
+  jmp   check_route_return
 
 route_found:
   mov   qword [rsp], rax
 
   lea   rdi, [routes_list]
   add   rdi, qword [rsp]
-  add   rdi, %2
+  add   rdi, qword [rsp+0x10]
 
   ; make sure we checked the entire method
   mov   al, byte [rdi]
   cmp   al, NULL_CHAR
   jne   route_not_found
 
-  mov   rax, %2
+  mov   rax, qword [rsp+0x10]
   sub   rdi, rax 
   dec   rdi
   mov   al, byte [rdi]
@@ -242,9 +252,9 @@ route_found:
 
 skip_exec:
   mov   rax, qword [rsp]
-%%return:
-  add   rsp, 8
-%endmacro
+check_route_return:
+  add   rsp, 0x18
+  ret
 
 %macro add_route 3
   ; %1 -> method

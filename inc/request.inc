@@ -150,14 +150,19 @@ verify_request:
   call  get_length
   mov   r10, rax
 
-  check_method request_method, r10  
+  lea   rdi, [request_method]
+  mov   rsi, r10
+  call  check_method
   cmp   rax, 0
   jl    verify_request_method_not_allowed
 
   lea   rdi, [request_url]
   call  get_length
   mov   r10, rax
-  check_route request_url, r10
+
+  lea   rdi, [request_url]
+  mov   rsi, r10
+  call  check_route
   cmp   rax, 0
   jl    verify_request_not_found
 
