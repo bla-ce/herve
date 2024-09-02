@@ -1,31 +1,31 @@
 %ifndef SERVER_INC
 %define SERVER_INC
 
-%macro htons 1
-  ; %1 -> port
-  mov   eax, %1
+htons:
+  ; rdi -> port
+  mov   rax, rdi
   xchg  al, ah ; bswap 16-bit registers
-%endmacro
+  ret
 
-%macro disallow_method 1
-  ; %1 -> method
-  mov   rsi, %1
-
+disallow_method:
+  ; rdi -> method
   sub   rsp, 0x8
 
-  push  rsi
-  lea   rdi, [rsi]
+  push  rdi
+
   call  get_length
   pop   rsi
 
   mov   qword [rsp], rax
+
+  push  rdi
 
   lea   rdi, [request_method]
   mov   rcx, rax
   rep   movsb
 
   ; check method arg, variable should be between GET and CONNECT
-  mov   rdi, %1
+  pop   rdi
   lea   rax, [GET]
   lea   rbx, [CONNECT]
 
@@ -63,49 +63,12 @@
 
   xor   rax, rax
   add   rsp, 0x8
-%endmacro
-
-%macro extract_method 2
-  ; %1 -> request pointer
-  ; %2 -> request length
-  sub   rsp, 8 ; current index
-  mov   qword [rsp], 0
-
-  mov   rsi, %1
-  mov   rcx, %2
-  xor   rax, rax
-
-%%loop:
-  lodsb
-  cmp   al, SPACE
-  je    %%return
-
-  inc   qword [rsp]
-
-  cmp   qword [rsp], rcx
-  jl    %%loop
-
-  ; bad request
-  mov   rax, -1
-  jmp   %%skip
-
-%%return:
-  dec   rsi
-  mov   rax, qword [rsp]
-
-  sub   rsi, rax
-  lea   rdi, [request_method]
-  mov   rcx, rax
-  rep   movsb
-
-%%skip:
-  add   rsp, 8 
-%endmacro
+  ret
 
 %macro check_method 2
-  ; %1 -> method
-  ; %2 -> method length
-  sub   rsp, 8 
+  ; rdi -> method
+  ; rsi -> method length
+  sub   rsp, 8
 
   lea   rsi, [error_method_too_big]
   mov   rdx, error_method_too_big_len
@@ -127,7 +90,7 @@
   
 method_not_allowed:
   mov   rax, -1
-  jmp   %%return
+  jmp   check_method_return
 
 method_exists:
   mov   qword [rsp], rax
@@ -141,7 +104,7 @@ method_exists:
   cmp   al, SPACE
   jne   method_not_allowed
 
-  mov   rax, %2
+  mov   rax, %2 
   sub   rdi, rax 
   dec   rdi
   mov   al, byte [rdi]
@@ -151,8 +114,8 @@ method_exists:
   ; check if the method is allowed
   lea   rdi, [not_allowed_methods]
   mov   rsi, methods_list_len
-  mov   rdx, %1
-  mov   rcx, %2
+  lea   rdx, %1 
+  mov   rcx, %2 
   call  strpos
 
   cmp   rax, 0
@@ -160,7 +123,7 @@ method_exists:
 
   mov   rax, qword [rsp]
 
-%%return:
+check_method_return:
   add   rsp, 8
 %endmacro
 
@@ -282,54 +245,6 @@ skip_exec:
 %%return:
   add   rsp, 8
 %endmacro
-
-%macro extract_route 2
-  ; %1 -> request pointer
-  ; %2 -> request length
-  sub   rsp, 8 ; current index
-  mov   qword [rsp], 0
-
-  mov   rsi, %1
-  mov   rcx, %2
-  xor   rax, rax
-
-%%loop:
-  cmp   qword [rsp], URL_MAX_LEN
-  jge   %%bad_request
-
-  lodsb
-  cmp   al, SPACE
-  je    %%return
-
-  cmp   al, QUESTION_MARK
-  je    %%return
-
-  cmp   al, NUMBER_SIGN
-  je    %%return
-
-  inc   qword [rsp]
-
-  cmp   qword [rsp], rcx
-  jl    %%loop
-
-%%bad_request:
-  ; bad request
-  mov   rax, -1
-  jmp   %%skip
-
-%%return:
-  dec   rsi
-  mov   rax, qword [rsp]
-
-  sub   rsi, rax
-  lea   rdi, [request_url]
-  mov   rcx, rax
-  rep   movsb
-
-%%skip:
-  add   rsp, 8 
-%endmacro
-
 
 %macro add_route 3
   ; %1 -> method
@@ -464,7 +379,8 @@ skip_exec:
 
   ; bind socket
   xor   rax, rax
-  htons %1
+  mov   rdi, %1
+  call  htons
   mov   dword [server_sin_port], eax
   mov   rax, SYS_BIND
   mov   rdi, qword [rsp]
