@@ -11,7 +11,16 @@ log_server_init:
   mov   rdi, qword [port]
   lea   rsi, [log_port]
   mov   rdx, LOG_PORT_LEN
+
   call  to_string
+
+  ; add new line at the end
+  add   rdi, LOG_PORT_LEN
+  dec   rdi
+  mov   byte [rdi], LINE_FEED
+  sub   rdi, LOG_PORT_LEN
+  inc   rdi
+
   mov   rsi, rdi
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT

@@ -183,7 +183,7 @@ section .data
   log_new_line  db LINE_FEED
   log_len       equ $ - log_start
 
-  log_server_init_msg db "[DEBUG] Listening and serving HTTP on :"
+  log_server_init_msg db " [DEBUG] Listening and serving HTTP on :"
   log_server_init_len equ $ - log_server_init_msg
 
   log_port  times LOG_PORT_LEN db 0

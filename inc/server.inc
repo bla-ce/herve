@@ -256,15 +256,19 @@ check_route_return:
   add   rsp, 0x18
   ret
 
-%macro add_route 3
-  ; %1 -> method
-  ; %2 -> route
-  ; %3 -> callback
-  sub   rsp, 16
-  mov   qword [rsp], 0 ; method_len
-  mov   qword [rsp+8], 0 ; route_len
+add_route:
+  ; rdi -> method
+  ; rsi -> route
+  ; rdx -> callback
+  sub   rsp, 0x20
 
-  mov   qword [rel callback], %3
+  mov   qword [rsp], 0 ; method_len
+  mov   qword [rsp+0x8], 0 ; route_len
+
+  mov   [rsp+0x10], rdi 
+  mov   [rsp+0x18], rsi
+
+  mov   qword [rel callback], rdx
 
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
@@ -272,37 +276,40 @@ check_route_return:
   mov   rcx, URL_MAX_LEN
 
   ; method_length
-  lea   rdi, %1
+  lea   rax, [rsp+0x10]
+  mov   rdi, [rax]
   call  get_length
   mov   qword [rsp], rax
 
   ; route_length
-  lea   rdi, %2
+  lea   rax, [rsp+0x18]
+  mov   rdi, [rax]
   call  get_length
-  mov   qword [rsp+8], rax
+  mov   qword [rsp+0x8], rax
 
-  mov   rsi, %2
-  cmp   qword [rsp+8], 1
-  je    %%jump
+  lea   rax, [rsp+0x18]
+  mov   rsi, [rax]
+  cmp   qword [rsp+0x8], 1
+  je    add_route_jump
 
-  add   rsi, qword [rsp+8]
+  add   rsi, qword [rsp+0x8]
   dec   rsi
   lodsb
 
   dec   rsi
 
   cmp   al, SLASH
-  jne   %%dont_trim_slash
+  jne   add_route_dont_trim_slash
   
   mov   byte [rsi], NULL_CHAR
-  dec   qword [rsp+8]
+  dec   qword [rsp+0x8]
   dec   rsi
   
-%%dont_trim_slash:
-  sub   rsi, qword [rsp+8]
+add_route_dont_trim_slash:
+  sub   rsi, qword [rsp+0x8]
   inc   rsi
 
-%%jump:
+add_route_jump:
   xor   rdx, rdx
   mov   rax, qword [routes_count]
   mov   rbx, STRUCT_ROUTE_LEN
@@ -310,13 +317,14 @@ check_route_return:
 
   lea   rdi, [routes_list] 
   add   rdi, rax
-  mov   rcx, qword [rsp+8]
+  mov   rcx, qword [rsp+0x8]
   rep   movsb
 
   add   rdi, URL_MAX_LEN
-  sub   rdi, qword [rsp+8]
+  sub   rdi, qword [rsp+0x8]
 
-  mov   rsi, %1
+  lea   rax, [rsp+0x10]
+  mov   rsi, [rax]
   mov   rcx, qword [rsp]
   rep   movsb
 
@@ -334,14 +342,15 @@ check_route_return:
 
   inc   qword [routes_count]
 
-  add   rsp, 16
-%endmacro
+  add   rsp, 0x20
+  ret
 
-%macro server_init 1
+server_init:
+  ; rdi -> port
   sub   rsp, 8
 
-  mov   qword [port], %1
- 
+  mov   qword [port], rdi
+
   mov   qword [rsp], 0  ; sockfd
   ; create socket
   mov   rax, SYS_SOCKET
@@ -389,7 +398,7 @@ check_route_return:
 
   ; bind socket
   xor   rax, rax
-  mov   rdi, %1
+  mov   rdi, qword [port]
   call  htons
   mov   dword [server_sin_port], eax
   mov   rax, SYS_BIND
@@ -421,16 +430,16 @@ check_route_return:
   mov   rax, qword [rsp]
 
   add   rsp, 8
-%endmacro
+  ret
 
-%macro run_server 1
-  ; %1 -> sockfd
+run_server:
+  ; rdi -> sockfd
   sub   rsp, 16
-  mov   rax, %1
+  mov   rax, rdi
   mov   qword [rsp], rax
   mov   qword [rsp+8], 0 ; client fd
 
-%%loop:
+run_server_loop:
   ; set end timer
   mov   rax, SYS_CLOCK_GETTIME
   mov   rdi, CLOCK_REALTIME
@@ -513,11 +522,8 @@ timer_not_defined:
   mov   rdi, qword [rsp+8] 
   syscall
  
-  jmp   %%loop
-%endmacro
+  jmp   run_server_loop
 
-shutdown:
-  ; close sockets
   mov   rax, SYS_CLOSE
   syscall
 
