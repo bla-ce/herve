@@ -512,6 +512,9 @@ timer_not_defined:
   ; verify request
   call  verify_request
  
+  mov   rdi, qword [request_client]
+  call  send_response
+
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall

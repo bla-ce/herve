@@ -23,6 +23,7 @@
 %include "string.inc"
 %include "server.inc"
 %include "request.inc"
+%include "response.inc"
 
 section .data
   enable  dw 1
