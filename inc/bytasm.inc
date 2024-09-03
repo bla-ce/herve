@@ -1,4 +1,4 @@
-; TODO: add request to callback function
+; TODO: FIX Logging
 ; TODO: log available route after server init
 ; TODO: read basic auth
 ; TODO: check arguments from function

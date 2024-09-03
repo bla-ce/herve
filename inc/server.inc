@@ -267,7 +267,6 @@ check_route_return:
   add   rsp, 0x18
   ret
 
-; TODO: CLEAN
 add_route:
   ; rdi -> method
   ; rsi -> route
@@ -280,6 +279,7 @@ add_route:
   mov   [rsp+0x10], rdi 
   mov   [rsp+0x18], rsi
 
+  ; store callback
   mov   qword [rel callback], rdx
 
   ; get method_length
@@ -294,29 +294,31 @@ add_route:
   call  get_length
   mov   qword [rsp+0x8], rax
 
+  ; check if the length of the route is equal to 1
   lea   rax, [rsp+0x18]
   mov   rsi, [rax]
   cmp   qword [rsp+0x8], 1
   je    add_route_jump
 
+  ; if not equal, extract last char to see if it's a slash
   add   rsi, qword [rsp+0x8]
   dec   rsi
   lodsb
 
-  dec   rsi
-
   cmp   al, SLASH
   jne   add_route_dont_trim_slash
   
+  ; if last char is a '/', remove it and add null char
   mov   byte [rsi], NULL_CHAR
+  ; decrease route_length
   dec   qword [rsp+0x8]
-  dec   rsi
   
 add_route_dont_trim_slash:
+  ; go back to beginning of the route
   sub   rsi, qword [rsp+0x8]
-  inc   rsi
 
 add_route_jump:
+  ; go to next available space inside route_list
   xor   rdx, rdx
   mov   rax, qword [routes_count]
   mov   rbx, STRUCT_ROUTE_LEN
@@ -324,12 +326,15 @@ add_route_jump:
 
   lea   rdi, [routes_list] 
   add   rdi, rax
+  ; move route inside the list
   mov   rcx, qword [rsp+0x8]
   rep   movsb
 
+  ; move the method after the route
   add   rdi, URL_MAX_LEN
   sub   rdi, qword [rsp+0x8]
 
+  ; load method inside rsi
   lea   rax, [rsp+0x10]
   mov   rsi, [rax]
   mov   rcx, qword [rsp]
@@ -339,14 +344,16 @@ add_route_jump:
   xor   rdx, rdx
   lea   rdi, [callback_list]
 
+  ; compute callback index
   mov   rax, qword [routes_count]
-  mov   rbx, 8
+  mov   rbx, 8 ; size of qword
   mul   rbx
   add   rdi, rax
 
   mov   rax, [rel callback]
   mov   qword [rdi], rax
 
+  ; increase number of routes
   inc   qword [routes_count]
 
   add   rsp, 0x20
