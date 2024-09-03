@@ -1,4 +1,3 @@
-; TODO: FIX Logging
 ; TODO: log available route after server init
 ; TODO: read basic auth
 ; TODO: check arguments from function
@@ -7,7 +6,6 @@
 ; TODO: send error bad request 
 ; TODO: response struct
 ; TODO: remove response message and construct them with response struct
-; TODO: update function revoking macros
 ; TODO: convert ns to ms
 ; TODO: atoi
 ; TODO: Clean refactor

@@ -118,6 +118,11 @@ log_request:
   call  get_length
   mov   rcx, rax
 
+  ; make sure rcx is below URL_MAX_LEN
+  cmp   rcx, URL_MAX_LEN
+  mov   rax, URL_MAX_LEN
+  cmovg rcx, rax
+
   lea   rsi, [request_url]
 
   mov   al, byte [rsi]
