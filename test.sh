@@ -17,6 +17,7 @@ tests=(
   "localhost:1337/ CONNECT 405"
   "localhost:1337/ DELETE 405"
   "localhost:1337/ GE 405"
+  "localhost:1337/ GETT 405"
   "localhost:1337/api/v1 GET 404"
   "localhost:1337/api/v1/ GET 404"
   "localhost:1337/i/v1/ GET 404"

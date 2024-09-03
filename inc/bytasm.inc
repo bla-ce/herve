@@ -1,7 +1,7 @@
 ; TODO: add request to callback function
 ; TODO: log available route after server init
 ; TODO: read basic auth
-
+; TODO: check arguments from function
 ; TODO: add date and time to log
 ; TODO: check for anchor and parameters in links
 ; TODO: send error bad request 

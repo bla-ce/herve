@@ -72,18 +72,20 @@ check_method:
   ; rsi -> method length
   sub   rsp, 0x18
 
+  mov   qword [rsp], 0 ; string index
   mov   [rsp+0x8], rdi 
   mov   qword [rsp+0x10], rsi
 
+  ; load error messages
   lea   rsi, [error_method_too_big]
   mov   rdx, error_method_too_big_len
 
+  ; check the length of the method
   mov   rcx, qword [rsp+0x10]
   cmp   rcx, METHOD_MAX_LEN
   jg    error
 
-  mov   qword [rsp], 0 ; string index
-
+  ; look for the method inside methods list
   lea   rdi, [methods_list]
   mov   rsi, methods_list_len
   lea   rax, [rsp+0x8]
@@ -99,20 +101,24 @@ method_not_allowed:
   jmp   check_method_return
 
 method_exists:
+  ; store method's position onto the stack
   mov   qword [rsp], rax
 
+  ; go to the method
   lea   rdi, [methods_list]
   add   rdi, qword [rsp]
-  add   rdi, qword [rsp+0x10]
 
-  ; make sure we checked the entire method
+  ; check if we are the beginning of the method
+  dec   rdi
   mov   al, byte [rdi]
   cmp   al, SPACE
   jne   method_not_allowed
 
-  mov   rax, qword [rsp+0x10]
-  sub   rdi, rax 
-  dec   rdi
+  ; go to the end of the method
+  inc   rdi
+  add   rdi, qword [rsp+0x10]
+
+  ; make sure the next byte is a space
   mov   al, byte [rdi]
   cmp   al, SPACE
   jne   method_not_allowed
@@ -128,12 +134,14 @@ method_exists:
   cmp   rax, 0
   jge   method_not_allowed
 
+  ; return method's position
   mov   rax, qword [rsp]
 
 check_method_return:
   add   rsp, 0x18
   ret
 
+; TODO: CLEAN
 check_route:
   ; rdi -> route
   ; rsi -> route length
@@ -142,6 +150,7 @@ check_route:
   mov   [rsp+0x8], rdi
   mov   qword [rsp+0x10], rsi
 
+  ; load error messages
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
@@ -258,6 +267,7 @@ check_route_return:
   add   rsp, 0x18
   ret
 
+; TODO: CLEAN
 add_route:
   ; rdi -> method
   ; rsi -> route
@@ -272,18 +282,13 @@ add_route:
 
   mov   qword [rel callback], rdx
 
-  lea   rsi, [error_route_too_big]
-  mov   rdx, error_route_too_big_len
-
-  mov   rcx, URL_MAX_LEN
-
-  ; method_length
+  ; get method_length
   lea   rax, [rsp+0x10]
   mov   rdi, [rax]
   call  get_length
   mov   qword [rsp], rax
 
-  ; route_length
+  ; get route_length
   lea   rax, [rsp+0x18]
   mov   rdi, [rax]
   call  get_length
@@ -349,11 +354,11 @@ add_route_jump:
 
 server_init:
   ; rdi -> port
-  sub   rsp, 8
+  sub   rsp, 0x8
 
   mov   qword [port], rdi
-
   mov   qword [rsp], 0  ; sockfd
+
   ; create socket
   mov   rax, SYS_SOCKET
   mov   edi, AF_INET
@@ -367,6 +372,7 @@ server_init:
   cmp   rax, 0
   jl    error
 
+  ; store server fd
   mov   qword [rsp], rax
 
   ; set socket options
@@ -398,10 +404,12 @@ server_init:
   cmp   rax, 0
   jl    error
 
-  ; bind socket
+  ; convert host port to network
   xor   rax, rax
   mov   rdi, qword [port]
   call  htons
+
+  ; bind socket
   mov   dword [server_sin_port], eax
   mov   rax, SYS_BIND
   mov   rdi, qword [rsp]
@@ -431,14 +439,14 @@ server_init:
 
   mov   rax, qword [rsp]
 
-  add   rsp, 8
+  add   rsp, 0x8
   ret
 
 run_server:
   ; rdi -> sockfd
   sub   rsp, 0x8
-  mov   rax, rdi
-  mov   qword [rsp], rax
+
+  mov   qword [rsp], rdi
 
 run_server_loop:
   ; set end timer
@@ -447,14 +455,17 @@ run_server_loop:
   lea   rsi, [end_tv_sec]
   syscall
 
+  ; check if we have set start timer
   cmp   qword [start_tv_sec], 0
   je    timer_not_defined
 
+  ; if yes, compute the difference
   mov   rax, qword [end_tv_nsec]
   sub   rax, qword [start_tv_nsec]
 
   mov   qword [duration], rax
 
+  ; log previous request
   call  log_request
 
 timer_not_defined:
@@ -513,23 +524,30 @@ timer_not_defined:
 
   ; verify request
   call  verify_request
+
+  ; TODO: remove callback from verify and call it here
  
   mov   rdi, qword [request_client]
   call  send_response
 
+  ; close connection
+  ; TODO: might not want to do it
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
  
+  ; jump to next request
   jmp   run_server_loop
 
+  ; shutdown server
   mov   rax, SYS_CLOSE
+  mov   rdi, qword [rsp]
   syscall
 
-  add   rsp, 8
-
+  add   rsp, 0x8
   ret
 
+; TODO: this thing probably don't work as expected
 error:
   ; write error message
   mov   rax, SYS_WRITE
@@ -537,7 +555,7 @@ error:
   syscall
  
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+8] 
+  mov   rdi, qword [rsp+0x8]
   syscall
 
   mov   rax, SYS_CLOSE
