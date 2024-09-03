@@ -9,26 +9,23 @@ htons:
 
 disallow_method:
   ; rdi -> method
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
-  push  rdi
+  mov   [rsp+0x8], rdi
 
+  ; get length of the method
   call  get_length
-  pop   rsi
 
+  ; store the length of the method onto the stack
   mov   qword [rsp], rax
 
-  push  rdi
-
-  lea   rdi, [request_method]
-  mov   rcx, rax
-  rep   movsb
-
   ; check method arg, variable should be between GET and CONNECT
-  pop   rdi
+  lea   rax, [rsp+0x8]
+  mov   rdi, [rax]
   lea   rax, [GET]
   lea   rbx, [CONNECT]
 
+  ; load error messages
   lea   rsi, [method_doesnt_exist]
   mov   rdx, method_doesnt_exist_len
 
@@ -38,31 +35,36 @@ disallow_method:
   cmp   rdi, rbx
   jg    error
 
-  dec   qword [rsp] ; remove null_char 
-  mov   r10, qword [rsp]
-
+  ; look if method is inside the list
+  ; load request into rdx
+  lea   rax, [rsp+0x8]
+  mov   rdx, [rax]
   lea   rdi, [methods_list]
   mov   rsi, methods_list_len
-  lea   rdx, [request_method]
-  mov   rcx, r10
+  mov   rcx, qword [rsp]
   call  strpos
 
-  inc   qword [rsp]
-
+  ; load error messages if couldn't find the method
   lea   rsi, [method_doesnt_exist]
   mov   rdi, method_doesnt_exist_len
   cmp   rax, 0
   jl    error
 
+  ; add method to not allowed list
   lea   rdi, [not_allowed_methods]
+  ; rdi points to the position of the method inside allowed list
   add   rdi, rax
 
-  lea   rsi, [request_method]
+  ; put method inside not allowed lists
+  lea   rax, [rsp+0x8]
+  mov   rsi, [rax]
   mov   rcx, qword [rsp]
   rep   movsb
 
   xor   rax, rax
-  add   rsp, 0x8
+
+  ; clean stack
+  add   rsp, 0x10
   ret
 
 check_method:
