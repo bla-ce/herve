@@ -247,7 +247,7 @@ route_found:
   cmp   rax, 0
   je    skip_exec
 
-  lea   rsi, [request]
+  lea   rdi, [request]
   call  rax
 
 skip_exec:
@@ -434,10 +434,9 @@ server_init:
 
 run_server:
   ; rdi -> sockfd
-  sub   rsp, 16
+  sub   rsp, 0x8
   mov   rax, rdi
   mov   qword [rsp], rax
-  mov   qword [rsp+8], 0 ; client fd
 
 run_server_loop:
   ; set end timer
@@ -481,7 +480,7 @@ timer_not_defined:
   cmp   rax, 0
   jl    error
 
-  mov   qword [rsp+8], rax
+  mov   qword [request_client], rax
 
   ; set start timer
   mov   rax, SYS_CLOCK_GETTIME
@@ -491,7 +490,7 @@ timer_not_defined:
 
   ; receive client request
   mov   rax, SYS_RECVFROM
-  mov   rdi, qword [rsp+8]
+  mov   rdi, qword [request_client]
   lea   rsi, [request]
   mov   rdx, REQUEST_MAX_LEN
   xor   r10, r10
@@ -512,20 +511,17 @@ timer_not_defined:
 
   ; verify request
   call  verify_request
-
-  ; ; send_response
-  mov   rax, qword [rsp+8]
-  mov   rdi, rax
-  call  send_response
  
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+8] 
+  mov   rdi, qword [request_client] 
   syscall
  
   jmp   run_server_loop
 
   mov   rax, SYS_CLOSE
   syscall
+
+  add   rsp, 8
 
   ret
 

@@ -1,5 +1,4 @@
 ; TODO: add request to callback function
-; TODO: add port length to log_init
 ; TODO: log available route after server init
 ; TODO: read basic auth
 
@@ -56,6 +55,7 @@ section .data
   request_headers         times HEADERS_MAX_LEN db 0
   request_close           db 0
   request_host            times HOST_MAX_LEN db 0
+  request_client          dq 0
 
   ; response struct - missing headers
   response_status           times STATUS_MAX_LEN db 0
