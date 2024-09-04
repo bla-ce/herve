@@ -154,12 +154,27 @@ check_route:
   lea   rsi, [error_route_too_big]
   mov   rdx, error_route_too_big_len
 
-  mov   rcx, qword [rsp+0x10]
-  cmp   rcx, URL_MAX_LEN
+  ; check for query parameters
+  lea   rdi, [request_url]
+  mov   rsi, QUESTION_MARK
+  call  find_next_char
+  cmp   rax, 0x0
+  jle   no_query
+
+  mov   qword [rsp+0x10], rax
+
+  lea   rdi, [request_url]
+  add   rdi, rax
+  mov   al, NULL_CHAR
+  stosb
+
+no_query:
+  mov   rax, qword [rsp+0x10]
+  cmp   rax, URL_MAX_LEN
   jg    route_not_found
 
   mov   qword [rsp], rcx
-
+  
   ; check if route ends by slash, if yes trim it
   lea   rax, [rsp+0x8]
   mov   rsi, [rax]

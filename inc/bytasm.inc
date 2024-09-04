@@ -3,7 +3,6 @@
 ; TODO: check arguments from function
 ; TODO: add errors from server
 ; TODO: add date and time to log
-; TODO: check for anchor and parameters in links
 ; TODO: response struct
 ; TODO: remove response message and construct them with response struct
 ; TODO: convert ns to ms
