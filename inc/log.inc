@@ -171,7 +171,7 @@ log_add_duration:
   inc   rsi
   mov   byte [rsi], MICRO_FIRST     ; First byte of the UTF-8 sequence for 'μ'
   inc   rsi
-  mov   byte [rsi], MICRO_SECOND     ; Second byte of the UTF-8 sequence for 'μ'
+  mov   byte [rsi], MICRO_SECOND    ; Second byte of the UTF-8 sequence for 'μ'
   inc   rsi
   mov   byte [rsi], LOW_S_CHAR
   sub   rsi, 3                ; go back to original position

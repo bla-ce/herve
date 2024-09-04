@@ -138,7 +138,6 @@ strpos_found:
 
 strpos_not_found:
   mov   rax, -1
-  jmp   strpos_return
   
 strpos_return:
   add   rsp, 8

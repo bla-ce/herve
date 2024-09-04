@@ -1,3 +1,5 @@
+; TODO: save query parameters
+; TODO: add increment value for strpos
 ; TODO: Clean refactor
 ; TODO: read basic auth
 ; TODO: check arguments from function
@@ -5,7 +7,6 @@
 ; TODO: add date and time to log
 ; TODO: response struct
 ; TODO: remove response message and construct them with response struct
-; TODO: print 'μ' instead of 'u' for μs
 ; TODO: floating point for duration
 ; TODO: log in sec
 ; TODO: atoi
@@ -43,26 +44,30 @@ section .data
   request     times REQUEST_MAX_LEN db 0
   request_len dq 0
 
-  ; request struct - missing headers
+  ; request string
   request_method          times METHOD_MAX_LEN db 0
   request_url             times URL_MAX_LEN db 0
   request_proto           times PROTO_MAX_LEN db 0
+  request_headers         times HEADERS_MAX_LEN db 0
+  request_body            times BODY_MAX_LEN db 0
+
+  ; request value
   request_proto_major     dd 0
   request_proto_minor     dd 0
-  request_body            times BODY_MAX_LEN db 0
   request_content_length  dw 0
-  request_headers         times HEADERS_MAX_LEN db 0
   request_close           db 0
   request_host            times HOST_MAX_LEN db 0
   request_client          dq 0
 
-  ; response struct - missing headers
+  ; response string
   response_status           times STATUS_MAX_LEN db 0
-  response_status_code      dq 0
   response_proto            times PROTO_MAX_LEN db 0
+  response_body             times BODY_MAX_LEN db 0
+
+  ; response value
+  response_status_code      dq 0
   response_proto_major      dd 0
   response_proto_minor      dd 0
-  response_body             times BODY_MAX_LEN db 0
   response_content_length   dw 0
   response_close            db 0
 

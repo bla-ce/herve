@@ -141,39 +141,25 @@ check_method_return:
   add   rsp, 0x18
   ret
 
+
 ; TODO: CLEAN
 check_route:
   ; rdi -> route
   ; rsi -> route length
   sub   rsp, 0x18 
 
+  mov   qword [rsp], rsi
   mov   [rsp+0x8], rdi
-  mov   qword [rsp+0x10], rsi
+  mov   qword [rsp+0x10], 0 ; route position inside list
 
-  ; load error messages
-  lea   rsi, [error_route_too_big]
-  mov   rdx, error_route_too_big_len
-
-  ; check for query parameters
+  ; remove query parameters
   lea   rdi, [request_url]
-  mov   rsi, QUESTION_MARK
-  call  find_next_char
-  cmp   rax, 0x0
-  jle   no_query
+  call  trim_query_parameters
 
-  mov   qword [rsp+0x10], rax
+  cmp   rax, 0
+  cmovg rsi, rax
 
-  lea   rdi, [request_url]
-  add   rdi, rax
-  mov   al, NULL_CHAR
-  stosb
-
-no_query:
-  mov   rax, qword [rsp+0x10]
-  cmp   rax, URL_MAX_LEN
-  jg    route_not_found
-
-  mov   qword [rsp], rcx
+  mov   qword [rsp], rsi
   
   ; check if route ends by slash, if yes trim it
   lea   rax, [rsp+0x8]
@@ -203,7 +189,7 @@ check_route_jump:
   mov   rsi, routes_list_len
   lea   rax, [rsp+0x8]
   mov   rdx, [rax]
-  mov   rcx, qword [rsp+0x10]
+  mov   rcx, qword [rsp]
   call  strpos
   cmp   rax, 0
   jge   route_found
@@ -213,18 +199,18 @@ route_not_found:
   jmp   check_route_return
 
 route_found:
-  mov   qword [rsp], rax
+  mov   qword [rsp+0x10], rax
 
   lea   rdi, [routes_list]
-  add   rdi, qword [rsp]
   add   rdi, qword [rsp+0x10]
+  add   rdi, qword [rsp]
 
   ; make sure we checked the entire method
   mov   al, byte [rdi]
   cmp   al, NULL_CHAR
   jne   route_not_found
 
-  mov   rax, qword [rsp+0x10]
+  mov   rax, qword [rsp]
   sub   rdi, rax 
   dec   rdi
   mov   al, byte [rdi]
@@ -254,7 +240,7 @@ route_found:
 
   ; load callback
   lea   rdi, [callback_list]
-  mov   rax, qword [rsp] 
+  mov   rax, qword [rsp+0x10]
 
   xor   rdx, rdx
   mov   rbx, STRUCT_ROUTE_LEN
@@ -266,10 +252,8 @@ route_found:
 
   add   rdi, rax
 
-  ; get callback
   mov   rax, [rdi]
 
-  ; check it's not null
   cmp   rax, 0
   je    skip_exec
 
@@ -278,6 +262,7 @@ route_found:
 
 skip_exec:
   mov   rax, qword [rsp]
+
 check_route_return:
   add   rsp, 0x18
   ret
@@ -547,8 +532,6 @@ timer_not_defined:
   ; verify request
   call  verify_request
 
-  ; TODO: remove callback from verify and call it here
- 
   mov   rdi, qword [request_client]
   call  send_response
 
@@ -588,5 +571,31 @@ error:
   mov   rdi, FAILURE_CODE
   syscall
 
+trim_query_parameters:
+  ; rdi -> request_url
+  ; rsi -> route_length
+  ; return value: rax -> url length
+  sub   rsp, 0x8 ; url length
+
+  mov   qword [rsp], rsi
+
+  mov   rsi, QUESTION_MARK
+  call  find_next_char
+  cmp   rax, 0
+  jle   trim_query_return
+
+  ; if found query, add null char
+  mov   qword [rsp], rax
+
+  lea   rdi, [request_url]
+  add   rdi, rax
+  mov   al, NULL_CHAR
+  stosb
+
+trim_query_return:
+  mov   rax, qword [rsp]
+
+  add   rsp, 0x8
+  ret
 %endif
 
