@@ -91,5 +91,8 @@ INTERNAL_SERVER_ERROR equ 500
 ; logs
 LOG_PORT_LEN equ 5 ; port + new line char
 
+; utils
+TO_STRING_MAX equ 6
+
 %endif
 

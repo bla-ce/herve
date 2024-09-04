@@ -4,21 +4,30 @@
 ; converts int into string
 to_string:
   ; rdi -> int
-  ; rsi -> string
-  ; rdx -> string max len
+  ; return value: rax -> points to buffer
+  cmp   rdi, 100000
+  jge   invalid_number
+
+  push  rdi
+  
+  ; load buffer
+  lea   rdi, [to_string_buf]
 
   push  rdi
 
-  lea   rdi, [rsi]
-  add   rdi, rdx
-  dec   rdi
+  ; clear buffer
+  mov   al, NULL_CHAR
+  mov   rcx, TO_STRING_MAX
+  rep   stosb
 
-  ; null char at the end of the string
-  mov   rax, NULL_CHAR
-  stosb
+  pop   rdi
 
+  ; go to the end of the buf (print backward)
+  add   rdi, TO_STRING_MAX
+
+  ; go back two to let an extra null char at the end
   sub   rdi, 2
-
+  
   pop   rax
   
 to_string_loop:
@@ -36,8 +45,15 @@ to_string_loop:
   jne   to_string_loop
 
   inc   rdi
+ 
+  lea   rax, [rdi]
 
-  mov   rax, 0
+  jmp   to_string_return
+
+invalid_number:
+  mov   rax, -1
+
+to_string_return:
   ret
 
 ; returns the index of the next occurence of the char

@@ -1,14 +1,13 @@
-; TODO: log available route after server init
+; TODO: Clean refactor
 ; TODO: read basic auth
 ; TODO: check arguments from function
+; TODO: add errors from server
 ; TODO: add date and time to log
 ; TODO: check for anchor and parameters in links
-; TODO: send error bad request 
 ; TODO: response struct
 ; TODO: remove response message and construct them with response struct
 ; TODO: convert ns to ms
 ; TODO: atoi
-; TODO: Clean refactor
 ; TODO; error handling
 ; TODO: add https
 ; TODO: doc and comments
@@ -192,5 +191,6 @@ section .data
   log_debug     db " [DEBUG] ", NULL_CHAR
   log_debug_len equ $ - log_debug
 
+  to_string_buf times TO_STRING_MAX db 0
 %endif
 

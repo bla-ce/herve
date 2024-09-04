@@ -11,24 +11,22 @@ log_server_init:
   syscall
 
   mov   rdi, qword [port]
-  lea   rsi, [log_port]
-  mov   rdx, LOG_PORT_LEN
-
   call  to_string
 
+  lea   rdi, [rax]
+  call  get_length
+
+  lea   rsi, [rdi]
+  lea   rdi, [log_port]
+  mov   rcx, rax
+  rep   movsb
+
   ; add new line at the end
-  add   rdi, LOG_PORT_LEN
-  dec   rdi
   mov   byte [rdi], LINE_FEED
-  sub   rdi, LOG_PORT_LEN
-  inc   rdi
-
-  mov   rsi, rdi
-  mov   rax, SYS_WRITE
-  mov   rdi, STDOUT
-
-  mov   rdx, LOG_PORT_LEN
-  syscall
+  sub   rdi, rax
+  mov   rsi, rax  ; length of port
+  inc   rsi       ; include new line char
+  call  debug
 
   lea   rdi, [log_routes_available_msg]
   mov   rsi, log_routes_available_len
