@@ -442,8 +442,6 @@ server_init:
   cmp   rax, 0
   jl    error
 
-  call  log_server_init
-
   mov   rax, qword [rsp]
 
   add   rsp, 0x8
@@ -454,6 +452,8 @@ run_server:
   sub   rsp, 0x8
 
   mov   qword [rsp], rdi
+
+  call  log_server_init
 
 run_server_loop:
   ; set end timer

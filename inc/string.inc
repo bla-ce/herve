@@ -150,5 +150,26 @@ get_length_return:
   mov   rax, rcx
   ret
 
+debug:
+  ; rdi -> string
+  ; rsi -> string_len (optional, if set to 0, need to compute length)
+  mov   rax, rsi
+  cmp   rax, 0
+  jg    known_length
+
+  push  rdi
+  call  get_length
+
+  pop   rdi
+
+known_length:
+  lea   rsi, [rdi]
+  mov   rdx, rax
+  mov   rax, SYS_WRITE
+  mov   rdi, STDOUT
+  syscall
+
+  ret
+
 %endif
 

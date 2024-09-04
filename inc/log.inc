@@ -2,6 +2,8 @@
 %define LOG_INC
 
 log_server_init:
+  sub   rsp, 0x8 ; routes count for route logs
+
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT
   lea   rsi, [log_server_init_msg]
@@ -28,7 +30,93 @@ log_server_init:
   mov   rdx, LOG_PORT_LEN
   syscall
 
+  lea   rdi, [log_routes_available_msg]
+  mov   rsi, log_routes_available_len
+  call  debug
+
+  ; log routes - [DEBUG] METHOD ROUTE
+
+  ; keep track of routes
+  mov   qword [rsp], 0
+
+  ; log new line
+  lea   rdi, [log_new_line]
+  mov   rsi, 1
+  call  debug
+
+log_route_loop:
+  ; log debug 
+  lea   rdi, [log_debug]
+  mov   rsi, log_debug_len
+  call  debug
+
+  ; load routes_list
+  lea   rsi, [routes_list]
+
+  ; get route pos
+  xor   rdx, rdx
+  mov   rax, qword [rsp]
+  mov   rbx, STRUCT_ROUTE_LEN
+  mul   rbx
+
+  ; go to route
+  add   rsi, rax
+
+  ; populate log url
+  lea   rdi, [log_url]
+  mov   rcx, URL_MAX_LEN
+  rep   movsb
+
+  ; populate method url
+  lea   rdi, [log_method]
+  mov   rcx, METHOD_MAX_LEN
+  rep   movsb
+
+  ; clear and add space after method and url
+  lea   rdi, [log_url]
+  call  get_length
+
+  add   rdi, rax
+  mov   rcx, URL_MAX_LEN
+  sub   rcx, rax
+  mov   al, SPACE
+  rep   stosb
+
+  lea   rdi, [log_method]
+  call  get_length
+
+  add   rdi, rax
+  mov   rcx, METHOD_MAX_LEN
+  sub   rcx, rax
+  mov   al, SPACE
+  rep   stosb
+
+  ; log method
+  lea   rdi, [log_method]
+  mov   rsi, METHOD_MAX_LEN
+  call  debug
+
+  ; log url
+  lea   rdi, [log_url]
+  mov   rsi, URL_MAX_LEN
+  call  debug
+  
+  ; log new line
+  lea   rdi, [log_new_line]
+  mov   rsi, 1
+  call  debug
+
+  inc   qword [rsp]
+  
+  mov   rax, qword [rsp]
+  cmp   rax, qword [routes_count]
+  je    log_route_return
+  
+  jmp   log_route_loop
+
+log_route_return:
   mov   rax, 0
+  add   rsp, 0x8
   ret
 
 log_add_status:
@@ -148,4 +236,4 @@ jump_log_route:
   ret
 
 %endif
-    
+

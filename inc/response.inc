@@ -1,8 +1,6 @@
 %ifndef RESPONSE_INC
 %define RESPONSE_INC
 
-
-
 send_response:
   ; rdi -> client
   cmp   qword [response_status_code], BAD_REQUEST

@@ -185,7 +185,12 @@ section .data
   log_server_init_msg db " [DEBUG] Listening and serving HTTP on :"
   log_server_init_len equ $ - log_server_init_msg
 
+  log_routes_available_msg db LINE_FEED, " [DEBUG] Routes available:", NULL_CHAR
+  log_routes_available_len equ $ - log_routes_available_msg
+
   log_port  times LOG_PORT_LEN db 0
+  log_debug     db " [DEBUG] ", NULL_CHAR
+  log_debug_len equ $ - log_debug
 
 %endif
 

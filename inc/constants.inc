@@ -89,7 +89,7 @@ METHOD_NOT_ALLOWED    equ 405
 INTERNAL_SERVER_ERROR equ 500
 
 ; logs
-LOG_PORT_LEN equ 5
+LOG_PORT_LEN equ 5 ; port + new line char
 
 %endif
 
