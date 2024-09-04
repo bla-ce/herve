@@ -5,7 +5,7 @@
 to_string:
   ; rdi -> int
   ; return value: rax -> points to buffer
-  cmp   rdi, 100000
+  cmp   rdi, 1000000
   jge   invalid_number
 
   push  rdi

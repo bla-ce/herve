@@ -5,7 +5,9 @@
 ; TODO: add date and time to log
 ; TODO: response struct
 ; TODO: remove response message and construct them with response struct
-; TODO: convert ns to ms
+; TODO: print 'μ' instead of 'u' for μs
+; TODO: floating point for duration
+; TODO: log in sec
 ; TODO: atoi
 ; TODO; error handling
 ; TODO: add https

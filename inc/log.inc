@@ -4,11 +4,9 @@
 log_server_init:
   sub   rsp, 0x8 ; routes count for route logs
 
-  mov   rax, SYS_WRITE
-  mov   rdi, STDOUT
-  lea   rsi, [log_server_init_msg]
-  mov   rdx, log_server_init_len
-  syscall
+  lea   rdi, [log_server_init_msg]
+  mov   rsi, log_server_init_len
+  call  debug 
 
   mov   rdi, qword [port]
   call  to_string
@@ -113,6 +111,11 @@ log_route_loop:
   jmp   log_route_loop
 
 log_route_return:
+  ; log new line
+  lea   rdi, [log_new_line]
+  mov   rsi, 1
+  call  debug
+
   mov   rax, 0
   add   rsp, 0x8
   ret
@@ -155,6 +158,23 @@ log_add_duration:
   dec   rsi
 
   mov   rax, qword [duration]
+
+  ; convert ns in ms if duration is greater than 999ns
+  cmp   rax, 999
+  jl    log_add_duration_loop
+
+  xor   rdx, rdx
+  mov   rcx, 1000
+  div   rcx
+
+  ; Replace 'n' by 'μ' (UTF-8 encoding) 
+  inc   rsi
+  mov   byte [rsi], MICRO_FIRST     ; First byte of the UTF-8 sequence for 'μ'
+  inc   rsi
+  mov   byte [rsi], MICRO_SECOND     ; Second byte of the UTF-8 sequence for 'μ'
+  inc   rsi
+  mov   byte [rsi], LOW_S_CHAR
+  sub   rsi, 3                ; go back to original position
   
 log_add_duration_loop:
   xor   rdx, rdx
@@ -224,11 +244,9 @@ jump_log_route:
 
   call log_add_status
 
-  mov   rax, SYS_WRITE
-  mov   rdi, STDOUT
-  lea   rsi, [log_start]
-  mov   rdx, log_len
-  syscall
+  lea   rdi, [log_start]
+  mov   rsi, log_len
+  call  debug 
 
   mov   rax, 0
   ret

@@ -572,9 +572,9 @@ timer_not_defined:
 ; TODO: this thing probably don't work as expected
 error:
   ; write error message
-  mov   rax, SYS_WRITE
-  mov   rdi, STDOUT
-  syscall
+  mov   rdi, rsi
+  mov   rsi, rdx
+  call  debug 
  
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+0x8]

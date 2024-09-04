@@ -61,6 +61,10 @@ QUESTION_MARK   equ 63
 LOW_N_CHAR      equ 110
 LOW_S_CHAR      equ 115
 
+; extended ascii
+MICRO_FIRST   equ 0xCE
+MICRO_SECOND  equ 0xBC
+
 ; file constants
 O_RDONLY      equ 0
 FILE_MAX_LEN  equ 8*1024
@@ -92,7 +96,7 @@ INTERNAL_SERVER_ERROR equ 500
 LOG_PORT_LEN equ 5 ; port + new line char
 
 ; utils
-TO_STRING_MAX equ 6
+TO_STRING_MAX equ 7
 
 %endif
 
