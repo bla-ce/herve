@@ -1,16 +1,15 @@
+; TODO: errors (from building and running)
 ; TODO: save query parameters
 ; TODO: add increment value for strpos
 ; TODO: Clean refactor
 ; TODO: read basic auth
 ; TODO: check arguments from function
-; TODO: add errors from server
 ; TODO: add date and time to log
 ; TODO: response struct
 ; TODO: remove response message and construct them with response struct
 ; TODO: floating point for duration
 ; TODO: log in sec
 ; TODO: atoi
-; TODO; error handling
 ; TODO: add https
 ; TODO: doc and comments
 
@@ -23,6 +22,7 @@
 %include "server.inc"
 %include "request.inc"
 %include "response.inc"
+%include "error.inc"
 
 section .data
   enable  dw 1
@@ -126,46 +126,6 @@ section .data
                     db CARRIAGE_RETURN, LINE_FEED
   response_500_len  equ $ - response_500
 
-  ; error messages
-  error_method_too_big      db "[ERROR] request method length exceeds allowed bounds", LINE_FEED
-  error_method_too_big_len  equ $ - error_method_too_big
-
-  error_route_too_big      db "[ERROR] request route length exceeds allowed bounds", LINE_FEED
-  error_route_too_big_len  equ $ - error_route_too_big
-
-  error_max_route      db "[ERROR] maximum number of routes reached", LINE_FEED
-  error_max_route_len  equ $ - error_max_route
-
-  error_creating_socket      db "[ERROR] failed to create socket", LINE_FEED
-  error_creating_socket_len  equ $ - error_creating_socket
-
-  error_binding      db "[ERROR] failed to bind socket", LINE_FEED
-  error_binding_len  equ $ - error_binding
-
-  error_listening      db "[ERROR] failed to listen to socket", LINE_FEED
-  error_listening_len  equ $ - error_listening
-
-  error_accepting      db "[ERROR] failed to accept connection", LINE_FEED
-  error_accepting_len  equ $ - error_accepting
-
-  error_setting_socket_option			db "[ERROR] failed to set socket option", LINE_FEED
-  error_setting_socket_option_len	equ $ - error_setting_socket_option
-
-  error_reading_request			db "[ERROR] failed to read request", LINE_FEED
-  error_reading_request_len	equ $ - error_reading_request
-
-  error_open			db "[ERROR] failed to open file", LINE_FEED
-  error_open_len	equ $ - error_open
-
-  error_read_file			db "[ERROR] failed to read file", LINE_FEED
-  error_read_file_len	equ $ - error_read_file
-
-  method_doesnt_exist      db "[ERROR] method doesn't exist", LINE_FEED
-  method_doesnt_exist_len  equ $ - method_doesnt_exist
-
-  callback_address_missing  db "[ERROR] callback missing", LINE_FEED
-  callback_address_missing_len equ $ - callback_address_missing
-
   ; timers
   start_tv_sec  dq 0
   start_tv_nsec dq 0
@@ -198,5 +158,13 @@ section .data
   log_debug_len equ $ - log_debug
 
   to_string_buf times TO_STRING_MAX db 0
+
+  ; error messages
+  ERR_PORT_BOUNDS   db "[ERROR] port out of bounds", LINE_FEED, NULL_CHAR
+  ERR_CREAT_SOCKET  db "[ERROR] failed to create socket", LINE_FEED, NULL_CHAR
+  ERR_SET_SOCKOPT   db "[ERROR] failed to set socket option", LINE_FEED, NULL_CHAR
+  ERR_BIND_SOCKET   db "[ERROR] failed to bind socket", LINE_FEED, NULL_CHAR
+  ERR_LISTEN_SOCKET db "[ERROR] failed to listen to socket", LINE_FEED, NULL_CHAR
+
 %endif
 

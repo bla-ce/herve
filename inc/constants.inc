@@ -5,6 +5,10 @@ CLOCK_REALTIME  equ 0
 STDOUT          equ 1
 LONG_SIZE       equ 10
 
+; server constants
+PORT_MIN  equ 1
+PORT_MAX  equ 65535
+
 ; request struct constants
 METHOD_MAX_LEN      equ 8
 URL_MAX_LEN         equ 32    ; change to 128 when prod

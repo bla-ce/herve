@@ -25,15 +25,10 @@ disallow_method:
   lea   rax, [GET]
   lea   rbx, [CONNECT]
 
-  ; load error messages
-  lea   rsi, [method_doesnt_exist]
-  mov   rdx, method_doesnt_exist_len
-
+  ; TODO: error
   cmp   rdi, rax
-  jl    error
 
   cmp   rdi, rbx
-  jg    error
 
   ; look if method is inside the list
   ; load request into rdx
@@ -43,12 +38,6 @@ disallow_method:
   mov   rsi, methods_list_len
   mov   rcx, qword [rsp]
   call  strpos
-
-  ; load error messages if couldn't find the method
-  lea   rsi, [method_doesnt_exist]
-  mov   rdi, method_doesnt_exist_len
-  cmp   rax, 0
-  jl    error
 
   ; add method to not allowed list
   lea   rdi, [not_allowed_methods]
@@ -76,15 +65,14 @@ check_method:
   mov   [rsp+0x8], rdi 
   mov   qword [rsp+0x10], rsi
 
-  ; load error messages
-  lea   rsi, [error_method_too_big]
-  mov   rdx, error_method_too_big_len
-
   ; check the length of the method
   mov   rcx, qword [rsp+0x10]
   cmp   rcx, METHOD_MAX_LEN
-  jg    error
+  jl    method_length_good 
 
+  mov   qword [response_status_code], BAD_REQUEST
+
+method_length_good:
   ; look for the method inside methods list
   lea   rdi, [methods_list]
   mov   rsi, methods_list_len
@@ -361,10 +349,19 @@ add_route_jump:
 
 server_init:
   ; rdi -> port
+  ; return value: rax -> socket fd | error
   sub   rsp, 0x8
 
   mov   qword [port], rdi
   mov   qword [rsp], 0  ; sockfd
+
+  ; check if port is in bounds
+  lea   rdi, [ERR_PORT_BOUNDS]
+  cmp   qword [port], PORT_MIN
+  jl    server_init_error
+
+  cmp   qword [port], PORT_MAX
+  jg    server_init_error
 
   ; create socket
   mov   rax, SYS_SOCKET
@@ -373,11 +370,9 @@ server_init:
   mov   rdx, 0
   syscall
 
-  lea   rsi, [error_creating_socket]
-  mov   rdx, error_creating_socket_len
-
+  lea   rdi, [ERR_CREAT_SOCKET]
   cmp   rax, 0
-  jl    error
+  jl    server_init_error
 
   ; store server fd
   mov   qword [rsp], rax
@@ -391,11 +386,9 @@ server_init:
   mov   r8, 4 
   syscall
 
-  lea   rsi, [error_setting_socket_option]
-  mov   rdx, error_setting_socket_option_len
-
+  lea   rdi, [ERR_SET_SOCKOPT]
   cmp   rax, 0
-  jl    error
+  jl    server_init_error
 
   mov   rax, SYS_SETSOCKOPT
   mov   rdi, qword [rsp]
@@ -405,11 +398,9 @@ server_init:
   mov   r8, 4 
   syscall
 
-  lea   rsi, [error_setting_socket_option]
-  mov   rdx, error_setting_socket_option_len
-
+  lea   rdi, [ERR_SET_SOCKOPT]
   cmp   rax, 0
-  jl    error
+  jl    server_init_error
 
   ; convert host port to network
   xor   rax, rax
@@ -424,11 +415,9 @@ server_init:
   mov   rdx, server_addrlen
   syscall
 
-  lea   rsi, [error_binding]
-  mov   rdx, error_binding_len
-
+  lea   rdi, [ERR_BIND_SOCKET]
   cmp   rax, 0
-  jl    error
+  jl    server_init_error
 
   ; listen socket
   mov   rax, SYS_LISTEN
@@ -436,14 +425,38 @@ server_init:
   mov   rsi, BACKLOG
   syscall
 
-  lea   rsi, [error_listening]
-  mov   rdx, error_listening_len
-
+  lea   rdi, [ERR_LISTEN_SOCKET]
   cmp   rax, 0
-  jl    error
+  jl    server_init_error
 
   mov   rax, qword [rsp]
+  jmp   server_init_return
 
+server_init_error:
+  ; print error message, rdi already populated
+  call  print_error
+
+  ; check if socket have been opened
+  cmp   qword [rsp], 0
+  jle   skip_close_socket
+
+  ; if yes close it
+  mov   rax, SYS_CLOSE
+  mov   rdi, qword [rsp]
+  syscall
+
+  ; don't need to check for error, we exit anyway
+
+skip_close_socket:
+  ; clean stack
+  add   rsp, 0x8
+
+  ; shutdown
+  mov   rax, SYS_EXIT
+  mov   rsi, FAILURE_CODE
+  syscall
+
+server_init_return:
   add   rsp, 0x8
   ret
 
@@ -494,12 +507,6 @@ timer_not_defined:
   lea   rdx, [client_addrlen]
   syscall
 
-  lea   rsi, [error_accepting]
-  mov   rdx, error_accepting_len
-
-  cmp   rax, 0
-  jl    error
-
   mov   qword [request_client], rax
 
   ; set start timer
@@ -517,12 +524,6 @@ timer_not_defined:
   xor   r9, r9
   xor   r8, r8
   syscall
-
-  lea   rsi, [error_reading_request]
-  mov   rdx, error_reading_request_len
-
-  cmp   rax, 0
-  jl    error
 
   mov   qword [request_len], rax
 
@@ -552,25 +553,6 @@ timer_not_defined:
   add   rsp, 0x8
   ret
 
-; TODO: this thing probably don't work as expected
-error:
-  ; write error message
-  mov   rdi, rsi
-  mov   rsi, rdx
-  call  debug 
- 
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+0x8]
-  syscall
-
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp]
-  syscall
-
-  mov   rax, SYS_EXIT
-  mov   rdi, FAILURE_CODE
-  syscall
-
 trim_query_parameters:
   ; rdi -> request_url
   ; rsi -> route_length
@@ -597,5 +579,6 @@ trim_query_return:
 
   add   rsp, 0x8
   ret
+
 %endif
 

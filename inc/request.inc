@@ -14,6 +14,10 @@ parse_request:
   cmp   rax, 0x0
   jl    parse_request_error
 
+  mov   rcx, METHOD_MAX_LEN
+  cmp   rax, rcx
+  cmovg rax, rcx
+
   lea   rdi, [request_method]
   pop   rsi
 
@@ -34,6 +38,10 @@ parse_request:
 
   lea   rdi, [request_url]
   pop   rsi
+
+  mov   rcx, URL_MAX_LEN
+  cmp   rax, rcx
+  cmovg rax, rcx
 
   mov   rcx, rax
   rep   movsb

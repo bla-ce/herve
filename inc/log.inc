@@ -216,6 +216,11 @@ log_request:
   call  get_length
   mov   rcx, rax
 
+  ; make sure rcx is below METHOD_MAX_LEN
+  cmp   rcx, METHOD_MAX_LEN
+  mov   rax, METHOD_MAX_LEN
+  cmovg rcx, rax
+
   lea   rsi, [request_method]
   lea   rdi, [log_method]
   rep   movsb
