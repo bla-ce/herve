@@ -24,10 +24,62 @@
 %include "response.inc"
 %include "error.inc"
 
+section .bss
+  port  resq 1
+
+  request     resb REQUEST_MAX_LEN
+  request_len resq 1
+
+  ; request string
+  request_method  resb METHOD_MAX_LEN
+  request_url     resb URL_MAX_LEN
+  request_proto   resb PROTO_MAX_LEN
+  request_headers resb HEADERS_MAX_LEN
+  request_body    resb BODY_MAX_LEN
+
+  ; request value
+  request_proto_major     resd 1
+  request_proto_minor     resd 1
+  request_content_length  resw 1
+  request_close           resb 1
+  request_host            resb HOST_MAX_LEN
+  request_client          resq 1
+
+  ; response string
+  response_status resb STATUS_MAX_LEN
+  response_proto  resb PROTO_MAX_LEN
+  response_body   resb BODY_MAX_LEN
+
+  ; response value
+  response_status_code      resq 1
+  response_proto_major      resd 1
+  response_proto_minor      resd 1
+  response_content_length   resw 1
+  response_close            resb 1
+
+  file      resb FILE_MAX_LEN
+  file_len  resq 1
+
+  ; timers
+  start_tv_sec  resq 1
+  start_tv_nsec resq 1
+
+  end_tv_sec  resq 1
+  end_tv_nsec resq 1
+
+  duration resq 1
+
+  log_port resb LOG_PORT_LEN
+
+  to_string_buf resb TO_STRING_MAX
+
+  routes_count resq 1
+
+  callback_list resq MAX_ROUTES_COUNT
+  callback      resq 1
+
 section .data
   enable  dw 1
-
-  port  dq 0
 
   server_sin_family  dw AF_INET
   server_sin_port    dw 0
@@ -41,50 +93,13 @@ section .data
   client_sa_zero     dq 0
   client_addrlen     dq server_addrlen
 
-  request     times REQUEST_MAX_LEN db 0
-  request_len dq 0
-
-  ; request string
-  request_method          times METHOD_MAX_LEN db 0
-  request_url             times URL_MAX_LEN db 0
-  request_proto           times PROTO_MAX_LEN db 0
-  request_headers         times HEADERS_MAX_LEN db 0
-  request_body            times BODY_MAX_LEN db 0
-
-  ; request value
-  request_proto_major     dd 0
-  request_proto_minor     dd 0
-  request_content_length  dw 0
-  request_close           db 0
-  request_host            times HOST_MAX_LEN db 0
-  request_client          dq 0
-
-  ; response string
-  response_status           times STATUS_MAX_LEN db 0
-  response_proto            times PROTO_MAX_LEN db 0
-  response_body             times BODY_MAX_LEN db 0
-
-  ; response value
-  response_status_code      dq 0
-  response_proto_major      dd 0
-  response_proto_minor      dd 0
-  response_content_length   dw 0
-  response_close            db 0
-
-  file      times FILE_MAX_LEN db 0
-  file_len  dq 0
-
-  methods_list     db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
+  methods_list  db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
   methods_list_len equ $ - methods_list
 
   not_allowed_methods times methods_list_len db 0
 
   routes_list     times MAX_ROUTES_COUNT * STRUCT_ROUTE_LEN db 0
   routes_list_len equ $ - routes_list
-  routes_count dq 0
-
-  callback_list times MAX_ROUTES_COUNT dq 0
-  callback      dq 0
 
   post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
   post_headers_len  equ $ - post_headers - 1
@@ -125,15 +140,6 @@ section .data
                     db "Connection: close", CARRIAGE_RETURN, LINE_FEED
                     db CARRIAGE_RETURN, LINE_FEED
   response_500_len  equ $ - response_500
-
-  ; timers
-  start_tv_sec  dq 0
-  start_tv_nsec dq 0
-
-  end_tv_sec  dq 0
-  end_tv_nsec dq 0
-
-  duration dq 0
   
   ; log
   log_start     db " [LOG] "
@@ -153,11 +159,8 @@ section .data
   log_routes_available_msg db LINE_FEED, " [DEBUG] Routes available:", NULL_CHAR
   log_routes_available_len equ $ - log_routes_available_msg
 
-  log_port  times LOG_PORT_LEN db 0
   log_debug     db " [DEBUG] ", NULL_CHAR
   log_debug_len equ $ - log_debug
-
-  to_string_buf times TO_STRING_MAX db 0
 
   ; error messages
   ERR_PORT_BOUNDS   db "[ERROR] port out of bounds", LINE_FEED, NULL_CHAR
