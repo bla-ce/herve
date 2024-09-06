@@ -57,18 +57,8 @@ disallow_method:
   jmp   disallow_method_return
 
 disallow_method_error:
-  ; print error
-  call  print_error
-
-  ; cleat stack
-  add   rsp, 0x10
-
-  ; TODO: close socket (not in args)
-
-  ; exit program
-  mov   rax, SYS_EXIT
-  mov   rdi, FAILURE_CODE
-  syscall
+  mov   [errno], rdi
+  mov   rax, -1
 
 disallow_method_return:
   ; clean stack
@@ -84,14 +74,6 @@ check_method:
   mov   [rsp+0x8], rdi 
   mov   qword [rsp+0x10], rsi
 
-  ; check the length of the method
-  mov   rcx, qword [rsp+0x10]
-  cmp   rcx, METHOD_MAX_LEN
-  jl    method_length_good 
-
-  mov   qword [response_status_code], BAD_REQUEST
-
-method_length_good:
   ; look for the method inside methods list
   lea   rdi, [methods_list]
   mov   rsi, methods_list_len
@@ -147,7 +129,6 @@ method_exists:
 check_method_return:
   add   rsp, 0x18
   ret
-
 
 ; TODO: CLEAN
 check_route:
@@ -452,8 +433,7 @@ server_init:
   jmp   server_init_return
 
 server_init_error:
-  ; print error message, rdi already populated
-  call  print_error
+  mov   [errno], rdi
 
   ; check if socket have been opened
   cmp   qword [rsp], 0
@@ -463,17 +443,10 @@ server_init_error:
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp]
   syscall
-
   ; don't need to check for error, we exit anyway
 
 skip_close_socket:
-  ; clean stack
-  add   rsp, 0x8
-
-  ; shutdown
-  mov   rax, SYS_EXIT
-  mov   rsi, FAILURE_CODE
-  syscall
+  mov   rax, -1
 
 server_init_return:
   add   rsp, 0x8

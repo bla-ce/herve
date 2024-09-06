@@ -1,7 +1,7 @@
 ; TODO: errors (from building and running)
 ; TODO: save query parameters
-; TODO: add increment value for strpos
 ; TODO: Clean refactor
+; TODO: add increment value for strpos
 ; TODO: read basic auth
 ; TODO: check arguments from function
 ; TODO: add date and time to log
@@ -77,6 +77,8 @@ section .bss
 
   callback_list resq MAX_ROUTES_COUNT
   callback      resq 1
+
+  errno resb ERR_MAX_LEN
 
 section .data
   enable  dw 1
@@ -169,7 +171,8 @@ section .data
   ERR_BIND_SOCKET   db "[ERROR] failed to bind socket", LINE_FEED, NULL_CHAR
   ERR_LISTEN_SOCKET db "[ERROR] failed to listen to socket", LINE_FEED, NULL_CHAR
 
-  ERR_METHOD_NOT_EXIST db "[ERROR] method does not exist", LINE_FEED, NULL_CHAR
+  ERR_METHOD_NOT_EXIST  db "[ERROR] method does not exist", LINE_FEED, NULL_CHAR
+  ERR_METHOD_TOO_LONG   db "[ERROR] method too long", NULL_CHAR
 
 %endif
 
