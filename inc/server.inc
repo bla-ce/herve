@@ -3,6 +3,7 @@
 
 htons:
   ; rdi -> port
+  ; return value: rax -> network port
   mov   rax, rdi
   xchg  al, ah ; bswap 16-bit registers
   ret
@@ -21,14 +22,16 @@ disallow_method:
 
   ; check method arg, variable should be between GET and CONNECT
   lea   rax, [rsp+0x8]
-  mov   rdi, [rax]
+  mov   rsi, [rax]
   lea   rax, [GET]
   lea   rbx, [CONNECT]
 
-  ; TODO: error
-  cmp   rdi, rax
+  lea   rdi, [ERR_METHOD_NOT_EXIST]
+  cmp   rsi, rax
+  jl    disallow_method_error
 
-  cmp   rdi, rbx
+  cmp   rsi, rbx
+  jg    disallow_method_error
 
   ; look if method is inside the list
   ; load request into rdx
@@ -51,7 +54,23 @@ disallow_method:
   rep   movsb
 
   xor   rax, rax
+  jmp   disallow_method_return
 
+disallow_method_error:
+  ; print error
+  call  print_error
+
+  ; cleat stack
+  add   rsp, 0x10
+
+  ; TODO: close socket (not in args)
+
+  ; exit program
+  mov   rax, SYS_EXIT
+  mov   rdi, FAILURE_CODE
+  syscall
+
+disallow_method_return:
   ; clean stack
   add   rsp, 0x10
   ret

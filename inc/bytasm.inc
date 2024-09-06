@@ -166,5 +166,7 @@ section .data
   ERR_BIND_SOCKET   db "[ERROR] failed to bind socket", LINE_FEED, NULL_CHAR
   ERR_LISTEN_SOCKET db "[ERROR] failed to listen to socket", LINE_FEED, NULL_CHAR
 
+  ERR_METHOD_NOT_EXIST db "[ERROR] method does not exist", LINE_FEED, NULL_CHAR
+
 %endif
 
