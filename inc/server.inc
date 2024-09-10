@@ -245,8 +245,8 @@ route_found:
   cmp   rax, 0
   je    skip_exec
 
-  lea   rdi, [request]
-  call  rax
+  mov   [rel callback], rax
+  b2:
 
 skip_exec:
   mov   rax, qword [rsp]
@@ -340,6 +340,9 @@ add_route_jump:
 
   mov   rax, [rel callback]
   mov   qword [rdi], rax
+
+  ; clear callback
+  mov   qword [callback], 0
 
   ; increase number of routes
   inc   qword [routes_count]
@@ -477,6 +480,9 @@ run_server_loop:
 
   mov   qword [duration], rax
 
+  ; clear callback
+  mov   qword [callback], 0
+
   ; log previous request
   call  log_request
 
@@ -525,6 +531,14 @@ timer_not_defined:
   ; verify request
   call  verify_request
 
+  ; callback
+  cmp   qword [callback], 0
+  je    skip_callback
+
+  lea   rdi, [request]
+  call  [rel callback]
+
+skip_callback:
   cmp   qword [response_status_code], OK
   je    skip_send_response
 
