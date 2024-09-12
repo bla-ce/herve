@@ -96,6 +96,21 @@ NOT_FOUND             equ 404
 METHOD_NOT_ALLOWED    equ 405
 INTERNAL_SERVER_ERROR equ 500
 
+; status code string
+STR_OK                    db "200 OK", NULL_CHAR
+STR_BAD_REQUEST           db "400 Bad Request", NULL_CHAR
+STR_UNAUTHORIZED          db "401 Unauthorized", NULL_CHAR
+STR_NOT_FOUND             db "404 Not Found", NULL_CHAR
+STR_METHOD_NOT_ALLOWED    db "405 Method Not Allowed", NULL_CHAR
+STR_INTERNAL_SERVER_ERROR db "500 Internal Server Error", NULL_CHAR
+
+; content type
+CONTENT_HTML db "Content-Type: text/html; charset=UTF-8", NULL_CHAR
+CONTENT_PLAIN db "Content-Type: text/plain; charset=UTF-8", NULL_CHAR
+
+; connection
+CONNECTION_CLOSE db "Connection: close", NULL_CHAR
+
 ; logs
 LOG_PORT_LEN equ 5 ; port + new line char
 

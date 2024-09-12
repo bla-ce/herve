@@ -1,3 +1,4 @@
+; TODO: response struct
 ; TODO: errors (from building and running)
 ; TODO: save query parameters
 ; TODO: Clean refactor
@@ -5,7 +6,6 @@
 ; TODO: read basic auth
 ; TODO: check arguments from function
 ; TODO: add date and time to log
-; TODO: response struct
 ; TODO: remove response message and construct them with response struct
 ; TODO: floating point for duration
 ; TODO: log in sec
