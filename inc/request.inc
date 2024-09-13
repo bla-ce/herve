@@ -151,14 +151,17 @@ parse_request:
 
   rep   movsb
 
+  mov   rax, 0
+
   jmp   parse_request_return
 
 parse_request_error:
   mov   qword [response_status_code], BAD_REQUEST
-
   mov   rdi, qword [request_client]
   lea   rsi, [STR_BAD_REQUEST]
   call  send_error_response
+
+  mov   rax, -1
 
 parse_request_return:
   add   rsp, 0x8
@@ -186,6 +189,8 @@ verify_request:
   jl    verify_request_not_found
 
   mov   qword [response_status_code], OK
+  mov   rax, 0
+
   jmp   verify_request_return
 
 verify_request_method_not_allowed:
@@ -195,6 +200,8 @@ verify_request_method_not_allowed:
   lea   rsi, [STR_METHOD_NOT_ALLOWED]
   call  send_error_response
 
+  mov   rax, -1
+
   jmp   verify_request_return
 
 verify_request_not_found:
@@ -203,6 +210,8 @@ verify_request_not_found:
   mov   rdi, qword [request_client]
   lea   rsi, [STR_NOT_FOUND]
   call  send_error_response
+
+  mov   rax, -1
 
   jmp   verify_request_return
 

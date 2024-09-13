@@ -527,6 +527,8 @@ timer_not_defined:
 
   ; parse_request
   call  parse_request
+  cmp   rax, 0
+  jl    error_request
 
   ; verify request
   call  verify_request
@@ -539,6 +541,20 @@ timer_not_defined:
   call  [rel callback]
 
 skip_callback:
+  mov   rdi, qword [request_client]
+  lea   rsi, [STR_OK]
+  mov   rdx, 0
+  mov   rcx, 0
+  call  send_response
+
+  mov   rax, SYS_CLOSE
+  mov   rdi, qword [request_client] 
+  syscall
+ 
+  ; jump to next request
+  jmp   run_server_loop
+
+error_request:
   ; close connection
   ; TODO: might not want to do it
   mov   rax, SYS_CLOSE
@@ -546,7 +562,7 @@ skip_callback:
   syscall
  
   ; jump to next request
-  jmp   run_server_loop
+  jmp   timer_not_defined
 
   ; shutdown server
   mov   rax, SYS_CLOSE

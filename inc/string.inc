@@ -152,6 +152,7 @@ get_length:
   je    get_length_return
 
 get_length_loop:
+  xor   rax, rax
   mov   al, NULL_CHAR
   cmp   byte [rsi], al
   je    get_length_return
