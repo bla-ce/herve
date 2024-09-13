@@ -84,6 +84,42 @@ send_response:
   mov   rdi, [rax]
   rep   movsb
 
+  ; load new line
+  xor   rax, rax
+  mov   al, CARRIAGE_RETURN
+  stosb
+  mov   al, LINE_FEED
+  stosb
+
+  mov [rsp+0x20], rdi
+
+  lea   rdi, [CONTENT_LENGTH]
+  call  get_length
+  mov   rcx, rax
+  lea   rsi, [rdi]
+  lea   rax, [rsp+0x20]
+  mov   rdi, [rax]
+  rep   movsb
+
+  mov [rsp+0x20], rdi
+
+  ; get body length
+  lea   rax, [rsp+0x18]
+  mov   rdi, [rax]
+  call  get_length
+  
+  b1:
+  mov   rdi, rax
+  call  to_string
+
+  lea   rdi, [rax]
+  call  get_length
+  mov   rcx, rax
+  lea   rsi, [rdi]
+  lea   rax, [rsp+0x20]
+  mov   rdi, [rax]
+  rep   movsb 
+
   ; load new lines
   lea   rsi, [post_headers]
   mov   rcx, post_headers_len
@@ -195,12 +231,9 @@ send_error_response:
 
 serve_string:
   ; rdi -> string
-  sub   rsp, 0x10 ; string and length
+  sub   rsp, 0x8 ; string
 
   mov   [rsp], rdi
-
-  call  get_length
-  mov   qword [rsp+0x8], rax
   
   mov   rdi, qword [request_client]
   lea   rsi, [STR_OK]
@@ -209,7 +242,7 @@ serve_string:
   mov   rcx, [rax]
   call  send_response
 
-  add   rsp, 0x10
+  add   rsp, 0x8
   ret
 
 serve_static_file:

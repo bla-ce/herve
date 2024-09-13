@@ -113,6 +113,9 @@ CONTENT_PLAIN db "Content-Type: text/plain; charset=UTF-8", NULL_CHAR
 ; connection
 CONNECTION_CLOSE db "Connection: close", NULL_CHAR
 
+; content_length
+CONTENT_LENGTH db "Content-Length: ", NULL_CHAR
+
 ; logs
 LOG_PORT_LEN equ 5 ; port + new line char
 
