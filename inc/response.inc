@@ -162,11 +162,31 @@ send_error_response:
   mov   al, LINE_FEED
   stosb
 
+  mov   [rsp+0x10], rdi
+
+  ; load connection header
+  lea   rdi, [CONNECTION_CLOSE]
+  call  get_length
+  mov   rcx, rax
+
+  lea   rsi, [rdi]
+  lea   rax, [rsp+0x10]
+  mov   rdi, [rax]
+  rep   movsb
+
+  ; load new lines
+  lea   rsi, [post_headers]
+  mov   rcx, post_headers_len
+  rep   movsb
+
+  lea   rdi, [response]
+  call  get_length
+  mov   rdx, rax
+
   ; send response
   mov   rax, SYS_WRITE
   mov   rdi, qword [rsp]
   lea   rsi, [response]
-  mov   rdx, RESPONSE_MAX_LEN
   syscall
 
   ; clean stack

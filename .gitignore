@@ -3,7 +3,6 @@ server
 test
 
 server.o
-server.s
 
 git.sh
 *.c
@@ -11,4 +10,3 @@ git.sh
 
 musl*
 gin/
-views/
