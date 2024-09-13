@@ -2,12 +2,14 @@
 %define REQUEST_INC
 
 parse_request:
+  sub   rsp, 0x8
+
   lea   rsi, [request]
+  mov   [rsp], rsi
+
   mov   rcx, qword [request_len]
 
   ; extract method
-  push  rsi
-
   lea   rdi, [rsi]
   mov   rsi, SPACE
   call  find_next_char
@@ -19,16 +21,16 @@ parse_request:
   cmovg rax, rcx
 
   lea   rdi, [request_method]
-  pop   rsi
-
   mov   rcx, rax
+  lea   rax, [rsp]
+  mov   rsi, [rax] 
   rep   movsb
 
   ; mov rsi to go to the url
   inc   rsi
 
   ; extract url
-  push  rsi
+  mov   [rsp], rsi
 
   lea   rdi, [rsi]
   mov   rsi, SPACE
@@ -37,20 +39,20 @@ parse_request:
   jl    parse_request_error
 
   lea   rdi, [request_url]
-  pop   rsi
-
   mov   rcx, URL_MAX_LEN
   cmp   rax, rcx
   cmovg rax, rcx
 
   mov   rcx, rax
+  lea   rax, [rsp]
+  mov   rsi, [rax]
   rep   movsb
 
   ; inc rsi to go to the protocol 
   inc   rsi
 
   ; extract proto
-  push  rsi
+  mov   [rsp], rsi
 
   lea   rdi, [rsi]
   mov   rsi, CARRIAGE_RETURN
@@ -58,13 +60,13 @@ parse_request:
   cmp   rax, 0x0
   jl    parse_request_error
 
-  lea   rdi, [request_proto]
-  pop   rsi
-
   mov   rcx, rax
+  lea   rdi, [request_proto]
+  lea   rax, [rsp]
+  mov   rsi, [rax]
   rep   movsb
 
-  push  rsi
+  mov   [rsp], rsi
 
   ; parse proto
   lea   rdi, [request_proto]
@@ -73,11 +75,14 @@ parse_request:
   cmp   rax, 0x0
   jl    parse_request_error
 
-  pop   rsi
+  mov   rcx, rax
+
+  lea   rax, [rsp]
+  mov   rsi, [rax]
 
   ; mov to proto major
   inc   rsi
-  sub   rsi, rax
+  sub   rsi, rcx
 
   xor   rax, rax
   lodsb
@@ -112,7 +117,7 @@ parse_request:
   add   rsi, 0x2
 
   ; get headers
-  push  rsi
+  mov   [rsp], rsi
 
   lea   rdi, [rsi]
   mov   rsi, qword [request_len]
@@ -120,17 +125,17 @@ parse_request:
   mov   rcx, post_headers_len
   call  strpos
 
-  pop rsi
-
-  lea   rdi, [request_headers]
   mov   rcx, rax
+  lea   rax, [rsp]
+  mov   rsi, [rax]
+  lea   rdi, [request_headers]
   rep   movsb
 
   ; get body
   ; move to new line (skip 4 char \r\n\r\n)
   add   rsi, 0x4
 
-  push  rsi
+  mov   [rsp], rsi
 
   lea   rdi, [request_body]
   mov   rsi, NULL_CHAR
@@ -140,9 +145,10 @@ parse_request:
   jl    parse_request_error
 
   lea   rdi, [request_body]
-  pop   rsi
-
   mov   rcx, rax
+  lea   rax, [rsp]
+  mov   rsi, [rax]
+
   rep   movsb
 
   jmp   parse_request_return
@@ -150,7 +156,12 @@ parse_request:
 parse_request_error:
   mov   qword [response_status_code], BAD_REQUEST
 
+  mov   rdi, qword [request_client]
+  lea   rsi, [STR_BAD_REQUEST]
+  call  send_error_response
+
 parse_request_return:
+  add   rsp, 0x8
   ret
 
 verify_request:
@@ -179,10 +190,20 @@ verify_request:
 
 verify_request_method_not_allowed:
   mov   qword [response_status_code], METHOD_NOT_ALLOWED
+
+  mov   rdi, qword [request_client]
+  lea   rsi, [STR_METHOD_NOT_ALLOWED]
+  call  send_error_response
+
   jmp   verify_request_return
 
 verify_request_not_found:
   mov   qword [response_status_code], NOT_FOUND
+
+  mov   rdi, qword [request_client]
+  lea   rsi, [STR_NOT_FOUND]
+  call  send_error_response
+
   jmp   verify_request_return
 
 verify_request_return:

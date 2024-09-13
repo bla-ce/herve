@@ -1,3 +1,4 @@
+; TODO: fix url too big
 ; TODO: response struct
 ; TODO: errors (from building and running)
 ; TODO: save query parameters
@@ -29,6 +30,9 @@ section .bss
 
   request     resb REQUEST_MAX_LEN
   request_len resq 1
+
+  response     resb RESPONSE_MAX_LEN
+  response_len resq 1
 
   ; request string
   request_method  resb METHOD_MAX_LEN
@@ -106,43 +110,6 @@ section .data
   post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
   post_headers_len  equ $ - post_headers - 1
 
-  ; responses
-  response_200      db "HTTP/1.1 200 OK", CARRIAGE_RETURN, LINE_FEED 
-                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-                    db CARRIAGE_RETURN, LINE_FEED
-  response_200_len  equ $ - response_200
-
-  response_400      db "HTTP/1.1 400 Bad Request", CARRIAGE_RETURN, LINE_FEED
-                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-                    db CARRIAGE_RETURN, LINE_FEED
-  response_400_len  equ $ - response_400
-
-  response_401      db "HTTP/1.1 401 Unauthorized", CARRIAGE_RETURN, LINE_FEED
-                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-                    db CARRIAGE_RETURN, LINE_FEED
-  response_401_len  equ $ - response_401
-
-  response_404      db "HTTP/1.1 404 Not Found", CARRIAGE_RETURN, LINE_FEED
-                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-                    db CARRIAGE_RETURN, LINE_FEED
-  response_404_len  equ $ - response_404
-
-  response_405      db "HTTP/1.1 405 Method Not Allowed", CARRIAGE_RETURN, LINE_FEED
-                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-                    db CARRIAGE_RETURN, LINE_FEED
-  response_405_len  equ $ - response_405
-
-  response_500      db "HTTP/1.1 500 Internal Server Error", CARRIAGE_RETURN, LINE_FEED
-                    db "Content-Type: text/html; charset=UTF-8", CARRIAGE_RETURN, LINE_FEED
-                    db "Connection: close", CARRIAGE_RETURN, LINE_FEED
-                    db CARRIAGE_RETURN, LINE_FEED
-  response_500_len  equ $ - response_500
-  
   ; log
   log_start     db " [LOG] "
   log_method    times METHOD_MAX_LEN db SPACE

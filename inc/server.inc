@@ -539,13 +539,6 @@ timer_not_defined:
   call  [rel callback]
 
 skip_callback:
-  cmp   qword [response_status_code], OK
-  je    skip_send_response
-
-  mov   rdi, qword [request_client]
-  call  send_response
-
-skip_send_response:
   ; close connection
   ; TODO: might not want to do it
   mov   rax, SYS_CLOSE

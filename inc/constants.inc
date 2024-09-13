@@ -12,7 +12,7 @@ PORT_MAX  equ 65535
 ; request struct constants
 METHOD_MAX_LEN      equ 8
 URL_MAX_LEN         equ 32    ; change to 128 when prod
-PROTO_MAX_LEN       equ 8
+PROTO_MAX_LEN       equ 9
 BODY_MAX_LEN        equ 4096
 HOST_MAX_LEN        equ 256
 HEADERS_MAX_LEN     equ 8192
