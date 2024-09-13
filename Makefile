@@ -4,7 +4,6 @@ INCLUDES = $(wildcard $(INC_DIR)/*.inc)
 example: $(INCLUDES) examples/server.s
 	nasm -felf64 -o examples/server.o examples/server.s -g -w+all -I$(INC_DIR)/
 	ld -o examples/server examples/server.o
-	./examples/server
 
 prod:
 	ld -o server server.o

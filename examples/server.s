@@ -13,14 +13,24 @@ health:
 index:
   ; rdi -> request
   lea   rdi, [index_path]
-  call  serve_html
+  lea   rsi, [CONTENT_HTML]
+  call  serve_static_file
+
+  ret
+
+css:
+  ; rdi -> request
+  lea   rdi, [css_path]
+  lea   rsi, [CONTENT_CSS]
+  call  serve_static_file
 
   ret
 
 post:
   ; rdi -> request
   lea   rdi, [post_path]
-  call  serve_html
+  lea   rsi, [CONTENT_HTML]
+  call  serve_static_file
 
   ret
 
@@ -43,6 +53,11 @@ _start:
   lea   rdi, [GET]
   lea   rsi, [index_route]
   mov   rdx, index
+  call  add_route 
+
+  lea   rdi, [GET]
+  lea   rsi, [style_route]
+  mov   rdx, css
   call  add_route 
 
   lea   rdi, [GET]
@@ -79,9 +94,11 @@ section .data
   index_route   db "/index", NULL_CHAR
   health_route  db "/health", NULL_CHAR
   post_route    db "/post", NULL_CHAR
+  style_route   db "/style.css", NULL_CHAR
 
   ok  db "ok", NULL_CHAR
 
-  index_path  db "views/index.html", NULL_CHAR
-  post_path   db "views/post.html", NULL_CHAR
+  index_path  db "examples/views/index.html", NULL_CHAR
+  css_path    db "examples/views/style.css", NULL_CHAR
+  post_path   db "examples/views/post.html", NULL_CHAR
 

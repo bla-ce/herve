@@ -212,11 +212,13 @@ serve_string:
   add   rsp, 0x10
   ret
 
-serve_html:
+serve_static_file:
   ; rdi -> file path
-  sub   rsp, 0x18 ; path, length and fd
+  ; rsi -> content type
+  sub   rsp, 0x20 ; path, length, fd and content-type
 
   mov   [rsp], rdi
+  mov   [rsp+0x18], rsi
 
   ; open file
   mov   rax, SYS_OPEN
@@ -244,7 +246,8 @@ serve_html:
   ; send response
   mov   rdi, qword [request_client]
   lea   rsi, [STR_OK]
-  lea   rdx, [CONTENT_HTML]
+  lea   rax, [rsp+0x18]
+  mov   rdx, [rax]
   lea   rcx, [file]
   call  send_response
 
@@ -253,10 +256,16 @@ serve_html:
   mov   rdi, qword [rsp+0x10]
   syscall
 
-  mov   rax, 0
+  ; clear file buffer
+  xor   rax, rax
+  mov   al, NULL_CHAR
+  lea   rdi, [file]
+  mov   rcx, FILE_MAX_LEN
+  rep   stosb
 
+  mov   rax, 0
   ; clean stack
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 error_open_file:
@@ -265,7 +274,7 @@ error_open_file:
   mov   rdi, qword [request_client]
   lea   rsi, [STR_NOT_FOUND]
   call  send_error_response
-  jmp   return_error_html
+  jmp   return_error_file
 
 error_read_file:
   ; load 500
@@ -274,9 +283,9 @@ error_read_file:
   lea   rsi, [STR_INTERNAL_SERVER_ERROR]
   call  send_error_response
 
-return_error_html:
+return_error_file:
   ; clean stack
-  add   rsp, 0x18
+  add   rsp, 0x20
 
   ; return
   mov   rax, -1
