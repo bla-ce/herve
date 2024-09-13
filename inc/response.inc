@@ -65,6 +65,25 @@ send_response:
   mov   rdi, [rax]
   rep   movsb
 
+  ; load new line
+  xor   rax, rax
+  mov   al, CARRIAGE_RETURN
+  stosb
+
+  mov   al, LINE_FEED
+  stosb
+
+  mov   [rsp+0x20], rdi
+
+  ; load connection
+  lea   rdi, [CONNECTION_CLOSE]
+  call  get_length
+  mov   rcx, rax
+  lea   rsi, [rdi]
+  lea   rax, [rsp+0x20]
+  mov   rdi, [rax]
+  rep   movsb
+
   ; load new lines
   lea   rsi, [post_headers]
   mov   rcx, post_headers_len
@@ -83,11 +102,15 @@ send_response:
   rep   movsb
 
 skip_body:
+  ; get response length
+  lea   rdi, [response]
+  call  get_length
+  mov   rdx, rax
+
   ; send response
   mov   rax, SYS_WRITE
   mov   rdi, qword [rsp]
   lea   rsi, [response]
-  mov   rdx, RESPONSE_MAX_LEN
   syscall
 
   ; clean stack
@@ -148,6 +171,25 @@ send_error_response:
 
   ; clean stack
   add   rsp, 0x18
+  ret
+
+serve_string:
+  ; rdi -> string
+  sub   rsp, 0x10 ; string and length
+
+  mov   [rsp], rdi
+
+  call  get_length
+  mov   qword [rsp+0x8], rax
+  
+  lea   rdi, [request_client]
+  lea   rsi, [STR_OK]
+  lea   rdx, [CONTENT_PLAIN]
+  lea   rax, [rsp]
+  mov   rcx, [rax]
+  call  send_response
+
+  add   rsp, 0x10
   ret
 
 %endif
