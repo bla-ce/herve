@@ -26,6 +26,14 @@ css:
 
   ret
 
+js:
+  ; rdi -> request
+  lea   rdi, [js_path]
+  lea   rsi, [CONTENT_JS]
+  call  serve_static_file
+
+  ret
+
 post:
   ; rdi -> request
   lea   rdi, [post_path]
@@ -58,6 +66,11 @@ _start:
   lea   rdi, [GET]
   lea   rsi, [style_route]
   mov   rdx, css
+  call  add_route 
+
+  lea   rdi, [GET]
+  lea   rsi, [js_route]
+  mov   rdx, js 
   call  add_route 
 
   lea   rdi, [GET]
@@ -95,10 +108,12 @@ section .data
   health_route  db "/health", NULL_CHAR
   post_route    db "/post", NULL_CHAR
   style_route   db "/style.css", NULL_CHAR
+  js_route      db "/index.js", NULL_CHAR
 
   ok  db "ok", NULL_CHAR
 
   index_path  db "examples/views/index.html", NULL_CHAR
   css_path    db "examples/views/style.css", NULL_CHAR
+  js_path     db "examples/views/index.js", NULL_CHAR
   post_path   db "examples/views/post.html", NULL_CHAR
 

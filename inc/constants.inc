@@ -106,8 +106,9 @@ STR_INTERNAL_SERVER_ERROR db "500 Internal Server Error", NULL_CHAR
 
 ; content type
 CONTENT_HTML  db "Content-Type: text/html; charset=UTF-8", NULL_CHAR
-CONTENT_PLAIN db "Content-Type: text/plain; charset=UTF-8", NULL_CHAR
 CONTENT_CSS   db "Content-Type: text/css; charset=UTF-8", NULL_CHAR
+CONTENT_JS    db "Content-Type: text/javascript; charset=UTF-8", NULL_CHAR
+CONTENT_PLAIN db "Content-Type: text/plain; charset=UTF-8", NULL_CHAR
 
 ; connection
 CONNECTION_CLOSE db "Connection: close", NULL_CHAR
