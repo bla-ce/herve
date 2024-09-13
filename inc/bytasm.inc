@@ -1,7 +1,8 @@
+; TODO: Clean refactor
 ; TODO: fix url too big
+; TODO: content-length
 ; TODO: errors (from building and running)
 ; TODO: save query parameters
-; TODO: Clean refactor
 ; TODO: add increment value for strpos
 ; TODO: read basic auth
 ; TODO: check arguments from function

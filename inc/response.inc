@@ -182,7 +182,7 @@ serve_string:
   call  get_length
   mov   qword [rsp+0x8], rax
   
-  lea   rdi, [request_client]
+  mov   rdi, qword [request_client]
   lea   rsi, [STR_OK]
   lea   rdx, [CONTENT_PLAIN]
   lea   rax, [rsp]
@@ -190,6 +190,68 @@ serve_string:
   call  send_response
 
   add   rsp, 0x10
+  ret
+
+serve_html:
+  ; rdi -> file path
+  sub   rsp, 0x18 ; path, length and fd
+
+  mov   [rsp], rdi
+
+  ; open file
+  mov   rax, SYS_OPEN
+  mov   rsi, O_RDONLY
+  mov   rdx, 0
+  syscall
+
+  cmp   rax, 0
+  jl    error_open_file
+
+  mov   qword [rsp+0x10], rax
+
+  ; read file
+  mov   rax, SYS_READ
+  mov   rdi, qword [rsp+0x10]
+  lea   rsi, [file]
+  mov   rdx, FILE_MAX_LEN
+  syscall
+
+  cmp   rax, 0
+  jl    error_read_file
+
+  mov   qword [rsp+0x8], rax
+
+  ; send response
+  mov   rdi, qword [request_client]
+  lea   rsi, [STR_OK]
+  lea   rdx, [CONTENT_HTML]
+  lea   rcx, [file]
+  call  send_response
+
+  ; close file
+  mov   rax, SYS_CLOSE
+  mov   rdi, qword [rsp+0x10]
+  syscall
+
+  mov   rax, 0
+
+  ; clean stack
+  add   rsp, 0x18
+  ret
+
+error_open_file:
+  ; load 404
+  jmp   return_error_html
+
+error_read_file:
+  ; load 500
+
+return_error_html:
+  ; clean stack
+  add   rsp, 0x18
+
+  ; return
+  mov   rax, -1
   ret
 
 %endif

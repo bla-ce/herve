@@ -487,7 +487,12 @@ run_server_loop:
   call  log_request
 
 timer_not_defined:
-  ; clear route and method
+  ; clear response, route and method
+  mov   rcx, RESPONSE_MAX_LEN
+  xor   rax, rax
+  lea   rdi, [response]
+  rep   stosb
+
   mov   rcx, URL_MAX_LEN
   xor   rax, rax
   lea   rdi, [request_url]
@@ -541,12 +546,6 @@ timer_not_defined:
   call  [rel callback]
 
 skip_callback:
-  mov   rdi, qword [request_client]
-  lea   rsi, [STR_OK]
-  mov   rdx, 0
-  mov   rcx, 0
-  call  send_response
-
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
