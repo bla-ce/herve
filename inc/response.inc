@@ -241,10 +241,18 @@ serve_html:
 
 error_open_file:
   ; load 404
+  mov   qword [response_status_code], NOT_FOUND
+  mov   rdi, qword [request_client]
+  lea   rsi, [STR_NOT_FOUND]
+  call  send_error_response
   jmp   return_error_html
 
 error_read_file:
   ; load 500
+  mov   qword [response_status_code], INTERNAL_SERVER_ERROR
+  mov   rdi, qword [request_client]
+  lea   rsi, [STR_INTERNAL_SERVER_ERROR]
+  call  send_error_response
 
 return_error_html:
   ; clean stack
