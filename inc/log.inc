@@ -6,7 +6,7 @@ log_server_init:
 
   lea   rdi, [log_server_init_msg]
   mov   rsi, log_server_init_len
-  call  debug 
+  call	print 
 
   mov   rdi, qword [port]
   call  to_string
@@ -24,11 +24,11 @@ log_server_init:
   sub   rdi, rax
   mov   rsi, rax  ; length of port
   inc   rsi       ; include new line char
-  call  debug
+  call	print
 
   lea   rdi, [log_routes_available_msg]
   mov   rsi, log_routes_available_len
-  call  debug
+  call	print
 
   ; log routes - [DEBUG] METHOD ROUTE
 
@@ -38,13 +38,13 @@ log_server_init:
   ; log new line
   lea   rdi, [log_new_line]
   mov   rsi, 1
-  call  debug
+  call	print
 
 log_route_loop:
   ; log debug 
   lea   rdi, [log_debug]
   mov   rsi, log_debug_len
-  call  debug
+  call	print
 
   ; load routes_list
   lea   rsi, [routes_list]
@@ -90,17 +90,17 @@ log_route_loop:
   ; log method
   lea   rdi, [log_method]
   mov   rsi, METHOD_MAX_LEN
-  call  debug
+  call	print
 
   ; log url
   lea   rdi, [log_url]
   mov   rsi, URL_MAX_LEN
-  call  debug
+  call	print
   
   ; log new line
   lea   rdi, [log_new_line]
   mov   rsi, 1
-  call  debug
+  call	print
 
   inc   qword [rsp]
   
@@ -114,7 +114,7 @@ log_route_return:
   ; log new line
   lea   rdi, [log_new_line]
   mov   rsi, 1
-  call  debug
+  call	print
 
   mov   rax, 0
   add   rsp, 0x8
@@ -251,7 +251,7 @@ jump_log_route:
 
   lea   rdi, [log_start]
   mov   rsi, log_len
-  call  debug 
+  call	print 
 
   mov   rax, 0
   ret

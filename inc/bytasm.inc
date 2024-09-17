@@ -1,4 +1,3 @@
-; TODO: content-length
 ; TODO: Clean refactor
 ; TODO: fix url too big
 ; TODO: errors (from building and running)

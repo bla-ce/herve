@@ -36,9 +36,10 @@ js:
 
 post:
   ; rdi -> request
-  lea   rdi, [post_path]
-  lea   rsi, [CONTENT_HTML]
-  call  serve_static_file
+  call  get_body
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  println
 
   ret
 
@@ -73,7 +74,7 @@ _start:
   mov   rdx, js 
   call  add_route 
 
-  lea   rdi, [GET]
+  lea   rdi, [POST]
   lea   rsi, [post_route]
   mov   rdx, post
   call  add_route 
@@ -93,12 +94,11 @@ _start:
 error:
   mov   rdi, [errno]
   mov   rsi, 0
-  call  debug
+  call  perror
 
   mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
   syscall
-
 
 section .data
   sockfd  dq 0
@@ -115,5 +115,4 @@ section .data
   index_path  db "examples/views/index.html", NULL_CHAR
   css_path    db "examples/views/style.css", NULL_CHAR
   js_path     db "examples/views/index.js", NULL_CHAR
-  post_path   db "examples/views/post.html", NULL_CHAR
 

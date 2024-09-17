@@ -137,7 +137,7 @@ parse_request:
 
   mov   [rsp], rsi
 
-  lea   rdi, [request_body]
+  lea   rdi, [rsi]
   mov   rsi, NULL_CHAR
 
   call  find_next_char
@@ -216,6 +216,11 @@ verify_request_not_found:
   jmp   verify_request_return
 
 verify_request_return:
+  ret
+
+get_body:
+  ; rdi -> request
+  lea   rax, [request_body]
   ret
 
 %endif

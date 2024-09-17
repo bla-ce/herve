@@ -40,6 +40,7 @@ SYS_READ          equ 0
 SYS_WRITE         equ 1
 SYS_OPEN          equ 2
 SYS_CLOSE         equ 3
+SYS_SIGACTION     equ 13
 SYS_SOCKET        equ 41
 SYS_ACCEPT        equ 43
 SYS_SENDTO        equ 44

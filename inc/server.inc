@@ -597,6 +597,5 @@ trim_query_return:
 
   add   rsp, 0x8
   ret
-
 %endif
 

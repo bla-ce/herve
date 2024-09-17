@@ -166,7 +166,7 @@ get_length_return:
   mov   rax, rcx
   ret
 
-debug:
+print:
   ; rdi -> string
   ; rsi -> string_len (optional, if set to 0, need to compute length)
   mov   rax, rsi
@@ -185,6 +185,27 @@ known_length:
   mov   rdi, STDOUT
   syscall
 
+  ret
+
+println:
+  push  rbp
+  mov   rbp, rsp
+
+  call  print
+
+  push  LINE_FEED
+
+  mov   rax, SYS_WRITE
+  lea   rdi, STDOUT
+  lea   rsi, [rsp]
+  mov   rdx, 1
+  syscall
+
+  ; clean stack
+  pop   rax
+  xor   rax, rax
+
+  leave  
   ret
 
 %endif
