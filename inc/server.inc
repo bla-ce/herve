@@ -246,7 +246,6 @@ route_found:
   je    skip_exec
 
   mov   [rel callback], rax
-  b2:
 
 skip_exec:
   mov   rax, qword [rsp]
@@ -546,22 +545,13 @@ timer_not_defined:
   call  [rel callback]
 
 skip_callback:
+error_request:
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
  
   ; jump to next request
   jmp   run_server_loop
-
-error_request:
-  ; close connection
-  ; TODO: might not want to do it
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [request_client] 
-  syscall
- 
-  ; jump to next request
-  jmp   timer_not_defined
 
   ; shutdown server
   mov   rax, SYS_CLOSE

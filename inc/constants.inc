@@ -95,6 +95,7 @@ BAD_REQUEST           equ 400
 UNAUTHORIZED          equ 401
 NOT_FOUND             equ 404
 METHOD_NOT_ALLOWED    equ 405
+URI_TOO_LONG          equ 414
 INTERNAL_SERVER_ERROR equ 500
 
 ; status code string
@@ -103,7 +104,11 @@ STR_BAD_REQUEST           db "400 Bad Request", NULL_CHAR
 STR_UNAUTHORIZED          db "401 Unauthorized", NULL_CHAR
 STR_NOT_FOUND             db "404 Not Found", NULL_CHAR
 STR_METHOD_NOT_ALLOWED    db "405 Method Not Allowed", NULL_CHAR
+STR_URI_TOO_LONG          db "414 URI Too Long", NULL_CHAR
 STR_INTERNAL_SERVER_ERROR db "500 Internal Server Error", NULL_CHAR
+
+; protocol
+HTTP_1_1 db "HTTP/1.1", NULL_CHAR
 
 ; content type
 CONTENT_HTML  db "Content-Type: text/html; charset=UTF-8", NULL_CHAR

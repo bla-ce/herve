@@ -14,12 +14,12 @@ send_response:
   mov   [rsp+0x18], rdx
 
   ; load protocol
-  lea   rdi, [request_proto]
+  lea   rdi, [HTTP_1_1]
   call  get_length
 
   mov   rcx, rax
   lea   rdi, [response]
-  lea   rsi, [request_proto]
+  lea   rsi, [HTTP_1_1]
   rep   movsb
 
   ; load space
@@ -108,7 +108,6 @@ send_response:
   mov   rdi, [rax]
   call  get_length
   
-  b1:
   mov   rdi, rax
   call  to_string
 
@@ -163,12 +162,12 @@ send_error_response:
   mov   [rsp+0x8], rsi
 
   ; load protocol
-  lea   rdi, [request_proto]
+  lea   rdi, [HTTP_1_1]
   call  get_length
 
   mov   rcx, rax
   lea   rdi, [response]
-  lea   rsi, [request_proto]
+  lea   rsi, [HTTP_1_1]
   rep   movsb
 
   ; load space
@@ -218,6 +217,7 @@ send_error_response:
   lea   rdi, [response]
   call  get_length
   mov   rdx, rax
+  b1:
 
   ; send response
   mov   rax, SYS_WRITE

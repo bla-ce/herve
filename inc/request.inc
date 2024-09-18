@@ -38,6 +38,9 @@ parse_request:
   cmp   rax, 0x0
   jl    parse_request_error
 
+  cmp   rax, URL_MAX_LEN
+  jg    request_uri_too_long
+
   lea   rdi, [request_url]
   mov   rcx, URL_MAX_LEN
   cmp   rax, rcx
@@ -159,6 +162,15 @@ parse_request_error:
   mov   qword [response_status_code], BAD_REQUEST
   mov   rdi, qword [request_client]
   lea   rsi, [STR_BAD_REQUEST]
+  call  send_error_response
+
+  mov   rax, -1
+  jmp   parse_request_return
+
+request_uri_too_long:
+  mov   qword [response_status_code], URI_TOO_LONG
+  mov   rdi, qword [request_client]
+  lea   rsi, [STR_URI_TOO_LONG]
   call  send_error_response
 
   mov   rax, -1
