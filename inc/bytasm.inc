@@ -1,5 +1,6 @@
 ; TODO: Clean refactor
-; TODO: fix url too big
+; TODO: public/private functions if possible
+; TODO: buffer overflows
 ; TODO: errors (from building and running)
 ; TODO: save query parameters
 ; TODO: add increment value for strpos

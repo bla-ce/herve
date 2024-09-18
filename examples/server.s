@@ -41,6 +41,11 @@ post:
   mov   rsi, 0
   call  println
 
+  lea   rdi, [STR_OK]
+  mov   rsi, 0
+  mov   rdx, 0
+  call  send_response
+
   ret
 
 _start:

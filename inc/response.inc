@@ -2,16 +2,16 @@
 %define RESPONSE_INC
 
 send_response:
-  ; rdi -> sockfd
-  ; rsi -> status code str
-  ; rdx -> content type
-  ; rcx -> body
+  ; rdi -> status code str
+  ; rsi -> content type
+  ; rdx -> body
   sub   rsp, 0x28
 
-  mov   qword [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
-  mov   [rsp+0x18], rcx
+  mov   rax, qword [request_client]
+  mov   qword [rsp], rax
+  mov   [rsp+0x8], rdi
+  mov   [rsp+0x10], rsi
+  mov   [rsp+0x18], rdx
 
   ; load protocol
   lea   rdi, [request_proto]
@@ -235,11 +235,10 @@ serve_string:
 
   mov   [rsp], rdi
   
-  mov   rdi, qword [request_client]
-  lea   rsi, [STR_OK]
-  lea   rdx, [CONTENT_PLAIN]
+  lea   rdi, [STR_OK]
+  lea   rsi, [CONTENT_PLAIN]
   lea   rax, [rsp]
-  mov   rcx, [rax]
+  mov   rdx, [rax]
   call  send_response
 
   add   rsp, 0x8
@@ -277,11 +276,10 @@ serve_static_file:
   mov   qword [rsp+0x8], rax
 
   ; send response
-  mov   rdi, qword [request_client]
-  lea   rsi, [STR_OK]
+  lea   rdi, [STR_OK]
   lea   rax, [rsp+0x18]
-  mov   rdx, [rax]
-  lea   rcx, [file]
+  mov   rsi, [rax]
+  lea   rdx, [file]
   call  send_response
 
   ; close file
