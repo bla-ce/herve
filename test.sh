@@ -8,7 +8,7 @@ NC='\033[0m' # No color
 
 # Define the tests - format: url method status_code (response)
 tests=(
-  "localhost:1337/api GET 404"
+  "localhost:1337/api GET 200"
   "localhost:1337/health GET 200"
   "localhost:1337/ GET 404"
   "localhost:1337/index GET 200"
@@ -19,8 +19,8 @@ tests=(
   "localhost:1337/ DELETE 405"
   "localhost:1337/ GE 405"
   "localhost:1337/ GETT 405"
-  "localhost:1337/api/v1 GET 404"
-  "localhost:1337/api/v1/ GET 404"
+  "localhost:1337/api/v1 GET 200"
+  "localhost:1337/api/v1/ GET 200"
   "localhost:1337/i/v1/ GET 404"
   "localhost:1337/api/v1/ PUT 404"
   "localhost:1337/api/v1/ CON 405"

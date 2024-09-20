@@ -48,13 +48,27 @@ post:
 
   ret
 
+send_200:
+  lea   rdi, [STR_OK]
+  mov   rsi, 0
+  mov   rdx, 0
+  call  send_response
+
+  ret
+
 _start:
+
   mov   rdi, 1337
   call  server_init
   cmp   rax, 0
   jl    error
 
   mov   qword [sockfd], rax
+
+  mov   rdi, 1
+  call  set_max_connections
+  cmp   rax, 0
+  jl    error
 
   lea   rdi, [CONNECT]
   call  disallow_method
@@ -85,6 +99,16 @@ _start:
   call  add_route 
 
   lea   rdi, [GET]
+  lea   rsi, [v1_route]
+  mov   rdx, send_200
+  call  add_route 
+
+  lea   rdi, [GET]
+  lea   rsi, [api_route]
+  mov   rdx, send_200
+  call  add_route 
+
+  lea   rdi, [GET]
   lea   rsi, [health_route]
   mov   rdx, health
   call  add_route 
@@ -107,13 +131,16 @@ error:
 
 section .data
   sockfd  dq 0
-  
+
   root_route    db "/", NULL_CHAR
   index_route   db "/index", NULL_CHAR
   health_route  db "/health", NULL_CHAR
   post_route    db "/post", NULL_CHAR
   style_route   db "/style.css", NULL_CHAR
   js_route      db "/index.js", NULL_CHAR
+
+  api_route db "/api", NULL_CHAR
+  v1_route  db "/api/v1", NULL_CHAR
 
   ok  db "ok", NULL_CHAR
 

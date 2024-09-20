@@ -121,6 +121,7 @@ strpos_loop:
   rep   cmpsb 
   je    strpos_found
 
+continue:
   add   qword [rsp], rbx
   sub   qword [rsp], rcx
 

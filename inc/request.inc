@@ -7,45 +7,44 @@ parse_request:
   lea   rsi, [request]
   mov   [rsp], rsi
 
-  mov   rcx, qword [request_len]
-
   ; extract method
   lea   rdi, [rsi]
   mov   rsi, SPACE
-  call  find_next_char
+  call  find_next_char      ; find next space to get the method length
   cmp   rax, 0x0
-  jl    parse_request_error
+  jl    parse_request_error ; return bad request -> request struct will be empty
 
-  mov   rcx, METHOD_MAX_LEN
-  cmp   rax, rcx
-  cmovg rax, rcx
+  ; compare the length of the method with METHOD_MAX_LEN
+  cmp   rax, METHOD_MAX_LEN
+  jg    parse_request_error ; return method not allowed
 
+  ; load method
   lea   rdi, [request_method]
   mov   rcx, rax
   lea   rax, [rsp]
   mov   rsi, [rax] 
   rep   movsb
 
-  ; mov rsi to go to the url
+  ; method url HTTP/n.n 
+  ;       | inc rsi to go to first char of the url
   inc   rsi
 
   ; extract url
+  ; save rsi pointer to the stack
   mov   [rsp], rsi
 
   lea   rdi, [rsi]
   mov   rsi, SPACE
-  call  find_next_char
+  call  find_next_char ; find the next space to get url length
   cmp   rax, 0x0
   jl    parse_request_error
 
+  ; verify url length
   cmp   rax, URL_MAX_LEN
-  jg    request_uri_too_long
+  jg    parse_request_error
 
+  ; load url
   lea   rdi, [request_url]
-  mov   rcx, URL_MAX_LEN
-  cmp   rax, rcx
-  cmovg rax, rcx
-
   mov   rcx, rax
   lea   rax, [rsp]
   mov   rsi, [rax]
@@ -55,37 +54,43 @@ parse_request:
   inc   rsi
 
   ; extract proto
+  ; save rsi pointer to the stack
   mov   [rsp], rsi
 
   lea   rdi, [rsi]
   mov   rsi, CARRIAGE_RETURN
-  call  find_next_char
+  call  find_next_char  ; find next \r to get the entire protocol
   cmp   rax, 0x0
   jl    parse_request_error
 
+  ; load protocol
   mov   rcx, rax
   lea   rdi, [request_proto]
   lea   rax, [rsp]
   mov   rsi, [rax]
   rep   movsb
 
+  ; save rsi pointer to the stack
   mov   [rsp], rsi
 
-  ; parse proto
+  ; parse proto -> format: HTTP/0.0
   lea   rdi, [request_proto]
   mov   rsi, SLASH
-  call  find_next_char
+  call  find_next_char ; go to '/' after 'HTTP'
   cmp   rax, 0x0
   jl    parse_request_error
 
   mov   rcx, rax
 
+  ; rsp points to the end of the protocol
   lea   rax, [rsp]
   mov   rsi, [rax]
 
+  ; go back to slash
+  sub   rsi, rcx
+
   ; mov to proto major
   inc   rsi
-  sub   rsi, rcx
 
   xor   rax, rax
   lodsb
@@ -100,7 +105,7 @@ parse_request:
 
   mov   dword [request_proto_major], eax
 
-  ; mov to proto minor
+  ; rsi points to the dot, mov to proto minor
   inc   rsi
 
   xor   rax, rax
@@ -122,12 +127,20 @@ parse_request:
   ; get headers
   mov   [rsp], rsi
 
+  ; find the end of the headers (\r\n\r\n)
   lea   rdi, [rsi]
   mov   rsi, qword [request_len]
   lea   rdx, [post_headers]
   mov   rcx, post_headers_len
   call  strpos
 
+  cmp   rax, 0
+  jl    parse_request_error
+
+  ; verify headers overflow
+  cmp   rax, HEADERS_MAX_LEN
+  jg    parse_request_error
+   
   mov   rcx, rax
   lea   rax, [rsp]
   mov   rsi, [rax]
@@ -140,18 +153,20 @@ parse_request:
 
   mov   [rsp], rsi
 
+  ; find the end of the request
   lea   rdi, [rsi]
   mov   rsi, NULL_CHAR
-
   call  find_next_char
   cmp   rax, 0x0
   jl    parse_request_error
+
+  cmp   rax, BODY_MAX_LEN
+  jg    parse_request_error
 
   lea   rdi, [request_body]
   mov   rcx, rax
   lea   rax, [rsp]
   mov   rsi, [rax]
-
   rep   movsb
 
   mov   rax, 0
@@ -164,16 +179,10 @@ parse_request_error:
   lea   rsi, [STR_BAD_REQUEST]
   call  send_error_response
 
+  call  log_malformed_request
+
   mov   rax, -1
   jmp   parse_request_return
-
-request_uri_too_long:
-  mov   qword [response_status_code], URI_TOO_LONG
-  mov   rdi, qword [request_client]
-  lea   rsi, [STR_URI_TOO_LONG]
-  call  send_error_response
-
-  mov   rax, -1
 
 parse_request_return:
   add   rsp, 0x8
@@ -190,12 +199,6 @@ verify_request:
   cmp   rax, 0
   jl    verify_request_method_not_allowed
 
-  lea   rdi, [request_url]
-  call  get_length
-  mov   r10, rax
-
-  lea   rdi, [request_url]
-  mov   rsi, r10
   call  check_route
   cmp   rax, 0
   jl    verify_request_not_found

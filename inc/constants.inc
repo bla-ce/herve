@@ -6,33 +6,34 @@ STDOUT          equ 1
 LONG_SIZE       equ 10
 
 ; server constants
-PORT_MIN  equ 1
-PORT_MAX  equ 65535
+PORT_MIN                equ 0x1
+DEFAULT_MAX_CONNECTIONS equ 0x1
+PORT_MAX                equ 0xffff
 
 ; request struct constants
-METHOD_MAX_LEN      equ 8
-URL_MAX_LEN         equ 32    ; change to 128 when prod
-PROTO_MAX_LEN       equ 9
-BODY_MAX_LEN        equ 4096
-HOST_MAX_LEN        equ 256
-HEADERS_MAX_LEN     equ 8192
+METHOD_MAX_LEN  equ 0x8
+PROTO_MAX_LEN   equ 0x9
+HOST_MAX_LEN    equ 0xFF
+URL_MAX_LEN     equ 32
+;URL_MAX_LEN     equ 0x800 
+HEADERS_MAX_LEN equ 0x2000
+BODY_MAX_LEN    equ 0x2000
 
 ; response struct constants
-STATUS_MAX_LEN      equ 64
-RESPONSE_MAX_LEN    equ 8192
+STATUS_MAX_LEN      equ 0x40
+RESPONSE_MAX_LEN    equ 0x2000
 
 ; socket constants
 INADDR_ANY          equ 0
 SOCK_STREAM         equ 1
 SOL_SOCKET          equ 1
-BACKLOG             equ 1
 SO_REUSEADDR        equ 2
-SO_REUSEPORT        equ 15
 AF_INET             equ 2
-REQUEST_MAX_LEN     equ 8*1024
-MSG_TRUNC           equ 32
-MAX_ROUTES_COUNT    equ 10
 STATUS_CODE_LEN     equ 3
+MAX_ROUTES_COUNT    equ 10
+SO_REUSEPORT        equ 15
+MSG_TRUNC           equ 32
+REQUEST_MAX_LEN     equ 0x2000
 STRUCT_ROUTE_LEN    equ URL_MAX_LEN + METHOD_MAX_LEN
 
 ; syscall values
@@ -72,7 +73,7 @@ MICRO_SECOND  equ 0xBC
 
 ; file constants
 O_RDONLY      equ 0
-FILE_MAX_LEN  equ 8*1024
+FILE_MAX_LEN  equ 0x2000
 
 ; exit code
 SUCCESS_CODE equ 0
@@ -97,6 +98,7 @@ NOT_FOUND             equ 404
 METHOD_NOT_ALLOWED    equ 405
 URI_TOO_LONG          equ 414
 INTERNAL_SERVER_ERROR equ 500
+SERVICE_UNAVAILABLE   equ 503
 
 ; status code string
 STR_OK                    db "200 OK", NULL_CHAR
@@ -106,6 +108,7 @@ STR_NOT_FOUND             db "404 Not Found", NULL_CHAR
 STR_METHOD_NOT_ALLOWED    db "405 Method Not Allowed", NULL_CHAR
 STR_URI_TOO_LONG          db "414 URI Too Long", NULL_CHAR
 STR_INTERNAL_SERVER_ERROR db "500 Internal Server Error", NULL_CHAR
+STR_SERVICE_UNAVAILABLE    db "503 Service Unavailable", NULL_CHAR
 
 ; protocol
 HTTP_1_1 db "HTTP/1.1", NULL_CHAR
@@ -123,7 +126,7 @@ CONNECTION_CLOSE db "Connection: close", NULL_CHAR
 CONTENT_LENGTH db "Content-Length: ", NULL_CHAR
 
 ; logs
-LOG_PORT_LEN equ 5 ; port + new line char
+LOG_PORT_LEN    equ 5 ; port + new line char
 
 ; error
 ERR_MAX_LEN equ 128

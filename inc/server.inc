@@ -130,75 +130,93 @@ check_method_return:
   add   rsp, 0x18
   ret
 
-; TODO: CLEAN
 check_route:
-  ; rdi -> route
-  ; rsi -> route length
   sub   rsp, 0x18 
+  
+  lea   rdi, [request_url]
+  call  get_length
 
-  mov   qword [rsp], rsi
-  mov   [rsp+0x8], rdi
+  mov   [rsp], rdi
   mov   qword [rsp+0x10], 0 ; route position inside list
 
-  ; remove query parameters
-  lea   rdi, [request_url]
+  mov   rbx, rax
+
+  ; remove query parameters, return url length
+  mov   rsi, rbx
   call  trim_query_parameters
-
   cmp   rax, 0
-  cmovg rsi, rax
+  cmovg rbx, rax ; if rax > 0: found query param, exclude them
 
-  mov   qword [rsp], rsi
+  mov   qword [rsp+0x8], rbx
   
-  ; check if route ends by slash, if yes trim it
-  lea   rax, [rsp+0x8]
+  ; load url
+  lea   rax, [rsp]
   mov   rsi, [rax]
-  cmp   qword [rsp], 1
+
+  ; check if route is '/', if yes skip trim end slash
+  cmp   qword [rsp+0x8], 1
   je    check_route_jump
-
-  add   rsi, qword [rsp]
-  dec   rsi
-  lodsb
-
-  dec   rsi
-
-  cmp   al, SLASH
-  jne   dont_trim_slash
   
+  ; go to the end of the url
+  add   rsi, qword [rsp+0x8] ; rsi points to the null_char
+
+  ;  check if last char is slash
+  dec   rsi
+  cmp   byte [rsi], SLASH
+  jne   check_route_jump
+  
+  ; if yes, change to null char and dec route length
   mov   byte [rsi], NULL_CHAR
-  dec   qword [rsp]
-  dec   rsi
+  dec   qword [rsp+0x8]
   
-dont_trim_slash:
-  sub   rsi, qword [rsp]
-  inc   rsi
-
 check_route_jump:
+  ; check if route is in routes_list
+  xor   rbx, rbx
   lea   rdi, [routes_list]
-  mov   rsi, routes_list_len
-  lea   rax, [rsp+0x8]
-  mov   rdx, [rax]
-  mov   rcx, qword [rsp]
-  call  strpos
-  cmp   rax, 0
-  jge   route_found
+  lea   rax, [rsp]
+  mov   rsi, [rax]
+
+next_route:
+  mov   rcx, qword [rsp+0x8]
+  cld
+  rep   cmpsb
+  je    route_found
+
+not_entire:
+  add   rdi, STRUCT_ROUTE_LEN
+  sub   rdi, qword [rsp+0x8]
+  add   rdi, rcx
+  add   rsi, rcx
+  sub   rsi, qword [rsp+0x8]
+
+  inc   rbx
+  cmp   rbx, qword [routes_count]
+  jg    route_not_found
+
+  jmp   next_route
   
 route_not_found:
   mov   rax, -1
   jmp   check_route_return
 
 route_found:
-  mov   qword [rsp+0x10], rax
-
-  lea   rdi, [routes_list]
-  add   rdi, qword [rsp+0x10]
-  add   rdi, qword [rsp]
-
   ; make sure we checked the entire method
   mov   al, byte [rdi]
   cmp   al, NULL_CHAR
-  jne   route_not_found
+  jne   not_entire
 
-  mov   rax, qword [rsp]
+  ; store position of the route
+  xor   rdx, rdx
+  mov   rax, STRUCT_ROUTE_LEN
+  mul   rbx
+  mov   qword [rsp+0x10], rax
+
+  ; point to the end of the route inside the array
+  lea   rdi, [routes_list]
+  add   rdi, qword [rsp+0x8]
+  add   rdi, qword [rsp+0x10]
+
+  mov   rax, qword [rsp+0x8]
   sub   rdi, rax 
   dec   rdi
   mov   al, byte [rdi]
@@ -248,7 +266,7 @@ route_found:
   mov   [rel callback], rax
 
 skip_exec:
-  mov   rax, qword [rsp]
+  mov   rax, qword [rsp+0x8]
 
 check_route_return:
   add   rsp, 0x18
@@ -424,7 +442,7 @@ server_init:
   ; listen socket
   mov   rax, SYS_LISTEN
   mov   rdi, qword [rsp]
-  mov   rsi, BACKLOG
+  xor   rsi, rsi
   syscall
 
   lea   rdi, [ERR_LISTEN_SOCKET]
@@ -511,6 +529,11 @@ timer_not_defined:
 
   mov   qword [request_client], rax
 
+  inc   qword [active_connections]
+  mov   rax, qword [active_connections]
+  cmp   rax, qword [max_connections]
+  jg    server_unavailable
+
   ; set start timer
   mov   rax, SYS_CLOCK_GETTIME
   mov   rdi, CLOCK_REALTIME
@@ -545,13 +568,23 @@ timer_not_defined:
   call  [rel callback]
 
 skip_callback:
+  mov   rax, SYS_CLOSE
+  mov   rdi, qword [request_client] 
+  syscall
+  
+  dec   qword [active_connections]
+
+  jmp   run_server_loop
+
 error_request:
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
- 
-  ; jump to next request
-  jmp   run_server_loop
+  
+  dec   qword [active_connections]
+
+  ; jump to next request, skipping logs
+  jmp   timer_not_defined
 
   ; shutdown server
   mov   rax, SYS_CLOSE
@@ -560,6 +593,14 @@ error_request:
 
   add   rsp, 0x8
   ret
+
+server_unavailable:
+  mov   qword [response_status_code], SERVICE_UNAVAILABLE
+  mov   rdi, qword [request_client]
+  lea   rsi, STR_SERVICE_UNAVAILABLE
+  call  send_error_response
+
+  jmp   error_request
 
 trim_query_parameters:
   ; rdi -> request_url
@@ -587,5 +628,12 @@ trim_query_return:
 
   add   rsp, 0x8
   ret
+
+set_max_connections:
+  ; rdi -> max connections
+  mov   qword [max_connections], rdi
+
+  ret
+
 %endif
 

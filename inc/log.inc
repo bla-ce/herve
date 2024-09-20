@@ -256,5 +256,13 @@ jump_log_route:
   mov   rax, 0
   ret
 
+log_malformed_request:
+  lea   rdi, [ERR_MALFORMED_REQUEST]
+  mov   rsi, 0
+  call  println
+
+  mov   rax, 0
+  ret
+
 %endif
 

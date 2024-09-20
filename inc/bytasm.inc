@@ -1,4 +1,6 @@
-; TODO: Clean refactor
+; TODO: Clean refactor - prio
+; TODO: 503 response does not log
+; TODO: redirects
 ; TODO: public/private functions if possible
 ; TODO: buffer overflows
 ; TODO: errors (from building and running)
@@ -98,6 +100,9 @@ section .data
   client_sa_zero     dq 0
   client_addrlen     dq server_addrlen
 
+  active_connections  dq 0
+  max_connections     dq DEFAULT_MAX_CONNECTIONS
+
   methods_list  db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
   methods_list_len equ $ - methods_list
 
@@ -138,7 +143,9 @@ section .data
   ERR_LISTEN_SOCKET db "[ERROR] failed to listen to socket", LINE_FEED, NULL_CHAR
 
   ERR_METHOD_NOT_EXIST  db "[ERROR] method does not exist", LINE_FEED, NULL_CHAR
-  ERR_METHOD_TOO_LONG   db "[ERROR] method too long", NULL_CHAR
+  ERR_METHOD_TOO_LONG   db "[ERROR] method too long", LINE_FEED, NULL_CHAR
+
+  ERR_MALFORMED_REQUEST db " [ERROR] malformed request", NULL_CHAR
 
 %endif
 

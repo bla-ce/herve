@@ -217,7 +217,6 @@ send_error_response:
   lea   rdi, [response]
   call  get_length
   mov   rdx, rax
-  b1:
 
   ; send response
   mov   rax, SYS_WRITE
