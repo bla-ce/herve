@@ -189,12 +189,6 @@ parse_request_return:
   ret
 
 verify_request:
-  lea   rdi, [request_method]
-  call  get_length
-  mov   r10, rax
-
-  lea   rdi, [request_method]
-  mov   rsi, r10
   call  check_method
   cmp   rax, 0
   jl    verify_request_method_not_allowed

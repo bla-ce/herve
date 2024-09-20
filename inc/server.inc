@@ -66,13 +66,14 @@ disallow_method_return:
   ret
 
 check_method:
-  ; rdi -> method
-  ; rsi -> method length
   sub   rsp, 0x18
+
+  lea   rdi, [request_method]
+  call  get_length
 
   mov   qword [rsp], 0 ; string index
   mov   [rsp+0x8], rdi 
-  mov   qword [rsp+0x10], rsi
+  mov   qword [rsp+0x10], rax
 
   ; look for the method inside methods list
   lea   rdi, [methods_list]
@@ -211,29 +212,12 @@ route_found:
   mul   rbx
   mov   qword [rsp+0x10], rax
 
-  ; point to the end of the route inside the array
-  lea   rdi, [routes_list]
-  add   rdi, qword [rsp+0x8]
-  add   rdi, qword [rsp+0x10]
-
-  mov   rax, qword [rsp+0x8]
-  sub   rdi, rax 
-  dec   rdi
-  mov   al, byte [rdi]
-  cmp   al, NULL_CHAR
-  jne   route_not_found
-
-  inc   rdi
-
-  push  rdi
-
   lea   rdi, [request_method]
   call  get_length
 
-  pop   rdi
-
   ; check the method is correct
-  ; rdi points to the beginning of the route
+  lea   rdi, [routes_list]
+  add   rdi, qword [rsp+0x10]
   add   rdi, URL_MAX_LEN
   lea   rsi, [request_method] 
   mov   rcx, rax
@@ -241,17 +225,16 @@ route_found:
 
   jne   route_not_found
 
-  add   rdi, METHOD_MAX_LEN
-  sub   rdi, rax
-
   ; load callback
   lea   rdi, [callback_list]
   mov   rax, qword [rsp+0x10]
 
+  ; get index of the route
   xor   rdx, rdx
   mov   rbx, STRUCT_ROUTE_LEN
   div   rbx
 
+  ; go to callback inside callback_list
   xor   rdx, rdx
   mov   rbx, 8
   mul   rbx
@@ -260,6 +243,7 @@ route_found:
 
   mov   rax, [rdi]
 
+  ; check route has a callback
   cmp   rax, 0
   je    skip_exec
 
