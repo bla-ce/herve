@@ -447,6 +447,9 @@ get_param:
   call  strpos
   mov   rbx, rax
 
+  cmp   rbx, 0
+  jl    get_param_error
+
   ; go to param
   lea   rdi, [query_params]
   add   rdi, rbx
