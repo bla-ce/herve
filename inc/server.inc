@@ -297,7 +297,7 @@ run_server_loop:
   call  log_request
 
 timer_not_defined:
-  ; clear response, route and method
+  ; clear response, route and method and query
   mov   rcx, RESPONSE_MAX_LEN
   xor   rax, rax
   lea   rdi, [response]
@@ -311,6 +311,11 @@ timer_not_defined:
   mov   rcx, METHOD_MAX_LEN
   xor   rax, rax
   lea   rdi, [request_method]
+  rep   stosb
+
+  mov   rcx, QUERY_MAX_LEN
+  xor   rax, rax
+  lea   rdi, [query_params]
   rep   stosb
 
   ; accept connection
@@ -399,27 +404,34 @@ trim_query_parameters:
   ; rdi -> request_url
   ; rsi -> route_length
   ; return value: rax -> url length
-  sub   rsp, 0x8 ; url length
+  sub   rsp, 0x10 ; url length and query start length
 
   mov   qword [rsp], rsi
 
   mov   rsi, QUESTION_MARK
   call  find_next_char
   cmp   rax, 0
-  jle   trim_query_return
+  jle   no_query
 
-  ; if found query, add null char
-  mov   qword [rsp], rax
+  mov   qword [rsp+0x8], rax
 
-  lea   rdi, [request_url]
   add   rdi, rax
   mov   al, NULL_CHAR
   stosb
 
-trim_query_return:
+  lea   rsi, [rdi]
+  lea   rdi, [query_params]
+  mov   rcx, qword [rsp]
+  sub   rcx, qword [rsp+0x8]
+  rep   movsb
+
+  mov   rax, qword [rsp+0x8]
+  mov   qword [rsp], rax
+
+no_query:
   mov   rax, qword [rsp]
 
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 set_max_connections:

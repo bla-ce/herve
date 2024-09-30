@@ -1,17 +1,10 @@
-; TODO: Clean refactor - prio
-; TODO: 503 response does not log
+; TODO: get param
 ; TODO: redirects
 ; TODO: public/private functions if possible
-; TODO: buffer overflows
-; TODO: errors (from building and running)
-; TODO: save query parameters
-; TODO: add increment value for strpos
 ; TODO: read basic auth
-; TODO: check arguments from function
 ; TODO: add date and time to log
 ; TODO: floating point for duration
 ; TODO: log in sec
-; TODO: atoi
 ; TODO: add https
 ; TODO: doc and comments
 
@@ -82,6 +75,9 @@ section .bss
 
   callback_list resq MAX_ROUTES_COUNT
   callback      resq 1
+
+  query_params  resb QUERY_MAX_LEN
+  query         resb QUERY_MAX_VALUE_LEN
 
   errno resb ERR_MAX_LEN
 

@@ -11,13 +11,14 @@ DEFAULT_MAX_CONNECTIONS equ 0x1
 PORT_MAX                equ 0xffff
 
 ; request struct constants
-METHOD_MAX_LEN  equ 0x8
-PROTO_MAX_LEN   equ 0x9
-HOST_MAX_LEN    equ 0xFF
-URL_MAX_LEN     equ 32
-;URL_MAX_LEN     equ 0x800 
-HEADERS_MAX_LEN equ 0x2000
-BODY_MAX_LEN    equ 0x2000
+METHOD_MAX_LEN        equ 0x8
+PROTO_MAX_LEN         equ 0x9
+HOST_MAX_LEN          equ 0xFF
+QUERY_MAX_LEN         equ 0x20
+QUERY_MAX_VALUE_LEN   equ 0x10
+URL_MAX_LEN           equ 0x30
+HEADERS_MAX_LEN       equ 0x2000
+BODY_MAX_LEN          equ 0x2000
 
 ; response struct constants
 STATUS_MAX_LEN      equ 0x40
@@ -59,10 +60,12 @@ LINE_FEED       equ 10
 CARRIAGE_RETURN equ 13
 SPACE           equ 32
 NUMBER_SIGN     equ 35
+AMPERSAND       equ 38
 HYPHEN          equ 45
 DOT             equ 46
 SLASH           equ 47
 ZERO_CHAR       equ 48
+EQUAL_SIGN      equ 61
 QUESTION_MARK   equ 63
 LOW_N_CHAR      equ 110
 LOW_S_CHAR      equ 115

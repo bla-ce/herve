@@ -423,7 +423,84 @@ check_route_return:
   add   rsp, 0x18
   ret
 
+get_param:
+  ; rdi -> param
+  ; return value: rax -> param pointer
 
+  ; init stack
+  sub   rsp, 0x10
+
+  ; get param name length
+  mov   [rsp], rdi
+  call  get_length
+  mov   rbx, rax
+
+  ; load query params
+  lea   rdi, [query_params]
+  call  get_length
+  mov   rsi, rax
+
+  ; get position of the param
+  lea   rax, [rsp]
+  mov   rdx, [rax]
+  mov   rcx, rbx
+  call  strpos
+  mov   rbx, rax
+
+  ; go to param
+  lea   rdi, [query_params]
+  add   rdi, rbx
+
+  ; save param position onto the stack
+  mov   [rsp], rdi
+
+  ; go to the next equal
+  mov   rsi, EQUAL_SIGN
+  call  find_next_char
+  add   rdi, rax
+
+  ; jump after equal
+  inc   rdi
+
+  ; save value position onto the stack
+  mov   [rsp], rdi
+
+  ; find the next '&' or '\0'
+  mov   rsi, AMPERSAND
+  call  find_next_char
+  mov   rbx, rax
+
+  mov   rsi, NULL_CHAR
+  call  find_next_char
+
+  cmp   rbx, 0
+  cmovg rcx, rbx
+
+  cmp   rcx, rax
+  cmovg rcx, rax
+
+  cmp   rcx, 0
+  jl    get_param_error
+
+  ; save param into buffer
+  lea   rsi, [rdi] 
+  xor   rdi, rdi
+  lea   rdi, [query]
+  mov   rcx, rax
+  rep   movsb
+
+  ; clean stack
+  add   rsp, 0x10
+
+  b1:
+  ; return param
+  lea   rax, [query]
+  ret
+
+get_param_error:
+  mov   rax, -1
+  add   rsp, 0x10
+  ret
 
 %endif
 

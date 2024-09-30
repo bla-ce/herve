@@ -209,5 +209,26 @@ println:
   leave  
   ret
 
+str_equal:
+  ; rdi -> str1
+  ; rsi -> str2
+  call  get_length
+  mov   rcx, rax
+  cld
+  rep   cmpsb
+  je    equal
+
+not_equal:
+  sub   rsi, rax
+  sub   rdi, rax
+  mov   rax, 0
+  
+equal:
+  ; preserve rdi and rsi
+  sub   rsi, rax
+  sub   rdi, rax
+  mov   rax, 1
+  ret
+
 %endif
 

@@ -12,6 +12,12 @@ health:
 
 index:
   ; rdi -> request
+  lea   rdi, [name_param] 
+  call  get_param
+
+  lea   rdi, [rax]
+  call  println
+
   lea   rdi, [index_path]
   lea   rsi, [CONTENT_HTML]
   call  serve_static_file
@@ -147,4 +153,6 @@ section .data
   index_path  db "examples/views/index.html", NULL_CHAR
   css_path    db "examples/views/style.css", NULL_CHAR
   js_path     db "examples/views/index.js", NULL_CHAR
+
+  name_param db "name", NULL_CHAR
 
