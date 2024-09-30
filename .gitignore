@@ -4,7 +4,7 @@ test
 
 server.o
 
-git.sh
+*.sh
 *.c
 *.txt
 
