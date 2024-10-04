@@ -9,13 +9,13 @@ htons:
   ret
 
 disallow_method:
-  ; rdi -> method
+; rdi -> method
   sub   rsp, 0x10
 
   mov   [rsp+0x8], rdi
 
   ; get length of the method
-  call  get_length
+  call  strlen
 
   ; store the length of the method onto the stack
   mov   qword [rsp], rax
@@ -65,6 +65,140 @@ disallow_method_return:
   add   rsp, 0x10
   ret
 
+; create a route serving files located in a specified dir 
+; @param  rdi: path
+add_dir_route:
+  sub   rsp, 0x18
+
+  mov   [rsp+0x8], rdi
+
+  ; save dir_path into file var
+  lea   rsi, [rdi]
+  lea   rdi, [file_path]
+
+  ; add slash before dir path
+  mov   rax, SLASH
+  stosb
+  call  strcpy
+
+  lea   rax, [rsp+0x8]
+  mov   rdi, [rax]
+  
+  ; open directory
+  mov   rax, SYS_OPEN
+  mov   rsi, O_RDONLY | O_DIRECTORY
+  mov   rdx, 0
+  syscall
+
+  cmp   rax, 0
+  jl    error_add_dir
+
+  ; get dirent struct
+  mov   rdi, rax
+  mov   rax, SYS_GETDENTS
+  lea   rsi, [dir_entries]
+  mov   rdx, DIR_ENTRIES_LEN
+  syscall
+
+  cmp   rax, 0
+  jl    error_add_dir
+
+  ; store number of bytes read
+  mov   qword [rsp], rax
+
+  ; save file_path_len
+  lea   rdi, [file_path]
+  call  strlen
+  mov   qword [rsp+0x10], rax
+
+  xor   r9, r9
+  lea   rdi, [dir_entries]
+  
+getdents_loop:
+  ; d_reclen
+  xor   r10, r10
+
+  ; mov to d_reclen (offset 16)
+  mov   r10w, word [rdi + 16]
+
+  ; get d_type (offset d_reclen - 1)
+  xor   rax, rax
+  mov   al, byte [rdi + r10 - 1]
+
+  ; check if it's a file (DT_REG = 0x8)
+  cmp   rax, DT_REG
+  jne   not_file
+
+  ; save rdi pos
+  mov   [rsp+0x8], rdi
+
+  ; clear file path after dir
+  lea   rdi, [file_path]
+  mov   rax, qword [rsp+0x10]
+  add   rdi, rax
+  mov   rax, SLASH
+  stosb
+  call  strlen
+
+  mov   rcx, rax
+  xor   rax, rax
+  rep   stosb
+
+  lea   rdi, [file_path]
+  mov   rax, qword [rsp+0x10]
+  add   rdi, rax
+  inc   rdi
+
+  lea   rax, [rsp+0x8]
+  mov   rsi, [rax]
+
+  ; go to file name (offset 18)
+  add   rsi, 18
+
+  call  strcpy
+  
+  lea   rsi, [file_path]
+  lea   rdi, [GET]
+  xor   rdx, rdx
+  call  add_route
+
+  lea   rax, [rsp+0x8]
+  mov   rdi, [rax]
+
+not_file:
+  add   r9, r10
+  add   rdi, r10
+
+  cmp   r9, qword [rsp]
+  jge   exit_getdents
+  jmp   getdents_loop
+
+exit_getdents:
+  ; clear file var
+  lea   rdi, [file_path]
+  mov   rax, NULL_CHAR
+  mov   rcx, FILE_PATH_LEN
+  rep   stosb
+
+  mov   rax, SUCCESS_CODE
+  add   rsp, 0x18
+  ret
+
+error_add_dir:
+  ; clear file var
+  lea   rdi, [file_path]
+  mov   rax, NULL_CHAR
+  mov   rcx, FILE_PATH_LEN
+  rep   stosb
+
+  mov   rcx, rax
+  mov   rax, NULL_CHAR
+  rep   stosb
+
+  mov   rax, FAILURE_CODE
+  add   rsp, 0x10
+  ret
+
 add_route:
   ; rdi -> method
   ; rsi -> route
@@ -83,13 +217,13 @@ add_route:
   ; get method_length
   lea   rax, [rsp+0x10]
   mov   rdi, [rax]
-  call  get_length
+  call  strlen
   mov   qword [rsp], rax
 
   ; get route_length
   lea   rax, [rsp+0x18]
   mov   rdi, [rax]
-  call  get_length
+  call  strlen
   mov   qword [rsp+0x8], rax
 
   ; check if the length of the route is equal to 1

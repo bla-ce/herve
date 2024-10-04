@@ -1,10 +1,34 @@
 %ifndef STRING_INC
 %define STRING_INC
 
-; converts int into string
+; copy the string pointed to by src, into a string at the buffer pointed to by dst
+; @param  rdi: dst
+; @param  rsi: src
+strcpy:
+  push  rbp
+  mov   rbp, rsp
+
+  push  rdi
+  push  rsi
+
+  lea   rdi, [rsi]
+  call  strlen
+  mov   rcx, rax
+
+  pop   rsi
+  pop   rdi
+
+  rep   movsb
+
+  mov   rax, SUCCESS_CODE
+
+  leave
+  ret
+
+; converts int in rdi into string
+; @param  rdi: int
+; @return rax: pointer to str(int)
 to_string:
-  ; rdi -> int
-  ; return value: rax -> points to buffer
   cmp   rdi, 1000000
   jge   invalid_number
 
@@ -144,26 +168,26 @@ strpos_return:
   add   rsp, 8
   ret
 
-get_length:
+strlen:
   ; rdi -> *str
   lea   rsi, [rdi]
   mov   rcx, 0
 
   cmp   rsi, 0
-  je    get_length_return
+  je    strlen_return
 
-get_length_loop:
+strlen_loop:
   xor   rax, rax
   mov   al, NULL_CHAR
   cmp   byte [rsi], al
-  je    get_length_return
+  je    strlen_return
 
   inc   rsi
   inc   rcx
 
-  jmp   get_length_loop
+  jmp   strlen_loop
 
-get_length_return:
+strlen_return:
   mov   rax, rcx
   ret
 
@@ -175,7 +199,7 @@ print:
   jg    known_length
 
   push  rdi
-  call  get_length
+  call  strlen
 
   pop   rdi
 
@@ -212,7 +236,7 @@ println:
 str_equal:
   ; rdi -> str1
   ; rsi -> str2
-  call  get_length
+  call  strlen
   mov   rcx, rax
   cld
   rep   cmpsb

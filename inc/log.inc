@@ -1,6 +1,7 @@
 %ifndef LOG_INC
 %define LOG_INC
 
+; initial log of the available routes and port the server is listening to
 log_server_init:
   sub   rsp, 0x8 ; routes count for route logs
 
@@ -12,7 +13,7 @@ log_server_init:
   call  to_string
 
   lea   rdi, [rax]
-  call  get_length
+  call  strlen
 
   lea   rsi, [rdi]
   lea   rdi, [log_port]
@@ -70,7 +71,7 @@ log_route_loop:
 
   ; clear and add space after method and url
   lea   rdi, [log_url]
-  call  get_length
+  call  strlen
 
   add   rdi, rax
   mov   rcx, URL_MAX_LEN
@@ -79,7 +80,7 @@ log_route_loop:
   rep   stosb
 
   lea   rdi, [log_method]
-  call  get_length
+  call  strlen
 
   add   rdi, rax
   mov   rcx, METHOD_MAX_LEN
@@ -120,32 +121,23 @@ log_route_return:
   add   rsp, 0x8
   ret
 
+; store status code inside log_status
 log_add_status:
-  lea   rsi, [log_status]
-  add   rsi, STATUS_CODE_LEN
-  dec   rsi
-
   mov   eax, dword [response_status_code]
+  cdqe
+
+  mov   rdi, rax
+  call  to_string
   
-log_add_status_loop:
-  xor   edx, edx
-  mov   ecx, 0xA              ; divisor, dividend in rax
-  div   ecx                   ; quotient in rax and remainder in edx
+  lea   rsi, [rax]
+  lea   rdi, [log_status]
+  call  strcpy
 
-  add   edx, ZERO_CHAR
-
-  mov   byte [rsi], dl
-
-  dec   esi
-
-  cmp   eax, 0
-  jne   log_add_status_loop
-
-  mov   rax, 0
   ret
 
+; store duration inside log_duration
 log_add_duration:
-  sub   rsp, 8 ; duration_str length
+  sub   rsp, 0x8 ; duration_str length
   mov   qword [rsp], 0
 
   lea   rsi, [log_duration]
@@ -190,9 +182,10 @@ log_add_duration_loop:
   cmp   rax, 0
   jne   log_add_duration_loop
 
-  add   rsp, 8
-  mov   rax, 0
+  add   rsp, 0x8
+  mov   rax, SUCCESS_CODE
   ret
+
 
 log_request:
   ; clear log buffers
@@ -213,7 +206,7 @@ log_request:
   rep   stosb
 
   lea   rdi, [request_method]
-  call  get_length
+  call  strlen
   mov   rcx, rax
 
   ; make sure rcx is below METHOD_MAX_LEN
@@ -226,7 +219,7 @@ log_request:
   rep   movsb
 
   lea   rdi, [request_url]
-  call  get_length
+  call  strlen
   mov   rcx, rax
 
   ; make sure rcx is below URL_MAX_LEN

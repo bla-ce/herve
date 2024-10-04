@@ -236,7 +236,7 @@ check_method:
   sub   rsp, 0x18
 
   lea   rdi, [request_method]
-  call  get_length
+  call  strlen
 
   mov   qword [rsp], 0 ; string index
   mov   [rsp+0x8], rdi 
@@ -302,7 +302,7 @@ check_route:
   sub   rsp, 0x18 
   
   lea   rdi, [request_url]
-  call  get_length
+  call  strlen
 
   mov   [rsp], rdi
   mov   qword [rsp+0x10], 0 ; route position inside list
@@ -380,7 +380,7 @@ route_found:
   mov   qword [rsp+0x10], rax
 
   lea   rdi, [request_method]
-  call  get_length
+  call  strlen
 
   ; check the method is correct
   lea   rdi, [routes_list]
@@ -432,12 +432,12 @@ get_param:
 
   ; get param name length
   mov   [rsp], rdi
-  call  get_length
+  call  strlen
   mov   rbx, rax
 
   ; load query params
   lea   rdi, [query_params]
-  call  get_length
+  call  strlen
   mov   rsi, rax
 
   ; get position of the param
@@ -495,7 +495,6 @@ get_param:
   ; clean stack
   add   rsp, 0x10
 
-  b1:
   ; return param
   lea   rax, [query]
   ret

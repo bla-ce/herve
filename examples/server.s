@@ -10,36 +10,6 @@ health:
 
   ret
 
-index:
-  ; rdi -> request
-  lea   rdi, [name_param] 
-  call  get_param
-
-  lea   rdi, [rax]
-  call  println
-
-  lea   rdi, [index_path]
-  lea   rsi, [CONTENT_HTML]
-  call  serve_static_file
-
-  ret
-
-css:
-  ; rdi -> request
-  lea   rdi, [css_path]
-  lea   rsi, [CONTENT_CSS]
-  call  serve_static_file
-
-  ret
-
-js:
-  ; rdi -> request
-  lea   rdi, [js_path]
-  lea   rsi, [CONTENT_JS]
-  call  serve_static_file
-
-  ret
-
 post:
   ; rdi -> request
   call  get_body
@@ -54,6 +24,13 @@ post:
 
   ret
 
+index:
+  lea   rdi, [index_path]
+  lea   rsi, [CONTENT_HTML]
+  call  serve_static_file
+
+  ret
+
 send_200:
   lea   rdi, [STR_OK]
   mov   rsi, 0
@@ -63,7 +40,6 @@ send_200:
   ret
 
 _start:
-
   mov   rdi, 1337
   call  server_init
   cmp   rax, 0
@@ -83,21 +59,6 @@ _start:
 
   lea   rdi, [DELETE] 
   call  disallow_method
-
-  lea   rdi, [GET]
-  lea   rsi, [index_route]
-  mov   rdx, index
-  call  add_route 
-
-  lea   rdi, [GET]
-  lea   rsi, [style_route]
-  mov   rdx, css
-  call  add_route 
-
-  lea   rdi, [GET]
-  lea   rsi, [js_route]
-  mov   rdx, js 
-  call  add_route 
 
   lea   rdi, [POST]
   lea   rsi, [post_route]
@@ -119,6 +80,14 @@ _start:
   mov   rdx, health
   call  add_route 
 
+  lea   rdi, [GET]
+  lea   rsi, [index_route]
+  mov   rdx, index
+  call  add_route 
+
+  lea   rdi, [views_dir]
+  call  add_dir_route
+
   mov   rdi, qword [sockfd]
   call  run_server
 
@@ -139,20 +108,17 @@ section .data
   sockfd  dq 0
 
   root_route    db "/", NULL_CHAR
-  index_route   db "/index", NULL_CHAR
   health_route  db "/health", NULL_CHAR
   post_route    db "/post", NULL_CHAR
-  style_route   db "/style.css", NULL_CHAR
-  js_route      db "/index.js", NULL_CHAR
+  index_route    db "/index", NULL_CHAR
 
   api_route db "/api", NULL_CHAR
   v1_route  db "/api/v1", NULL_CHAR
 
-  ok  db "ok", NULL_CHAR
-
+  views_dir   db "examples/views", NULL_CHAR
   index_path  db "examples/views/index.html", NULL_CHAR
-  css_path    db "examples/views/style.css", NULL_CHAR
-  js_path     db "examples/views/index.js", NULL_CHAR
+
+  ok  db "ok", NULL_CHAR
 
   name_param db "name", NULL_CHAR
 

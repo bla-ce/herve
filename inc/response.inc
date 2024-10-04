@@ -15,7 +15,7 @@ send_response:
 
   ; load protocol
   lea   rdi, [HTTP_1_1]
-  call  get_length
+  call  strlen
 
   mov   rcx, rax
   lea   rdi, [response]
@@ -32,7 +32,7 @@ send_response:
   ; load status code
   lea   rax, [rsp+0x8]
   mov   rdi, [rax]
-  call  get_length
+  call  strlen
 
   mov   rcx, rax
   lea   rax, [rsp+0x20]
@@ -58,7 +58,7 @@ send_response:
   ; load content type
   lea   rax, [rsp+0x10]
   mov   rdi, [rax]
-  call  get_length
+  call  strlen
   mov   rcx, rax
   lea   rsi, [rdi]
   lea   rax, [rsp+0x20]
@@ -77,7 +77,7 @@ send_response:
 
   ; load connection
   lea   rdi, [CONNECTION_CLOSE]
-  call  get_length
+  call  strlen
   mov   rcx, rax
   lea   rsi, [rdi]
   lea   rax, [rsp+0x20]
@@ -94,7 +94,7 @@ send_response:
   mov [rsp+0x20], rdi
 
   lea   rdi, [CONTENT_LENGTH]
-  call  get_length
+  call  strlen
   mov   rcx, rax
   lea   rsi, [rdi]
   lea   rax, [rsp+0x20]
@@ -106,13 +106,13 @@ send_response:
   ; get body length
   lea   rax, [rsp+0x18]
   mov   rdi, [rax]
-  call  get_length
+  call  strlen
   
   mov   rdi, rax
   call  to_string
 
   lea   rdi, [rax]
-  call  get_length
+  call  strlen
   mov   rcx, rax
   lea   rsi, [rdi]
   lea   rax, [rsp+0x20]
@@ -129,7 +129,7 @@ send_response:
   ; load body
   lea   rax, [rsp+0x18]
   mov   rdi, [rax]
-  call  get_length
+  call  strlen
   mov   rcx, rax
   lea   rsi, [rdi]
   lea   rax, [rsp+0x20]
@@ -139,7 +139,7 @@ send_response:
 skip_body:
   ; get response length
   lea   rdi, [response]
-  call  get_length
+  call  strlen
   mov   rdx, rax
 
   ; send response
@@ -163,7 +163,7 @@ send_error_response:
 
   ; load protocol
   lea   rdi, [HTTP_1_1]
-  call  get_length
+  call  strlen
 
   mov   rcx, rax
   lea   rdi, [response]
@@ -180,7 +180,7 @@ send_error_response:
   ; load status code
   lea   rax, [rsp+0x8]
   mov   rdi, [rax]
-  call  get_length
+  call  strlen
 
   mov   rcx, rax
   lea   rax, [rsp+0x10]
@@ -201,7 +201,7 @@ send_error_response:
 
   ; load connection header
   lea   rdi, [CONNECTION_CLOSE]
-  call  get_length
+  call  strlen
   mov   rcx, rax
 
   lea   rsi, [rdi]
@@ -215,7 +215,7 @@ send_error_response:
   rep   movsb
 
   lea   rdi, [response]
-  call  get_length
+  call  strlen
   mov   rdx, rax
 
   ; send response

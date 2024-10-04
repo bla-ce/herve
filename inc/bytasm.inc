@@ -1,4 +1,5 @@
-; TODO: get param
+; TODO: error if route ends by sladh (add_route)
+; TODO: dir route
 ; TODO: redirects
 ; TODO: public/private functions if possible
 ; TODO: read basic auth
@@ -48,6 +49,8 @@ section .bss
   response_proto  resb PROTO_MAX_LEN
   response_body   resb BODY_MAX_LEN
 
+  dir_entries resb DIR_ENTRIES_LEN
+
   ; response value
   response_status_code      resq 1
   response_proto_major      resd 1
@@ -56,6 +59,7 @@ section .bss
   response_close            resb 1
 
   file      resb FILE_MAX_LEN
+  file_path resb FILE_PATH_LEN
   file_len  resq 1
 
   ; timers
@@ -90,7 +94,7 @@ section .data
   server_sa_zero     dq 0
   server_addrlen     equ $ - server_sin_family
 
-  client_sin_family  dw 0
+  client_sin_family  dw AF_INET
   client_sin_port    dw 0
   client_sin_addr    dd 0
   client_sa_zero     dq 0

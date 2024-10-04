@@ -44,6 +44,7 @@ SYS_OPEN          equ 2
 SYS_CLOSE         equ 3
 SYS_SIGACTION     equ 13
 SYS_SOCKET        equ 41
+SYS_CONNECT       equ 42
 SYS_ACCEPT        equ 43
 SYS_SENDTO        equ 44
 SYS_RECVFROM      equ 45
@@ -51,6 +52,7 @@ SYS_BIND          equ 49
 SYS_LISTEN        equ 50
 SYS_SETSOCKOPT    equ 54
 SYS_EXIT          equ 60
+SYS_GETDENTS      equ 78
 SYS_CLOCK_GETTIME equ 228
 
 ; ascii
@@ -75,8 +77,12 @@ MICRO_FIRST   equ 0xCE
 MICRO_SECOND  equ 0xBC
 
 ; file constants
-O_RDONLY      equ 0
-FILE_MAX_LEN  equ 0x2000
+O_RDONLY        equ 0
+O_DIRECTORY     equ 65536
+FILE_PATH_LEN   equ 32
+FILE_MAX_LEN    equ 0x2000
+DIR_ENTRIES_LEN equ 0x400
+DT_REG          equ 0x8
 
 ; exit code
 SUCCESS_CODE equ 0
