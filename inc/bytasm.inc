@@ -19,6 +19,7 @@
 %include "request.inc"
 %include "response.inc"
 %include "error.inc"
+%include "file.inc"
 
 section .bss
   port  resq 1

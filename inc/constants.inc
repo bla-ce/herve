@@ -84,6 +84,12 @@ FILE_MAX_LEN    equ 0x2000
 DIR_ENTRIES_LEN equ 0x400
 DT_REG          equ 0x8
 
+; file extension
+TEXT_EXT  db ".txt", NULL_CHAR
+CSS_EXT   db ".css", NULL_CHAR
+HTML_EXT  db ".html", NULL_CHAR
+JS_EXT    db ".js", NULL_CHAR
+
 ; exit code
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1

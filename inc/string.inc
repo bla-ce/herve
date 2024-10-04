@@ -1,6 +1,33 @@
 %ifndef STRING_INC
 %define STRING_INC
 
+; compare rdi and rsi
+; @param  rdi: dst
+; @param  rsi: src
+; @return rax: rdi == rsi
+cmpstr:
+  push  rbp
+  mov   rbp, rsp
+
+  push  rsi
+
+  call  strlen
+  mov   rcx, rax
+
+  pop   rsi
+  rep   cmpsb
+  jne   str_not_equal
+
+  mov   rax, 1
+  jmp   exit_cmpstr
+
+str_not_equal:
+  mov   rax, 0
+
+exit_cmpstr:
+  leave
+  ret
+
 ; copy the string pointed to by src, into a string at the buffer pointed to by dst
 ; @param  rdi: dst
 ; @param  rsi: src

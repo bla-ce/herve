@@ -159,7 +159,7 @@ getdents_loop:
   
   lea   rsi, [file_path]
   lea   rdi, [GET]
-  xor   rdx, rdx
+  mov   rdx, serve_dir
   call  add_route
 
   lea   rax, [rsp+0x8]

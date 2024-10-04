@@ -245,11 +245,21 @@ serve_string:
 
 serve_static_file:
   ; rdi -> file path
-  ; rsi -> content type
   sub   rsp, 0x20 ; path, length, fd and content-type
 
   mov   [rsp], rdi
-  mov   [rsp+0x18], rsi
+
+  ; get file ext
+  call  get_ext
+
+  cmp   rax, 0
+  jl    error_open_file
+
+  mov   [rsp+0x18], rax
+
+  ; load file path
+  lea   rax, [rsp]
+  mov   rdi, [rax]
 
   ; open file
   mov   rax, SYS_OPEN
@@ -320,6 +330,17 @@ return_error_file:
   ; return
   mov   rax, -1
   ret
+
+; serve file from directory
+; @param rdi: request
+serve_dir:
+  lea   rdi, [request_url]  
+  ; add one to remove '/'
+  inc   rdi
+  call  serve_static_file
+
+  ret
+
 
 %endif
 
