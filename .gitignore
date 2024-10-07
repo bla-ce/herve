@@ -2,8 +2,9 @@ main
 server 
 test
 
-server.o
 
+*.o
+*.s
 *.sh
 *.c
 *.txt

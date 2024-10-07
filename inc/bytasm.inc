@@ -1,5 +1,3 @@
-; TODO: error if route ends by sladh (add_route)
-; TODO: dir route
 ; TODO: redirects
 ; TODO: public/private functions if possible
 ; TODO: read basic auth
@@ -20,6 +18,7 @@
 %include "response.inc"
 %include "error.inc"
 %include "file.inc"
+%include "time.inc"
 
 section .bss
   port  resq 1
