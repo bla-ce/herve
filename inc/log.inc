@@ -136,7 +136,7 @@ log_add_time:
   lea   rdi, [log_time]
   call  strcpy
 
-  mov   al, HYPHEN
+  mov   al, SLASH
   stosb
 
   cmp   qword [dt_month], 10
@@ -155,7 +155,7 @@ no_zero_month:
   pop   rdi
   call  strcpy
 
-  mov   al, HYPHEN
+  mov   al, SLASH
   stosb
 
   cmp   qword [dt_day], 10
@@ -173,6 +173,12 @@ no_zero_day:
   lea   rsi, [rax]
   pop   rdi
   call  strcpy
+
+  mov   al, SPACE
+  stosb
+
+  mov   al, HYPHEN
+  stosb
 
   mov   al, SPACE
   stosb

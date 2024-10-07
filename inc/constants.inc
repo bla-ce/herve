@@ -154,7 +154,7 @@ CONTENT_LENGTH db "Content-Length: ", NULL_CHAR
 
 ; logs
 LOG_PORT_LEN    equ 5 ; port + new line char
-LOG_TIME_SIZE   equ 23
+LOG_TIME_SIZE   equ 25
 
 ; error
 ERR_MAX_LEN equ 128

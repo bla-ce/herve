@@ -123,6 +123,8 @@ section .data
 
   ; log
   log_start     db " [LOG] "
+  log_time      times LOG_TIME_SIZE db SPACE
+  log_delim4    db " | "
   log_method    times METHOD_MAX_LEN db SPACE
   log_delim     db " | "
   log_url       times URL_MAX_LEN db SPACE
@@ -130,8 +132,6 @@ section .data
   log_duration  times LONG_SIZE+2 db SPACE
   log_delim3    db " | "
   log_status    times STATUS_CODE_LEN db SPACE
-  log_delim4    db " | "
-  log_time      times LOG_TIME_SIZE db SPACE
   log_new_line  db LINE_FEED
   log_len       equ $ - log_start
 
