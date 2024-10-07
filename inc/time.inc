@@ -88,7 +88,6 @@ calc_month_loop:
 
 return_unix_to_date:
   mov   rax, qword [rsp]
-  inc   rax
   mov   qword [dt_day], rax
 
   lea   rax, [dt_year]

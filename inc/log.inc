@@ -121,6 +121,125 @@ log_route_return:
   add   rsp, 0x8
   ret
 
+; store date string inside log_date
+log_add_time:
+  push  rbp
+  mov   rbp, rsp
+
+  mov   rdi, qword [start_tv_sec]
+  call  unix_to_date_time
+
+  mov   rdi, qword [dt_year]
+  call  to_string
+
+  lea   rsi, [rax]
+  lea   rdi, [log_time]
+  call  strcpy
+
+  mov   al, HYPHEN
+  stosb
+
+  cmp   qword [dt_month], 10
+  jge   no_zero_month
+
+  mov   al, ZERO_CHAR
+  stosb
+
+no_zero_month:
+  push  rdi
+
+  mov   rdi, qword [dt_month]
+  call  to_string
+
+  lea   rsi, [rax]
+  pop   rdi
+  call  strcpy
+
+  mov   al, HYPHEN
+  stosb
+
+  cmp   qword [dt_day], 10
+  jge   no_zero_day
+
+  mov   al, ZERO_CHAR
+  stosb
+
+no_zero_day:
+  push  rdi
+
+  mov   rdi, qword [dt_day]
+  call  to_string
+
+  lea   rsi, [rax]
+  pop   rdi
+  call  strcpy
+
+  mov   al, SPACE
+  stosb
+
+  cmp   qword [dt_hour], 10
+  jge   no_zero_hour
+
+  mov   al, ZERO_CHAR
+  stosb
+
+no_zero_hour:
+  push  rdi
+
+  mov   rdi, qword [dt_hour]
+  call  to_string
+
+  lea   rsi, [rax]
+  pop   rdi
+  call  strcpy
+
+  mov   al, COLON
+  stosb
+
+  cmp   qword [dt_minute], 10
+  jge   no_zero_minute
+
+  mov   al, ZERO_CHAR
+  stosb
+
+no_zero_minute:
+  push  rdi
+
+  mov   rdi, qword [dt_minute]
+  call  to_string
+
+  lea   rsi, [rax]
+  pop   rdi
+  call  strcpy
+
+  mov   al, COLON
+  stosb
+
+  cmp   qword [dt_second], 10
+  jge   no_zero_second
+
+  mov   al, ZERO_CHAR
+  stosb
+
+no_zero_second:
+  push  rdi
+
+  mov   rdi, qword [dt_second]
+  call  to_string
+
+  lea   rsi, [rax]
+  pop   rdi
+  call  strcpy
+
+  mov   al, SPACE
+  stosb
+
+  lea   rsi, [utc_str]
+  call  strcpy
+
+  leave
+  ret
+
 ; store status code inside log_status
 log_add_status:
   mov   eax, dword [response_status_code]
@@ -205,6 +324,11 @@ log_request:
   lea   rdi, [log_duration]
   rep   stosb
 
+  mov   rcx, LOG_TIME_SIZE
+  mov   rax, SPACE
+  lea   rdi, [log_time]
+  rep   stosb
+
   lea   rdi, [request_method]
   call  strlen
   mov   rcx, rax
@@ -238,9 +362,11 @@ log_request:
 
 jump_log_route:
 
-  call log_add_duration
+  call  log_add_duration
 
-  call log_add_status
+  call  log_add_status
+
+  call  log_add_time
 
   lea   rdi, [log_start]
   mov   rsi, log_len

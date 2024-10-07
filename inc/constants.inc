@@ -78,6 +78,7 @@ HYPHEN          equ 45
 DOT             equ 46
 SLASH           equ 47
 ZERO_CHAR       equ 48
+COLON           equ 58
 EQUAL_SIGN      equ 61
 QUESTION_MARK   equ 63
 LOW_N_CHAR      equ 110
@@ -153,6 +154,7 @@ CONTENT_LENGTH db "Content-Length: ", NULL_CHAR
 
 ; logs
 LOG_PORT_LEN    equ 5 ; port + new line char
+LOG_TIME_SIZE   equ 23
 
 ; error
 ERR_MAX_LEN equ 128

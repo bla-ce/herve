@@ -130,8 +130,12 @@ section .data
   log_duration  times LONG_SIZE+2 db SPACE
   log_delim3    db " | "
   log_status    times STATUS_CODE_LEN db SPACE
+  log_delim4    db " | "
+  log_time      times LOG_TIME_SIZE db SPACE
   log_new_line  db LINE_FEED
   log_len       equ $ - log_start
+
+  utc_str db "UTC", NULL_CHAR
 
   log_server_init_msg db " [DEBUG] Listening and serving HTTP on :"
   log_server_init_len equ $ - log_server_init_msg
