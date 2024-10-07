@@ -85,6 +85,13 @@ section .bss
 
   errno resb ERR_MAX_LEN
 
+  dt_year    resq 1
+  dt_month   resq 1
+  dt_day     resq 1
+  dt_hour    resq 1
+  dt_minute  resq 1
+  dt_second  resq 1
+
 section .data
   enable  dw 1
 

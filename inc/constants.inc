@@ -5,6 +5,17 @@ CLOCK_REALTIME  equ 0
 STDOUT          equ 1
 LONG_SIZE       equ 10
 
+; time constants
+HOURS_IN_DAY      equ 24
+
+EPOCH_YEAR        equ 1970
+
+SECONDS_IN_MINUTE equ 60
+SECONDS_IN_HOUR   equ 3600
+SECONDS_IN_DAY    equ 86400
+DAYS_IN_YEAR      equ 365
+DAYS_IN_LEAP_YEAR equ 366
+
 ; server constants
 PORT_MIN                equ 0x1
 DEFAULT_MAX_CONNECTIONS equ 0x1
