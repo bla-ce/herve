@@ -1,6 +1,45 @@
 %ifndef TIME_INC
 %define TIME_INC
 
+; return the number if days in the month
+; @param  rdi: month
+; @param  rsi: year
+; @return rax: n_days
+days_in_month:
+  sub   rsp, 0x10
+
+  mov   qword [rsp], rdi
+  mov   qword [rsp+0x8], rsi
+
+  ; check if month is two
+  cmp   qword [rsp], 2
+  jne   not_feb
+
+  ; if yes, check if year is leap year
+  mov   rdi, qword [rsp+0x8]
+  call  is_leap_year
+
+  cmp   rax, 0
+  je    not_feb
+
+  ; if yes, return 29
+  mov   rax, 29
+  jmp   return_days_in_month
+
+not_feb:
+  ; return days of (month-1)
+  lea   rdi, [days_in_each_month]
+  add   rdi, qword [rsp]
+  dec   rdi
+
+  xor   rax, rax
+  mov   al, byte [rdi]
+
+return_days_in_month:
+  ; clean stack
+  add   rsp, 0x10
+  ret
+
 ; return if the year in rdi is a leap year
 ; @param  rdi: year
 ; @return rax: (bool)is_leap_year

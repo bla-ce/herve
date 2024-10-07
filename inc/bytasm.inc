@@ -135,6 +135,8 @@ section .data
   log_debug     db " [DEBUG] ", NULL_CHAR
   log_debug_len equ $ - log_debug
 
+  days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+
   ; error messages
   ERR_PORT_BOUNDS   db "[ERROR] port out of bounds", LINE_FEED, NULL_CHAR
   ERR_CREAT_SOCKET  db "[ERROR] failed to create socket", LINE_FEED, NULL_CHAR
