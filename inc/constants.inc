@@ -1,14 +1,13 @@
 %ifndef CONSTANTS_INC
 %define CONSTANTS_INC
 
-CLOCK_REALTIME  equ 0
 STDOUT          equ 1
 LONG_SIZE       equ 10
 
 ; time constants
-HOURS_IN_DAY      equ 24
-
-EPOCH_YEAR        equ 1970
+CLOCK_REALTIME  equ 0
+HOURS_IN_DAY    equ 24
+EPOCH_YEAR      equ 1970
 
 SECONDS_IN_MINUTE equ 60
 SECONDS_IN_HOUR   equ 3600

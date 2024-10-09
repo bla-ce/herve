@@ -41,7 +41,7 @@ log_server_init:
   mov   rsi, 1
   call	print
 
-log_route_loop:
+.loop:
   ; log debug 
   lea   rdi, [log_debug]
   mov   rsi, log_debug_len
@@ -107,11 +107,11 @@ log_route_loop:
   
   mov   rax, qword [rsp]
   cmp   rax, qword [routes_count]
-  je    log_route_return
+  je    .return
   
-  jmp   log_route_loop
+  jmp   .loop
 
-log_route_return:
+.return:
   ; log new line
   lea   rdi, [log_new_line]
   mov   rsi, 1
@@ -140,12 +140,12 @@ log_add_time:
   stosb
 
   cmp   qword [dt_month], 10
-  jge   no_zero_month
+  jge   .no_zero_month
 
   mov   al, ZERO_CHAR
   stosb
 
-no_zero_month:
+.no_zero_month:
   push  rdi
 
   mov   rdi, qword [dt_month]
@@ -159,12 +159,12 @@ no_zero_month:
   stosb
 
   cmp   qword [dt_day], 10
-  jge   no_zero_day
+  jge   .no_zero_day
 
   mov   al, ZERO_CHAR
   stosb
 
-no_zero_day:
+.no_zero_day:
   push  rdi
 
   mov   rdi, qword [dt_day]
@@ -184,12 +184,12 @@ no_zero_day:
   stosb
 
   cmp   qword [dt_hour], 10
-  jge   no_zero_hour
+  jge   .no_zero_hour
 
   mov   al, ZERO_CHAR
   stosb
 
-no_zero_hour:
+.no_zero_hour:
   push  rdi
 
   mov   rdi, qword [dt_hour]
@@ -203,12 +203,12 @@ no_zero_hour:
   stosb
 
   cmp   qword [dt_minute], 10
-  jge   no_zero_minute
+  jge   .no_zero_minute
 
   mov   al, ZERO_CHAR
   stosb
 
-no_zero_minute:
+.no_zero_minute:
   push  rdi
 
   mov   rdi, qword [dt_minute]
@@ -222,12 +222,12 @@ no_zero_minute:
   stosb
 
   cmp   qword [dt_second], 10
-  jge   no_zero_second
+  jge   .no_zero_second
 
   mov   al, ZERO_CHAR
   stosb
 
-no_zero_second:
+.no_zero_second:
   push  rdi
 
   mov   rdi, qword [dt_second]
@@ -278,7 +278,7 @@ log_add_duration:
 
   ; convert ns in ms if duration is greater than 999ns
   cmp   rax, 999
-  jl    log_add_duration_loop
+  jl    .loop
 
   xor   rdx, rdx
   mov   rcx, 1000
@@ -293,7 +293,7 @@ log_add_duration:
   mov   byte [rsi], LOW_S_CHAR
   sub   rsi, 3                ; go back to original position
   
-log_add_duration_loop:
+.loop:
   xor   rdx, rdx
   mov   rcx, 0xA              ; divisor, dividend in rax
   div   rcx                   ; quotient in rax and remainder in edx
@@ -305,7 +305,7 @@ log_add_duration_loop:
   dec   rsi
 
   cmp   rax, 0
-  jne   log_add_duration_loop
+  jne   .loop
 
   add   rsp, 0x8
   mov   rax, SUCCESS_CODE
@@ -367,7 +367,6 @@ log_request:
   rep   movsb
 
 jump_log_route:
-
   call  log_add_duration
 
   call  log_add_status

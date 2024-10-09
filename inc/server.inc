@@ -28,10 +28,10 @@ disallow_method:
 
   lea   rdi, [ERR_METHOD_NOT_EXIST]
   cmp   rsi, rax
-  jl    disallow_method_error
+  jl    .error
 
   cmp   rsi, rbx
-  jg    disallow_method_error
+  jg    .error
 
   ; look if method is inside the list
   ; load request into rdx
@@ -54,13 +54,13 @@ disallow_method:
   rep   movsb
 
   xor   rax, rax
-  jmp   disallow_method_return
+  jmp   .return
 
-disallow_method_error:
+.error:
   mov   [errno], rdi
   mov   rax, -1
 
-disallow_method_return:
+.return:
   ; clean stack
   add   rsp, 0x10
   ret
@@ -91,7 +91,7 @@ add_dir_route:
   syscall
 
   cmp   rax, 0
-  jl    error_add_dir
+  jl    .error
 
   ; get dirent struct
   mov   rdi, rax
@@ -101,7 +101,7 @@ add_dir_route:
   syscall
 
   cmp   rax, 0
-  jl    error_add_dir
+  jl    .error
 
   ; store number of bytes read
   mov   qword [rsp], rax
@@ -114,7 +114,7 @@ add_dir_route:
   xor   r9, r9
   lea   rdi, [dir_entries]
   
-getdents_loop:
+.loop:
   ; d_reclen
   xor   r10, r10
 
@@ -127,7 +127,7 @@ getdents_loop:
 
   ; check if it's a file (DT_REG = 0x8)
   cmp   rax, DT_REG
-  jne   not_file
+  jne   .skip_not_file
 
   ; save rdi pos
   mov   [rsp+0x8], rdi
@@ -165,15 +165,15 @@ getdents_loop:
   lea   rax, [rsp+0x8]
   mov   rdi, [rax]
 
-not_file:
+.skip_not_file:
   add   r9, r10
   add   rdi, r10
 
   cmp   r9, qword [rsp]
-  jge   exit_getdents
-  jmp   getdents_loop
+  jge   .return
+  jmp   .loop
 
-exit_getdents:
+.return:
   ; clear file var
   lea   rdi, [file_path]
   mov   rax, NULL_CHAR
@@ -184,7 +184,7 @@ exit_getdents:
   add   rsp, 0x18
   ret
 
-error_add_dir:
+.error:
   ; clear file var
   lea   rdi, [file_path]
   mov   rax, NULL_CHAR
@@ -230,7 +230,7 @@ add_route:
   lea   rax, [rsp+0x18]
   mov   rsi, [rax]
   cmp   qword [rsp+0x8], 1
-  je    add_route_jump
+  je    .skip
 
   ; if not equal, extract last char to see if it's a slash
   add   rsi, qword [rsp+0x8]
@@ -238,18 +238,18 @@ add_route:
   lodsb
 
   cmp   al, SLASH
-  jne   add_route_dont_trim_slash
+  jne   .skip_trim
   
   ; if last char is a '/', remove it and add null char
   mov   byte [rsi], NULL_CHAR
   ; decrease route_length
   dec   qword [rsp+0x8]
   
-add_route_dont_trim_slash:
+.skip_trim:
   ; go back to beginning of the route
   sub   rsi, qword [rsp+0x8]
 
-add_route_jump:
+.skip:
   ; go to next available space inside route_list
   xor   rdx, rdx
   mov   rax, qword [routes_count]
@@ -305,10 +305,10 @@ server_init:
   ; check if port is in bounds
   lea   rdi, [ERR_PORT_BOUNDS]
   cmp   qword [port], PORT_MIN
-  jl    server_init_error
+  jl    .error
 
   cmp   qword [port], PORT_MAX
-  jg    server_init_error
+  jg    .error
 
   ; create socket
   mov   rax, SYS_SOCKET
@@ -319,7 +319,7 @@ server_init:
 
   lea   rdi, [ERR_CREAT_SOCKET]
   cmp   rax, 0
-  jl    server_init_error
+  jl    .error
 
   ; store server fd
   mov   qword [rsp], rax
@@ -335,7 +335,7 @@ server_init:
 
   lea   rdi, [ERR_SET_SOCKOPT]
   cmp   rax, 0
-  jl    server_init_error
+  jl    .error
 
   mov   rax, SYS_SETSOCKOPT
   mov   rdi, qword [rsp]
@@ -347,7 +347,7 @@ server_init:
 
   lea   rdi, [ERR_SET_SOCKOPT]
   cmp   rax, 0
-  jl    server_init_error
+  jl    .error
 
   ; convert host port to network
   xor   rax, rax
@@ -364,7 +364,7 @@ server_init:
 
   lea   rdi, [ERR_BIND_SOCKET]
   cmp   rax, 0
-  jl    server_init_error
+  jl    .error
 
   ; listen socket
   mov   rax, SYS_LISTEN
@@ -374,17 +374,17 @@ server_init:
 
   lea   rdi, [ERR_LISTEN_SOCKET]
   cmp   rax, 0
-  jl    server_init_error
+  jl    .error
 
   mov   rax, qword [rsp]
-  jmp   server_init_return
+  jmp   .return
 
-server_init_error:
+.error:
   mov   [errno], rdi
 
   ; check if socket have been opened
   cmp   qword [rsp], 0
-  jle   skip_close_socket
+  jle   .skip_close_socket
 
   ; if yes close it
   mov   rax, SYS_CLOSE
@@ -392,10 +392,10 @@ server_init_error:
   syscall
   ; don't need to check for error, we exit anyway
 
-skip_close_socket:
+.skip_close_socket:
   mov   rax, -1
 
-server_init_return:
+.return:
   add   rsp, 0x8
   ret
 
@@ -407,7 +407,7 @@ run_server:
 
   call  log_server_init
 
-run_server_loop:
+.loop:
   ; set end timer
   mov   rax, SYS_CLOCK_GETTIME
   mov   rdi, CLOCK_REALTIME
@@ -416,7 +416,7 @@ run_server_loop:
 
   ; check if we have set start timer
   cmp   qword [start_tv_sec], 0
-  je    timer_not_defined
+  je    .timer_not_defined
 
   ; if yes, compute the difference
   mov   rax, qword [end_tv_nsec]
@@ -430,7 +430,7 @@ run_server_loop:
   ; log previous request
   call  log_request
 
-timer_not_defined:
+.timer_not_defined:
   ; clear response, route and method and query
   mov   rcx, RESPONSE_MAX_LEN
   xor   rax, rax
@@ -464,7 +464,7 @@ timer_not_defined:
   inc   qword [active_connections]
   mov   rax, qword [active_connections]
   cmp   rax, qword [max_connections]
-  jg    server_unavailable
+  jg    .server_unavailable
 
   ; set start timer
   mov   rax, SYS_CLOCK_GETTIME
@@ -487,28 +487,28 @@ timer_not_defined:
   ; parse_request
   call  parse_request
   cmp   rax, 0
-  jl    error_request
+  jl    .error
 
   ; verify request
   call  verify_request
 
   ; callback
   cmp   qword [callback], 0
-  je    skip_callback
+  je    .skip_callback
 
   lea   rdi, [request]
   call  [rel callback]
 
-skip_callback:
+.skip_callback:
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
   
   dec   qword [active_connections]
 
-  jmp   run_server_loop
+  jmp   .loop
 
-error_request:
+.error:
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
@@ -516,7 +516,7 @@ error_request:
   dec   qword [active_connections]
 
   ; jump to next request, skipping logs
-  jmp   timer_not_defined
+  jmp   .timer_not_defined
 
   ; shutdown server
   mov   rax, SYS_CLOSE
@@ -526,13 +526,13 @@ error_request:
   add   rsp, 0x8
   ret
 
-server_unavailable:
+.server_unavailable:
   mov   qword [response_status_code], SERVICE_UNAVAILABLE
   mov   rdi, qword [request_client]
   lea   rsi, STR_SERVICE_UNAVAILABLE
   call  send_error_response
 
-  jmp   error_request
+  jmp   .error
 
 trim_query_parameters:
   ; rdi -> request_url
@@ -545,7 +545,7 @@ trim_query_parameters:
   mov   rsi, QUESTION_MARK
   call  find_next_char
   cmp   rax, 0
-  jle   no_query
+  jle   .no_query
 
   mov   qword [rsp+0x8], rax
 
@@ -562,7 +562,7 @@ trim_query_parameters:
   mov   rax, qword [rsp+0x8]
   mov   qword [rsp], rax
 
-no_query:
+.no_query:
   mov   rax, qword [rsp]
 
   add   rsp, 0x10

@@ -43,7 +43,7 @@ unix_to_date_time:
   mov   qword [dt_year], EPOCH_YEAR
 
   ; calculate current year
-calc_curr_year:
+.curr_year:
   ; check if year is leap_year
   mov   rdi, qword [dt_year]
   call  is_leap_year
@@ -56,7 +56,7 @@ calc_curr_year:
   cmove rbx, rdx
 
   cmp   qword [rsp], rbx
-  jl    calc_curr_month
+  jl    .curr_month
 
   ; while loop
   ; sub timestamp 366 or 365 depending on is leap
@@ -65,13 +65,13 @@ calc_curr_year:
   ; inc year
   inc   qword [dt_year]
 
-  jmp   calc_curr_year
+  jmp   .curr_year
 
 
-calc_curr_month:
+.curr_month:
   mov   qword [dt_month], 1
 
-calc_month_loop:
+.loop:
   ; calculate current month
   ; get n_days in month
   mov   rdi, qword [dt_month]
@@ -79,14 +79,14 @@ calc_month_loop:
   call  days_in_month
 
   cmp   qword [rsp], rax
-  jl    return_unix_to_date
+  jl    .return
 
   sub   qword [rsp], rax
   inc   qword [dt_month]
 
-  jmp   calc_month_loop
+  jmp   .loop
 
-return_unix_to_date:
+.return:
   mov   rax, qword [rsp]
   mov   qword [dt_day], rax
 
@@ -106,20 +106,20 @@ days_in_month:
 
   ; check if month is two
   cmp   qword [rsp], 2
-  jne   not_feb
+  jne   .skip_feb
 
   ; if yes, check if year is leap year
   mov   rdi, qword [rsp+0x8]
   call  is_leap_year
 
   cmp   rax, 0
-  je    not_feb
+  je    .skip_feb
 
   ; if yes, return 29
   mov   rax, 29
-  jmp   return_days_in_month
+  jmp   .return
 
-not_feb:
+.skip_feb:
 ; return days of (month-1)
   mov   rbx, qword [rsp]
   dec   rbx
@@ -127,7 +127,7 @@ not_feb:
   xor   rax, rax
   mov   al, byte [days_in_each_month + rbx]
 
-return_days_in_month:
+.return:
   ; clean stack
   add   rsp, 0x10
   ret
@@ -148,11 +148,11 @@ is_leap_year:
   div   rbx
 
   cmp   rdx, 0
-  je    check_mod_100
+  je    .check_mod_100
 
-  jmp   check_mod_400
+  jmp   .check_mod_400
 
-check_mod_100:
+.check_mod_100:
   ; if yes, check if year % 100 != 0
 
   xor   rdx, rdx
@@ -161,11 +161,11 @@ check_mod_100:
   div   rbx
 
   cmp   rdx, 0
-  je    is_not_leap
+  je    .is_not_leap
 
-  jmp   is_leap
+  jmp   .is_leap
 
-check_mod_400:
+.check_mod_400:
   ; check if year % 400 == 0
   xor   rdx, rdx
   mov   rax, qword [rsp]
@@ -173,15 +173,15 @@ check_mod_400:
   div   rbx
 
   cmp   rdx, 0
-  jne    is_not_leap
+  jne   .is_not_leap
 
-is_leap:
+.is_leap:
   ; if yes, return 1
   mov   rax, 1
   add   rsp, 0x8
   ret
 
-is_not_leap:
+.is_not_leap:
   ; return 0
   mov   rax, 0
 

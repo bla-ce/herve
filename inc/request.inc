@@ -12,11 +12,11 @@ parse_request:
   mov   rsi, SPACE
   call  find_next_char      ; find next space to get the method length
   cmp   rax, 0x0
-  jl    parse_request_error ; return bad request -> request struct will be empty
+  jl    .error ; return bad request -> request struct will be empty
 
   ; compare the length of the method with METHOD_MAX_LEN
   cmp   rax, METHOD_MAX_LEN
-  jg    parse_request_error ; return method not allowed
+  jg    .error ; return method not allowed
 
   ; load method
   lea   rdi, [request_method]
@@ -37,11 +37,11 @@ parse_request:
   mov   rsi, SPACE
   call  find_next_char ; find the next space to get url length
   cmp   rax, 0x0
-  jl    parse_request_error
+  jl    .error
 
   ; verify url length
   cmp   rax, URL_MAX_LEN
-  jg    parse_request_error
+  jg    .error
 
   ; load url
   lea   rdi, [request_url]
@@ -61,7 +61,7 @@ parse_request:
   mov   rsi, CARRIAGE_RETURN
   call  find_next_char  ; find next \r to get the entire protocol
   cmp   rax, 0x0
-  jl    parse_request_error
+  jl    .error
 
   ; load protocol
   mov   rcx, rax
@@ -78,7 +78,7 @@ parse_request:
   mov   rsi, SLASH
   call  find_next_char ; go to '/' after 'HTTP'
   cmp   rax, 0x0
-  jl    parse_request_error
+  jl    .error
 
   mov   rcx, rax
 
@@ -98,10 +98,10 @@ parse_request:
 
   ; check proto major is digit
   cmp   eax, 0x0
-  jl    parse_request_error
+  jl    .error
 
   cmp   eax, 0x9
-  jg    parse_request_error
+  jg    .error
 
   mov   dword [request_proto_major], eax
 
@@ -114,10 +114,10 @@ parse_request:
 
   ; check proto minor is digit
   cmp   eax, 0x0
-  jl    parse_request_error
+  jl    .error
 
   cmp   eax, 0x9
-  jg    parse_request_error
+  jg    .error
 
   mov   dword [request_proto_minor], eax
 
@@ -135,11 +135,11 @@ parse_request:
   call  strpos
 
   cmp   rax, 0
-  jl    parse_request_error
+  jl    .error
 
   ; verify headers overflow
   cmp   rax, HEADERS_MAX_LEN
-  jg    parse_request_error
+  jg    .error
    
   mov   rcx, rax
   lea   rax, [rsp]
@@ -158,10 +158,10 @@ parse_request:
   mov   rsi, NULL_CHAR
   call  find_next_char
   cmp   rax, 0x0
-  jl    parse_request_error
+  jl    .error
 
   cmp   rax, BODY_MAX_LEN
-  jg    parse_request_error
+  jg    .error
 
   lea   rdi, [request_body]
   mov   rcx, rax
@@ -171,9 +171,9 @@ parse_request:
 
   mov   rax, 0
 
-  jmp   parse_request_return
+  jmp   .return
 
-parse_request_error:
+.error:
   mov   qword [response_status_code], BAD_REQUEST
   mov   rdi, qword [request_client]
   lea   rsi, [STR_BAD_REQUEST]
@@ -182,27 +182,27 @@ parse_request_error:
   call  log_malformed_request
 
   mov   rax, -1
-  jmp   parse_request_return
+  jmp   .return
 
-parse_request_return:
+.return:
   add   rsp, 0x8
   ret
 
 verify_request:
   call  check_method
   cmp   rax, 0
-  jl    verify_request_method_not_allowed
+  jl    .method_not_allowed
 
   call  check_route
   cmp   rax, 0
-  jl    verify_request_not_found
+  jl    .not_found
 
   mov   qword [response_status_code], OK
   mov   rax, 0
 
-  jmp   verify_request_return
+  jmp   .return
 
-verify_request_method_not_allowed:
+.method_not_allowed:
   mov   qword [response_status_code], METHOD_NOT_ALLOWED
 
   mov   rdi, qword [request_client]
@@ -211,9 +211,9 @@ verify_request_method_not_allowed:
 
   mov   rax, -1
 
-  jmp   verify_request_return
+  jmp   .return
 
-verify_request_not_found:
+.not_found:
   mov   qword [response_status_code], NOT_FOUND
 
   mov   rdi, qword [request_client]
@@ -222,9 +222,9 @@ verify_request_not_found:
 
   mov   rax, -1
 
-  jmp   verify_request_return
+  jmp   .return
 
-verify_request_return:
+.return:
   ret
 
 get_body:
@@ -251,13 +251,13 @@ check_method:
   call  strpos
 
   cmp   rax, 0
-  jge   method_exists
+  jge   .method_exists
   
-method_not_allowed:
+.method_not_allowed:
   mov   rax, -1
-  jmp   check_method_return
+  jmp   .return
 
-method_exists:
+.method_exists:
   ; store method's position onto the stack
   mov   qword [rsp], rax
 
@@ -269,7 +269,7 @@ method_exists:
   dec   rdi
   mov   al, byte [rdi]
   cmp   al, SPACE
-  jne   method_not_allowed
+  jne   .method_not_allowed
 
   ; go to the end of the method
   inc   rdi
@@ -278,7 +278,7 @@ method_exists:
   ; make sure the next byte is a space
   mov   al, byte [rdi]
   cmp   al, SPACE
-  jne   method_not_allowed
+  jne   .method_not_allowed
 
   ; check if the method is allowed
   lea   rdi, [not_allowed_methods]
@@ -289,12 +289,12 @@ method_exists:
   call  strpos
 
   cmp   rax, 0
-  jge   method_not_allowed
+  jge   .method_not_allowed
 
   ; return method's position
   mov   rax, qword [rsp]
 
-check_method_return:
+.return:
   add   rsp, 0x18
   ret
 
@@ -323,7 +323,7 @@ check_route:
 
   ; check if route is '/', if yes skip trim end slash
   cmp   qword [rsp+0x8], 1
-  je    check_route_jump
+  je    .skip_trim
   
   ; go to the end of the url
   add   rsi, qword [rsp+0x8] ; rsi points to the null_char
@@ -331,26 +331,26 @@ check_route:
   ;  check if last char is slash
   dec   rsi
   cmp   byte [rsi], SLASH
-  jne   check_route_jump
+  jne   .skip_trim
   
   ; if yes, change to null char and dec route length
   mov   byte [rsi], NULL_CHAR
   dec   qword [rsp+0x8]
   
-check_route_jump:
+.skip_trim:
   ; check if route is in routes_list
   xor   rbx, rbx
   lea   rdi, [routes_list]
   lea   rax, [rsp]
   mov   rsi, [rax]
 
-next_route:
+.next_route:
   mov   rcx, qword [rsp+0x8]
   cld
   rep   cmpsb
-  je    route_found
+  je    .route_found
 
-not_entire:
+.not_entire:
   add   rdi, STRUCT_ROUTE_LEN
   sub   rdi, qword [rsp+0x8]
   add   rdi, rcx
@@ -359,19 +359,19 @@ not_entire:
 
   inc   rbx
   cmp   rbx, qword [routes_count]
-  jg    route_not_found
+  jg    .route_not_found
 
-  jmp   next_route
+  jmp   .next_route
   
-route_not_found:
+.route_not_found:
   mov   rax, -1
-  jmp   check_route_return
+  jmp   .return
 
-route_found:
+.route_found:
   ; make sure we checked the entire method
   mov   al, byte [rdi]
   cmp   al, NULL_CHAR
-  jne   not_entire
+  jne   .not_entire
 
   ; store position of the route
   xor   rdx, rdx
@@ -390,7 +390,7 @@ route_found:
   mov   rcx, rax
   rep   cmpsb
 
-  jne   route_not_found
+  jne   .route_not_found
 
   ; load callback
   lea   rdi, [callback_list]
@@ -412,14 +412,14 @@ route_found:
 
   ; check route has a callback
   cmp   rax, 0
-  je    skip_exec
+  je    .skip_exec
 
   mov   [rel callback], rax
 
-skip_exec:
+.skip_exec:
   mov   rax, qword [rsp+0x8]
 
-check_route_return:
+.return:
   add   rsp, 0x18
   ret
 
@@ -448,7 +448,7 @@ get_param:
   mov   rbx, rax
 
   cmp   rbx, 0
-  jl    get_param_error
+  jl    .error
 
   ; go to param
   lea   rdi, [query_params]
@@ -483,7 +483,7 @@ get_param:
   cmovg rcx, rax
 
   cmp   rcx, 0
-  jl    get_param_error
+  jl    .error
 
   ; save param into buffer
   lea   rsi, [rdi] 
@@ -499,7 +499,7 @@ get_param:
   lea   rax, [query]
   ret
 
-get_param_error:
+.error:
   mov   rax, -1
   add   rsp, 0x10
   ret

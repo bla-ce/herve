@@ -12,7 +12,7 @@ get_ext:
   call  find_next_char
 
   cmp   rax, 0
-  jl    no_ext
+  jl    .no_ext
 
   ; go to dot
   add   rdi, rax
@@ -22,7 +22,7 @@ get_ext:
   call  find_next_char
 
   cmp   rax, 0
-  jg    not_supported
+  jg    .not_supported
 
   ; save . position
   mov   [rsp], rdi
@@ -33,55 +33,55 @@ get_ext:
   call  cmpstr
 
   cmp   rax, 1
-  jne   check_js
+  jne   .check_js
 
   lea   rax, [CONTENT_HTML]
-  jmp   exit_get_ext
+  jmp   .return
 
-check_js:
+.check_js:
   lea   rdi, [JS_EXT]
   lea   rax, [rsp]
   mov   rsi, [rax]
   call  cmpstr
 
   cmp   rax, 1
-  jne   check_css
+  jne   .check_css
 
   lea   rax, [CONTENT_JS]
-  jmp   exit_get_ext
+  jmp   .return
   
-check_css:
+.check_css:
   lea   rdi, [CSS_EXT]
   lea   rax, [rsp]
   mov   rsi, [rax]
   call  cmpstr
 
   cmp   rax, 1
-  jne   check_plain
+  jne   .check_plain
 
   lea   rax, [CONTENT_CSS]
-  jmp   exit_get_ext
+  jmp   .return
  
-check_plain:
+.check_plain:
   lea   rdi, [TEXT_EXT]
   lea   rax, [rsp]
   mov   rsi, [rax]
   call  cmpstr
 
   cmp   rax, 1
-  jne   not_supported
+  jne   .not_supported
 
   lea   rax, [CONTENT_PLAIN]
-  jmp   exit_get_ext
+  jmp   .return
 
-no_ext:
+.no_ext:
   mov   rax, 0
-  jmp   exit_get_ext
+  jmp   .return
 
-not_supported:
+.not_supported:
   mov   rax, -1
 
-exit_get_ext:
+.return:
   add   rsp, 0x8
   ret
 
