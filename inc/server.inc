@@ -452,6 +452,18 @@ run_server:
   lea   rdi, [query_params]
   rep   stosb
 
+  ; clear body
+  mov   rcx, BODY_MAX_LEN
+  xor   rax, rax
+  lea   rdi, [request_body]
+  rep   stosb
+
+  ; clear request
+  mov   rcx, REQUEST_MAX_LEN
+  xor   rax, rax
+  lea   rdi, [request]
+  rep   stosb
+
   ; accept connection
   mov   rax, SYS_ACCEPT
   mov   rdi, qword [rsp]

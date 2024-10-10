@@ -361,12 +361,12 @@ log_request:
 
   mov   al, byte [rsi]
   cmp   al, NULL_CHAR
-  je    jump_log_route
+  je    .jump_log_route
 
   lea   rdi, [log_url]
   rep   movsb
 
-jump_log_route:
+.jump_log_route:
   call  log_add_duration
 
   call  log_add_status

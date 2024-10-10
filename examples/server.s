@@ -8,6 +8,10 @@ health:
   lea   rdi, [ok]
   call  serve_string
 
+  lea   rdi, [header_key]
+  lea   rsi, [header_value]
+  call  set_headers
+
   ret
 
 post:
@@ -121,4 +125,7 @@ section .data
   ok  db "ok", NULL_CHAR
 
   name_param db "name", NULL_CHAR
+
+  header_key    db "Set-Cookie", NULL_CHAR
+  header_value  db "value", NULL_CHAR
 

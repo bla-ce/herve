@@ -45,9 +45,10 @@ section .bss
   request_client          resq 1
 
   ; response string
-  response_status resb STATUS_MAX_LEN
-  response_proto  resb PROTO_MAX_LEN
-  response_body   resb BODY_MAX_LEN
+  response_status   resb STATUS_MAX_LEN
+  response_proto    resb PROTO_MAX_LEN
+  response_headers  resb HEADERS_MAX_LEN
+  response_body     resb BODY_MAX_LEN
 
   dir_entries resb DIR_ENTRIES_LEN
 
@@ -77,8 +78,6 @@ section .bss
   query         resb QUERY_MAX_VALUE_LEN
 
   errno resb ERR_MAX_LEN
-
-
 
 section .data
   enable  dw 1

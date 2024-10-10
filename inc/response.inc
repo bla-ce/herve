@@ -341,6 +341,20 @@ serve_dir:
 
   ret
 
+; Sets the value of a specific HTTP header.
+; @param  rdi: key
+; @param  rsi: value
+; @return rax: success/failure code
+set_headers:
+  sub   rsp, 0x10
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  add   rsp, 0x10
+  ret
 
 %endif
 
