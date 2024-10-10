@@ -1,6 +1,25 @@
-%ifndef TIME_INC
-%define TIME_INC
+section .bss
+  ; timers
+  start_tv_sec  resq 1
+  start_tv_nsec resq 1
 
+  end_tv_sec  resq 1
+  end_tv_nsec resq 1
+
+  ; dt struct
+  dt_year    resq 1
+  dt_month   resq 1
+  dt_day     resq 1
+  dt_hour    resq 1
+  dt_minute  resq 1
+  dt_second  resq 1
+
+section .data
+  utc_str db "UTC", NULL_CHAR
+
+  days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+
+section .text
 ; convert unix to date
 ; @param  rdi: timestamp
 ; @return rax: pointer to dt struct
@@ -188,6 +207,4 @@ is_leap_year:
   ; clean stack and return
   add   rsp, 0x8
   ret
-
-%endif
 

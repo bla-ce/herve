@@ -62,13 +62,6 @@ section .bss
   file_path resb FILE_PATH_LEN
   file_len  resq 1
 
-  ; timers
-  start_tv_sec  resq 1
-  start_tv_nsec resq 1
-
-  end_tv_sec  resq 1
-  end_tv_nsec resq 1
-
   duration resq 1
 
   log_port resb LOG_PORT_LEN
@@ -85,12 +78,7 @@ section .bss
 
   errno resb ERR_MAX_LEN
 
-  dt_year    resq 1
-  dt_month   resq 1
-  dt_day     resq 1
-  dt_hour    resq 1
-  dt_minute  resq 1
-  dt_second  resq 1
+
 
 section .data
   enable  dw 1
@@ -135,7 +123,6 @@ section .data
   log_new_line  db LINE_FEED
   log_len       equ $ - log_start
 
-  utc_str db "UTC", NULL_CHAR
 
   log_server_init_msg db " [DEBUG] Listening and serving HTTP on :"
   log_server_init_len equ $ - log_server_init_msg
@@ -145,8 +132,6 @@ section .data
 
   log_debug     db " [DEBUG] ", NULL_CHAR
   log_debug_len equ $ - log_debug
-
-  days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 
   ; error messages
   ERR_PORT_BOUNDS   db "[ERROR] port out of bounds", LINE_FEED, NULL_CHAR
