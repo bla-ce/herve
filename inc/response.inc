@@ -51,7 +51,7 @@ send_response:
 
   mov   rax, [rsp+0x10]
   cmp   rax, 0
-  je    skip_body
+  je    .skip_body
 
   mov   [rsp+0x20], rdi
 
@@ -136,7 +136,7 @@ send_response:
   mov   rdi, [rax]
   rep   movsb
 
-skip_body:
+.skip_body:
   ; get response length
   lea   rdi, [response]
   call  strlen
@@ -253,7 +253,7 @@ serve_static_file:
   call  get_ext
 
   cmp   rax, 0
-  jl    error_open_file
+  jl    .error_open
 
   mov   [rsp+0x18], rax
 
@@ -268,7 +268,7 @@ serve_static_file:
   syscall
 
   cmp   rax, 0
-  jl    error_open_file
+  jl    .error_open
 
   mov   qword [rsp+0x10], rax
 
@@ -280,7 +280,7 @@ serve_static_file:
   syscall
 
   cmp   rax, 0
-  jl    error_read_file
+  jl    .error_read
 
   mov   qword [rsp+0x8], rax
 
@@ -308,22 +308,22 @@ serve_static_file:
   add   rsp, 0x20
   ret
 
-error_open_file:
+.error_open:
   ; load 404
   mov   qword [response_status_code], NOT_FOUND
   mov   rdi, qword [request_client]
   lea   rsi, [STR_NOT_FOUND]
   call  send_error_response
-  jmp   return_error_file
+  jmp   .error
 
-error_read_file:
+.error_read:
   ; load 500
   mov   qword [response_status_code], INTERNAL_SERVER_ERROR
   mov   rdi, qword [request_client]
   lea   rsi, [STR_INTERNAL_SERVER_ERROR]
   call  send_error_response
 
-return_error_file:
+.error:
   ; clean stack
   add   rsp, 0x20
 
