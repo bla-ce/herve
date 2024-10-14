@@ -158,20 +158,14 @@ send_error_response:
   mov   [rsp+0x10], rdi
 
   ; load connection header
-  lea   rdi, [CONNECTION_CLOSE]
-  call  strlen
-  mov   rcx, rax
+  lea   rdi, [CONNECTION_HEADER]
+  lea   rsi, [CONNECTION_CLOSE]
+  call  set_headers
 
-  lea   rsi, [rdi]
   lea   rax, [rsp+0x10]
   mov   rdi, [rax]
-  rep   movsb
-
-  ; load new lines
-  lea   rsi, [post_headers]
-  mov   rcx, post_headers_len
-  rep   movsb
-
+  call  load_headers
+  
   lea   rdi, [response]
   call  strlen
   mov   rdx, rax

@@ -1,4 +1,3 @@
-; TODO: load headers for error response
 ; TODO: add middlewares
 ; TODO: timeout
 ; TODO: set/get cookie
