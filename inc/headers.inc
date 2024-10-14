@@ -89,8 +89,8 @@ set_headers:
   mov   rdi, [rax]
 
   call  header_exist
-  test  rax, rax
-  jnz   .error
+  cmp   rax, 0
+  jge   .exist
 
   mov   qword [rsp+0x10], 0 ; header count
   
@@ -133,6 +133,23 @@ set_headers:
   mov   rax, SUCCESS_CODE
   jmp   .return
 
+.exist:
+  lea   rdi, [response_headers]
+  
+  ; rax is already populated
+  xor   rdx, rdx
+  mov   rbx, HEADER_LEN
+  mul   rbx
+
+  add   rdi, rax
+
+  xor   rax, rax
+  mov   rcx, HEADER_LEN
+  rep   stosb
+
+  sub   rdi, HEADER_LEN
+  jmp   .set
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -142,9 +159,9 @@ set_headers:
 
 ; check if header key already in headers
 ; @param  rdi: key
-; @return rax: (bool)exist
+; @return rax: index of the key
 header_exist:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0 ; header_count
@@ -158,12 +175,24 @@ header_exist:
   mul   rbx
   add   rdi, rax
 
-  lea   rax, [rsp]
-  mov   rsi, [rax]
-  call  cmpstr
+  ; save rdi position
+  mov   [rsp+0x10], rdi
 
-  test  rax, rax
-  jnz   .equal
+  lea   rax, [rsp]
+  mov   rdi, [rax]
+  call  strlen
+  mov   r9, rax
+  lea   rdx, [rdi]
+
+  lea   rax, [rsp+0x10]
+  mov   rdi, [rax]
+  call  strlen
+  mov   rsi, rax
+  mov   rcx, r9
+  call  strpos
+
+  cmp  rax, 0
+  jge  .equal
 
   inc   qword [rsp+0x8]
 
@@ -174,12 +203,13 @@ header_exist:
   jmp   .loop
 
 .not_equal:
-  mov   rax, 0
+  mov   rax, -1
   jmp   .return
 
 .equal:
-  mov   rax, 1
+  mov   rax, qword [rsp+0x8]
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
+

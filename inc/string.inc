@@ -2,8 +2,8 @@
 %define STRING_INC
 
 ; compare rdi and rsi
-; @param  rdi: dst
-; @param  rsi: src
+; @param  rdi: str
+; @param  rsi: substr
 ; @return rax: rdi == rsi
 cmpstr:
   push  rbp

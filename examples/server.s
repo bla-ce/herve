@@ -5,6 +5,15 @@ global  _start
 section .text
 health:
   ; rdi -> request
+  lea   rdi, [header_key]
+  lea   rsi, [header_value]
+  call  set_headers
+
+  lea   rdi, [header_key]
+  lea   rsi, [header2_value]
+  b2:
+  call  set_headers
+
   lea   rdi, [ok]
   call  serve_string
 
@@ -124,7 +133,5 @@ section .data
 
   header_key    db "Set-Cookie", NULL_CHAR
   header_value  db "value", NULL_CHAR
-
-  header2_key    db "Set-Session", NULL_CHAR
   header2_value  db "value2", NULL_CHAR
 
