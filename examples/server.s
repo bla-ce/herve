@@ -11,6 +11,17 @@ health:
   lea   rdi, [header_key]
   lea   rsi, [header_value]
   call  set_headers
+  b1:
+
+  lea   rdi, [header_key]
+  lea   rsi, [header_value]
+  call  set_headers
+  b2:
+
+  lea   rdi, [header2_key]
+  lea   rsi, [header2_value]
+  call  set_headers
+  b3:
 
   ret
 
@@ -128,4 +139,7 @@ section .data
 
   header_key    db "Set-Cookie", NULL_CHAR
   header_value  db "value", NULL_CHAR
+
+  header2_key    db "Set-Session", NULL_CHAR
+  header2_value  db "value2", NULL_CHAR
 

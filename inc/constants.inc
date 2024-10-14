@@ -27,7 +27,6 @@ HOST_MAX_LEN          equ 0xFF
 QUERY_MAX_LEN         equ 0x20
 QUERY_MAX_VALUE_LEN   equ 0x10
 URL_MAX_LEN           equ 0x30
-HEADERS_MAX_LEN       equ 0x2000
 BODY_MAX_LEN          equ 0x2000
 
 ; response struct constants
@@ -79,7 +78,9 @@ SLASH           equ 47
 ZERO_CHAR       equ 48
 COLON           equ 58
 EQUAL_SIGN      equ 61
+UPPER_M_CHAR    equ 77
 QUESTION_MARK   equ 63
+OPENING_BRACKET equ 91
 LOW_N_CHAR      equ 110
 LOW_S_CHAR      equ 115
 

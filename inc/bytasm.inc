@@ -1,16 +1,22 @@
+; TODO: set headers
+; TODO: add middlewares
+; TODO: timeout
+; TODO: set/get cookie
 ; TODO: redirects
+; TODO: color debug
 ; TODO: public/private functions if possible
 ; TODO: read basic auth
-; TODO: add date and time to log
 ; TODO: floating point for duration
 ; TODO: log in sec
 ; TODO: add https
 ; TODO: doc and comments
+; TODO: concurrency
 
 %ifndef BYT_ASM_INC
 %define BYT_ASM_INC
 
 %include "constants.inc"
+%include "headers.inc"
 %include "log.inc"
 %include "string.inc"
 %include "server.inc"
@@ -121,7 +127,6 @@ section .data
   log_status    times STATUS_CODE_LEN db SPACE
   log_new_line  db LINE_FEED
   log_len       equ $ - log_start
-
 
   log_server_init_msg db " [DEBUG] Listening and serving HTTP on :"
   log_server_init_len equ $ - log_server_init_msg

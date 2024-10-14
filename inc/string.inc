@@ -9,12 +9,16 @@ cmpstr:
   push  rbp
   mov   rbp, rsp
 
+  push  rdi
   push  rsi
 
   call  strlen
+  test  rax, rax
+  jz    .str_not_equal
   mov   rcx, rax
 
   pop   rsi
+  pop   rdi
   rep   cmpsb
   jne   .str_not_equal
 
