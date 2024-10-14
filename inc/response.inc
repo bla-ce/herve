@@ -49,82 +49,41 @@ send_response:
   mov   al, LINE_FEED
   stosb
 
-  mov   rax, [rsp+0x10]
-  cmp   rax, 0
-  je    .skip_body
-
   mov   [rsp+0x20], rdi
 
-  ; load content type
-  lea   rax, [rsp+0x10]
-  mov   rdi, [rax]
-  call  strlen
-  mov   rcx, rax
-  lea   rsi, [rdi]
-  lea   rax, [rsp+0x20]
-  mov   rdi, [rax]
-  rep   movsb
+  ; set connection header
+  lea   rdi, [CONNECTION_HEADER]
+  lea   rsi, [CONNECTION_CLOSE]
+  call  set_headers
 
-  ; load new line
-  xor   rax, rax
-  mov   al, CARRIAGE_RETURN
-  stosb
-
-  mov   al, LINE_FEED
-  stosb
-
-  mov   [rsp+0x20], rdi
-
-  ; load connection
-  lea   rdi, [CONNECTION_CLOSE]
-  call  strlen
-  mov   rcx, rax
-  lea   rsi, [rdi]
-  lea   rax, [rsp+0x20]
-  mov   rdi, [rax]
-  rep   movsb
-
-  ; load new line
-  xor   rax, rax
-  mov   al, CARRIAGE_RETURN
-  stosb
-  mov   al, LINE_FEED
-  stosb
-
-  mov [rsp+0x20], rdi
-
-  lea   rdi, [CONTENT_LENGTH]
-  call  strlen
-  mov   rcx, rax
-  lea   rsi, [rdi]
-  lea   rax, [rsp+0x20]
-  mov   rdi, [rax]
-  rep   movsb
-
-  mov [rsp+0x20], rdi
-
-  ; get body length
+  ; set content_length
+  ; get body
   lea   rax, [rsp+0x18]
   mov   rdi, [rax]
   call  strlen
-  
+  test  rax, rax
+  jz    .skip_body
+
+  ; set content length header
   mov   rdi, rax
   call  to_string
+  lea   rsi, [rax]
+  lea   rdi, [CONTENT_LENGTH_HEADER]
+  call  set_headers
 
-  lea   rdi, [rax]
-  call  strlen
-  mov   rcx, rax
-  lea   rsi, [rdi]
+  ; set content type header
+  lea   rdi, [CONTENT_TYPE_HEADER]
+  lea   rax, [rsp+0x10]
+  mov   rsi, [rax]
+  call  set_headers
+
+.skip_body:
+  ; load headers
   lea   rax, [rsp+0x20]
   mov   rdi, [rax]
-  rep   movsb 
+  call  load_headers
 
-  ; load new lines
-  lea   rsi, [post_headers]
-  mov   rcx, post_headers_len
-  rep   movsb
-  
-  mov   [rsp+0x20], rdi
+  mov   [rsp+0x20], rax
 
   ; load body
   lea   rax, [rsp+0x18]
@@ -136,7 +95,6 @@ send_response:
   mov   rdi, [rax]
   rep   movsb
 
-.skip_body:
   ; get response length
   lea   rdi, [response]
   call  strlen

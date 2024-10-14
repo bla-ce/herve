@@ -8,21 +8,6 @@ health:
   lea   rdi, [ok]
   call  serve_string
 
-  lea   rdi, [header_key]
-  lea   rsi, [header_value]
-  call  set_headers
-  b1:
-
-  lea   rdi, [header_key]
-  lea   rsi, [header_value]
-  call  set_headers
-  b2:
-
-  lea   rdi, [header2_key]
-  lea   rsi, [header2_value]
-  call  set_headers
-  b3:
-
   ret
 
 post:

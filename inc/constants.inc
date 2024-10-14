@@ -141,16 +141,13 @@ STR_SERVICE_UNAVAILABLE    db "503 Service Unavailable", NULL_CHAR
 HTTP_1_1 db "HTTP/1.1", NULL_CHAR
 
 ; content type
-CONTENT_HTML  db "Content-Type: text/html; charset=UTF-8", NULL_CHAR
-CONTENT_CSS   db "Content-Type: text/css; charset=UTF-8", NULL_CHAR
-CONTENT_JS    db "Content-Type: text/javascript; charset=UTF-8", NULL_CHAR
-CONTENT_PLAIN db "Content-Type: text/plain; charset=UTF-8", NULL_CHAR
+CONTENT_HTML  db "text/html; charset=UTF-8", NULL_CHAR
+CONTENT_CSS   db "text/css; charset=UTF-8", NULL_CHAR
+CONTENT_JS    db "text/javascript; charset=UTF-8", NULL_CHAR
+CONTENT_PLAIN db "text/plain; charset=UTF-8", NULL_CHAR
 
 ; connection
-CONNECTION_CLOSE db "Connection: close", NULL_CHAR
-
-; content_length
-CONTENT_LENGTH db "Content-Length: ", NULL_CHAR
+CONNECTION_CLOSE db "close", NULL_CHAR
 
 ; logs
 LOG_PORT_LEN    equ 5 ; port + new line char

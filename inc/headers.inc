@@ -1,12 +1,70 @@
-.section data
+section .bss
+response_headers resb HEADERS_MAX_LEN
+
+section .data
 ; headers constants
 HEADERS_MAX_COUNT     equ 0x20
-HEADER_KEY_MAX_LEN    equ 0x20
-HEADER_VALUE_MAX_LEN  equ 0x20
+HEADER_KEY_MAX_LEN    equ 0x2000
+HEADER_VALUE_MAX_LEN  equ 0x2000
 HEADER_LEN            equ HEADER_KEY_MAX_LEN + HEADER_VALUE_MAX_LEN
 HEADERS_MAX_LEN       equ HEADER_LEN * HEADERS_MAX_COUNT
 
-.section text
+CONTENT_TYPE_HEADER   db "Content-Type", NULL_CHAR
+CONTENT_LENGTH_HEADER db "Content-Length", NULL_CHAR
+CONNECTION_HEADER     db "Connection", NULL_CHAR
+
+section .text
+; load the headers into the response
+; @param  rdi: response pointer
+; @return rax: response pointer after headers
+load_headers:
+  sub   rsp, 0x10
+
+  mov   [rsp], rdi
+  lea   rsi, [rdi]
+  mov   qword [rsp+0x8], 0 ; header count
+
+.loop:
+  lea   rsi, [response_headers]
+  mov   rax, qword [rsp+0x8]
+  mov   rbx, HEADER_LEN
+  mul   rbx
+  add   rsi, rax
+
+  cmp   byte [rsi], NULL_CHAR
+  je    .skip_cpy
+
+  ; load header
+  call  strcpy
+
+  ; load new line
+  xor   rax, rax
+  mov   al, CARRIAGE_RETURN
+  stosb
+  mov   al, LINE_FEED
+  stosb
+
+.skip_cpy:
+  inc   qword [rsp+0x8]
+  mov   rax, HEADERS_MAX_COUNT
+  cmp   qword [rsp+0x8], rax
+  jge   .return
+
+  jmp   .loop
+  
+.return:
+  ; load post_headers
+  xor   rax, rax
+  mov   al, CARRIAGE_RETURN
+  stosb
+  mov   al, LINE_FEED
+  stosb
+
+  lea   rax, [rdi]
+
+  add   rsp, 0x10
+  ret
+
 ; set the headers
 ; @param  rdi: key
 ; @param  rsi: value
@@ -16,6 +74,19 @@ set_headers:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+
+  call  strlen
+  cmp   rax, HEADER_KEY_MAX_LEN
+  jge   .error
+
+  lea   rax, [rsp+0x8]
+  mov   rdi, [rax]
+  call  strlen
+  cmp   rax, HEADER_VALUE_MAX_LEN
+  jge   .error
+
+  lea   rax, [rsp]
+  mov   rdi, [rax]
 
   call  header_exist
   test  rax, rax
@@ -49,6 +120,11 @@ set_headers:
   mov   al, COLON
   stosb
 
+  ; copy space
+  xor   rax, rax
+  mov   al, SPACE
+  stosb
+
   ; copy value
   lea   rax, [rsp+0x8]   
   mov   rsi, [rax]
@@ -63,7 +139,6 @@ set_headers:
 .return:
   add   rsp, 0x18
   ret
-
 
 ; check if header key already in headers
 ; @param  rdi: key

@@ -193,7 +193,7 @@ strpos:
   jmp   .return
 
 .not_found:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   
 .return:
   add   rsp, 8
@@ -231,6 +231,8 @@ print:
 
   push  rdi
   call  strlen
+  test  rax, rax
+  jz    .return
 
   pop   rdi
 
@@ -241,6 +243,7 @@ print:
   mov   rdi, STDOUT
   syscall
 
+.return:
   ret
 
 println:
@@ -248,6 +251,8 @@ println:
   mov   rbp, rsp
 
   call  print
+  cmp   rax, 0
+  jl    .return
 
   push  LINE_FEED
 
@@ -261,6 +266,7 @@ println:
   pop   rax
   xor   rax, rax
 
+.return:
   leave  
   ret
 

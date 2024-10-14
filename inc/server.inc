@@ -458,6 +458,11 @@ run_server:
   lea   rdi, [request_body]
   rep   stosb
 
+  mov   rcx, HEADERS_MAX_LEN
+  xor   rax, rax
+  lea   rdi, [response_headers]
+  rep   stosb
+
   ; clear request
   mov   rcx, REQUEST_MAX_LEN
   xor   rax, rax

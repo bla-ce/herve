@@ -1,4 +1,4 @@
-; TODO: set headers
+; TODO: load headers for error response
 ; TODO: add middlewares
 ; TODO: timeout
 ; TODO: set/get cookie
@@ -53,7 +53,6 @@ section .bss
   ; response string
   response_status   resb STATUS_MAX_LEN
   response_proto    resb PROTO_MAX_LEN
-  response_headers  resb HEADERS_MAX_LEN
   response_body     resb BODY_MAX_LEN
 
   dir_entries resb DIR_ENTRIES_LEN
