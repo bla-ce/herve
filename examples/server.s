@@ -11,8 +11,16 @@ health:
 
   lea   rdi, [header_key]
   lea   rsi, [header2_value]
-  b2:
   call  set_header
+
+  lea   rdi, [header_key]
+  call  get_header
+  cmp   rax, 0
+  jl    error
+
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  println
 
   lea   rdi, [ok]
   call  serve_string

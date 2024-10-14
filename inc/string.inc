@@ -113,7 +113,7 @@ to_string:
 
 ; returns the index of the next occurence of the char
 ; relative to current address
-; returns the preserved address into rsi
+; returns the preserved address into rdi
 find_next_char:
   ; rdi -> string
   ; rsi -> char

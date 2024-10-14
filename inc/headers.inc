@@ -1,5 +1,6 @@
 section .bss
-response_headers resb HEADERS_MAX_LEN
+response_headers  resb HEADERS_MAX_LEN
+buf_header_value  resb HEADER_VALUE_MAX_LEN
 
 section .data
 ; headers constants
@@ -212,4 +213,52 @@ header_exist:
 .return:
   add   rsp, 0x18
   ret
+
+
+; gets value of header, returns -1 if does not exist
+; @param  rdi: key
+; @return rax: pointer to value
+get_header:
+  sub   rsp, 0x8
+  
+  mov   [rsp], rdi
+
+  call  header_exist
+  cmp   rax, 0
+  jl    .return
+
+  ; rax contains the index
+  lea   rdi, [response_headers]
+  mov   rbx, HEADER_LEN
+  mul   rbx
+  add   rdi, rax
+
+  mov   rsi, COLON
+  call  find_next_char
+
+  ; go to ':' and add two to go after the space
+  add   rdi, rax
+  add   rdi, 2
+
+.b1:
+  ; save rdi onto the stack
+  mov   [rsp], rdi
+
+  ; clear value buffer
+  xor   rax, rax
+  lea   rdi, [buf_header_value]
+  mov   rcx, HEADER_VALUE_MAX_LEN
+  rep   stosb
+
+  lea   rdi, [buf_header_value]
+  lea   rax, [rsp]
+  mov   rsi, [rax]
+  call  strcpy
+
+  lea   rax, [buf_header_value]
+
+.return:
+  add   rsp, 0x8
+  ret
+
 
