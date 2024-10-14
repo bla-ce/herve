@@ -7,12 +7,12 @@ health:
   ; rdi -> request
   lea   rdi, [header_key]
   lea   rsi, [header_value]
-  call  set_headers
+  call  set_header
 
   lea   rdi, [header_key]
   lea   rsi, [header2_value]
   b2:
-  call  set_headers
+  call  set_header
 
   lea   rdi, [ok]
   call  serve_string

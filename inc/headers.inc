@@ -69,7 +69,7 @@ load_headers:
 ; @param  rdi: key
 ; @param  rsi: value
 ; @return rax: return code
-set_headers:
+set_header:
   sub   rsp, 0x18
 
   mov   [rsp], rdi

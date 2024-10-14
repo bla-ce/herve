@@ -54,7 +54,7 @@ send_response:
   ; set connection header
   lea   rdi, [CONNECTION_HEADER]
   lea   rsi, [CONNECTION_CLOSE]
-  call  set_headers
+  call  set_header
 
   ; set content_length
   ; get body
@@ -69,13 +69,13 @@ send_response:
   call  to_string
   lea   rsi, [rax]
   lea   rdi, [CONTENT_LENGTH_HEADER]
-  call  set_headers
+  call  set_header
 
   ; set content type header
   lea   rdi, [CONTENT_TYPE_HEADER]
   lea   rax, [rsp+0x10]
   mov   rsi, [rax]
-  call  set_headers
+  call  set_header
 
 .skip_body:
   ; load headers
@@ -160,7 +160,7 @@ send_error_response:
   ; load connection header
   lea   rdi, [CONNECTION_HEADER]
   lea   rsi, [CONNECTION_CLOSE]
-  call  set_headers
+  call  set_header
 
   lea   rax, [rsp+0x10]
   mov   rdi, [rax]
