@@ -78,11 +78,16 @@ SLASH           equ 47
 ZERO_CHAR       equ 48
 COLON           equ 58
 EQUAL_SIGN      equ 61
+UPPER_A_CHAR    equ 65
 UPPER_M_CHAR    equ 77
+UPPER_Z_CHAR    equ 90
 QUESTION_MARK   equ 63
 OPENING_BRACKET equ 91
+LOW_A_CHAR      equ 97
 LOW_N_CHAR      equ 110
 LOW_S_CHAR      equ 115
+LOW_Z_CHAR      equ 122
+LOWER_TO_UPPER  equ 32
 
 ; extended ascii
 MICRO_FIRST   equ 0xCE

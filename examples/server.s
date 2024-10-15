@@ -22,9 +22,6 @@ health:
   mov   rsi, 0
   call  println
 
-  lea   rdi, [header_key]
-  call  del_header
-
   lea   rdi, [ok]
   call  serve_string
 
@@ -142,7 +139,7 @@ section .data
 
   name_param db "name", NULL_CHAR
 
-  header_key    db "Set-Cookie", NULL_CHAR
+  header_key    db "sEt-cookie", NULL_CHAR
   header_value  db "value", NULL_CHAR
   header2_value  db "value2", NULL_CHAR
 

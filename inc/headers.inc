@@ -89,6 +89,14 @@ set_header:
   lea   rax, [rsp]
   mov   rdi, [rax]
 
+  call  canonical_mime_header_key
+  cmp   rax, 0
+  jl    .error
+
+  lea   rdi, [rax]
+
+  mov   [rsp], rdi
+
   call  header_exist
   cmp   rax, 0
   jge   .exist
@@ -221,6 +229,12 @@ header_exist:
 get_header:
   sub   rsp, 0x8
   
+  call  canonical_mime_header_key
+  cmp   rax, 0
+  jl    .error
+
+  lea   rdi, [rax]
+
   mov   [rsp], rdi
 
   call  header_exist
@@ -240,7 +254,6 @@ get_header:
   add   rdi, rax
   add   rdi, 2
 
-.b1:
   ; save rdi onto the stack
   mov   [rsp], rdi
 
@@ -256,6 +269,10 @@ get_header:
   call  strcpy
 
   lea   rax, [buf_header_value]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, 0x8
@@ -296,4 +313,82 @@ del_header:
   add   rsp, 0x8
   ret
 
+; returns the canonical format of the MIME header key
+; @param  rdi: header key
+; @return rax: canonical format of the header key
+canonical_mime_header_key:
+  sub   rsp, 0x10
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 1 ; next char needs to be upper
+
+  lea   rax, [rsp]
+  mov   rsi, [rax]
+
+.loop:
+  xor   rax, rax
+  mov   al, byte [rsi]
+
+  ; check if it's valid char
+  cmp   al, 0
+  jl    .error
+  je    .return ; end of string
+
+  cmp   al, LOW_Z_CHAR
+  jg    .error
+
+.check_hyphen:
+  cmp   al, HYPHEN
+  je    .is_hyphen
+
+  .check_upper:
+  cmp   al, UPPER_A_CHAR
+  jl    .error
+
+  cmp   al, UPPER_Z_CHAR
+  jl    .is_upper
+
+.check_lower:
+  cmp   al, LOW_A_CHAR
+  jl    .error
+
+  cmp   al, LOW_Z_CHAR
+  jle   .is_lower
+
+  jmp   .error
+
+.is_hyphen:
+  mov   qword [rsp+0x8], 1
+  inc   rsi
+  jmp   .loop
+
+.is_lower:
+  cmp   qword [rsp+0x8], 0
+  jne   .upper
+
+  inc   rsi
+  jmp    .loop
+  
+.upper:
+  sub   byte [rsi], LOWER_TO_UPPER
+
+  mov   qword [rsp+0x8], 0
+  inc   rsi
+  jmp   .loop
+
+.is_upper:
+  mov   qword [rsp+0x8], 0
+  inc   rsi
+  jmp   .loop
+
+.error:
+  mov   rax, FAILURE_CODE
+  add   rsp, 0x10
+  ret
+
+.return:
+  lea   rsi, [rsp]
+  mov   rax, [rsi]
+  add   rsp, 0x10
+  ret
 
