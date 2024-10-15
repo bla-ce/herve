@@ -225,6 +225,9 @@ strlen:
 print:
   ; rdi -> string
   ; rsi -> string_len (optional, if set to 0, need to compute length)
+  push  rbp
+  mov   rbp, rsp
+
   mov   rax, rsi
   cmp   rax, 0
   jg    .known_length
@@ -244,6 +247,7 @@ print:
   syscall
 
 .return:
+  leave
   ret
 
 println:
@@ -268,6 +272,22 @@ println:
 
 .return:
   leave  
+  ret
+
+; prints a character on standard output
+print_char:
+  push  rbp
+  mov   rbp, rsp
+
+  push  rdi
+
+  mov   rax, SYS_WRITE
+  mov   rdi, STDOUT
+  lea   rsi, [rsp]
+  mov   rdx, 1
+  syscall
+
+  leave
   ret
 
 %endif

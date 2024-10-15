@@ -79,7 +79,7 @@ get_ext:
   jmp   .return
 
 .not_supported:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, 0x8

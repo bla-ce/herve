@@ -87,6 +87,7 @@ LOW_A_CHAR      equ 97
 LOW_N_CHAR      equ 110
 LOW_S_CHAR      equ 115
 LOW_Z_CHAR      equ 122
+VERTICAL_BAR    equ 124
 LOWER_TO_UPPER  equ 32
 
 ; extended ascii

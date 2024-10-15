@@ -1,5 +1,3 @@
-; TODO: delete header key
-; TODO: canonical mime header key
 ; TODO: add middlewares
 ; TODO: timeout
 ; TODO: set/get cookie
@@ -113,29 +111,6 @@ section .data
 
   post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
   post_headers_len  equ $ - post_headers - 1
-
-  ; log
-  log_start     db " [LOG] "
-  log_time      times LOG_TIME_SIZE db SPACE
-  log_delim4    db " | "
-  log_method    times METHOD_MAX_LEN db SPACE
-  log_delim     db " | "
-  log_url       times URL_MAX_LEN db SPACE
-  log_delim2    db " | " 
-  log_duration  times LONG_SIZE+2 db SPACE
-  log_delim3    db " | "
-  log_status    times STATUS_CODE_LEN db SPACE
-  log_new_line  db LINE_FEED
-  log_len       equ $ - log_start
-
-  log_server_init_msg db " [DEBUG] Listening and serving HTTP on :"
-  log_server_init_len equ $ - log_server_init_msg
-
-  log_routes_available_msg db LINE_FEED, " [DEBUG] Routes available:", NULL_CHAR
-  log_routes_available_len equ $ - log_routes_available_msg
-
-  log_debug     db " [DEBUG] ", NULL_CHAR
-  log_debug_len equ $ - log_debug
 
   ; error messages
   ERR_PORT_BOUNDS   db "[ERROR] port out of bounds", LINE_FEED, NULL_CHAR

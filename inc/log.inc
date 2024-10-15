@@ -1,54 +1,49 @@
-%ifndef LOG_INC
-%define LOG_INC
+section .data
+log_server_init_msg db SPACE, "[DEBUG] Listening and serving HTTP on :", NULL_CHAR
+log_routes_available_msg db LINE_FEED, SPACE, "[DEBUG] Routes available:", NULL_CHAR
 
+log_debug db SPACE, "[DEBUG]", SPACE, NULL_CHAR
+log_arrow db SPACE, "->", SPACE, NULL_CHAR
+
+log_pre       db SPACE, "[LOG]", SPACE, NULL_CHAR
+log_delimiter db SPACE, VERTICAL_BAR, SPACE, NULL_CHAR
+
+log_time      times LOG_TIME_SIZE db SPACE
+log_duration  times LONG_SIZE+2   db SPACE
+
+section .text
 ; initial log of the available routes and port the server is listening to
 log_server_init:
-  sub   rsp, 0x8 ; routes count for route logs
+  sub   rsp, 0x10 ; routes count for route logs
 
   lea   rdi, [log_server_init_msg]
-  mov   rsi, log_server_init_len
+  mov   rsi, 0
   call	print 
 
   mov   rdi, qword [port]
   call  to_string
 
   lea   rdi, [rax]
-  call  strlen
-
-  lea   rsi, [rdi]
-  lea   rdi, [log_port]
-  mov   rcx, rax
-  rep   movsb
-
-  ; add new line at the end
-  mov   byte [rdi], LINE_FEED
-  sub   rdi, rax
-  mov   rsi, rax  ; length of port
-  inc   rsi       ; include new line char
-  call	print
+  mov   rsi, 0
+  call	println
 
   lea   rdi, [log_routes_available_msg]
-  mov   rsi, log_routes_available_len
-  call	print
+  mov   rsi, 0
+  call	println
 
   ; log routes - [DEBUG] METHOD ROUTE
 
   ; keep track of routes
   mov   qword [rsp], 0
 
-  ; log new line
-  lea   rdi, [log_new_line]
-  mov   rsi, 1
-  call	print
-
 .loop:
   ; log debug 
   lea   rdi, [log_debug]
-  mov   rsi, log_debug_len
+  mov   rsi, 0
   call	print
 
   ; load routes_list
-  lea   rsi, [routes_list]
+  lea   rdi, [routes_list]
 
   ; get route pos
   xor   rdx, rdx
@@ -57,51 +52,26 @@ log_server_init:
   mul   rbx
 
   ; go to route
-  add   rsi, rax
-
-  ; populate log url
-  lea   rdi, [log_url]
-  mov   rcx, URL_MAX_LEN
-  rep   movsb
-
-  ; populate method url
-  lea   rdi, [log_method]
-  mov   rcx, METHOD_MAX_LEN
-  rep   movsb
-
-  ; clear and add space after method and url
-  lea   rdi, [log_url]
-  call  strlen
-
   add   rdi, rax
-  mov   rcx, URL_MAX_LEN
-  sub   rcx, rax
-  mov   al, SPACE
-  rep   stosb
 
-  lea   rdi, [log_method]
-  call  strlen
-
-  add   rdi, rax
-  mov   rcx, METHOD_MAX_LEN
-  sub   rcx, rax
-  mov   al, SPACE
-  rep   stosb
+  ; save route pos onto the stack
+  mov   [rsp+0x8], rdi
 
   ; log method
-  lea   rdi, [log_method]
+  ; go to method
+  add   rdi, URL_MAX_LEN
   mov   rsi, METHOD_MAX_LEN
-  call	print
+  call  print
 
-  ; log url
-  lea   rdi, [log_url]
+  ; print space
+  mov   rdi, SPACE
+  call  print_char
+
+  ; load url and log it
+  lea   rax, [rsp+0x8]
+  mov   rdi, [rax]
   mov   rsi, URL_MAX_LEN
-  call	print
-  
-  ; log new line
-  lea   rdi, [log_new_line]
-  mov   rsi, 1
-  call	print
+  call  println
 
   inc   qword [rsp]
   
@@ -113,16 +83,15 @@ log_server_init:
 
 .return:
   ; log new line
-  lea   rdi, [log_new_line]
-  mov   rsi, 1
-  call	print
+  mov   rdi, LINE_FEED
+  call	print_char
 
   mov   rax, 0
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; store date string inside log_date
-log_add_time:
+log_get_time:
   push  rbp
   mov   rbp, rsp
 
@@ -246,22 +215,8 @@ log_add_time:
   leave
   ret
 
-; store status code inside log_status
-log_add_status:
-  mov   eax, dword [response_status_code]
-  cdqe
-
-  mov   rdi, rax
-  call  to_string
-  
-  lea   rsi, [rax]
-  lea   rdi, [log_status]
-  call  strcpy
-
-  ret
-
 ; store duration inside log_duration
-log_add_duration:
+log_get_duration:
   sub   rsp, 0x8 ; duration_str length
   mov   qword [rsp], 0
 
@@ -311,19 +266,8 @@ log_add_duration:
   mov   rax, SUCCESS_CODE
   ret
 
-
 log_request:
-  ; clear log buffers
-  mov   rcx, METHOD_MAX_LEN
-  mov   rax, SPACE
-  lea   rdi, [log_method]
-  rep   stosb
-
-  mov   rcx, URL_MAX_LEN
-  mov   rax, SPACE
-  lea   rdi, [log_url]
-  rep   stosb
-
+  ; clear log duration and time
   mov   rcx, LONG_SIZE
   add   rcx, 2
   mov   rax, SPACE
@@ -335,47 +279,59 @@ log_request:
   lea   rdi, [log_time]
   rep   stosb
 
+  ; [LOG] 
+  lea   rdi, [log_pre]
+  mov   rsi, 0
+  call  print
+
+  ; log time
+  call  log_get_time
+
+  lea   rdi, [log_time]
+  mov   rsi, LOG_TIME_SIZE
+  call  print
+
+  lea   rdi, [log_delimiter]
+  mov   rsi, 0
+  call  print
+
+  call  log_get_duration
+
+  ; log request duration
+  lea   rdi, [log_duration]
+  mov   rsi, LONG_SIZE
+  add   rsi, 2
+  call  print
+
+  lea   rdi, [log_delimiter]
+  mov   rsi, 0
+  call  print
+
+  ; log status code
+  mov   rdi, qword [response_status_code]
+  call  to_string
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  print
+
+  ; log delimiter
+  lea   rdi, [log_delimiter]
+  mov   rsi, 0
+  call  print
+
+  ; log method
   lea   rdi, [request_method]
-  call  strlen
-  mov   rcx, rax
+  mov   rsi, METHOD_MAX_LEN
+  call  print
 
-  ; make sure rcx is below METHOD_MAX_LEN
-  cmp   rcx, METHOD_MAX_LEN
-  mov   rax, METHOD_MAX_LEN
-  cmovg rcx, rax
+  lea   rdi, [log_arrow]
+  mov   rsi, 0
+  call  print
 
-  lea   rsi, [request_method]
-  lea   rdi, [log_method]
-  rep   movsb
-
+  ; log url
   lea   rdi, [request_url]
-  call  strlen
-  mov   rcx, rax
-
-  ; make sure rcx is below URL_MAX_LEN
-  cmp   rcx, URL_MAX_LEN
-  mov   rax, URL_MAX_LEN
-  cmovg rcx, rax
-
-  lea   rsi, [request_url]
-
-  mov   al, byte [rsi]
-  cmp   al, NULL_CHAR
-  je    .jump_log_route
-
-  lea   rdi, [log_url]
-  rep   movsb
-
-.jump_log_route:
-  call  log_add_duration
-
-  call  log_add_status
-
-  call  log_add_time
-
-  lea   rdi, [log_start]
-  mov   rsi, log_len
-  call	print 
+  mov   rsi, URL_MAX_LEN
+  call  println
 
   mov   rax, 0
   ret
@@ -387,6 +343,4 @@ log_malformed_request:
 
   mov   rax, 0
   ret
-
-%endif
 
