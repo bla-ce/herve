@@ -2,7 +2,6 @@
 ; TODO: timeout
 ; TODO: set/get cookie
 ; TODO: redirects
-; TODO: color debug
 ; TODO: public/private functions if possible
 ; TODO: read basic auth
 ; TODO: floating point for duration
@@ -68,8 +67,6 @@ section .bss
   file_len  resq 1
 
   duration resq 1
-
-  log_port resb LOG_PORT_LEN
 
   to_string_buf resb TO_STRING_MAX
 

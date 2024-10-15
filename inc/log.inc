@@ -11,6 +11,12 @@ log_delimiter db SPACE, VERTICAL_BAR, SPACE, NULL_CHAR
 log_time      times LOG_TIME_SIZE db SPACE
 log_duration  times LONG_SIZE+2   db SPACE
 
+; ansi color
+red_fg      db 0x1b, "[31m", NULL_CHAR
+green_fg    db 0x1b, "[32m", NULL_CHAR
+yellow_fg   db 0x1b, "[33m", NULL_CHAR
+default_fg  db 0x1b, "[39m", NULL_CHAR
+
 section .text
 ; initial log of the available routes and port the server is listening to
 log_server_init:
@@ -308,11 +314,8 @@ log_request:
   call  print
 
   ; log status code
-  mov   rdi, qword [response_status_code]
-  call  to_string
-  lea   rdi, [rax]
-  mov   rsi, 0
-  call  print
+  call  log_status_code
+
 
   ; log delimiter
   lea   rdi, [log_delimiter]
@@ -342,5 +345,47 @@ log_malformed_request:
   call  println
 
   mov   rax, 0
+  ret
+
+; log the status code with corresponding color
+log_status_code:
+  mov   rdi, qword [response_status_code]
+  cmp   rdi, BAD_REQUEST
+  jl    .green
+
+  cmp   rdi, INTERNAL_SERVER_ERROR
+  jl    .yellow
+
+  jmp   .red
+
+  ; load green
+.green:
+  lea   rdi, [green_fg]
+  jmp   .print
+
+.yellow:
+  lea   rdi, [yellow_fg]
+  jmp   .print
+
+.red:
+  lea   rdi, [red_fg]
+
+.print:
+  ; print ansi to change color
+  mov   rsi, 0
+  call  print
+
+  ; print status code
+  mov   rdi, qword [response_status_code]
+  call  to_string
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  print
+
+  ; back to default color
+  lea   rdi, [default_fg]
+  mov   rsi, 0
+  call  print
+
   ret
 
