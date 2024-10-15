@@ -262,3 +262,38 @@ get_header:
   ret
 
 
+; delete header, returns -1 if does not exist
+; @param  rdi: key
+; @return rax: code
+del_header:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
+  ; get index of the header
+  call  header_exist
+
+  cmp   rax, 0
+  jl    .error
+
+  xor   rdx, rdx
+  mov   rbx, HEADER_LEN
+  mul   rbx
+
+  lea   rdi, [response_headers]
+  add   rdi, rax
+
+  mov   rcx, HEADER_LEN
+  rep   stosb
+  
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+

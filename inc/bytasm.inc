@@ -1,3 +1,5 @@
+; TODO: delete header key
+; TODO: canonical mime header key
 ; TODO: add middlewares
 ; TODO: timeout
 ; TODO: set/get cookie

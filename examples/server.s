@@ -22,6 +22,9 @@ health:
   mov   rsi, 0
   call  println
 
+  lea   rdi, [header_key]
+  call  del_header
+
   lea   rdi, [ok]
   call  serve_string
 
