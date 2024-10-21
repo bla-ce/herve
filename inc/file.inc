@@ -1,6 +1,10 @@
-%ifndef FILE_INC
-%define FILE_INC
+section .bss
 
+section .data
+  ERR_EXT_NOT_SUPP  db "file extension not supported", NULL_CHAR
+  ERR_NO_EXT        db "file doesn't have an extension", NULL_CHAR
+
+section .text
 ; extract extension of a file
 ; @param  rdi: file_path
 ; @return rax: content type
@@ -75,7 +79,7 @@ get_ext:
   jmp   .return
 
 .no_ext:
-  mov   rax, 0
+  mov   rax, FAILURE_CODE
   jmp   .return
 
 .not_supported:
@@ -84,6 +88,4 @@ get_ext:
 .return:
   add   rsp, 0x8
   ret
-
-%endif
 

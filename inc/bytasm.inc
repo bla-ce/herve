@@ -1,5 +1,17 @@
+; TODO: mmap
+; TODO: set timeout
+; TODO: session management
+; TODO: block ip
+; TODO: rate limit
+; TODO: add wildcard route
+; TODO: database integration
+; TODO: url encode and decode
+; TODO: graceful stop
+; TODO: parse request headers
+; TODO: templates
+; TODO: add health_check
 ; TODO: add middlewares
-; TODO: timeout
+; TODO: JSON
 ; TODO: set/get cookie
 ; TODO: redirects
 ; TODO: public/private functions if possible
@@ -16,6 +28,7 @@
 %include "constants.inc"
 %include "headers.inc"
 %include "log.inc"
+%include "memory.inc"
 %include "string.inc"
 %include "server.inc"
 %include "request.inc"
@@ -30,7 +43,7 @@ section .bss
   request     resb REQUEST_MAX_LEN
   request_len resq 1
 
-  response     resb RESPONSE_MAX_LEN
+  response     resq RESPONSE_MAX_LEN
   response_len resq 1
 
   ; request string
@@ -78,8 +91,6 @@ section .bss
   query_params  resb QUERY_MAX_LEN
   query         resb QUERY_MAX_VALUE_LEN
 
-  errno resb ERR_MAX_LEN
-
 section .data
   enable  dw 1
 
@@ -108,18 +119,6 @@ section .data
 
   post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
   post_headers_len  equ $ - post_headers - 1
-
-  ; error messages
-  ERR_PORT_BOUNDS   db "[ERROR] port out of bounds", LINE_FEED, NULL_CHAR
-  ERR_CREAT_SOCKET  db "[ERROR] failed to create socket", LINE_FEED, NULL_CHAR
-  ERR_SET_SOCKOPT   db "[ERROR] failed to set socket option", LINE_FEED, NULL_CHAR
-  ERR_BIND_SOCKET   db "[ERROR] failed to bind socket", LINE_FEED, NULL_CHAR
-  ERR_LISTEN_SOCKET db "[ERROR] failed to listen to socket", LINE_FEED, NULL_CHAR
-
-  ERR_METHOD_NOT_EXIST  db "[ERROR] method does not exist", LINE_FEED, NULL_CHAR
-  ERR_METHOD_TOO_LONG   db "[ERROR] method too long", LINE_FEED, NULL_CHAR
-
-  ERR_MALFORMED_REQUEST db " [ERROR] malformed request", NULL_CHAR
 
 %endif
 

@@ -14,6 +14,9 @@ section .bss
   dt_minute  resq 1
   dt_second  resq 1
 
+  now_tv_sec  resq 1
+  now_tv_nsec resq 1
+
 section .data
   utc_str db "UTC", NULL_CHAR
 
@@ -206,5 +209,25 @@ is_leap_year:
 
   ; clean stack and return
   add   rsp, 0x8
+  ret
+
+; return now's unix timestamp TODO: func desc
+; @return rax: timestamp
+now:
+  mov   rax, SYS_CLOCK_GETTIME
+  mov   rdi, CLOCK_REALTIME
+  lea   rsi, [now_tv_sec]
+  syscall
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, qword [now_tv_sec] 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 

@@ -3,6 +3,20 @@ global  _start
 %include "bytasm.inc"
 
 section .text
+header:
+  lea   rdi, [request_headers]
+  mov   rsi, 0
+  call  println
+
+  lea   rdi, [name_param]
+  call  get_param
+
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  println
+
+  ret
+
 health:
   ; rdi -> request
   lea   rdi, [header_key]
@@ -88,6 +102,11 @@ _start:
   call  add_route 
 
   lea   rdi, [GET]
+  lea   rsi, [header_route]
+  mov   rdx, header
+  call  add_route 
+
+  lea   rdi, [GET]
   lea   rsi, [api_route]
   mov   rdx, send_200
   call  add_route 
@@ -113,10 +132,6 @@ _start:
   syscall
 
 error:
-  mov   rdi, [errno]
-  mov   rsi, 0
-  call  perror
-
   mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
   syscall
@@ -128,6 +143,7 @@ section .data
   health_route  db "/health", NULL_CHAR
   post_route    db "/post", NULL_CHAR
   index_route    db "/index", NULL_CHAR
+  header_route    db "/header", NULL_CHAR
 
   api_route db "/api", NULL_CHAR
   v1_route  db "/api/v1", NULL_CHAR
@@ -139,7 +155,7 @@ section .data
 
   name_param db "name", NULL_CHAR
 
-  header_key    db "sEt-cookie", NULL_CHAR
+  header_key    db "set-cookie", NULL_CHAR
   header_value  db "value", NULL_CHAR
   header2_value  db "value2", NULL_CHAR
 

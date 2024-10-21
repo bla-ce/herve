@@ -8,8 +8,10 @@ htons:
   xchg  al, ah ; bswap 16-bit registers
   ret
 
+; disallows a specific method
+; @param  rdi: method constant
+; @return rax: code
 disallow_method:
-; rdi -> method
   sub   rsp, 0x10
 
   mov   [rsp+0x8], rdi
@@ -26,7 +28,6 @@ disallow_method:
   lea   rax, [GET]
   lea   rbx, [CONNECT]
 
-  lea   rdi, [ERR_METHOD_NOT_EXIST]
   cmp   rsi, rax
   jl    .error
 
@@ -44,7 +45,8 @@ disallow_method:
 
   ; add method to not allowed list
   lea   rdi, [not_allowed_methods]
-  ; rdi points to the position of the method inside allowed list
+
+  ; point rdi to the position of the method inside allowed list
   add   rdi, rax
 
   ; put method inside not allowed lists
@@ -53,12 +55,11 @@ disallow_method:
   mov   rcx, qword [rsp]
   rep   movsb
 
-  xor   rax, rax
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
-  mov   [errno], rdi
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
 
 .return:
   ; clean stack
@@ -67,6 +68,7 @@ disallow_method:
 
 ; create a route serving files located in a specified dir 
 ; @param  rdi: path
+; @return rax: code
 add_dir_route:
   sub   rsp, 0x18
 
@@ -81,9 +83,11 @@ add_dir_route:
   stosb
   call  strcpy
 
+  ; TODO: error check
+  
   lea   rax, [rsp+0x8]
   mov   rdi, [rax]
-  
+
   ; open directory
   mov   rax, SYS_OPEN
   mov   rsi, O_RDONLY | O_DIRECTORY
@@ -196,7 +200,7 @@ add_dir_route:
   rep   stosb
 
   mov   rax, FAILURE_CODE
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 add_route:
@@ -303,7 +307,6 @@ server_init:
   mov   qword [rsp], 0  ; sockfd
 
   ; check if port is in bounds
-  lea   rdi, [ERR_PORT_BOUNDS]
   cmp   qword [port], PORT_MIN
   jl    .error
 
@@ -317,7 +320,6 @@ server_init:
   mov   rdx, 0
   syscall
 
-  lea   rdi, [ERR_CREAT_SOCKET]
   cmp   rax, 0
   jl    .error
 
@@ -333,7 +335,6 @@ server_init:
   mov   r8, 4 
   syscall
 
-  lea   rdi, [ERR_SET_SOCKOPT]
   cmp   rax, 0
   jl    .error
 
@@ -345,7 +346,6 @@ server_init:
   mov   r8, 4 
   syscall
 
-  lea   rdi, [ERR_SET_SOCKOPT]
   cmp   rax, 0
   jl    .error
 
@@ -362,7 +362,6 @@ server_init:
   mov   rdx, server_addrlen
   syscall
 
-  lea   rdi, [ERR_BIND_SOCKET]
   cmp   rax, 0
   jl    .error
 
@@ -372,7 +371,6 @@ server_init:
   xor   rsi, rsi
   syscall
 
-  lea   rdi, [ERR_LISTEN_SOCKET]
   cmp   rax, 0
   jl    .error
 
@@ -380,8 +378,6 @@ server_init:
   jmp   .return
 
 .error:
-  mov   [errno], rdi
-
   ; check if socket have been opened
   cmp   qword [rsp], 0
   jle   .skip_close_socket
@@ -432,11 +428,6 @@ run_server:
 
 .timer_not_defined:
   ; clear response, route and method and query
-  mov   rcx, RESPONSE_MAX_LEN
-  xor   rax, rax
-  lea   rdi, [response]
-  rep   stosb
-
   mov   rcx, URL_MAX_LEN
   xor   rax, rax
   lea   rdi, [request_url]
@@ -463,7 +454,11 @@ run_server:
   lea   rdi, [response_headers]
   rep   stosb
 
-  ; clear request
+  mov   rcx, RESPONSE_MAX_LEN
+  xor   rax, rax
+  lea   rdi, [response]
+  rep   stosb
+
   mov   rcx, REQUEST_MAX_LEN
   xor   rax, rax
   lea   rdi, [request]
@@ -513,7 +508,6 @@ run_server:
   cmp   qword [callback], 0
   je    .skip_callback
 
-  lea   rdi, [request]
   call  [rel callback]
 
 .skip_callback:

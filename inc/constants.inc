@@ -51,6 +51,8 @@ SYS_READ          equ 0
 SYS_WRITE         equ 1
 SYS_OPEN          equ 2
 SYS_CLOSE         equ 3
+SYS_MMAP          equ 9
+SYS_MUNMAP        equ 11
 SYS_SIGACTION     equ 13
 SYS_SOCKET        equ 41
 SYS_CONNECT       equ 42

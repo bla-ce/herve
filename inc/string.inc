@@ -6,19 +6,20 @@
 ; @param  rsi: substr
 ; @return rax: rdi == rsi
 cmpstr:
-  push  rbp
-  mov   rbp, rsp
+  sub   rsp, 0x10
 
-  push  rdi
-  push  rsi
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
   call  strlen
   test  rax, rax
   jz    .str_not_equal
   mov   rcx, rax
 
-  pop   rsi
-  pop   rdi
+  lea   rax, [rsp]
+  mov   rdi, [rax]
+  lea   rax, [rsp+0x8]
+  mov   rsi, [rax]
   rep   cmpsb
   jne   .str_not_equal
 
@@ -29,31 +30,31 @@ cmpstr:
   mov   rax, 0
 
 .return:
-  leave
+  add   rsp, 0x10
   ret
 
 ; copy the string pointed to by src, into a string at the buffer pointed to by dst
 ; @param  rdi: dst
 ; @param  rsi: src
 strcpy:
-  push  rbp
-  mov   rbp, rsp
+  sub   rsp, 0x10
 
-  push  rdi
-  push  rsi
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
   lea   rdi, [rsi]
   call  strlen
   mov   rcx, rax
 
-  pop   rsi
-  pop   rdi
-
+  lea   rax, [rsp]
+  mov   rdi, [rax]
+  lea   rax, [rsp+0x8]
+  mov   rsi, [rax]
   rep   movsb
 
   mov   rax, SUCCESS_CODE
 
-  leave
+  add   rsp, 0x10
   ret
 
 ; converts int in rdi into string

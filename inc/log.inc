@@ -1,14 +1,14 @@
 section .data
-log_server_init_msg db SPACE, "[DEBUG] Listening and serving HTTP on :", NULL_CHAR
-log_routes_available_msg db LINE_FEED, SPACE, "[DEBUG] Routes available:", NULL_CHAR
+log_server_init_msg       db "Listening and serving HTTP on :", NULL_CHAR
+log_routes_available_msg  db "Routes available:", NULL_CHAR
 
+log_pre   db SPACE, "[LOG]", SPACE, NULL_CHAR
 log_debug db SPACE, "[DEBUG]", SPACE, NULL_CHAR
-log_arrow db SPACE, "->", SPACE, NULL_CHAR
+error_pre db SPACE, "[ERROR]", SPACE, NULL_CHAR
 
-log_pre       db SPACE, "[LOG]", SPACE, NULL_CHAR
 log_delimiter db SPACE, VERTICAL_BAR, SPACE, NULL_CHAR
+log_arrow     db SPACE, "->", SPACE, NULL_CHAR
 
-log_time      times LOG_TIME_SIZE db SPACE
 log_duration  times LONG_SIZE+2   db SPACE
 
 ; ansi color
@@ -22,6 +22,10 @@ section .text
 log_server_init:
   sub   rsp, 0x10 ; routes count for route logs
 
+  lea   rdi, [log_debug]
+  mov   rsi, 0
+  call  print
+
   lea   rdi, [log_server_init_msg]
   mov   rsi, 0
   call	print 
@@ -33,12 +37,18 @@ log_server_init:
   mov   rsi, 0
   call	println
 
+  mov   rdi, LINE_FEED
+  call  print_char
+
+  lea   rdi, [log_debug]
+  mov   rsi, 0
+  call  print
+
   lea   rdi, [log_routes_available_msg]
   mov   rsi, 0
   call	println
 
   ; log routes - [DEBUG] METHOD ROUTE
-
   ; keep track of routes
   mov   qword [rsp], 0
 
@@ -94,131 +104,6 @@ log_server_init:
 
   mov   rax, 0
   add   rsp, 0x10
-  ret
-
-; store date string inside log_date
-log_get_time:
-  push  rbp
-  mov   rbp, rsp
-
-  mov   rdi, qword [start_tv_sec]
-  call  unix_to_date_time
-
-  mov   rdi, qword [dt_year]
-  call  to_string
-
-  lea   rsi, [rax]
-  lea   rdi, [log_time]
-  call  strcpy
-
-  mov   al, SLASH
-  stosb
-
-  cmp   qword [dt_month], 10
-  jge   .no_zero_month
-
-  mov   al, ZERO_CHAR
-  stosb
-
-.no_zero_month:
-  push  rdi
-
-  mov   rdi, qword [dt_month]
-  call  to_string
-
-  lea   rsi, [rax]
-  pop   rdi
-  call  strcpy
-
-  mov   al, SLASH
-  stosb
-
-  cmp   qword [dt_day], 10
-  jge   .no_zero_day
-
-  mov   al, ZERO_CHAR
-  stosb
-
-.no_zero_day:
-  push  rdi
-
-  mov   rdi, qword [dt_day]
-  call  to_string
-
-  lea   rsi, [rax]
-  pop   rdi
-  call  strcpy
-
-  mov   al, SPACE
-  stosb
-
-  mov   al, HYPHEN
-  stosb
-
-  mov   al, SPACE
-  stosb
-
-  cmp   qword [dt_hour], 10
-  jge   .no_zero_hour
-
-  mov   al, ZERO_CHAR
-  stosb
-
-.no_zero_hour:
-  push  rdi
-
-  mov   rdi, qword [dt_hour]
-  call  to_string
-
-  lea   rsi, [rax]
-  pop   rdi
-  call  strcpy
-
-  mov   al, COLON
-  stosb
-
-  cmp   qword [dt_minute], 10
-  jge   .no_zero_minute
-
-  mov   al, ZERO_CHAR
-  stosb
-
-.no_zero_minute:
-  push  rdi
-
-  mov   rdi, qword [dt_minute]
-  call  to_string
-
-  lea   rsi, [rax]
-  pop   rdi
-  call  strcpy
-
-  mov   al, COLON
-  stosb
-
-  cmp   qword [dt_second], 10
-  jge   .no_zero_second
-
-  mov   al, ZERO_CHAR
-  stosb
-
-.no_zero_second:
-  push  rdi
-
-  mov   rdi, qword [dt_second]
-  call  to_string
-
-  lea   rsi, [rax]
-  pop   rdi
-  call  strcpy
-
-  mov   al, SPACE
-  stosb
-
-  lea   rsi, [utc_str]
-  call  strcpy
-
-  leave
   ret
 
 ; store duration inside log_duration
@@ -280,22 +165,14 @@ log_request:
   lea   rdi, [log_duration]
   rep   stosb
 
-  mov   rcx, LOG_TIME_SIZE
-  mov   rax, SPACE
-  lea   rdi, [log_time]
-  rep   stosb
-
   ; [LOG] 
   lea   rdi, [log_pre]
   mov   rsi, 0
   call  print
 
   ; log time
-  call  log_get_time
-
-  lea   rdi, [log_time]
-  mov   rsi, LOG_TIME_SIZE
-  call  print
+  mov   rdi, qword [end_tv_sec]
+  call  log_time
 
   lea   rdi, [log_delimiter]
   mov   rsi, 0
@@ -340,7 +217,6 @@ log_request:
   ret
 
 log_malformed_request:
-  lea   rdi, [ERR_MALFORMED_REQUEST]
   mov   rsi, 0
   call  println
 
@@ -387,5 +263,141 @@ log_status_code:
   mov   rsi, 0
   call  print
 
+  ret
+
+; log current date and time
+; @param  rdi: (optional) timestamp, if set to 0 get now
+log_time:
+  sub   rsp, 0x8 ; store timestamp
+
+  cmp   rdi, 0
+  je   .get_unix
+
+  mov   qword [rsp], rdi
+
+.get_unix:
+  call  now
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp], rax
+
+.print_time:
+  mov   rdi, qword [rsp] 
+  call  unix_to_date_time
+
+  mov   rdi, qword [dt_year]
+  call  to_string
+
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  print
+
+  mov   rdi, SLASH
+  call  print_char
+
+  cmp   qword [dt_month], 10
+  jge   .no_zero_month
+
+  mov   rdi, ZERO_CHAR
+  call  print_char
+
+.no_zero_month:
+  mov   rdi, qword [dt_month]
+  call  to_string
+
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  print
+
+  mov   rdi, SLASH
+  call  print_char
+
+  cmp   qword [dt_day], 10
+  jge   .no_zero_day
+
+  mov   rdi, ZERO_CHAR
+  call  print_char
+
+.no_zero_day:
+  mov   rdi, qword [dt_day]
+  call  to_string
+
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  print
+
+  mov   rdi, SPACE
+  call	print_char
+
+  mov   rdi, HYPHEN
+  call	print_char
+
+  mov   rdi, SPACE
+  call	print_char
+
+  cmp   qword [dt_hour], 10
+  jge   .no_zero_hour
+
+  mov   rdi, ZERO_CHAR
+  call	print_char
+
+.no_zero_hour:
+  mov   rdi, qword [dt_hour]
+  call  to_string
+
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  print
+
+  mov   rdi, COLON
+  call  print_char
+
+  cmp   qword [dt_minute], 10
+  jge   .no_zero_minute
+
+  mov   rdi, ZERO_CHAR
+  call  print_char
+
+.no_zero_minute:
+  mov   rdi, qword [dt_minute]
+  call  to_string
+
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  print
+
+  mov   rdi, COLON
+  call  print_char
+
+  cmp   qword [dt_second], 10
+  jge   .no_zero_second
+
+  mov   rdi, ZERO_CHAR
+  call  print_char
+
+.no_zero_second:
+  mov   rdi, qword [dt_second]
+  call  to_string
+
+  lea   rdi, [rax]
+  mov   rsi, 0
+  call  print
+
+  mov   rdi, SPACE
+  call  print_char
+
+  lea   rdi, [utc_str]
+  mov   rsi, 0
+  call  print
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
 
