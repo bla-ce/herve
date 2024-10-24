@@ -77,6 +77,7 @@ HYPHEN          equ 45
 DOT             equ 46
 SLASH           equ 47
 ZERO_CHAR       equ 48
+NINE_CHAR       equ 57
 COLON           equ 58
 EQUAL_SIGN      equ 61
 UPPER_A_CHAR    equ 65

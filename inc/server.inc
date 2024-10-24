@@ -303,6 +303,32 @@ server_init:
   ; return value: rax -> socket fd | error
   sub   rsp, 0x8
 
+  cmp   rdi, 0
+  jg    .port_defined
+
+  ; check if port is in environment variables
+  lea   rdi, [PORT_ENV]
+  call  getenv
+
+  cmp   rax, 0
+  jl    .default_port
+
+  lea   rdi, [rax]
+  call  stoi
+
+  mov   rdi, rax
+
+  cmp   rax, 0
+  jg    .port_defined
+
+.default_port:
+  mov   rbx, 8080
+  cmp   rax, 0
+  cmovl rax, rbx
+
+  mov   rdi, rbx
+
+.port_defined:
   mov   qword [port], rdi
   mov   qword [rsp], 0  ; sockfd
 

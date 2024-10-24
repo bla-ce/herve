@@ -71,7 +71,7 @@ send_200:
   ret
 
 _start:
-  mov   rdi, 1337
+  mov   rdi, 0
   call  server_init
   cmp   rax, 0
   jl    error
@@ -137,8 +137,8 @@ section .data
   root_route    db "/", NULL_CHAR
   health_route  db "/health", NULL_CHAR
   post_route    db "/post", NULL_CHAR
-  index_route    db "/index", NULL_CHAR
-  header_route    db "/header", NULL_CHAR
+  index_route   db "/index", NULL_CHAR
+  header_route  db "/header", NULL_CHAR
 
   api_route db "/api", NULL_CHAR
   v1_route  db "/api/v1", NULL_CHAR
@@ -152,5 +152,5 @@ section .data
 
   header_key    db "set-cookie", NULL_CHAR
   header_value  db "value", NULL_CHAR
-  header2_value  db "value2", NULL_CHAR
+  header2_value db "value2", NULL_CHAR
 

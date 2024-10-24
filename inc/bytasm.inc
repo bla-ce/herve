@@ -1,3 +1,4 @@
+; TODO: read files chunk
 ; TODO: mmap
 ; TODO: set timeout
 ; TODO: session management
@@ -36,6 +37,7 @@
 %include "error.inc"
 %include "file.inc"
 %include "time.inc"
+%include "os.inc"
 
 section .bss
   port  resq 1

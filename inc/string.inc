@@ -291,5 +291,75 @@ print_char:
   leave
   ret
 
+; turns string into an integer (doesn't support neg number yet)
+; @param  rdi: string
+; @return rax: int or -1 if error
+stoi:
+  sub   rsp, 0x10
+
+  mov   qword [rsp+0x8], 0
+
+  call  strlen
+  cmp   rax, 0
+  jle   .error
+
+  mov   qword [rsp], rax
+
+.next_char:
+  xor   rax, rax
+  mov   al, byte [rdi]
+
+  ; make sure char is a digit
+  cmp   al, ZERO_CHAR
+  jl    .error
+
+  mov   rbx, 0
+  cmove rax, rbx
+  je    .add
+
+  cmp   al, NINE_CHAR
+  jg    .error
+
+  xor   rdx, rdx
+  sub   rax, ZERO_CHAR ; get int
+
+  mov   rcx, qword [rsp]
+  dec   rcx
+
+  cmp   rcx, 0
+  jle   .add
+
+.get_mult:
+  mov   rbx, 10
+  xor   rdx, rdx
+  mul   rbx
+
+  cmp   rcx, 1
+  jle   .add
+
+  dec   rcx
+  jmp   .get_mult
+
+.add:
+  add   qword [rsp+0x8], rax
+  mov   r9, qword [rsp+0x8]
+  inc   rdi
+
+  dec   qword [rsp]
+  cmp   qword [rsp], 0
+  je    .return
+
+  jmp   .next_char
+
+.error:
+  mov   rax, FAILURE_CODE
+  add   rsp, 0x10
+  ret
+
+.return:
+  mov   rax, qword [rsp+0x8]
+  add   rsp, 0x10
+  ret
+
 %endif
 
