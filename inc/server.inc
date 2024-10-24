@@ -1,6 +1,6 @@
-%ifndef SERVER_INC
-%define SERVER_INC
-
+section .bss
+section .data
+section .text
 htons:
   ; rdi -> port
   ; return value: rax -> network port
@@ -471,12 +471,10 @@ run_server:
   lea   rdx, [client_addrlen]
   syscall
 
-  mov   qword [request_client], rax
+  cmp   rax, 0
+  jl    .close
 
-  inc   qword [active_connections]
-  mov   rax, qword [active_connections]
-  cmp   rax, qword [max_connections]
-  jg    .server_unavailable
+  mov   qword [request_client], rax
 
   ; set start timer
   mov   rax, SYS_CLOCK_GETTIME
@@ -515,20 +513,17 @@ run_server:
   mov   rdi, qword [request_client] 
   syscall
   
-  dec   qword [active_connections]
-
   jmp   .loop
 
 .error:
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
-  
-  dec   qword [active_connections]
 
   ; jump to next request, skipping logs
   jmp   .timer_not_defined
 
+.close:
   ; shutdown server
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp]
@@ -578,12 +573,4 @@ trim_query_parameters:
 
   add   rsp, 0x10
   ret
-
-set_max_connections:
-  ; rdi -> max connections
-  mov   qword [max_connections], rdi
-
-  ret
-
-%endif
 

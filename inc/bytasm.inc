@@ -106,9 +106,6 @@ section .data
   client_sa_zero     dq 0
   client_addrlen     dq server_addrlen
 
-  active_connections  dq 0
-  max_connections     dq DEFAULT_MAX_CONNECTIONS
-
   methods_list  db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
   methods_list_len equ $ - methods_list
 

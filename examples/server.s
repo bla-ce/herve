@@ -78,11 +78,6 @@ _start:
 
   mov   qword [sockfd], rax
 
-  mov   rdi, 1
-  call  set_max_connections
-  cmp   rax, 0
-  jl    error
-
   lea   rdi, [CONNECT]
   call  disallow_method
   cmp   rax, 0
