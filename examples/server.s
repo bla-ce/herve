@@ -71,7 +71,7 @@ send_200:
   ret
 
 _start:
-  mov   rdi, 0
+  mov   rdi, 1337
   call  server_init
   cmp   rax, 0
   jl    error

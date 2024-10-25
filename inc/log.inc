@@ -84,8 +84,7 @@ log_server_init:
   call  print_char
 
   ; load url and log it
-  lea   rax, [rsp+0x8]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x8]
   mov   rsi, URL_MAX_LEN
   call  println
 
@@ -102,7 +101,7 @@ log_server_init:
   mov   rdi, LINE_FEED
   call	print_char
 
-  mov   rax, 0
+  mov   rax, SUCCESS_CODE
   add   rsp, 0x10
   ret
 

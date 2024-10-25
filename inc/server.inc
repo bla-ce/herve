@@ -23,8 +23,7 @@ disallow_method:
   mov   qword [rsp], rax
 
   ; check method arg, variable should be between GET and CONNECT
-  lea   rax, [rsp+0x8]
-  mov   rsi, [rax]
+  mov   rsi, [rsp+0x8]
   lea   rax, [GET]
   lea   rbx, [CONNECT]
 
@@ -36,8 +35,7 @@ disallow_method:
 
   ; look if method is inside the list
   ; load request into rdx
-  lea   rax, [rsp+0x8]
-  mov   rdx, [rax]
+  mov   rdx, [rsp+0x8]
   lea   rdi, [methods_list]
   mov   rsi, methods_list_len
   mov   rcx, qword [rsp]
@@ -50,8 +48,7 @@ disallow_method:
   add   rdi, rax
 
   ; put method inside not allowed lists
-  lea   rax, [rsp+0x8]
-  mov   rsi, [rax]
+  mov   rsi, [rsp+0x8]
   mov   rcx, qword [rsp]
   rep   movsb
 
@@ -85,14 +82,12 @@ add_dir_route:
 
   ; TODO: error check
   
-  lea   rax, [rsp+0x8]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x8]
 
   ; open directory
-  mov   rax, SYS_OPEN
   mov   rsi, O_RDONLY | O_DIRECTORY
   mov   rdx, 0
-  syscall
+  call  open_file
 
   cmp   rax, 0
   jl    .error
@@ -153,8 +148,7 @@ add_dir_route:
   add   rdi, rax
   inc   rdi
 
-  lea   rax, [rsp+0x8]
-  mov   rsi, [rax]
+  mov   rsi, [rsp+0x8]
 
   ; go to file name (offset 18)
   add   rsi, 18
@@ -166,8 +160,7 @@ add_dir_route:
   mov   rdx, serve_dir
   call  add_route
 
-  lea   rax, [rsp+0x8]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x8]
 
 .skip_not_file:
   add   r9, r10
@@ -219,20 +212,17 @@ add_route:
   mov   qword [rel callback], rdx
 
   ; get method_length
-  lea   rax, [rsp+0x10]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x10]
   call  strlen
   mov   qword [rsp], rax
 
   ; get route_length
-  lea   rax, [rsp+0x18]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x18]
   call  strlen
   mov   qword [rsp+0x8], rax
 
   ; check if the length of the route is equal to 1
-  lea   rax, [rsp+0x18]
-  mov   rsi, [rax]
+  mov   rsi, [rsp+0x18]
   cmp   qword [rsp+0x8], 1
   je    .skip
 
@@ -271,8 +261,7 @@ add_route:
   sub   rdi, qword [rsp+0x8]
 
   ; load method inside rsi
-  lea   rax, [rsp+0x10]
-  mov   rsi, [rax]
+  mov   rsi, [rsp+0x10]
   mov   rcx, qword [rsp]
   rep   movsb
 
@@ -415,7 +404,7 @@ server_init:
   ; don't need to check for error, we exit anyway
 
 .skip_close_socket:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, 0x8

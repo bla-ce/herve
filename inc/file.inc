@@ -66,8 +66,7 @@ get_ext:
   mov   [rsp], rdi
 
   lea   rdi, [HTML_EXT]
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   call  cmpstr
 
   cmp   rax, 1
@@ -78,8 +77,7 @@ get_ext:
 
 .check_js:
   lea   rdi, [JS_EXT]
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   call  cmpstr
 
   cmp   rax, 1
@@ -90,8 +88,7 @@ get_ext:
   
 .check_css:
   lea   rdi, [CSS_EXT]
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   call  cmpstr
 
   cmp   rax, 1
@@ -102,8 +99,7 @@ get_ext:
  
 .check_plain:
   lea   rdi, [TEXT_EXT]
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   call  cmpstr
 
   cmp   rax, 1

@@ -19,15 +19,14 @@ section .text
 ; @param  rdi: response pointer
 ; @return rax: response pointer after headers
 load_headers:
-  sub   rsp, 0x10
+  sub   rsp, 0x8
 
-  mov   [rsp], rdi
   lea   rsi, [rdi]
-  mov   qword [rsp+0x8], 0 ; header count
+  mov   qword [rsp], 0 ; header count
 
 .loop:
   lea   rsi, [response_headers]
-  mov   rax, qword [rsp+0x8]
+  mov   rax, qword [rsp]
   mov   rbx, HEADER_LEN
   mul   rbx
   add   rsi, rax
@@ -46,9 +45,9 @@ load_headers:
   stosb
 
 .skip_cpy:
-  inc   qword [rsp+0x8]
+  inc   qword [rsp]
   mov   rax, HEADERS_MAX_COUNT
-  cmp   qword [rsp+0x8], rax
+  cmp   qword [rsp], rax
   jge   .return
 
   jmp   .loop
@@ -63,7 +62,7 @@ load_headers:
 
   lea   rax, [rdi]
 
-  add   rsp, 0x10
+  add   rsp, 0x8
   ret
 
 ; set the headers
@@ -80,14 +79,12 @@ set_header:
   cmp   rax, HEADER_KEY_MAX_LEN
   jge   .error
 
-  lea   rax, [rsp+0x8]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x8]
   call  strlen
   cmp   rax, HEADER_VALUE_MAX_LEN
   jge   .error
 
-  lea   rax, [rsp]
-  mov   rdi, [rax]
+  mov   rdi, [rsp]
 
   call  canonical_mime_header_key
   cmp   rax, 0
@@ -120,8 +117,7 @@ set_header:
 
 .set:
   ; copy key
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   call  strcpy
 
   ; copy colon
@@ -135,8 +131,7 @@ set_header:
   stosb
 
   ; copy value
-  lea   rax, [rsp+0x8]   
-  mov   rsi, [rax]
+  mov   rsi, [rsp+0x8]
   call  strcpy
   
   mov   rax, SUCCESS_CODE
@@ -187,14 +182,12 @@ header_exist:
   ; save rdi position
   mov   [rsp+0x10], rdi
 
-  lea   rax, [rsp]
-  mov   rdi, [rax]
+  mov   rdi, [rsp]
   call  strlen
   mov   r9, rax
   lea   rdx, [rdi]
 
-  lea   rax, [rsp+0x10]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x10]
   call  strlen
   mov   rsi, rax
   mov   rcx, r9
@@ -212,7 +205,7 @@ header_exist:
   jmp   .loop
 
 .not_equal:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   jmp   .return
 
 .equal:

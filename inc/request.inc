@@ -21,8 +21,7 @@ parse_request:
   ; load method
   lea   rdi, [request_method]
   mov   rcx, rax
-  lea   rax, [rsp]
-  mov   rsi, [rax] 
+  mov   rsi, [rsp] 
   rep   movsb
 
   ; method url HTTP/n.n 
@@ -46,8 +45,7 @@ parse_request:
   ; load url
   lea   rdi, [request_url]
   mov   rcx, rax
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   rep   movsb
 
   ; inc rsi to go to the protocol 
@@ -66,8 +64,7 @@ parse_request:
   ; load protocol
   mov   rcx, rax
   lea   rdi, [request_proto]
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   rep   movsb
 
   ; save rsi pointer to the stack
@@ -83,8 +80,7 @@ parse_request:
   mov   rcx, rax
 
   ; rsp points to the end of the protocol
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
 
   ; go back to slash
   sub   rsi, rcx
@@ -142,8 +138,7 @@ parse_request:
   jg    .error
    
   mov   rcx, rax
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   lea   rdi, [request_headers]
   rep   movsb
 
@@ -165,8 +160,7 @@ parse_request:
 
   lea   rdi, [request_body]
   mov   rcx, rax
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
   rep   movsb
 
   mov   rax, 0
@@ -181,7 +175,7 @@ parse_request:
 
   call  log_malformed_request
 
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   jmp   .return
 
 .return:
@@ -245,8 +239,7 @@ check_method:
   ; look for the method inside methods list
   lea   rdi, [methods_list]
   mov   rsi, methods_list_len
-  lea   rax, [rsp+0x8]
-  mov   rdx, [rax]
+  mov   rdx, [rsp+0x8]
   mov   rcx, qword [rsp+0x10]
   call  strpos
 
@@ -283,8 +276,7 @@ check_method:
   ; check if the method is allowed
   lea   rdi, [not_allowed_methods]
   mov   rsi, methods_list_len
-  lea   rax, [rsp+0x8]
-  mov   rdx, [rax]
+  mov   rdx, [rsp+0x8]
   mov   rcx, qword [rsp+0x10] 
   call  strpos
 
@@ -318,8 +310,7 @@ check_route:
   mov   qword [rsp+0x8], rbx
   
   ; load url
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
 
   ; check if route is '/', if yes skip trim end slash
   cmp   qword [rsp+0x8], 1
@@ -341,8 +332,7 @@ check_route:
   ; check if route is in routes_list
   xor   rbx, rbx
   lea   rdi, [routes_list]
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
 
 .next_route:
   mov   rcx, qword [rsp+0x8]
@@ -441,8 +431,7 @@ get_param:
   mov   rsi, rax
 
   ; get position of the param
-  lea   rax, [rsp]
-  mov   rdx, [rax]
+  mov   rdx, [rsp]
   mov   rcx, rbx
   call  strpos
   mov   rbx, rax
@@ -500,7 +489,7 @@ get_param:
   ret
 
 .error:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   add   rsp, 0x10
   ret
 

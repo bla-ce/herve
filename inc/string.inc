@@ -16,10 +16,8 @@ cmpstr:
   jz    .str_not_equal
   mov   rcx, rax
 
-  lea   rax, [rsp]
-  mov   rdi, [rax]
-  lea   rax, [rsp+0x8]
-  mov   rsi, [rax]
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
   rep   cmpsb
   jne   .str_not_equal
 
@@ -46,10 +44,8 @@ strcpy:
   call  strlen
   mov   rcx, rax
 
-  lea   rax, [rsp]
-  mov   rdi, [rax]
-  lea   rax, [rsp+0x8]
-  mov   rsi, [rax]
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
   rep   movsb
 
   mov   rax, SUCCESS_CODE
@@ -197,7 +193,7 @@ strpos:
   mov   rax, FAILURE_CODE
   
 .return:
-  add   rsp, 8
+  add   rsp, 0x8
   ret
 
 strlen:
@@ -295,10 +291,18 @@ print_char:
 ; @param  rdi: string
 ; @return rax: int or -1 if error
 stoi:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x10], 0
 
+  cmp   byte [rdi], HYPHEN
+  jne   .pos_number
+
+  mov   qword [rsp+0x10], 1
+  inc   rdi
+
+.pos_number:
   call  strlen
   cmp   rax, 0
   jle   .error
@@ -353,12 +357,19 @@ stoi:
 
 .error:
   mov   rax, FAILURE_CODE
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 .return:
   mov   rax, qword [rsp+0x8]
-  add   rsp, 0x10
+  mov   rbx, 0
+  sub   rbx, rax
+
+  ; check if it's a neg number
+  cmp   qword [rsp+0x10], 1
+  cmove rax, rbx
+
+  add   rsp, 0x18
   ret
 
 %endif

@@ -30,15 +30,12 @@ send_response:
   mov   [rsp+0x20], rdi
 
   ; load status code
-  lea   rax, [rsp+0x8]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x8]
   call  strlen
 
   mov   rcx, rax
-  lea   rax, [rsp+0x20]
-  mov   rdi, [rax]
-  lea   rax, [rsp+0x8]
-  mov   rsi, [rax]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x8]
   rep   movsb
 
   ; load new line
@@ -58,8 +55,7 @@ send_response:
 
   ; set content_length
   ; get body
-  lea   rax, [rsp+0x18]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x18]
   call  strlen
   test  rax, rax
   jz    .skip_body
@@ -73,26 +69,22 @@ send_response:
 
   ; set content type header
   lea   rdi, [CONTENT_TYPE_HEADER]
-  lea   rax, [rsp+0x10]
-  mov   rsi, [rax]
+  mov   rsi, [rsp+0x10]
   call  set_header
 
 .skip_body:
   ; load headers
-  lea   rax, [rsp+0x20]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x20]
   call  load_headers
 
   mov   [rsp+0x20], rax
 
   ; load body
-  lea   rax, [rsp+0x18]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x18]
   call  strlen
   mov   rcx, rax
   lea   rsi, [rdi]
-  lea   rax, [rsp+0x20]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x20]
   rep   movsb
 
   ; get response length
@@ -136,15 +128,12 @@ send_error_response:
   mov   [rsp+0x10], rdi
 
   ; load status code
-  lea   rax, [rsp+0x8]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x8]
   call  strlen
 
   mov   rcx, rax
-  lea   rax, [rsp+0x10]
-  mov   rdi, [rax]
-  lea   rax, [rsp+0x8]
-  mov   rsi, [rax]
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
   rep   movsb
 
   ; load new line
@@ -162,8 +151,7 @@ send_error_response:
   lea   rsi, [CONNECTION_CLOSE]
   call  set_header
 
-  lea   rax, [rsp+0x10]
-  mov   rdi, [rax]
+  mov   rdi, [rsp+0x10]
   call  load_headers
   
   lea   rdi, [response]
@@ -188,8 +176,7 @@ serve_string:
   
   lea   rdi, [STR_OK]
   lea   rsi, [CONTENT_PLAIN]
-  lea   rax, [rsp]
-  mov   rdx, [rax]
+  mov   rdx, [rsp]
   call  send_response
 
   add   rsp, 0x8
@@ -210,14 +197,12 @@ serve_static_file:
   mov   [rsp+0x18], rax
 
   ; load file path
-  lea   rax, [rsp]
-  mov   rdi, [rax]
+  mov   rdi, [rsp]
 
   ; open file
-  mov   rax, SYS_OPEN
   mov   rsi, O_RDONLY
   mov   rdx, 0
-  syscall
+  call  open_file
 
   cmp   rax, 0
   jl    .error_open
@@ -225,11 +210,10 @@ serve_static_file:
   mov   qword [rsp+0x10], rax
 
   ; read file
-  mov   rax, SYS_READ
   mov   rdi, qword [rsp+0x10]
   lea   rsi, [file]
   mov   rdx, FILE_MAX_LEN
-  syscall
+  call  read_file
 
   cmp   rax, 0
   jl    .error_read
@@ -238,8 +222,7 @@ serve_static_file:
 
   ; send response
   lea   rdi, [STR_OK]
-  lea   rax, [rsp+0x18]
-  mov   rsi, [rax]
+  mov   rsi, [rsp+0x18]
   lea   rdx, [file]
   call  send_response
 
@@ -280,7 +263,7 @@ serve_static_file:
   add   rsp, 0x20
 
   ; return
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   ret
 
 ; serve file from directory
