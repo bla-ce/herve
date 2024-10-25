@@ -1,4 +1,5 @@
-; TODO: read files chunk
+; TODO: memory mapped file
+; TODO: read file bigger then variable inside rsi
 ; TODO: mmap
 ; TODO: set timeout
 ; TODO: session management

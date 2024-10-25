@@ -170,7 +170,7 @@ log_request:
   call  print
 
   ; log time
-  mov   rdi, qword [end_tv_sec]
+  mov   rdi, qword [start_tv_sec]
   call  log_time
 
   lea   rdi, [log_delimiter]
@@ -192,7 +192,6 @@ log_request:
   ; log status code
   call  log_status_code
 
-
   ; log delimiter
   lea   rdi, [log_delimiter]
   mov   rsi, 0
@@ -209,7 +208,7 @@ log_request:
 
   ; log url
   lea   rdi, [request_url]
-  mov   rsi, URL_MAX_LEN
+  mov   rsi, 0
   call  println
 
   mov   rax, 0

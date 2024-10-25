@@ -31,6 +31,7 @@ getenv:
   ; read file
   mov   rdi, rax
   lea   rsi, [environ]
+  mov   rdx, ENVIRON_LEN
   call  read_file
 
   cmp   rax, 0

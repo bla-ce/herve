@@ -4,24 +4,6 @@ section .data
   ERR_EXT_NOT_SUPP  db "file extension not supported", NULL_CHAR
   ERR_NO_EXT        db "file doesn't have an extension", NULL_CHAR
 
-  stat:
-    st_dev      dq 0
-    st_ino      dq 0
-    st_mode     dd 0
-    st_nlink    dq 0
-    st_uid      dd 0
-    st_gid      dd 0
-    st_rdev     dd 0
-    __pad       dq 0
-    st_size     dq 0
-    st_blksize  dq 0
-    __pad2      dd 0
-    st_blocks   dq 0
-    st_atime    dq 0
-    st_mtime    dq 0
-    st_ctime    dq 0
-  endstat:
-
 section .text
 
 ; opens a file and return the file descriptor
@@ -39,20 +21,12 @@ open_file:
 ; reads count bytes from file descriptor fd into rsi
 ; @param  rdi: fd
 ; @param  rsi: pointer to buf
+; @param  rdx: max bytes to read
 ; @return rax: number of bytes read
 read_file:
   sub   rsp, 0x8
 
-  mov   [rsp], rsi
-
-  mov   rax, SYS_FSTAT
-  lea   rsi, [st_dev]
-  syscall
-
-  mov   rdx, rax
-
   mov   rax, SYS_READ
-  mov   rsi, [rsp]
   ; rest of the registers already populated
   syscall
 
