@@ -212,7 +212,6 @@ serve_static_file:
   ; read file
   mov   rdi, qword [rsp+0x10]
   lea   rsi, [file]
-  mov   rdx, FILE_MAX_LEN
   call  read_file
 
   cmp   rax, 0
