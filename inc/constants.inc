@@ -40,9 +40,9 @@ SOL_SOCKET          equ 1
 SO_REUSEADDR        equ 2
 AF_INET             equ 2
 STATUS_CODE_LEN     equ 3
-MAX_ROUTES_COUNT    equ 10
+MAX_ROUTES_COUNT    equ 20
 SO_REUSEPORT        equ 15
-MSG_TRUNC           equ 32
+MSG_TRUNC           equ 0x20
 REQUEST_MAX_LEN     equ 0x2000
 STRUCT_ROUTE_LEN    equ URL_MAX_LEN + METHOD_MAX_LEN
 
@@ -100,9 +100,10 @@ MICRO_SECOND  equ 0xBC
 ; file constants
 O_RDONLY        equ 0
 O_DIRECTORY     equ 65536
-FILE_PATH_LEN   equ 32
+FILE_PATH_LEN   equ 0x40
 FILE_MAX_LEN    equ 0x2000
 DIR_ENTRIES_LEN equ 0x400
+DT_DIR          equ 0x4
 DT_REG          equ 0x8
 
 ; file extension
@@ -144,7 +145,7 @@ STR_NOT_FOUND             db "404 Not Found", NULL_CHAR
 STR_METHOD_NOT_ALLOWED    db "405 Method Not Allowed", NULL_CHAR
 STR_URI_TOO_LONG          db "414 URI Too Long", NULL_CHAR
 STR_INTERNAL_SERVER_ERROR db "500 Internal Server Error", NULL_CHAR
-STR_SERVICE_UNAVAILABLE    db "503 Service Unavailable", NULL_CHAR
+STR_SERVICE_UNAVAILABLE   db "503 Service Unavailable", NULL_CHAR
 
 ; protocol
 HTTP_1_1 db "HTTP/1.1", NULL_CHAR

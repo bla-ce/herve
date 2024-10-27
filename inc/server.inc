@@ -67,20 +67,35 @@ disallow_method:
 ; @param  rdi: path
 ; @return rax: code
 add_dir_route:
-  sub   rsp, 0x18
+  sub   rsp, 0x38
 
   mov   [rsp+0x8], rdi
 
+  ; map file_path and direntries
+  mov   rdi, DIR_ENTRIES_LEN
+  call  mmap 
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  mov   rdi, FILE_PATH_LEN
+  call  mmap 
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
   ; save dir_path into file var
-  lea   rsi, [rdi]
-  lea   rdi, [file_path]
+  mov   rsi, [rsp+0x8]
+  mov   rdi, [rsp+0x30]
 
   ; add slash before dir path
   mov   rax, SLASH
   stosb
   call  strcpy
-
-  ; TODO: error check
   
   mov   rdi, [rsp+0x8]
 
@@ -95,7 +110,7 @@ add_dir_route:
   ; get dirent struct
   mov   rdi, rax
   mov   rax, SYS_GETDENTS
-  lea   rsi, [dir_entries]
+  mov   rsi, [rsp+0x28]
   mov   rdx, DIR_ENTRIES_LEN
   syscall
 
@@ -106,19 +121,19 @@ add_dir_route:
   mov   qword [rsp], rax
 
   ; save file_path_len
-  lea   rdi, [file_path]
+  mov   rdi, [rsp+0x30]
   call  strlen
   mov   qword [rsp+0x10], rax
 
   xor   r9, r9
-  lea   rdi, [dir_entries]
+  mov   rdi, [rsp+0x28]
   
 .loop:
   ; d_reclen
   xor   r10, r10
 
   ; mov to d_reclen (offset 16)
-  mov   r10w, word [rdi + 16]
+  mov   r10w, word [rdi + 0x10]
 
   ; get d_type (offset d_reclen - 1)
   xor   rax, rax
@@ -132,7 +147,7 @@ add_dir_route:
   mov   [rsp+0x8], rdi
 
   ; clear file path after dir
-  lea   rdi, [file_path]
+  mov   rdi, [rsp+0x30]
   mov   rax, qword [rsp+0x10]
   add   rdi, rax
   mov   rax, SLASH
@@ -143,7 +158,7 @@ add_dir_route:
   xor   rax, rax
   rep   stosb
 
-  lea   rdi, [file_path]
+  mov   rdi, [rsp+0x30] 
   mov   rax, qword [rsp+0x10]
   add   rdi, rax
   inc   rdi
@@ -155,14 +170,64 @@ add_dir_route:
 
   call  strcpy
   
-  lea   rsi, [file_path]
+  mov   rsi, [rsp+0x30] 
   lea   rdi, [GET]
   mov   rdx, serve_dir
   call  add_route
 
   mov   rdi, [rsp+0x8]
 
+  jmp   .skip_not_dir
+
 .skip_not_file:
+  cmp   rax, DT_DIR
+  jne   .skip_not_dir
+
+  ; make sure the dir is not '.'
+  cmp   byte [rdi+18], DOT
+  je    .skip_not_dir 
+
+  ; save r9, r10 and rdi
+  mov   qword [rsp+0x18], r9
+  mov   qword [rsp+0x20], r10
+  mov   [rsp+0x8], rdi
+
+  ; clear file path after dir
+  mov   rdi, [rsp+0x30]
+  mov   rax, qword [rsp+0x10]
+  add   rdi, rax
+  mov   rax, SLASH
+  stosb
+  call  strlen
+
+  mov   rcx, rax
+  xor   rax, rax
+  rep   stosb
+
+  mov   rdi, [rsp+0x30] 
+  mov   rax, qword [rsp+0x10]
+  add   rdi, rax
+  inc   rdi
+
+  mov   rsi, [rsp+0x8]
+
+  ; go to file name (offset 18)
+  add   rsi, 18
+
+  call  strcpy
+
+  mov   rsi, [rsp+0x30]
+  lea   rdi, [rsi]
+
+  ; add one to remove slash at the beginning
+  inc   rdi
+  call  add_dir_route
+
+  mov   r9, qword [rsp+0x18]
+  mov   r10, qword [rsp+0x20]
+  mov   rdi, [rsp+0x8]
+
+.skip_not_dir:
   add   r9, r10
   add   rdi, r10
 
@@ -171,29 +236,30 @@ add_dir_route:
   jmp   .loop
 
 .return:
-  ; clear file var
-  lea   rdi, [file_path]
-  mov   rax, NULL_CHAR
-  mov   rcx, FILE_PATH_LEN
-  rep   stosb
+  ; unmap
+  mov   rdi, [rsp+0x28]
+  mov   rsi, DIR_ENTRIES_LEN
+  call  unmap
+
+  mov   rdi, [rsp+0x30]
+  mov   rsi, FILE_PATH_LEN
+  call  unmap
 
   mov   rax, SUCCESS_CODE
-  add   rsp, 0x18
+  add   rsp, 0x38
   ret
 
 .error:
-  ; clear file var
-  lea   rdi, [file_path]
-  mov   rax, NULL_CHAR
-  mov   rcx, FILE_PATH_LEN
-  rep   stosb
+  mov   rdi, [rsp+0x28]
+  mov   rsi, DIR_ENTRIES_LEN
+  call  unmap
 
-  mov   rcx, rax
-  mov   rax, NULL_CHAR
-  rep   stosb
+  mov   rdi, [rsp+0x30]
+  mov   rsi, FILE_PATH_LEN
+  call  unmap
 
   mov   rax, FAILURE_CODE
-  add   rsp, 0x18
+  add   rsp, 0x38
   ret
 
 add_route:

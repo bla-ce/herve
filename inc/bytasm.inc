@@ -1,6 +1,8 @@
+; TODO: GET request
+; TODO: ANY request
+; TODO: parse query string
 ; TODO: memory mapped file
-; TODO: read file bigger then variable inside rsi
-; TODO: mmap
+; TODO: read file bigger then rdx
 ; TODO: set timeout
 ; TODO: session management
 ; TODO: block ip
