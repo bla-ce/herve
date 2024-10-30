@@ -1,22 +1,28 @@
 %ifndef REQUEST_INC
 %define REQUEST_INC
 
+
+; parse the string representation of the request onto the request struct
+; @param  rdi: pointer to request
+; @return rax: code
 parse_request:
   sub   rsp, 0x8
 
-  lea   rsi, [request]
-  mov   [rsp], rsi
+  mov   [rsp], rdi
 
-  ; extract method
+  ; extract method: look for the next space
   lea   rdi, [rsi]
   mov   rsi, SPACE
-  call  find_next_char      ; find next space to get the method length
+  call  find_next_char
+
+  ; if < 0, bad request
   cmp   rax, 0x0
-  jl    .error ; return bad request -> request struct will be empty
+  jl    .error 
 
   ; compare the length of the method with METHOD_MAX_LEN
   cmp   rax, METHOD_MAX_LEN
-  jg    .error ; return method not allowed
+  ; if bigger, send bad request
+  jg    .error
 
   ; load method
   lea   rdi, [request_method]
@@ -28,13 +34,14 @@ parse_request:
   ;       | inc rsi to go to first char of the url
   inc   rsi
 
-  ; extract url
   ; save rsi pointer to the stack
   mov   [rsp], rsi
 
+  ; extract url: look for the next space
   lea   rdi, [rsi]
   mov   rsi, SPACE
-  call  find_next_char ; find the next space to get url length
+  call  find_next_char
+
   cmp   rax, 0x0
   jl    .error
 
@@ -88,39 +95,33 @@ parse_request:
   ; mov to proto major
   inc   rsi
 
-  xor   rax, rax
-  lodsb
-  sub   al, 0x30  ; ascii to int
+  xor   rdi, rdi
+  mov   dil, byte [rsi]
+  call  ascii_to_int
 
-  ; check proto major is digit
-  cmp   eax, 0x0
+  cmp   rax, 0
   jl    .error
-
-  cmp   eax, 0x9
-  jg    .error
 
   mov   dword [request_proto_major], eax
 
-  ; rsi points to the dot, mov to proto minor
-  inc   rsi
+  ; rsi points to the proto major, mov to proto minor
+  add   rsi, 0x2
 
-  xor   rax, rax
-  lodsb
-  sub   al, 0x30  ; ascii to int
+  xor   rdi, rdi
+  mov   dil, byte [rsi]
+  call  ascii_to_int
 
-  ; check proto minor is digit
-  cmp   eax, 0x0
+  cmp   rax, 0
   jl    .error
 
-  cmp   eax, 0x9
-  jg    .error
-
   mov   dword [request_proto_minor], eax
+
+  inc   rsi
 
   ; mov to new line (skip 2 char \r\n)
   add   rsi, 0x2
 
-  ; get headers
+  ; save headers onto the stack
   mov   [rsp], rsi
 
   ; find the end of the headers (\r\n\r\n)
@@ -182,6 +183,9 @@ parse_request:
   add   rsp, 0x8
   ret
 
+
+; TODO: pass the request struct as an arg
+; verifies the request, making sure the route exists and is allowed
 verify_request:
   call  check_method
   cmp   rax, 0

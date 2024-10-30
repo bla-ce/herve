@@ -372,5 +372,26 @@ stoi:
   add   rsp, 0x18
   ret
 
+; returns the int value of ascii character or -1 if invalid
+; @param  rdi: ascii
+; @return rax: int
+ascii_to_int:
+  sub   rdi, 0x30
+
+  cmp   rdi, 0x0
+  jl    .error
+
+  cmp   rdi, 0x9
+  jg    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  mov   rax, rdi
+  ret
+
 %endif
 

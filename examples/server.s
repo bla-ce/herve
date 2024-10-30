@@ -3,6 +3,13 @@ global  _start
 %include "bytasm.inc"
 
 section .text
+print_hello:
+  lea   rdi, [hello]
+  mov   rsi, 0
+  call  println
+
+  ret
+
 header:
   lea   rdi, [request_headers]
   mov   rsi, 0
@@ -77,6 +84,14 @@ _start:
   jl    error
 
   mov   qword [sockfd], rax
+
+  mov   rdi, print_hello
+  mov   rsi, qword [sockfd]
+  call  add_middleware
+
+  mov   rdi, print_hello
+  mov   rsi, qword [sockfd]
+  call  add_middleware
 
   lea   rdi, [CONNECT]
   call  disallow_method
@@ -153,4 +168,6 @@ section .data
   header_key    db "set-cookie", NULL_CHAR
   header_value  db "value", NULL_CHAR
   header2_value db "value2", NULL_CHAR
+
+  hello db "Hello, World!", NULL_CHAR
 

@@ -1,3 +1,8 @@
+; TODO: group routes
+; TODO: doc and comments 
+; TODO: errors
+; TODO: mime type media
+; TODO: add wildcard route
 ; TODO: GET request
 ; TODO: ANY request
 ; TODO: parse query string
@@ -7,7 +12,6 @@
 ; TODO: session management
 ; TODO: block ip
 ; TODO: rate limit
-; TODO: add wildcard route
 ; TODO: database integration
 ; TODO: url encode and decode
 ; TODO: graceful stop
@@ -23,13 +27,13 @@
 ; TODO: floating point for duration
 ; TODO: log in sec
 ; TODO: add https
-; TODO: doc and comments
 ; TODO: concurrency
 
 %ifndef BYT_ASM_INC
 %define BYT_ASM_INC
 
 %include "constants.inc"
+%include "middleware.inc"
 %include "headers.inc"
 %include "log.inc"
 %include "memory.inc"
@@ -45,7 +49,7 @@
 section .bss
   port  resq 1
 
-  request     resb REQUEST_MAX_LEN
+  request     resq 1
   request_len resq 1
 
   response     resq RESPONSE_MAX_LEN
@@ -71,8 +75,6 @@ section .bss
   response_proto    resb PROTO_MAX_LEN
   response_body     resb BODY_MAX_LEN
 
-  dir_entries resb DIR_ENTRIES_LEN
-
   ; response value
   response_status_code      resq 1
   response_proto_major      resd 1
@@ -81,7 +83,6 @@ section .bss
   response_close            resb 1
 
   file      resb FILE_MAX_LEN
-  file_path resb FILE_PATH_LEN
   file_len  resq 1
 
   duration resq 1

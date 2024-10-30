@@ -478,9 +478,10 @@ server_init:
 
 run_server:
   ; rdi -> sockfd
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   mov   qword [rsp], rdi
+  mov   qword [rsp+0x8], 0
 
   call  log_server_init
 
@@ -563,10 +564,19 @@ run_server:
   lea   rsi, [start_tv_sec]
   syscall
 
+  ; map request
+  mov   rdi, REQUEST_MAX_LEN
+  call  mmap
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [request], rax
+
   ; receive client request
   mov   rax, SYS_RECVFROM
   mov   rdi, qword [request_client]
-  lea   rsi, [request]
+  mov   rsi, [request]
   mov   rdx, REQUEST_MAX_LEN
   xor   r10, r10
   xor   r9, r9
@@ -576,20 +586,58 @@ run_server:
   mov   qword [request_len], rax
 
   ; parse_request
+  mov   rdi, [request]
   call  parse_request
   cmp   rax, 0
   jl    .error
 
   ; verify request
   call  verify_request
+  cmp   rax, 0
+  jl    .error
 
+  ; call middleware chain
+  mov   qword [rsp+0x8], 0
+
+.loop_middleware:
+  lea   rdi, [middleware_chain]
+  mov   rax, qword [rsp+0x8]
+
+  ; go to middleware
+  mov   rbx, 0x8
+  mul   rbx
+  add   rdi, rax
+
+  ; check if end of the chain
+  cmp   qword [rdi], 0
+  je    .callback
+
+  ; run middleware, passing request as arg
+  mov   rax, qword [rdi]
+  lea   rdi, [request]
+  call  rax
+
+  inc   qword [rsp+0x8]
+
+  cmp   qword [rsp+0x8], MAX_MIDDLEWARES_COUNT
+  je    .callback
+
+  jmp   .loop_middleware
+
+.callback:
   ; callback
   cmp   qword [callback], 0
   je    .skip_callback
 
+  mov   rdi, [request]
   call  [rel callback]
 
 .skip_callback:
+  ; unmap request
+  mov   rdi, [request]
+  mov   rsi, REQUEST_MAX_LEN
+  call  unmap
+
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
@@ -597,6 +645,11 @@ run_server:
   jmp   .loop
 
 .error:
+  ; unmap request
+  mov   rdi, [request]
+  mov   rsi, REQUEST_MAX_LEN
+  call  unmap
+
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
   syscall
@@ -610,7 +663,7 @@ run_server:
   mov   rdi, qword [rsp]
   syscall
 
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 .server_unavailable:
