@@ -596,36 +596,9 @@ run_server:
   cmp   rax, 0
   jl    .error
 
-  ; call middleware chain
-  mov   qword [rsp+0x8], 0
+  mov   rdi, [request]
+  call  run_middlewares
 
-.loop_middleware:
-  lea   rdi, [middleware_chain]
-  mov   rax, qword [rsp+0x8]
-
-  ; go to middleware
-  mov   rbx, 0x8
-  mul   rbx
-  add   rdi, rax
-
-  ; check if end of the chain
-  cmp   qword [rdi], 0
-  je    .callback
-
-  ; run middleware, passing request as arg
-  mov   rax, qword [rdi]
-  lea   rdi, [request]
-  call  rax
-
-  inc   qword [rsp+0x8]
-
-  cmp   qword [rsp+0x8], MAX_MIDDLEWARES_COUNT
-  je    .callback
-
-  jmp   .loop_middleware
-
-.callback:
-  ; callback
   cmp   qword [callback], 0
   je    .skip_callback
 

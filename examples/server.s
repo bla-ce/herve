@@ -93,6 +93,10 @@ _start:
   mov   rsi, qword [sockfd]
   call  add_middleware
 
+  mov   rdi, print_hello
+  mov   rsi, qword [sockfd]
+  call  add_middleware
+
   lea   rdi, [CONNECT]
   call  disallow_method
   cmp   rax, 0

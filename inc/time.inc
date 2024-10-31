@@ -23,6 +23,7 @@ section .data
   days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 
 section .text
+; TODO: does not work if midnight
 ; convert unix to date
 ; @param  rdi: timestamp
 ; @return rax: pointer to dt struct
