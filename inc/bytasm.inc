@@ -18,6 +18,7 @@
 ; TODO: parse request headers
 ; TODO: templates
 ; TODO: add health_check
+; TODO: add middlewares
 ; TODO: JSON
 ; TODO: set/get cookie
 ; TODO: redirects
