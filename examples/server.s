@@ -24,18 +24,24 @@ header:
 
   ret
 
+; @param rdi: request
 health:
-  ; rdi -> request
-  lea   rdi, [header_key]
-  lea   rsi, [header_value]
+  call  get_headers
+  mov   [headers], rax
+
+  mov   rdi, [headers]
+  lea   rsi, [header_key]
+  lea   rdx, [header_value]
   call  set_header
 
-  lea   rdi, [header_key]
-  lea   rsi, [header2_value]
+  mov   rdi, [headers]
+  lea   rsi, [header_key]
+  lea   rdx, [header2_value]
   call  set_header
 
-  lea   rdi, [header_key]
-  call  get_header
+  mov   rdi, [headers]
+  lea   rsi, [header_key]
+  call  get_header_value
   cmp   rax, 0
   jl    error
 
@@ -49,7 +55,6 @@ health:
   ret
 
 post:
-  ; rdi -> request
   call  get_body
   lea   rdi, [rax]
   mov   rsi, 0
@@ -164,6 +169,9 @@ error:
   mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
   syscall
+
+section .bss
+  headers resq 1
 
 section .data
   sockfd  dq 0

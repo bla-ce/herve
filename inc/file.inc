@@ -33,6 +33,19 @@ open_file:
 
   ret
 
+; copies data between infd to outfd
+; @param  rdi: outfd
+; @param  rsi: infd
+; @param  rdx: count
+; @return rax: number of bytes read
+send_file:
+  mov   r9, rdx
+  xor   rdx, rdx
+  ; rest of the registers are already populated
+  syscall
+
+  ret
+
 ; reads count bytes from file descriptor fd into rsi
 ; @param  rdi: fd
 ; @param  rsi: pointer to buf

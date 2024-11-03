@@ -49,8 +49,9 @@ send_response:
   mov   [rsp+0x20], rdi
 
   ; set connection header
-  lea   rdi, [CONNECTION_HEADER]
-  lea   rsi, [CONNECTION_CLOSE]
+  lea   rdi, [response_headers]
+  lea   rsi, [CONNECTION_HEADER]
+  lea   rdx, [CONNECTION_CLOSE]
   call  set_header
 
   ; set content_length
@@ -63,18 +64,22 @@ send_response:
   ; set content length header
   mov   rdi, rax
   call  to_string
-  lea   rsi, [rax]
-  lea   rdi, [CONTENT_LENGTH_HEADER]
+
+  lea   rdi, [response_headers]
+  lea   rsi, [CONTENT_LENGTH_HEADER]
+  lea   rdx, [rax]
   call  set_header
 
   ; set content type header
-  lea   rdi, [CONTENT_TYPE_HEADER]
-  mov   rsi, [rsp+0x10]
+  lea   rdi, [response_headers]
+  lea   rsi, [CONTENT_TYPE_HEADER]
+  mov   rdx, [rsp+0x10]
   call  set_header
 
 .skip_body:
   ; load headers
   mov   rdi, [rsp+0x20]
+  lea   rsi, [response_headers]
   call  load_headers
 
   mov   [rsp+0x20], rax
@@ -147,11 +152,13 @@ send_error_response:
   mov   [rsp+0x10], rdi
 
   ; load connection header
-  lea   rdi, [CONNECTION_HEADER]
-  lea   rsi, [CONNECTION_CLOSE]
+  lea   rdi, [response_headers]
+  lea   rsi, [CONNECTION_HEADER]
+  lea   rdx, [CONNECTION_CLOSE]
   call  set_header
 
   mov   rdi, [rsp+0x10]
+  lea   rsi, [response_headers]
   call  load_headers
   
   lea   rdi, [response]
@@ -182,6 +189,7 @@ serve_string:
   add   rsp, 0x8
   ret
 
+; TODO: make sure we have permissions
 serve_static_file:
   ; rdi -> file path
   sub   rsp, 0x20 ; path, length, fd and content-type
