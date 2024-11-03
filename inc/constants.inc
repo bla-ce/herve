@@ -99,12 +99,29 @@ MICRO_SECOND  equ 0xBC
 
 ; file constants
 O_RDONLY        equ 0
+O_WRONLY        equ 1
+O_CREAT         equ 0x40
+O_APPEND        equ 0x400
 O_DIRECTORY     equ 65536
 FILE_PATH_LEN   equ 0x40
 FILE_MAX_LEN    equ 0x2000
 DIR_ENTRIES_LEN equ 0x400
 DT_DIR          equ 0x4
 DT_REG          equ 0x8
+
+; file permissions
+S_IRWXU equ 0x1C0
+S_IRUSR equ 0x100
+S_IWUSR equ 0x080
+S_IXUSR equ 0x040
+S_IRWXG equ 0x038
+S_IRGRP equ 0x020
+S_IWGRP equ 0x010
+S_IXGRP equ 0x008
+S_IRWXO equ 0x007
+S_IROTH equ 0x004
+S_IWOTH equ 0x002
+S_IXOTH equ 0x001
 
 ; file extension
 TEXT_EXT  db ".txt", NULL_CHAR
