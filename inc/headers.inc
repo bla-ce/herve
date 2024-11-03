@@ -16,8 +16,8 @@ CONNECTION_HEADER     db "Connection", NULL_CHAR
 
 section .text
 ; load the headers into the response
-; @param  rdi: response pointer
-; @return rax: response pointer after headers
+; @param  rdi: response
+; @return rax: points to the response after headers
 load_headers:
   sub   rsp, 0x8
 
@@ -75,10 +75,12 @@ set_header:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
+  ; get key length
   call  strlen
   cmp   rax, HEADER_KEY_MAX_LEN
   jge   .error
 
+  ; get value length
   mov   rdi, [rsp+0x8]
   call  strlen
   cmp   rax, HEADER_VALUE_MAX_LEN
@@ -86,14 +88,17 @@ set_header:
 
   mov   rdi, [rsp]
 
+  ; get canonical format of header key
   call  canonical_mime_header_key
   cmp   rax, 0
   jl    .error
 
   lea   rdi, [rax]
 
+  ; save header key
   mov   [rsp], rdi
 
+  ; check if the key is already in the headers
   call  header_exist
   cmp   rax, 0
   jge   .exist
@@ -103,12 +108,15 @@ set_header:
   lea   rdi, [response_headers]
 
 .loop:
+  ; check if index is empty
   cmp   byte [rdi], NULL_CHAR
   je    .set
 
+  ; go to next index
   inc   qword [rsp+0x10]
   add   rdi, HEADER_LEN
 
+  ; make sure we didn't exceed HEADERS_MAX_COUNT 
   mov   rax, HEADERS_MAX_COUNT
   cmp   qword [rsp+0x10], rax
   jg    .error
@@ -138,6 +146,7 @@ set_header:
   jmp   .return
 
 .exist:
+  ; if header exists, overwrite
   lea   rdi, [response_headers]
   
   ; rax is already populated
@@ -147,6 +156,7 @@ set_header:
 
   add   rdi, rax
 
+  ; empty index
   xor   rax, rax
   mov   rcx, HEADER_LEN
   rep   stosb
@@ -182,13 +192,16 @@ header_exist:
   ; save rdi position
   mov   [rsp+0x10], rdi
 
+  ; get key length
   mov   rdi, [rsp]
   call  strlen
   mov   r9, rax
   lea   rdx, [rdi]
 
+  ; get current key length
   mov   rdi, [rsp+0x10]
   call  strlen
+
   mov   rsi, rax
   mov   rcx, r9
   call  strpos
@@ -198,6 +211,7 @@ header_exist:
 
   inc   qword [rsp+0x8]
 
+  ; make sure we didn't exceed HEADERS_MAX_COUNT
   mov   rax, HEADERS_MAX_COUNT
   cmp   qword [rsp+0x8], rax
   jg    .not_equal
@@ -209,6 +223,7 @@ header_exist:
   jmp   .return
 
 .equal:
+  ; returns the index of the header
   mov   rax, qword [rsp+0x8]
 
 .return:
@@ -222,14 +237,15 @@ header_exist:
 get_header:
   sub   rsp, 0x8
   
+  ; get canonical format of the header key
   call  canonical_mime_header_key
   cmp   rax, 0
   jl    .error
 
   lea   rdi, [rax]
-
   mov   [rsp], rdi
 
+  ; make sure the header key exist
   call  header_exist
   cmp   rax, 0
   jl    .return
@@ -256,6 +272,7 @@ get_header:
   mov   rcx, HEADER_VALUE_MAX_LEN
   rep   stosb
 
+  ; get header value
   lea   rdi, [buf_header_value]
   lea   rax, [rsp]
   mov   rsi, [rax]
@@ -293,6 +310,7 @@ del_header:
   lea   rdi, [response_headers]
   add   rdi, rax
 
+  ; clear header
   mov   rcx, HEADER_LEN
   rep   stosb
   
@@ -315,8 +333,7 @@ canonical_mime_header_key:
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 1 ; next char needs to be upper
 
-  lea   rax, [rsp]
-  mov   rsi, [rax]
+  mov   rsi, [rsp]
 
 .loop:
   xor   rax, rax
@@ -334,7 +351,7 @@ canonical_mime_header_key:
   cmp   al, HYPHEN
   je    .is_hyphen
 
-  .check_upper:
+.check_upper:
   cmp   al, UPPER_A_CHAR
   jl    .error
 
@@ -380,8 +397,7 @@ canonical_mime_header_key:
   ret
 
 .return:
-  lea   rsi, [rsp]
-  mov   rax, [rsi]
+  mov   rax, [rsp]
   add   rsp, 0x10
   ret
 

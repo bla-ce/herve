@@ -4,11 +4,27 @@ section .data
   ERR_EXT_NOT_SUPP  db "file extension not supported", NULL_CHAR
   ERR_NO_EXT        db "file doesn't have an extension", NULL_CHAR
 
-section .text
+  ; file extension
+  TEXT_EXT  db ".txt", NULL_CHAR
+  CSS_EXT   db ".css", NULL_CHAR
+  HTML_EXT  db ".html", NULL_CHAR
+  JS_EXT    db ".js", NULL_CHAR
+  BIN_EXT   db ".bin", NULL_CHAR
+  CSV_EXT   db ".csv", NULL_CHAR
+  GIF_EXT   db ".gif", NULL_CHAR
+  JPEG_EXT  db ".jpeg", NULL_CHAR
+  JPG_EXT   db ".jpg", NULL_CHAR
+  JSON_EXT  db ".json", NULL_CHAR
+  MP4_EXT   db ".mp4", NULL_CHAR
+  PNG_EXT   db ".png", NULL_CHAR
+  SVG_EXT   db ".svg", NULL_CHAR
+  XML_EXT   db ".xml", NULL_CHAR
 
+section .text
 ; opens a file and return the file descriptor
 ; @param  rdi: pointer to file_path
 ; @param  rsi: flags
+; @param  rdx: mode
 ; @return rax: file descriptor or -1 if error
 open_file:
   mov   rax, SYS_OPEN
@@ -94,9 +110,119 @@ get_ext:
   call  cmpstr
 
   cmp   rax, 1
-  jne   .check_plain
+  jne   .check_bin
 
   lea   rax, [CONTENT_CSS]
+  jmp   .return
+
+.check_bin:
+  lea   rdi, [BIN_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_csv
+
+  lea   rax, [CONTENT_BIN]
+  jmp   .return
+
+.check_csv:
+  lea   rdi, [CSV_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_gif
+
+  lea   rax, [CONTENT_CSV]
+  jmp   .return
+
+.check_gif:
+  lea   rdi, [GIF_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_jpeg
+
+  lea   rax, [CONTENT_GIF]
+  jmp   .return
+
+.check_jpeg:
+  lea   rdi, [JPEG_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_jpg
+
+  lea   rax, [CONTENT_JPEG]
+  jmp   .return
+
+.check_jpg:
+  lea   rdi, [JPG_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_json
+
+  lea   rax, [CONTENT_JPEG]
+  jmp   .return
+ 
+.check_json:
+  lea   rdi, [JSON_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_mp4
+
+  lea   rax, [CONTENT_JSON]
+  jmp   .return
+ 
+.check_mp4:
+  lea   rdi, [MP4_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_png
+
+  lea   rax, [CONTENT_MP4]
+  jmp   .return
+ 
+.check_png:
+  lea   rdi, [PNG_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_svg
+
+  lea   rax, [CONTENT_PNG]
+  jmp   .return
+ 
+.check_svg:
+  lea   rdi, [SVG_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_xml
+
+  lea   rax, [CONTENT_SVG]
+  jmp   .return
+ 
+.check_xml:
+  lea   rdi, [XML_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_plain
+
+  lea   rax, [CONTENT_XML]
   jmp   .return
  
 .check_plain:

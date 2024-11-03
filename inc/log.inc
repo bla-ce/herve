@@ -57,7 +57,7 @@ log:
 
 ; writes a string to the log output followed by a line feed.
 ; @param  rdi: string
-; @param  rdi: (optional) string length
+; @param  rsi: (optional) string length
 logln:
   push  rbp
   mov   rbp, rsp
@@ -198,14 +198,13 @@ log_server_init:
   mov   rdi, LINE_FEED
   call	print_char
 
-  mov   rax, SUCCESS_CODE
   add   rsp, 0x10
   ret
 
 ; store duration inside log_duration
 log_get_duration:
-  sub   rsp, 0x8 ; duration_str length
-  mov   qword [rsp], 0
+  sub   rsp, 0x8
+  mov   qword [rsp], 0 ; length of duration str
 
   lea   rsi, [log_duration]
   add   rsi, LONG_SIZE
@@ -233,12 +232,12 @@ log_get_duration:
   mov   byte [rsi], MICRO_SECOND    ; Second byte of the UTF-8 sequence for 'μ'
   inc   rsi
   mov   byte [rsi], LOW_S_CHAR
-  sub   rsi, 3                ; go back to original position
+  sub   rsi, 3    ; go back to original position
   
 .loop:
   xor   rdx, rdx
-  mov   rcx, 0xA              ; divisor, dividend in rax
-  div   rcx                   ; quotient in rax and remainder in edx
+  mov   rcx, 0xA  ; divisor, dividend in rax
+  div   rcx       ; quotient in rax and remainder in edx
 
   add   rdx, ZERO_CHAR
 
@@ -250,9 +249,9 @@ log_get_duration:
   jne   .loop
 
   add   rsp, 0x8
-  mov   rax, SUCCESS_CODE
   ret
 
+; log the current request
 log_request:
   ; clear log duration and time
   mov   rcx, LONG_SIZE
@@ -318,7 +317,7 @@ log_malformed_request:
   mov   rax, 0
   ret
 
-; log the status code with corresponding color
+; log the status code
 log_status_code:
   mov   rdi, qword [response_status_code]
   cmp   qword [log_color], 0
@@ -366,23 +365,23 @@ log_status_code:
 
 ; log current date and time
 ; @param  rdi: (optional) timestamp, if set to 0 get now
+; @return rax: exit code
 log_time:
   sub   rsp, 0x8 ; store timestamp
 
   cmp   rdi, 0
   je   .get_unix
 
-  mov   qword [rsp], rdi
+  jmp   .print_time
 
 .get_unix:
   call  now
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp], rax
+  mov   rdi, rax
 
 .print_time:
-  mov   rdi, qword [rsp] 
   call  unix_to_date_time
 
   mov   rdi, qword [dt_year]

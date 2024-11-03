@@ -123,12 +123,6 @@ S_IROTH equ 0x004
 S_IWOTH equ 0x002
 S_IXOTH equ 0x001
 
-; file extension
-TEXT_EXT  db ".txt", NULL_CHAR
-CSS_EXT   db ".css", NULL_CHAR
-HTML_EXT  db ".html", NULL_CHAR
-JS_EXT    db ".js", NULL_CHAR
-
 ; exit code
 SUCCESS_CODE equ 0
 FAILURE_CODE equ -1
@@ -172,6 +166,15 @@ CONTENT_HTML  db "text/html; charset=UTF-8", NULL_CHAR
 CONTENT_CSS   db "text/css; charset=UTF-8", NULL_CHAR
 CONTENT_JS    db "text/javascript; charset=UTF-8", NULL_CHAR
 CONTENT_PLAIN db "text/plain; charset=UTF-8", NULL_CHAR
+CONTENT_BIN   db "application/octet-stream", NULL_CHAR
+CONTENT_CSV   db "text/csv; charset=UTF-8", NULL_CHAR
+CONTENT_GIF   db "image/gif", NULL_CHAR
+CONTENT_JPEG  db "image/jpeg", NULL_CHAR
+CONTENT_JSON  db "application/json; charset=UTF-8", NULL_CHAR
+CONTENT_MP4   db "video/mp4", NULL_CHAR
+CONTENT_PNG   db "image/png", NULL_CHAR
+CONTENT_SVG   db "image/svg+xml", NULL_CHAR
+CONTENT_XML   db "application/xml", NULL_CHAR
 
 ; connection
 CONNECTION_CLOSE db "close", NULL_CHAR
