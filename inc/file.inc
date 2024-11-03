@@ -9,11 +9,11 @@ section .text
 ; opens a file and return the file descriptor
 ; @param  rdi: pointer to file_path
 ; @param  rsi: flags
+; @param  rdx: mode
 ; @return rax: file descriptor or -1 if error
 open_file:
   mov   rax, SYS_OPEN
-  ; rdi and rsi already populated
-  xor   rdx, rdx
+  ; rdi, rsi and rdx already populated
   syscall
 
   ret

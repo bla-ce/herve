@@ -230,6 +230,7 @@ get_body:
   lea   rax, [request_body]
   ret
 
+; TODO: pass method as an argument
 check_method:
   sub   rsp, 0x18
 

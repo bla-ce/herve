@@ -17,7 +17,104 @@ green_fg    db 0x1b, "[32m", NULL_CHAR
 yellow_fg   db 0x1b, "[33m", NULL_CHAR
 default_fg  db 0x1b, "[39m", NULL_CHAR
 
+; bool to enable/disable color
+log_color dq 1
+
+; where to store logs, standard output by default 
+log_output dq STDOUT
+
 section .text
+
+; TODO: merge log and print functions
+; writes a string to the log output.
+; @param  rdi: string
+; @param  rsi: (optional) string length
+log:
+  push  rbp
+  mov   rbp, rsp
+
+  mov   rax, rsi
+  cmp   rax, 0
+  jg    .known_length
+
+  push  rdi
+  call  strlen
+  test  rax, rax
+  jz    .return
+
+  pop   rdi
+
+.known_length:
+  lea   rsi, [rdi]
+  mov   rdx, rax
+  mov   rax, SYS_WRITE
+  mov   rdi, qword [log_output]
+  syscall
+
+.return:
+  leave
+  ret
+
+; writes a string to the log output followed by a line feed.
+; @param  rdi: string
+; @param  rdi: (optional) string length
+logln:
+  push  rbp
+  mov   rbp, rsp
+
+  call  log 
+  cmp   rax, 0
+  jl    .return
+
+  push  LINE_FEED
+
+  mov   rax, SYS_WRITE
+  mov   rdi, qword [log_output]
+  lea   rsi, [rsp]
+  mov   rdx, 1
+  syscall
+
+  ; clean stack
+  pop   rax
+  xor   rax, rax
+
+.return:
+  leave  
+  ret
+
+; writes a single character to the log output.
+; @param  rdi: character to print
+log_char:
+  push  rbp
+  mov   rbp, rsp
+
+  push  rdi
+
+  mov   rax, SYS_WRITE
+  mov   rdi, qword [log_output]
+  lea   rsi, [rsp]
+  mov   rdx, 1
+  syscall
+
+  leave
+  ret
+
+; sets the log output file descriptor.
+; @param  rdi: fd
+set_log_output:
+  mov   qword [log_output], rdi
+  ret
+
+; Disables colored log output by setting log_color to 0
+disable_log_color:
+  mov   qword [log_color], 0
+  ret
+
+; Enables colored log output by setting log_color to 1
+enable_log_color:
+  mov   qword [log_color], 1
+  ret
+
 ; initial log of the available routes and port the server is listening to
 log_server_init:
   sub   rsp, 0x10 ; routes count for route logs
@@ -167,7 +264,7 @@ log_request:
   ; [LOG] 
   lea   rdi, [log_pre]
   mov   rsi, 0
-  call  print
+  call  log
 
   ; log time
   mov   rdi, qword [start_tv_sec]
@@ -175,7 +272,7 @@ log_request:
 
   lea   rdi, [log_delimiter]
   mov   rsi, 0
-  call  print
+  call  log
 
   call  log_get_duration
 
@@ -183,11 +280,11 @@ log_request:
   lea   rdi, [log_duration]
   mov   rsi, LONG_SIZE
   add   rsi, 2
-  call  print
+  call  log
 
   lea   rdi, [log_delimiter]
   mov   rsi, 0
-  call  print
+  call  log
 
   ; log status code
   call  log_status_code
@@ -195,28 +292,28 @@ log_request:
   ; log delimiter
   lea   rdi, [log_delimiter]
   mov   rsi, 0
-  call  print
+  call  log
 
   ; log method
   lea   rdi, [request_method]
   mov   rsi, METHOD_MAX_LEN
-  call  print
+  call  log
 
   lea   rdi, [log_arrow]
   mov   rsi, 0
-  call  print
+  call  log
 
   ; log url
   lea   rdi, [request_url]
   mov   rsi, 0
-  call  println
+  call  logln
 
   mov   rax, 0
   ret
 
 log_malformed_request:
   mov   rsi, 0
-  call  println
+  call  logln
 
   mov   rax, 0
   ret
@@ -224,6 +321,9 @@ log_malformed_request:
 ; log the status code with corresponding color
 log_status_code:
   mov   rdi, qword [response_status_code]
+  cmp   qword [log_color], 0
+  je    .no_color
+
   cmp   rdi, BAD_REQUEST
   jl    .green
 
@@ -235,31 +335,32 @@ log_status_code:
   ; load green
 .green:
   lea   rdi, [green_fg]
-  jmp   .print
+  jmp   .print_color
 
 .yellow:
   lea   rdi, [yellow_fg]
-  jmp   .print
+  jmp   .print_color
 
 .red:
   lea   rdi, [red_fg]
 
-.print:
+.print_color:
   ; print ansi to change color
   mov   rsi, 0
-  call  print
+  call  log
 
+.no_color:
   ; print status code
   mov   rdi, qword [response_status_code]
   call  to_string
   lea   rdi, [rax]
   mov   rsi, 0
-  call  print
+  call  log
 
   ; back to default color
   lea   rdi, [default_fg]
   mov   rsi, 0
-  call  print
+  call  log
 
   ret
 
@@ -289,16 +390,16 @@ log_time:
 
   lea   rdi, [rax]
   mov   rsi, 0
-  call  print
+  call  log
 
   mov   rdi, SLASH
-  call  print_char
+  call  log_char
 
   cmp   qword [dt_month], 10
   jge   .no_zero_month
 
   mov   rdi, ZERO_CHAR
-  call  print_char
+  call  log_char
 
 .no_zero_month:
   mov   rdi, qword [dt_month]
@@ -306,16 +407,16 @@ log_time:
 
   lea   rdi, [rax]
   mov   rsi, 0
-  call  print
+  call  log
 
   mov   rdi, SLASH
-  call  print_char
+  call  log_char
 
   cmp   qword [dt_day], 10
   jge   .no_zero_day
 
   mov   rdi, ZERO_CHAR
-  call  print_char
+  call  log_char
 
 .no_zero_day:
   mov   rdi, qword [dt_day]
@@ -323,22 +424,22 @@ log_time:
 
   lea   rdi, [rax]
   mov   rsi, 0
-  call  print
+  call  log
 
   mov   rdi, SPACE
-  call	print_char
+  call	log_char
 
   mov   rdi, HYPHEN
-  call	print_char
+  call	log_char
 
   mov   rdi, SPACE
-  call	print_char
+  call	log_char
 
   cmp   qword [dt_hour], 10
   jge   .no_zero_hour
 
   mov   rdi, ZERO_CHAR
-  call	print_char
+  call	log_char
 
 .no_zero_hour:
   mov   rdi, qword [dt_hour]
@@ -346,16 +447,16 @@ log_time:
 
   lea   rdi, [rax]
   mov   rsi, 0
-  call  print
+  call  log
 
   mov   rdi, COLON
-  call  print_char
+  call  log_char
 
   cmp   qword [dt_minute], 10
   jge   .no_zero_minute
 
   mov   rdi, ZERO_CHAR
-  call  print_char
+  call  log_char
 
 .no_zero_minute:
   mov   rdi, qword [dt_minute]
@@ -363,16 +464,16 @@ log_time:
 
   lea   rdi, [rax]
   mov   rsi, 0
-  call  print
+  call  log
 
   mov   rdi, COLON
-  call  print_char
+  call  log_char
 
   cmp   qword [dt_second], 10
   jge   .no_zero_second
 
   mov   rdi, ZERO_CHAR
-  call  print_char
+  call  log_char
 
 .no_zero_second:
   mov   rdi, qword [dt_second]
@@ -380,14 +481,14 @@ log_time:
 
   lea   rdi, [rax]
   mov   rsi, 0
-  call  print
+  call  log
 
   mov   rdi, SPACE
-  call  print_char
+  call  log_char
 
   lea   rdi, [utc_str]
   mov   rsi, 0
-  call  print
+  call  log
 
   mov   rax, SUCCESS_CODE
   jmp   .return
