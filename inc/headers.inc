@@ -215,7 +215,7 @@ header_exist:
   call  strpos
 
   cmp  rax, 0
-  jge  .equal
+  je   .equal
 
   inc   qword [rsp+0x10]
 

@@ -1,3 +1,4 @@
+; TODO: malloc :)
 ; TODO: file caching
 ; TODO: group routes
 ; TODO: doc and comments 
