@@ -1,4 +1,3 @@
-; TODO: malloc :)
 ; TODO: file caching
 ; TODO: group routes
 ; TODO: doc and comments 
@@ -37,7 +36,7 @@
 %include "middleware.inc"
 %include "headers.inc"
 %include "log.inc"
-%include "memory.inc"
+%include "malloc.inc"
 %include "string.inc"
 %include "server.inc"
 %include "request.inc"

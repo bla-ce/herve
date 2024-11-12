@@ -244,7 +244,7 @@ header_exist:
 ; @param  rsi: key
 ; @return rax: pointer to value
 get_header_value:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   mov   [rsp], rdi
 
@@ -281,25 +281,27 @@ get_header_value:
   ; save rdi onto the stack
   mov   [rsp+0x8], rdi
 
-  ; clear value buffer
-  xor   rax, rax
-  lea   rdi, [buf_header_value]
-  mov   rcx, HEADER_VALUE_MAX_LEN
-  rep   stosb
+  mov   rdi, HEADER_VALUE_MAX_LEN
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
 
   ; get header value
-  lea   rdi, [buf_header_value]
+  mov   rdi, rax
   mov   rsi, [rsp+0x8]
   call  strcpy
 
-  lea   rax, [buf_header_value]
+  mov   rax, [rsp+0x10]
   jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 

@@ -45,7 +45,7 @@ health:
   cmp   rax, 0
   jl    error
 
-  lea   rdi, [rax]
+  mov   rdi, rax
   mov   rsi, 0
   call  println
 

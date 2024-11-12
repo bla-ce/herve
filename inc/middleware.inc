@@ -1,9 +1,12 @@
 section .bss
 section .data
+
   middleware_struct:
     middleware  dq 0
     next        dq 0 
   middleware_end:
+
+  MIDDLEWARE_OFF_NEXT equ 0x8
 section .text
 
 ; TODO: add middleware to route
@@ -28,7 +31,7 @@ add_middleware:
 
 .loop:
   ; go to *next
-  add   rdi, 0x8
+  add   rdi, MIDDLEWARE_OFF_NEXT
 
   ; check if the address in rdi is null
   cmp   qword [rdi], 0
@@ -45,10 +48,10 @@ add_middleware:
   ; save next pos onto the stack
   mov   [rsp+0x8], rdi
 
-  ; mmap struct
+  ; malloc struct
   mov   rdi, middleware_end
   sub   rdi, middleware_struct
-  call  mmap
+  call  malloc
 
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]
