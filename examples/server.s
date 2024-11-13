@@ -90,21 +90,6 @@ _start:
 
   mov   qword [sockfd], rax
 
-  call  disable_log_color
-  lea   rdi, [log_file]
-  mov   rsi, O_WRONLY
-  or    rsi, O_APPEND
-  or    rsi, O_CREAT
-  mov   rdx, S_IWUSR
-  or    rdx, S_IRUSR
-  or    rdx, S_IRGRP
-  or    rdx, S_IROTH
-  call  open_file
-  cmp   rax, 0
-  jl    error
-  mov   rdi, rax
-  call  set_log_output
-
   mov   rdi, print_hello
   mov   rsi, qword [sockfd]
   call  add_middleware

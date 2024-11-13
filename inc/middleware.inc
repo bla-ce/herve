@@ -48,10 +48,9 @@ add_middleware:
   ; save next pos onto the stack
   mov   [rsp+0x8], rdi
 
-  ; malloc struct
   mov   rdi, middleware_end
   sub   rdi, middleware_struct
-  call  malloc
+  call  mmap
 
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]

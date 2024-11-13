@@ -1,3 +1,4 @@
+; TODO: does not log other than 200
 ; TODO: file caching
 ; TODO: group routes
 ; TODO: doc and comments 
@@ -36,7 +37,7 @@
 %include "middleware.inc"
 %include "headers.inc"
 %include "log.inc"
-%include "malloc.inc"
+%include "mmap.inc"
 %include "string.inc"
 %include "server.inc"
 %include "request.inc"
