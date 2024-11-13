@@ -1,4 +1,5 @@
-; TODO: does not log other than 200
+; TODO: malloc
+; TODO: variable lifecycle
 ; TODO: file caching
 ; TODO: group routes
 ; TODO: doc and comments 

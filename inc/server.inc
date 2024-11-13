@@ -624,7 +624,7 @@ run_server:
   syscall
 
   ; jump to next request, skipping logs
-  jmp   .timer_not_defined
+  jmp   .loop
 
 .close:
   ; shutdown server
