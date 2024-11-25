@@ -1,4 +1,9 @@
+%include "malloc.inc"
+%include "free.inc"
+
 section .data
+STR_PORT_MAX_LENGTH equ 0x6 ; add one for null_char
+
 log_server_init_msg       db "Listening and serving HTTP on :", NULL_CHAR
 log_routes_available_msg  db "Routes available:", NULL_CHAR
 
@@ -117,7 +122,7 @@ enable_log_color:
 
 ; initial log of the available routes and port the server is listening to
 log_server_init:
-  sub   rsp, 0x10 ; routes count for route logs
+  sub   rsp, 0x18 ; routes count for route logs
 
   lea   rdi, [log_debug]
   mov   rsi, 0
@@ -127,12 +132,29 @@ log_server_init:
   mov   rsi, 0
   call	print 
 
+  mov   rdi, STR_PORT_MAX_LENGTH
+  call  malloc
+
+  cmp   rax, 0
+  jl    .return
+
+  mov   [rsp+0x10], rax
+
   mov   rdi, qword [port]
+  mov   rsi, rax
+  mov   rdx, STR_PORT_MAX_LENGTH
   call  to_string
 
-  lea   rdi, [rax]
+  cmp   rax, 0
+  jl    .return
+
+  mov   rdi, rax
   mov   rsi, 0
   call	println
+
+  ; free port string
+  mov   rdi, [rsp+0x10]
+  call  free
 
   mov   rdi, LINE_FEED
   call  print_char
@@ -198,7 +220,7 @@ log_server_init:
   mov   rdi, LINE_FEED
   call	print_char
 
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; store duration inside log_duration
@@ -319,6 +341,8 @@ log_malformed_request:
 
 ; log the status code
 log_status_code:
+  sub   rsp, 0x8
+
   mov   rdi, qword [response_status_code]
   cmp   qword [log_color], 0
   je    .no_color
@@ -349,25 +373,41 @@ log_status_code:
   call  log
 
 .no_color:
+  mov   rdi, 4
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
   ; print status code
   mov   rdi, qword [response_status_code]
+  mov   rsi, rax
+  mov   rdx, 4 ; add one for null char
   call  to_string
-  lea   rdi, [rax]
+
+  mov   rdi, rax
   mov   rsi, 0
   call  log
+
+  mov   rdi, [rsp]
+  call  free
 
   ; back to default color
   lea   rdi, [default_fg]
   mov   rsi, 0
   call  log
 
+.error:
+  add   rsp, 0x8
   ret
 
 ; log current date and time
 ; @param  rdi: (optional) timestamp, if set to 0 get now
 ; @return rax: exit code
 log_time:
-  sub   rsp, 0x8 ; store timestamp
+  sub   rsp, 0x10 ; store timestamp
 
   cmp   rdi, 0
   je   .get_unix
@@ -384,12 +424,28 @@ log_time:
 .print_time:
   call  unix_to_date_time
 
+  mov   rdi, 5  ; add one for null char
+  call  malloc
+  
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
   mov   rdi, qword [dt_year]
+  mov   rsi, rax
+  mov   rdx, 5
   call  to_string
 
-  lea   rdi, [rax]
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, 0
   call  log
+
+  mov   rdi, [rsp+0x8]
+  call  free
 
   mov   rdi, SLASH
   call  log_char
@@ -401,10 +457,23 @@ log_time:
   call  log_char
 
 .no_zero_month:
+  mov   rdi, 3
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
   mov   rdi, qword [dt_month]
+  mov   rsi, rax
+  mov   rdx, 3
   call  to_string
 
-  lea   rdi, [rax]
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, 0
   call  log
 
@@ -419,9 +488,14 @@ log_time:
 
 .no_zero_day:
   mov   rdi, qword [dt_day]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, 3
   call  to_string
 
-  lea   rdi, [rax]
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, 0
   call  log
 
@@ -442,9 +516,14 @@ log_time:
 
 .no_zero_hour:
   mov   rdi, qword [dt_hour]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, 3
   call  to_string
 
-  lea   rdi, [rax]
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, 0
   call  log
 
@@ -459,9 +538,14 @@ log_time:
 
 .no_zero_minute:
   mov   rdi, qword [dt_minute]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, 3
   call  to_string
 
-  lea   rdi, [rax]
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, 0
   call  log
 
@@ -476,11 +560,19 @@ log_time:
 
 .no_zero_second:
   mov   rdi, qword [dt_second]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, 3
   call  to_string
 
-  lea   rdi, [rax]
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, 0
   call  log
+
+  mov   rdi, [rsp+0x8]
+  call  free
 
   mov   rdi, SPACE
   call  log_char
@@ -496,6 +588,6 @@ log_time:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 

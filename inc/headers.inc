@@ -200,18 +200,9 @@ header_exist:
   ; save rdi position
   mov   [rsp+0x18], rdi
 
-  ; get key length
-  mov   rdi, [rsp+0x8]
-  call  strlen
-  mov   r9, rax
-  lea   rdx, [rdi]
-
   ; get current key length
   mov   rdi, [rsp+0x18]
-  call  strlen
-
-  mov   rsi, rax
-  mov   rcx, r9
+  mov   rsi, [rsp+0x8]
   call  strpos
 
   cmp  rax, 0

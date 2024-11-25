@@ -89,8 +89,6 @@ section .bss
 
   duration resq 1
 
-  to_string_buf resb TO_STRING_MAX
-
   routes_count resq 1
 
   callback_list resq MAX_ROUTES_COUNT
@@ -117,7 +115,8 @@ section .data
   methods_list  db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
   methods_list_len equ $ - methods_list
 
-  not_allowed_methods times methods_list_len db 0
+  not_allowed_methods times methods_list_len db SPACE
+  not_allowed_methods_end db 0
 
   routes_list     times MAX_ROUTES_COUNT * STRUCT_ROUTE_LEN db 0
   routes_list_len equ $ - routes_list

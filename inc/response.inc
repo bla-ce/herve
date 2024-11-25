@@ -1,11 +1,12 @@
-%ifndef RESPONSE_INC
-%define RESPONSE_INC
+section .data
+  STR_CONTENT_LENGTH_MAX_LENGTH equ 7 ; add one for null char
 
+section .text
 send_response:
   ; rdi -> status code str
   ; rsi -> content type
   ; rdx -> body
-  sub   rsp, 0x28
+  sub   rsp, 0x30
 
   mov   rax, qword [request_client]
   mov   qword [rsp], rax
@@ -61,13 +62,26 @@ send_response:
   test  rax, rax
   jz    .skip_body
 
+  mov   qword [rsp+0x28], rax
+
+  mov   rdi, STR_CONTENT_LENGTH_MAX_LENGTH
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
   ; set content length header
-  mov   rdi, rax
+  mov   rdi, qword [rsp+0x28]
+  mov   rsi, rax
+  mov   rdx, STR_CONTENT_LENGTH_MAX_LENGTH
   call  to_string
+
+  cmp   rax, 0
+  jl    .error
 
   lea   rdi, [response_headers]
   lea   rsi, [CONTENT_LENGTH_HEADER]
-  lea   rdx, [rax]
+  mov   rdx, rax
   call  set_header
 
   ; set content type header
@@ -103,8 +117,14 @@ send_response:
   lea   rsi, [response]
   syscall
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ; clean stack
-  add   rsp, 0x28
+  add   rsp, 0x30
 
   ret
 
@@ -283,6 +303,4 @@ serve_dir:
   call  serve_static_file
 
   ret
-
-%endif
 

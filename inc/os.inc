@@ -38,9 +38,7 @@ getenv:
   jl    .error
 
   lea   rdi, [environ]
-  mov   rsi, rax
-  mov   rdx, [rsp]
-  mov   rcx, qword [rsp+0x8]
+  mov   rsi, [rsp]
   call  strpos
 
   cmp   rax, 0

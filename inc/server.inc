@@ -1,5 +1,8 @@
 section .bss
+
 section .data
+  DEFAULT_PORT equ 8080
+
 section .text
 htons:
   ; rdi -> port
@@ -35,11 +38,12 @@ disallow_method:
 
   ; look if method is inside the list
   ; load request into rdx
-  mov   rdx, [rsp+0x8]
   lea   rdi, [methods_list]
-  mov   rsi, methods_list_len
-  mov   rcx, qword [rsp]
+  mov   rsi, [rsp+0x8]
   call  strpos
+
+  cmp   rax, 0
+  jl    .error
 
   ; add method to not allowed list
   lea   rdi, [not_allowed_methods]
@@ -375,7 +379,7 @@ server_init:
   jg    .port_defined
 
 .default_port:
-  mov   rbx, 8080
+  mov   rbx, DEFAULT_PORT
   cmp   rax, 0
   cmovl rax, rbx
 

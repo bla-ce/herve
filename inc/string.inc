@@ -1,6 +1,4 @@
-%ifndef STRING_INC
-%define STRING_INC
-
+section .text
 ; compare rdi and rsi
 ; @param  rdi: str
 ; @param  rsi: substr
@@ -53,34 +51,31 @@ strcpy:
   add   rsp, 0x10
   ret
 
-; converts int in rdi into string
+; converts UNSIGNED int in rdi into string
+; string pointer needs to be passed
 ; @param  rdi: int
+; @param  rsi: string
+; @param  rdx: size
 ; @return rax: pointer to str(int)
 to_string:
-  cmp   rdi, 1000000
-  jge   .invalid_number
+  sub   rsp, 0x18
 
-  push  rdi
-  
-  ; load buffer
-  lea   rdi, [to_string_buf]
-
-  push  rdi
-
-  ; clear buffer
-  mov   al, NULL_CHAR
-  mov   rcx, TO_STRING_MAX
-  rep   stosb
-
-  pop   rdi
+  ; save parameters onto the stack
+  mov   qword [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], rdx
 
   ; go to the end of the buf (print backward)
-  add   rdi, TO_STRING_MAX
+  mov   rdi, [rsp+0x8]
+  add   rdi, qword [rsp+0x10]
 
-  ; go back two to let an extra null char at the end
-  sub   rdi, 2
+  ; go back to let an extra null char at the end
+  dec   rdi
+  mov   byte [rdi], NULL_CHAR
+
+  dec   rdi
   
-  pop   rax
+  mov   rax, qword [rsp]
   
 .loop:
   xor   rdx, rdx
@@ -98,23 +93,20 @@ to_string:
 
   inc   rdi
  
-  lea   rax, [rdi]
+  mov   rax, rdi
 
   jmp   .return
 
-.invalid_number:
-  mov   rax, -1
-
 .return:
+  add   rsp, 0x18
   ret
 
 ; returns the index of the next occurence of the char
 ; relative to current address
-; returns the preserved address into rdi
+; @param  rdi: string
+; @param  rsi: char
+; @return rax: index
 find_next_char:
-  ; rdi -> string
-  ; rsi -> char
-  ; return value -> rax: index
   push  rsi
 
   lea   rsi, [rdi]
@@ -148,56 +140,72 @@ find_next_char:
   add   rsp, 0x8
   ret
 
+
+; returns the position of a substring inside a string
+; @param  rdi: string
+; @param  rsi: substring
+; @param  rax: return
 strpos:
-  ; rdi -> string
-  ; rsi -> string length
-  ; rdx -> substring
-  ; rcx -> substring length
-  ; return value: rax -> substring position
-  sub   rsp, 8 ; string index and substring index
-  mov   qword [rsp], 0
+  sub   rsp, 0x28
 
-  mov   rbx, rcx
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
-  push  rdx
-  push  rsi
-  push  rdi
+  ; get string length
+  call  strlen
+  mov   qword [rsp+0x10], rax
 
-  pop   rsi
-  pop   rax
-  pop   rdi
+  cmp   rax, 0
+  je    .does_not_contain
+
+  ; get substring length
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  mov   qword [rsp+0x18], rax
+
+  cmp   rax, 0
+  je    .does_not_contain
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+
+  ; keep track of cursor index
+  mov   qword [rsp+0x20], 0
 
 .loop:
-  mov   rcx, rbx
-  cld
-  rep   cmpsb 
-  je    .found
+  mov   rcx, qword [rsp+0x18]
+  rep   cmpsb
 
-.continue:
-  add   qword [rsp], rbx
-  sub   qword [rsp], rcx
+  je    .contains
 
-  cmp   qword [rsp], rax
-  jg    .not_found
+  mov   rbx, qword [rsp+0x18]
+  add   qword [rsp+0x20], rbx
+  sub   qword [rsp+0x20], rcx
 
-  add   rdi, rcx
-  sub   rdi, rbx
+  mov   rbx, qword [rsp+0x20]
+  cmp   rbx, qword [rsp+0x10]
+  jge   .does_not_contain
+
+  add   rsi, rcx
+  sub   rsi, qword [rsp+0x18]
 
   jmp   .loop
 
-.found:
-  mov   rax, qword [rsp]
+.does_not_contain:
+  mov   rax, -1
   jmp   .return
 
-.not_found:
-  mov   rax, FAILURE_CODE
-  
+.contains:
+  mov   rax, qword [rsp+0x20]
+
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x28
   ret
 
+; returns the length of the given string
+; @param  rdi: string
+; @return rax: length of the string
 strlen:
-  ; rdi -> *str
   lea   rsi, [rdi]
   mov   rcx, 0
 
@@ -219,9 +227,10 @@ strlen:
   mov   rax, rcx
   ret
 
+; prints the string, if length is not passed, it will compute its length
+; @param  rdi: sring
+; @param  rsi: (optional) string length
 print:
-  ; rdi -> string
-  ; rsi -> string_len (optional, if set to 0, need to compute length)
   push  rbp
   mov   rbp, rsp
 
@@ -247,6 +256,10 @@ print:
   leave
   ret
 
+; prints the string followed by a new line character
+; if length is not passed, it will compute its length
+; @param  rdi: sring
+; @param  rsi: (optional) string length
 println:
   push  rbp
   mov   rbp, rsp
@@ -271,7 +284,8 @@ println:
   leave  
   ret
 
-; prints a character on standard output
+; prints a character
+; @param  rdi: character
 print_char:
   push  rbp
   mov   rbp, rsp
@@ -287,7 +301,7 @@ print_char:
   leave
   ret
 
-; turns string into an integer (doesn't support neg number yet)
+; converts string to an integer
 ; @param  rdi: string
 ; @return rax: int or -1 if error
 stoi:
@@ -392,6 +406,4 @@ ascii_to_int:
 .return:
   mov   rax, rdi
   ret
-
-%endif
 

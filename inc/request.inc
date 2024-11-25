@@ -126,9 +126,7 @@ parse_request:
 
   ; find the end of the headers (\r\n\r\n)
   lea   rdi, [rsi]
-  mov   rsi, qword [request_len]
-  lea   rdx, [post_headers]
-  mov   rcx, post_headers_len
+  lea   rsi, [post_headers]
   call  strpos
 
   cmp   rax, 0
@@ -242,9 +240,7 @@ check_method:
 
   ; look for the method inside methods list
   lea   rdi, [methods_list]
-  mov   rsi, methods_list_len
-  mov   rdx, [rsp+0x8]
-  mov   rcx, qword [rsp+0x10]
+  mov   rsi, [rsp+0x8]
   call  strpos
 
   cmp   rax, 0
@@ -279,9 +275,7 @@ check_method:
 
   ; check if the method is allowed
   lea   rdi, [not_allowed_methods]
-  mov   rsi, methods_list_len
-  mov   rdx, [rsp+0x8]
-  mov   rcx, qword [rsp+0x10] 
+  mov   rsi, [rsp+0x8]
   call  strpos
 
   cmp   rax, 0
@@ -424,19 +418,9 @@ get_param:
   ; init stack
   sub   rsp, 0x10
 
-  ; get param name length
-  mov   [rsp], rdi
-  call  strlen
-  mov   rbx, rax
-
   ; load query params
   lea   rdi, [query_params]
-  call  strlen
-  mov   rsi, rax
-
-  ; get position of the param
   mov   rdx, [rsp]
-  mov   rcx, rbx
   call  strpos
   mov   rbx, rax
 
