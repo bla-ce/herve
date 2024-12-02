@@ -593,13 +593,13 @@ run_server:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [request]
+  call  run_middlewares
+
   ; verify request
   call  verify_request
   cmp   rax, 0
   jl    .error
-
-  mov   rdi, [request]
-  call  run_middlewares
 
   cmp   qword [callback], 0
   je    .skip_callback
