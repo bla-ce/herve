@@ -50,7 +50,7 @@ add_middleware:
 
   mov   rdi, middleware_end
   sub   rdi, middleware_struct
-  call  mmap
+  call  malloc
 
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]

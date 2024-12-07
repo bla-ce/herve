@@ -77,7 +77,7 @@ add_dir_route:
 
   ; map file_path and direntries
   mov   rdi, DIR_ENTRIES_LEN
-  call  mmap
+  call  malloc
 
   cmp   rax, 0
   jl    .error
@@ -85,7 +85,7 @@ add_dir_route:
   mov   [rsp+0x28], rax
 
   mov   rdi, FILE_PATH_LEN
-  call  mmap
+  call  malloc
 
   cmp   rax, 0
   jl    .error
@@ -224,7 +224,8 @@ add_dir_route:
 
   ; add one to remove slash at the beginning
   inc   rdi
-  call  add_dir_route
+  ; TODO: Fix recursion
+  ;call  add_dir_route
 
   mov   r9, qword [rsp+0x18]
   mov   r10, qword [rsp+0x20]
@@ -241,11 +242,10 @@ add_dir_route:
 .return:
   mov   rdi, [rsp+0x28]
   mov   rsi, DIR_ENTRIES_LEN
-  call  unmap
+  call  free
 
   mov   rdi, [rsp+0x30]
-  mov   rsi, FILE_PATH_LEN
-  call  unmap
+  call  free
 
   mov   rax, SUCCESS_CODE
   add   rsp, 0x38
@@ -254,11 +254,10 @@ add_dir_route:
 .error:
   mov   rdi, [rsp+0x28]
   mov   rsi, DIR_ENTRIES_LEN
-  call  unmap
+  call  free
 
   mov   rdi, [rsp+0x30]
-  mov   rsi, FILE_PATH_LEN
-  call  unmap
+  call  free
 
   mov   rax, FAILURE_CODE
   add   rsp, 0x38
@@ -568,7 +567,7 @@ run_server:
 
   ; map request
   mov   rdi, REQUEST_MAX_LEN
-  call  mmap
+  call  malloc
 
   cmp   rax, 0
   jl    .error
@@ -609,8 +608,7 @@ run_server:
 
 .skip_callback:
   mov   rdi, [request]
-  mov   rsi, REQUEST_MAX_LEN
-  call  unmap
+  call  free
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
@@ -620,8 +618,7 @@ run_server:
 
 .error:
   mov   rdi, [request]
-  mov   rsi, REQUEST_MAX_LEN
-  call  unmap
+  call  free
 
   mov   rax, SYS_CLOSE
   mov   rdi, qword [request_client] 
