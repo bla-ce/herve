@@ -86,6 +86,10 @@ _split:
 
   mov   qword [rdi+CHUNK_OFFSET_SIZE], rbx
 
+  ; set prev and next to 0 to avoid garbage data from prev malloc
+  mov   qword [rdi+CHUNK_OFFSET_NEXT], 0
+  mov   qword [rdi+CHUNK_OFFSET_PREV], 0
+
   ; add second chunk to the free list
   call  add_to_free_list
 
