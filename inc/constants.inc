@@ -103,7 +103,7 @@ O_APPEND        equ 0x400
 O_DIRECTORY     equ 65536
 FILE_PATH_LEN   equ 0x40
 FILE_MAX_LEN    equ 0x2000
-DIR_ENTRIES_LEN equ 0x400
+DIR_ENTRIES_LEN equ 0x600
 DT_DIR          equ 0x4
 DT_REG          equ 0x8
 

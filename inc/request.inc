@@ -1,7 +1,6 @@
 %ifndef REQUEST_INC
 %define REQUEST_INC
 
-
 ; parse the string representation of the request onto the request struct
 ; @param  rdi: pointer to request
 ; @return rax: code

@@ -173,6 +173,7 @@ add_dir_route:
   add   rsi, 18
 
   call  strcpy
+
   mov   rsi, [rsp+0x30] 
   lea   rdi, [GET]
   mov   rdx, serve_dir
@@ -224,8 +225,7 @@ add_dir_route:
 
   ; add one to remove slash at the beginning
   inc   rdi
-  ; TODO: Fix recursion
-  ;call  add_dir_route
+  call  add_dir_route
 
   mov   r9, qword [rsp+0x18]
   mov   r10, qword [rsp+0x20]
@@ -241,7 +241,6 @@ add_dir_route:
 
 .return:
   mov   rdi, [rsp+0x28]
-  mov   rsi, DIR_ENTRIES_LEN
   call  free
 
   mov   rdi, [rsp+0x30]
@@ -253,7 +252,6 @@ add_dir_route:
 
 .error:
   mov   rdi, [rsp+0x28]
-  mov   rsi, DIR_ENTRIES_LEN
   call  free
 
   mov   rdi, [rsp+0x30]

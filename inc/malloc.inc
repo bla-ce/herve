@@ -21,11 +21,11 @@ section .data
   N_BINS              equ 0xA
 
   chunk:
-    chunk_magic_value dq 0
-    chunk_size        dq 0
-    chunk_inuse       dq 0
-    chunk_next        dq 0
-    chunk_prev        dq 0
+    magic_value dq 0
+    size        dq 0
+    inuse       dq 0
+    next        dq 0
+    prev        dq 0
   end_chunk:
 
   seg_free_list times N_BINS dq 0

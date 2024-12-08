@@ -105,6 +105,7 @@ log_char:
   ret
 
 ; sets the log output file descriptor.
+; TODO: accept file path and do everything inside
 ; @param  rdi: fd
 set_log_output:
   mov   qword [log_output], rdi

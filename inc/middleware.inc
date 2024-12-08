@@ -3,7 +3,7 @@ section .data
 
   middleware_struct:
     middleware  dq 0
-    next        dq 0 
+    _next       dq 0 
   middleware_end:
 
   MIDDLEWARE_OFF_NEXT equ 0x8
