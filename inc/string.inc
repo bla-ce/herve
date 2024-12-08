@@ -407,3 +407,73 @@ ascii_to_int:
   mov   rax, rdi
   ret
 
+; prints padded string, if strlen is bigger than padding, add '...' before
+; @param  rdi: str
+; @param  rsi: padding
+; @return rax: void
+padding_print:
+  sub   rsp, 0x18
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], rsi
+
+  ; get string length
+  call  strlen
+  mov   qword [rsp+0x10], rax
+
+  cmp   rax, qword [rsp+0x8]
+  je    .equal
+  jl    .less
+  jg    .more
+
+; print the string without padding
+.equal:
+  mov   rdi, [rsp]
+  mov   rsi, qword [rsp+0x8]
+  call  print
+  jmp   .return
+
+.less:
+  ; print string
+  mov   rdi, [rsp]
+  mov   rsi, qword [rsp+0x10]
+  call  print
+
+  ; get difference
+  mov   r9, qword [rsp+0x8]
+  sub   r9, qword [rsp+0x10]
+
+  ; print padding
+.loop:
+  mov   rdi, SPACE
+  call  print_char
+
+  dec   r9
+  
+  cmp   r9, 0
+  jg    .loop
+
+  jmp   .return 
+
+.more:
+  ; get length and subtract 3 for the dots
+  mov   rdi, [rsp]
+  mov   rsi, qword [rsp+0x8]
+  sub   rsi, 3
+  call  print
+
+  ; print dots
+  mov   r9, 3
+.loop_dots:
+  mov   rdi, DOT
+  call  print_char
+
+  dec   r9
+
+  cmp   r9, 0
+  jg    .loop_dots
+
+.return:
+  add   rsp, 0x18
+  ret
+
