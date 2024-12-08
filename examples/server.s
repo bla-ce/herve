@@ -141,6 +141,7 @@ _start:
   call  add_route 
 
   lea   rdi, [views_dir]
+  mov   rsi, 1
   call  add_dir_route
 
   mov   rdi, qword [sockfd]

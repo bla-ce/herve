@@ -69,11 +69,13 @@ disallow_method:
 
 ; create a route serving files located in a specified dir 
 ; @param  rdi: path
+; @param  rsi: (bool) recursion
 ; @return rax: code
 add_dir_route:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
 
   mov   [rsp+0x8], rdi
+  mov   [rsp+0x38], rsi
 
   ; map file_path and direntries
   mov   rdi, DIR_ENTRIES_LEN
@@ -224,9 +226,14 @@ add_dir_route:
   lea   rdi, [rsi]
 
   ; add one to remove slash at the beginning
+  cmp   qword [rsp+0x38], 1
+  jne   .no_recursion
+
   inc   rdi
+  mov   rsi, 1
   call  add_dir_route
 
+.no_recursion:
   mov   r9, qword [rsp+0x18]
   mov   r10, qword [rsp+0x20]
   mov   rdi, [rsp+0x8]
@@ -247,7 +254,7 @@ add_dir_route:
   call  free
 
   mov   rax, SUCCESS_CODE
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 .error:
@@ -258,7 +265,7 @@ add_dir_route:
   call  free
 
   mov   rax, FAILURE_CODE
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 add_route:

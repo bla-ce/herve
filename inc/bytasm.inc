@@ -1,4 +1,3 @@
-; TODO: malloc
 ; TODO: variable lifecycle
 ; TODO: file caching
 ; TODO: group routes
