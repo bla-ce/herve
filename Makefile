@@ -8,7 +8,6 @@ main: $(INCLUDES) examples/server.s
 	rm unstack-v1.0.tar.gz
 	nasm -f elf64 -o examples/server.o examples/server.s -g -w+all -I$(INC_DIR)/
 	ld -o examples/server examples/server.o
-	rsync -av -e ssh --exclude='.git/' . nerdy@192.168.122.129:/home/nerdy/dev/assembly/bytasm
 
 test: test.s
 	nasm -f elf64 -o test.o test.s -g

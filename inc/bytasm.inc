@@ -1,4 +1,6 @@
+; TODO: port validation with /etc/services
 ; TODO: variable lifecycle
+; TODO: free functions for variable malloc'd in function
 ; TODO: file caching
 ; TODO: group routes
 ; TODO: doc and comments 

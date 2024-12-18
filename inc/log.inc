@@ -1,4 +1,6 @@
 %include "malloc.inc"
+%include "calloc.inc"
+%include "memset.inc"
 %include "free.inc"
 
 section .data
@@ -13,8 +15,6 @@ error_pre db SPACE, "[ERROR]", SPACE, NULL_CHAR
 
 log_delimiter db SPACE, VERTICAL_BAR, SPACE, NULL_CHAR
 log_arrow     db SPACE, "->", SPACE, NULL_CHAR
-
-log_duration  times LONG_SIZE+2   db SPACE
 
 ; ansi color
 red_fg      db 0x1b, "[31m", NULL_CHAR
@@ -226,10 +226,20 @@ log_server_init:
 
 ; store duration inside log_duration
 log_get_duration:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
   mov   qword [rsp], 0 ; length of duration str
+  mov   qword [rsp+0x8], 0
 
-  lea   rsi, [log_duration]
+  mov   rdi, LONG_SIZE
+  mov   rsi, 1
+  call  calloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rsi, rax
   add   rsi, LONG_SIZE
 
   ; print ns backwards
@@ -271,18 +281,28 @@ log_get_duration:
   cmp   rax, 0
   jne   .loop
 
-  add   rsp, 0x8
+  ; print duration
+  mov   rdi, [rsp+0x8]
+  mov   rsi, LONG_SIZE
+  add   rsi, 2
+  call  log
+
+  jmp   .free
+
+.error:
+  cmp   qword [rsp+0x8], 0
+  jne   .return
+
+.free:
+  mov   rdi, [rsp+0x8]
+  call  free
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; log the current request
 log_request:
-  ; clear log duration and time
-  mov   rcx, LONG_SIZE
-  add   rcx, 2
-  mov   rax, SPACE
-  lea   rdi, [log_duration]
-  rep   stosb
-
   ; [LOG] 
   lea   rdi, [log_pre]
   mov   rsi, 0
@@ -297,12 +317,6 @@ log_request:
   call  log
 
   call  log_get_duration
-
-  ; log request duration
-  lea   rdi, [log_duration]
-  mov   rsi, LONG_SIZE
-  add   rsi, 2
-  call  log
 
   lea   rdi, [log_delimiter]
   mov   rsi, 0
