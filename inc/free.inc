@@ -21,8 +21,9 @@ coalesce:
   ; save both chunks onto the stack
   mov   [rsp], rdi
   mov   rsi, rdi
-  add   rdi, qword [rdi+CHUNK_OFFSET_SIZE]
-  mov   [rsp+0x8], rdi
+  add   rsi, qword [rdi+CHUNK_OFFSET_SIZE]
+  mov   [rsp+0x8], rsi
+  mov   rdi, rsi
 
   ; remove second chunk from free list
   call  remove_from_free_list
@@ -113,7 +114,7 @@ remove_from_free_list:
   jmp   .return
 
 .first_chunk:
-  cmp   qword [rdi+CHUNK_OFFSET_NEXT], 0
+  cmp   qword [rsi+CHUNK_OFFSET_NEXT], 0
   je    .only_chunk
 
   ; remove from seg free list first

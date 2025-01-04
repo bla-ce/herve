@@ -171,8 +171,6 @@ parse_request:
   lea   rsi, [STR_BAD_REQUEST]
   call  send_error_response
 
-  call  log_malformed_request
-
   mov   rax, FAILURE_CODE
   jmp   .return
 
@@ -410,16 +408,19 @@ check_route:
   add   rsp, 0x18
   ret
 
+; extracts the value of a specified query parameter from a given URL string
+; @param  rdi: query parameter
+; @return rax: pointer to value
 get_param:
-  ; rdi -> param
-  ; return value: rax -> param pointer
-
   ; init stack
   sub   rsp, 0x10
+  mov   [rsp], rdi
 
   ; load query params
   lea   rdi, [query_params]
-  mov   rdx, [rsp]
+  mov   rsi, [rsp]
+
+  ; check if parameter is in url
   call  strpos
   mov   rbx, rax
 

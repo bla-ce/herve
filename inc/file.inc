@@ -20,6 +20,15 @@ section .data
   SVG_EXT   db ".svg", NULL_CHAR
   XML_EXT   db ".xml", NULL_CHAR
 
+	SYS_READ	  equ 0x0
+	SYS_WRITE	  equ 0x1
+	SYS_OPEN	  equ 0x2
+	SYS_CLOSE	  equ 0x3
+	SYS_LSEEK	  equ 0x8
+
+  SEEK_SET equ 0x0
+  SEEK_END equ 0x2
+
 section .text
 ; opens a file and return the file descriptor
 ; @param  rdi: pointer to file_path
@@ -48,17 +57,73 @@ send_file:
 
 ; reads count bytes from file descriptor fd into rsi
 ; @param  rdi: fd
-; @param  rsi: pointer to buf
-; @param  rdx: max bytes to read
-; @return rax: number of bytes read
+; @return rax: pointer to content
 read_file:
-  sub   rsp, 0x8
+  sub   rsp, 0x18
 
-  mov   rax, SYS_READ
-  ; rest of the registers already populated
+  mov   qword [rsp], rdi
+
+  ; get file size
+  mov   rax, SYS_LSEEK
+  mov   rdi, qword [rsp]
+  mov   rsi, 0
+  mov   rdx, SEEK_END
   syscall
 
-  add   rsp, 0x8
+  cmp   rax, 0
+  jl    .error
+  jg    .file_not_empty
+
+  ; file is empty, close it
+  mov   rdi, qword [rsp]
+  mov   rax, SYS_CLOSE
+  syscall
+
+  jmp   .error
+
+.file_not_empty:
+  mov   qword [rsp+0x10], rax
+
+  mov   rdi, rax
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; move cursor back to the beginning of the file
+  mov   rax, SYS_LSEEK
+  mov   rdi, qword [rsp]
+  mov   rsi, 0
+  mov   rdx, SEEK_SET
+  syscall
+
+  cmp   rax, 0
+  jl    .error
+
+  ; read file
+  mov   rax, SYS_READ
+  mov   rdi, qword [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, qword [rsp+0x10]
+  syscall
+
+  cmp   rax, 0
+  jl    .error
+
+  ; close file
+  mov   rdi, qword [rsp]
+  call  close_file
+
+  mov   rax, [rsp+0x8]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
   ret
 
 ; closes file description

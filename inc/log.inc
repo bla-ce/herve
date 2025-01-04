@@ -1,8 +1,3 @@
-%include "malloc.inc"
-%include "calloc.inc"
-%include "memset.inc"
-%include "free.inc"
-
 section .data
 STR_PORT_MAX_LENGTH equ 0x6 ; add one for null_char
 
@@ -230,7 +225,7 @@ log_get_duration:
   mov   qword [rsp], 0 ; length of duration str
   mov   qword [rsp+0x8], 0
 
-  mov   rdi, LONG_SIZE
+  mov   rdi, 0x18 ; TODO: Update magic value
   mov   rsi, 1
   call  calloc
 
@@ -240,7 +235,7 @@ log_get_duration:
   mov   [rsp+0x8], rax
 
   mov   rsi, rax
-  add   rsi, LONG_SIZE
+  add   rsi, 0x18 ; TODO: Update magic value
 
   ; print ns backwards
   mov   byte [rsi], LOW_S_CHAR
@@ -283,7 +278,7 @@ log_get_duration:
 
   ; print duration
   mov   rdi, [rsp+0x8]
-  mov   rsi, LONG_SIZE
+  mov   rsi, 0x18 ; TODO: Update magic value
   add   rsi, 2
   call  log
 
@@ -341,13 +336,6 @@ log_request:
 
   ; log url
   lea   rdi, [request_url]
-  mov   rsi, 0
-  call  logln
-
-  mov   rax, 0
-  ret
-
-log_malformed_request:
   mov   rsi, 0
   call  logln
 

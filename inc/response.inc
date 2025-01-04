@@ -210,9 +210,11 @@ serve_string:
   ret
 
 ; TODO: make sure we have permissions
+; serves a static file
+; @param  rdi: file path
+; @return rax: void
 serve_static_file:
-  ; rdi -> file path
-  sub   rsp, 0x20 ; path, length, fd and content-type
+  sub   rsp, 0x20
 
   mov   [rsp], rdi
 
@@ -239,8 +241,6 @@ serve_static_file:
 
   ; read file
   mov   rdi, qword [rsp+0x10]
-  lea   rsi, [file]
-  mov   rdx, FILE_MAX_LEN ; TODO: update
   call  read_file
 
   cmp   rax, 0
@@ -251,22 +251,15 @@ serve_static_file:
   ; send response
   lea   rdi, [STR_OK]
   mov   rsi, [rsp+0x18]
-  lea   rdx, [file]
+  mov   rdx, qword [rsp+0x8]
   call  send_response
 
-  ; close file
-  mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp+0x10]
-  syscall
+  mov   rax, SUCCESS_CODE
 
-  ; clear file buffer
-  xor   rax, rax
-  mov   al, NULL_CHAR
-  lea   rdi, [file]
-  mov   rcx, FILE_MAX_LEN
-  rep   stosb
+  ; free file content
+  mov   rdi, qword [rsp+0x8]
+  call  free
 
-  mov   rax, 0
   ; clean stack
   add   rsp, 0x20
   ret

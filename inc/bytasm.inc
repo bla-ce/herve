@@ -35,19 +35,24 @@
 %ifndef BYT_ASM_INC
 %define BYT_ASM_INC
 
+%include "bytasm.inc"
+%include "calloc.inc"
 %include "constants.inc"
-%include "middleware.inc"
-%include "headers.inc"
-%include "log.inc"
-%include "mmap.inc"
-%include "string.inc"
-%include "server.inc"
-%include "request.inc"
-%include "response.inc"
 %include "error.inc"
 %include "file.inc"
-%include "time.inc"
+%include "free.inc"
+%include "headers.inc"
+%include "log.inc"
+%include "malloc.inc"
+%include "memset.inc"
+%include "middleware.inc"
+%include "mmap.inc"
 %include "os.inc"
+%include "request.inc"
+%include "response.inc"
+%include "server.inc"
+%include "string.inc"
+%include "time.inc"
 
 section .bss
   port  resq 1

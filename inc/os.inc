@@ -1,11 +1,10 @@
-section .bss
-  environ resb ENVIRON_LEN
 section .data
   ENVIRON_LEN equ 0x8000
   PORT_ENV    db "PORT", NULL_CHAR
 
   environ_file_path db "/proc/self/environ", NULL_CHAR
 
+  environ     dq 0
   environ_fd  dq 0
 section .text
 ; searches the environment list to find the environment variable name
@@ -30,14 +29,14 @@ getenv:
 
   ; read file
   mov   rdi, rax
-  lea   rsi, [environ]
-  mov   rdx, ENVIRON_LEN
   call  read_file
 
   cmp   rax, 0
   jl    .error
 
-  lea   rdi, [environ]
+  mov   qword [environ], rax
+
+  mov   rdi, [environ]
   mov   rsi, [rsp]
   call  strpos
 
@@ -45,12 +44,11 @@ getenv:
   jl    .error
 
   ; go to the beginning of the key
-  lea   rdi, [environ]
+  mov   rdi, [environ]
   add   rdi, rax
 
   ; go to beginning of the value ('=' position + 10
   mov   rsi, EQUAL_SIGN
-  .b1:
   call  find_next_char
 
   cmp   rax, 0
@@ -71,7 +69,12 @@ getenv:
   mov   rdi, qword [environ_fd]
   call  close_file
 
+  ; free environ
+  mov   rdi, qword [environ]
+  call  free
+
   mov   rax, [rsp]
+
 
   add   rsp, 0x10
   ret 
