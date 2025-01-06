@@ -1,5 +1,3 @@
-section .bss
-
 section .data
   ERR_EXT_NOT_SUPP  db "file extension not supported", NULL_CHAR
   ERR_NO_EXT        db "file doesn't have an extension", NULL_CHAR

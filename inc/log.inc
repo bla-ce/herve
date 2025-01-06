@@ -68,6 +68,8 @@ logln:
 
   push  LINE_FEED
 
+  xor   rsi, rsi
+
   mov   rax, SYS_WRITE
   mov   rdi, qword [log_output]
   lea   rsi, [rsp]
@@ -89,6 +91,8 @@ log_char:
   mov   rbp, rsp
 
   push  rdi
+
+  xor   rsi, rsi
 
   mov   rax, SYS_WRITE
   mov   rdi, qword [log_output]

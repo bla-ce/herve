@@ -270,6 +270,8 @@ println:
 
   push  LINE_FEED
 
+  xor   rsi, rsi
+
   mov   rax, SYS_WRITE
   lea   rdi, STDOUT
   lea   rsi, [rsp]
@@ -291,6 +293,8 @@ print_char:
   mov   rbp, rsp
 
   push  rdi
+
+  xor   rsi, rsi
 
   mov   rax, SYS_WRITE
   mov   rdi, STDOUT

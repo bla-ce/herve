@@ -74,6 +74,7 @@ remove_from_free_list:
 
   mov   rdi, qword [seg_free_list+0x8*rax]
   
+  ; find chunk from free list
 .loop:
   cmp   rdi, [rsp]
   je    .remove
@@ -122,7 +123,8 @@ remove_from_free_list:
 
   ; move next one at the beginning of the free list
   mov   rbx, qword [rsi+CHUNK_OFFSET_NEXT]
-  mov   qword [rdi], rbx
+  mov   qword [rbx+CHUNK_OFFSET_PREV], 0
+  mov   qword [seg_free_list+0x8*rax], rbx
 
   jmp   .return
 
@@ -217,4 +219,5 @@ free:
 
   add   rsp, 0x8
   ret
+
 

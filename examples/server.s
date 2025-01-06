@@ -18,6 +18,8 @@ header:
   lea   rdi, [name_param]
   call  get_param
 
+  ; TODO: if failed?
+
   lea   rdi, [rax]
   mov   rsi, 0
   call  println

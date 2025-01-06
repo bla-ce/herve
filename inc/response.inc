@@ -246,19 +246,15 @@ serve_static_file:
   cmp   rax, 0
   jl    .error_read
 
-  mov   qword [rsp+0x8], rax
+  mov   [rsp+0x8], rax
 
   ; send response
   lea   rdi, [STR_OK]
   mov   rsi, [rsp+0x18]
-  mov   rdx, qword [rsp+0x8]
+  mov   rdx, [rsp+0x8]
   call  send_response
 
   mov   rax, SUCCESS_CODE
-
-  ; free file content
-  mov   rdi, qword [rsp+0x8]
-  call  free
 
   ; clean stack
   add   rsp, 0x20
