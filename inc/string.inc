@@ -130,7 +130,7 @@ find_next_char:
   jmp   .loop
 
 .not_found:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   jmp   .return
 
 .found:

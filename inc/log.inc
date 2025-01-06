@@ -30,21 +30,22 @@ section .text
 ; @param  rdi: string
 ; @param  rsi: (optional) string length
 log:
-  push  rbp
-  mov   rbp, rsp
+  sub   rsp, 0x8
 
   mov   rax, rsi
   cmp   rax, 0
   jg    .known_length
 
-  push  rdi
+  mov   [rsp], rdi
+
   call  strlen
   test  rax, rax
   jz    .return
 
-  pop   rdi
+  mov   rdi, [rsp]
 
 .known_length:
+  xor   rsi, rsi
   lea   rsi, [rdi]
   mov   rdx, rax
   mov   rax, SYS_WRITE
@@ -52,21 +53,20 @@ log:
   syscall
 
 .return:
-  leave
+  add   rsp, 0x8
   ret
 
 ; writes a string to the log output followed by a line feed.
 ; @param  rdi: string
 ; @param  rsi: (optional) string length
 logln:
-  push  rbp
-  mov   rbp, rsp
+  sub   rsp, 0x8
 
   call  log 
   cmp   rax, 0
   jl    .return
 
-  push  LINE_FEED
+  mov   qword [rsp], LINE_FEED
 
   xor   rsi, rsi
 
@@ -77,20 +77,18 @@ logln:
   syscall
 
   ; clean stack
-  pop   rax
   xor   rax, rax
 
 .return:
-  leave  
+  add   rsp, 0x8
   ret
 
 ; writes a single character to the log output.
 ; @param  rdi: character to print
 log_char:
-  push  rbp
-  mov   rbp, rsp
+  sub   rsp, 0x8
 
-  push  rdi
+  mov   qword [rsp], rdi
 
   xor   rsi, rsi
 
@@ -100,7 +98,7 @@ log_char:
   mov   rdx, 1
   syscall
 
-  leave
+  add   rsp, 0x8
   ret
 
 ; sets the log output file descriptor.
@@ -124,10 +122,12 @@ enable_log_color:
 log_server_init:
   sub   rsp, 0x18 ; routes count for route logs
 
+  xor   rdi, rdi
   lea   rdi, [log_debug]
   mov   rsi, 0
   call  print
 
+  xor   rdi, rdi
   lea   rdi, [log_server_init_msg]
   mov   rsi, 0
   call	print 
@@ -159,10 +159,12 @@ log_server_init:
   mov   rdi, LINE_FEED
   call  print_char
 
+  xor   rdi, rdi
   lea   rdi, [log_debug]
   mov   rsi, 0
   call  print
 
+  xor   rdi, rdi
   lea   rdi, [log_routes_available_msg]
   mov   rsi, 0
   call	println
@@ -173,11 +175,13 @@ log_server_init:
 
 .loop:
   ; log debug 
+  xor   rdi, rdi
   lea   rdi, [log_debug]
   mov   rsi, 0
   call	print
 
   ; load routes_list
+  xor   rdi, rdi
   lea   rdi, [routes_list]
 
   ; get route pos
@@ -303,6 +307,7 @@ log_get_duration:
 ; log the current request
 log_request:
   ; [LOG] 
+  xor   rdi, rdi
   lea   rdi, [log_pre]
   mov   rsi, 0
   call  log
@@ -311,12 +316,14 @@ log_request:
   mov   rdi, qword [start_tv_sec]
   call  log_time
 
+  xor   rdi, rdi
   lea   rdi, [log_delimiter]
   mov   rsi, 0
   call  log
 
   call  log_get_duration
 
+  xor   rdi, rdi
   lea   rdi, [log_delimiter]
   mov   rsi, 0
   call  log
@@ -325,20 +332,24 @@ log_request:
   call  log_status_code
 
   ; log delimiter
+  xor   rdi, rdi
   lea   rdi, [log_delimiter]
   mov   rsi, 0
   call  log
 
   ; log method
+  xor   rdi, rdi
   lea   rdi, [request_method]
   mov   rsi, METHOD_MAX_LEN
   call  log
 
+  xor   rdi, rdi
   lea   rdi, [log_arrow]
   mov   rsi, 0
   call  log
 
   ; log url
+  xor   rdi, rdi
   lea   rdi, [request_url]
   mov   rsi, 0
   call  logln
@@ -584,6 +595,7 @@ log_time:
   mov   rdi, SPACE
   call  log_char
 
+  xor   rdi, rdi
   lea   rdi, [utc_str]
   mov   rsi, 0
   call  log

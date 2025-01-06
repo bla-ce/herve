@@ -6,10 +6,19 @@ can_coalesce:
   mov   rsi, qword [rdi+CHUNK_OFFSET_SIZE]
   add   rdi, rsi
 
+  cmp   rdi, qword [heap_start]
+  jge   .heap_bound
+
   cmp   qword [rdi+CHUNK_OFFSET_INUSE], 0
   sete  al
   movzx rax, al
-  
+
+  jmp   .return
+
+.heap_bound:
+  mov   rax, 0
+
+.return:
   ret
 
 ; coalesces adjacent chunks
@@ -219,5 +228,4 @@ free:
 
   add   rsp, 0x8
   ret
-
 

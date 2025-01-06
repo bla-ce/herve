@@ -256,6 +256,10 @@ serve_static_file:
 
   mov   rax, SUCCESS_CODE
 
+  ; free file content
+  mov   rdi, [rsp+0x8]
+  call  free
+
   ; clean stack
   add   rsp, 0x20
   ret

@@ -250,8 +250,7 @@ malloc:
 
   cmp   rax, 0
   jl    .error
-  
-  ; save chunk address onto the stack
+
   mov   [rsp+0x8], rax
 
   ; initialize chunk
@@ -270,6 +269,15 @@ malloc:
   mov   qword [rsi+CHUNK_OFFSET_PREV],  0
   mov   qword [rsi+CHUNK_OFFSET_INUSE], 1
 
+  ; check if heap is init
+  cmp   qword [heap_start], 0
+  jne   .heap_is_init
+
+  mov   rdi, rsi
+  add   rdi, rax
+  mov   qword [heap_start], rdi
+
+.heap_is_init:
   ; check if this chunk can be splitted
   mov   rdi, rsi
   mov   rsi, qword [rsp]
