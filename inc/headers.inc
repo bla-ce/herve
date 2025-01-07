@@ -17,7 +17,7 @@ CONNECTION_HEADER     db "Connection", NULL_CHAR
 section .text
 ; load the headers into the response
 ; @param  rdi: response
-; @param  rsi: headers
+; @param  rsi: headers string
 ; @return rax: points to the response after headers
 load_headers:
   sub   rsp, 0x10
@@ -351,7 +351,7 @@ canonical_mime_header_key:
   jl    .error
   je    .return ; end of string
 
-  cmp   al, LOW_Z_CHAR
+  cmp   al, LOWERCASE_Z
   jg    .error
 
 .check_hyphen:
@@ -359,17 +359,17 @@ canonical_mime_header_key:
   je    .is_hyphen
 
 .check_upper:
-  cmp   al, UPPER_A_CHAR
+  cmp   al, UPPERCASE_A
   jl    .error
 
-  cmp   al, UPPER_Z_CHAR
+  cmp   al, UPPERCASE_Z
   jl    .is_upper
 
 .check_lower:
-  cmp   al, LOW_A_CHAR
+  cmp   al, LOWERCASE_A
   jl    .error
 
-  cmp   al, LOW_Z_CHAR
+  cmp   al, LOWERCASE_Z
   jle   .is_lower
 
   jmp   .error
@@ -409,6 +409,8 @@ canonical_mime_header_key:
   ret
 
 ; get response headers
+; TODO: use response struct to get headers
+; TODO: pass response pointer as arg
 ; @return rax: pointer response headers
 get_headers:
   lea   rax, [response_headers]

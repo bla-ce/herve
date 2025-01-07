@@ -10,6 +10,11 @@ print_hello:
 
   ret
 
+cookie_func:
+  lea   rdi, [ck_test_name] 
+  call  is_cookie_name_valid
+  ret 
+
 header:
   lea   rdi, [request_headers]
   mov   rsi, 0
@@ -145,6 +150,11 @@ _start:
   lea   rdi, [GET]
   lea   rsi, [index_route]
   mov   rdx, index
+  call  add_route
+
+  lea   rdi, [GET]
+  lea   rsi, [cookie_route]
+  mov   rdx, cookie_func
   call  add_route 
 
   lea   rdi, [views_dir]
@@ -174,6 +184,7 @@ section .data
   post_route    db "/post", NULL_CHAR
   index_route   db "/index", NULL_CHAR
   header_route  db "/header", NULL_CHAR
+  cookie_route  db "/cookie", NULL_CHAR
 
   api_route db "/api", NULL_CHAR
   v1_route  db "/api/v1", NULL_CHAR
@@ -188,6 +199,8 @@ section .data
   header_key    db "set-cookie", NULL_CHAR
   header_value  db "value", NULL_CHAR
   header2_value db "value2", NULL_CHAR
+
+  ck_test_name db "__ck_test", NULL_CHAR
 
   hello db "Hello, World!", NULL_CHAR
 

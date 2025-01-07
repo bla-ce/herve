@@ -1,7 +1,10 @@
+; TODO: check null pointer when passing pointers as arguments
+; TODO: calling convention preserving registers
+
 %ifndef BYT_ASM_INC
 %define BYT_ASM_INC
 
-%include "bytasm.inc"
+%include "ascii.inc"
 %include "calloc.inc"
 %include "constants.inc"
 %include "error.inc"
@@ -19,6 +22,7 @@
 %include "server.inc"
 %include "string.inc"
 %include "time.inc"
+%include "cookie.inc"
 
 section .bss
   port  resq 1

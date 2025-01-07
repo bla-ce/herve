@@ -246,9 +246,9 @@ log_get_duration:
   add   rsi, 0x18 ; TODO: Update magic value
 
   ; print ns backwards
-  mov   byte [rsi], LOW_S_CHAR
+  mov   byte [rsi], LOWERCASE_S
   dec   rsi
-  mov   byte [rsi], LOW_N_CHAR
+  mov   byte [rsi], LOWERCASE_N
   dec   rsi
 
   mov   rax, qword [duration]
@@ -267,7 +267,7 @@ log_get_duration:
   inc   rsi
   mov   byte [rsi], MICRO_SECOND    ; Second byte of the UTF-8 sequence for 'μ'
   inc   rsi
-  mov   byte [rsi], LOW_S_CHAR
+  mov   byte [rsi], LOWERCASE_S
   sub   rsi, 3    ; go back to original position
   
 .loop:

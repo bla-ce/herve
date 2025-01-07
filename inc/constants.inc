@@ -64,33 +64,6 @@ SYS_EXIT          equ 60
 SYS_GETDENTS      equ 78
 SYS_CLOCK_GETTIME equ 228
 
-; ascii
-NULL_CHAR       equ 0
-END_OF_TEXT     equ 3
-LINE_FEED       equ 10
-CARRIAGE_RETURN equ 13
-SPACE           equ 32
-NUMBER_SIGN     equ 35
-AMPERSAND       equ 38
-HYPHEN          equ 45
-DOT             equ 46
-SLASH           equ 47
-ZERO_CHAR       equ 48
-NINE_CHAR       equ 57
-COLON           equ 58
-EQUAL_SIGN      equ 61
-UPPER_A_CHAR    equ 65
-UPPER_M_CHAR    equ 77
-UPPER_Z_CHAR    equ 90
-QUESTION_MARK   equ 63
-OPENING_BRACKET equ 91
-LOW_A_CHAR      equ 97
-LOW_N_CHAR      equ 110
-LOW_S_CHAR      equ 115
-LOW_Z_CHAR      equ 122
-VERTICAL_BAR    equ 124
-LOWER_TO_UPPER  equ 32
-
 ; extended ascii
 MICRO_FIRST   equ 0xCE
 MICRO_SECOND  equ 0xBC
