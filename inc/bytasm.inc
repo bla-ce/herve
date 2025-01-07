@@ -1,37 +1,3 @@
-; TODO: port validation with /etc/services
-; TODO: variable lifecycle
-; TODO: free functions for variable malloc'd in function
-; TODO: file caching
-; TODO: group routes
-; TODO: doc and comments 
-; TODO: errors
-; TODO: mime type media
-; TODO: add wildcard route
-; TODO: GET request
-; TODO: ANY request
-; TODO: parse query string
-; TODO: memory mapped file
-; TODO: read file bigger then rdx
-; TODO: set timeout
-; TODO: session management
-; TODO: block ip
-; TODO: rate limit
-; TODO: database integration
-; TODO: url encode and decode
-; TODO: graceful stop
-; TODO: parse request headers
-; TODO: templates
-; TODO: add health_check
-; TODO: JSON
-; TODO: set/get cookie
-; TODO: redirects
-; TODO: public/private functions if possible
-; TODO: read basic auth
-; TODO: floating point for duration
-; TODO: log in sec
-; TODO: add https
-; TODO: concurrency
-
 %ifndef BYT_ASM_INC
 %define BYT_ASM_INC
 
