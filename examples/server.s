@@ -200,7 +200,7 @@ section .data
   header_value  db "value", NULL_CHAR
   header2_value db "value2", NULL_CHAR
 
-  ck_test_name db "__ck_test", NULL_CHAR
+  ck_test_name db "cookie=value", NULL_CHAR
 
   hello db "Hello, World!", NULL_CHAR
 

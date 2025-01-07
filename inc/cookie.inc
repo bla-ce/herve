@@ -49,12 +49,12 @@ section .data
   SAME_SITE_LAX     db "SameSite=Lax", NULL_CHAR
   SAME_SITE_STRICT  db "SameSite=Strict", NULL_CHAR
 
-  is_token_table  db 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ; 33-47
-                  db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1 ; 48-63
-                  db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ; 64-79
-                  db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1 ; 80-95
-                  db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ; 96-111
-                  db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ; 112-126
+  is_token_table  db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1 ; 33-47
+                  db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 ; 48-63
+                  db 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ; 64-79
+                  db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1 ; 80-95
+                  db 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ; 96-111
+                  db 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1 ; 112-126
 
 section .text
 
@@ -188,21 +188,23 @@ is_cookie_name_valid:
 ; @param  rdi: char
 ; @return rax: is token
 is_token:
-  cmp   rdi, EXCLAMATION_MARK
+  movzx rbx, byte [rdi]
+
+  cmp   rbx, EXCLAMATION_MARK
   jl    .is_not
 
-  cmp   rdi, EQUIVALENCY_SIGN_TILDE
+  cmp   rbx, EQUIVALENCY_SIGN_TILDE
   jg    .is_not
 
   ; check is token table
-  sub   rdi, EXCLAMATION_MARK
+  sub   rbx, EXCLAMATION_MARK
   xor   rax, rax
-  movzx rax, byte [is_token_table+rax]
+  movzx rax, byte [is_token_table+rbx]
 
   jmp   .return
 
 .is_not:
-  xor   rax, 0
+  xor   rax, rax
 
 .return:
   ret
