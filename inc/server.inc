@@ -17,6 +17,9 @@ htons:
 disallow_method:
   sub   rsp, 0x10
 
+  cmp   rdi, 0
+  jle   .error
+
   mov   [rsp+0x8], rdi
 
   ; get length of the method
@@ -73,6 +76,9 @@ disallow_method:
 ; @return rax: code
 add_dir_route:
   sub   rsp, 0x40
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   [rsp+0x8], rdi
   mov   [rsp+0x38], rsi
@@ -274,6 +280,12 @@ add_route:
   ; rdx -> callback
   sub   rsp, 0x20
 
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
   mov   qword [rsp], 0 ; method_len
   mov   qword [rsp+0x8], 0 ; route_len
 
@@ -356,6 +368,14 @@ add_route:
   ; increase number of routes
   inc   qword [routes_count]
 
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x20
   ret
 
@@ -655,6 +675,9 @@ trim_query_parameters:
   ; return value: rax -> url length
   sub   rsp, 0x10 ; url length and query start length
 
+  cmp   rdi, 0
+  jle   .error
+
   mov   qword [rsp], rsi
 
   mov   rsi, QUESTION_MARK
@@ -680,6 +703,12 @@ trim_query_parameters:
 .no_query:
   mov   rax, qword [rsp]
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x10
   ret
 

@@ -1,4 +1,3 @@
-; TODO: check null pointer when passing pointers as arguments
 ; TODO: calling convention preserving registers
 
 %ifndef BYT_ASM_INC

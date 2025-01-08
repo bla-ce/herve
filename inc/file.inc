@@ -125,7 +125,7 @@ read_file:
   ret
 
 ; closes file description
-; @param  rdi: file description
+; @param  rdi: fd
 ; @return rax: code
 close_file:
   mov   rax, SYS_CLOSE
@@ -138,6 +138,9 @@ close_file:
 ; @return rax: content type
 get_ext:
   sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jle   .not_supported
 
   ; find next dot
   mov   rsi, DOT 

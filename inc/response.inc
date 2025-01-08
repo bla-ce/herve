@@ -8,6 +8,9 @@ send_response:
   ; rdx -> body
   sub   rsp, 0x30
 
+  cmp   rdi, 0
+  jle   .error
+
   mov   rax, qword [request_client]
   mov   qword [rsp], rax
   mov   [rsp+0x8], rdi
@@ -59,8 +62,8 @@ send_response:
   ; get body
   mov   rdi, [rsp+0x18]
   call  strlen
-  test  rax, rax
-  jz    .skip_body
+  cmp   rax, 0
+  jle   .skip_body
 
   mov   qword [rsp+0x28], rax
 
@@ -90,7 +93,6 @@ send_response:
   mov   rdx, [rsp+0x10]
   call  set_header
 
-.skip_body:
   ; load headers
   mov   rdi, [rsp+0x20]
   lea   rsi, [response_headers]
@@ -106,6 +108,7 @@ send_response:
   mov   rdi, [rsp+0x20]
   rep   movsb
 
+.skip_body:
   ; get response length
   lea   rdi, [response]
   call  strlen
@@ -128,10 +131,17 @@ send_response:
 
   ret
 
+; TODO: pass response as arg
 send_error_response:
   ; rdi -> sockfd
   ; rsi -> status code str
   sub   rsp, 0x18
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   qword [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -191,6 +201,12 @@ send_error_response:
   lea   rsi, [response]
   syscall
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ; clean stack
   add   rsp, 0x18
   ret
@@ -199,6 +215,9 @@ serve_string:
   ; rdi -> string
   sub   rsp, 0x8 ; string
 
+  cmp   rdi, 0
+  jle   .error
+
   mov   [rsp], rdi
   
   lea   rdi, [STR_OK]
@@ -206,6 +225,14 @@ serve_string:
   mov   rdx, [rsp]
   call  send_response
 
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x8
   ret
 
@@ -215,6 +242,9 @@ serve_string:
 ; @return rax: void
 serve_static_file:
   sub   rsp, 0x20
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   [rsp], rdi
 
@@ -288,7 +318,7 @@ serve_static_file:
   ret
 
 ; serve file from directory
-; @param rdi: request
+; TODO: pass request as argument
 serve_dir:
   lea   rdi, [request_url]  
   ; add one to remove '/'

@@ -13,6 +13,9 @@ section .text
 getenv:
   sub   rsp, 0x10
 
+  cmp   rdi, 0
+  jle   .error
+
   mov   [rsp], rdi
 
   call  strlen

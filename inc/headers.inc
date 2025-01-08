@@ -22,6 +22,12 @@ section .text
 load_headers:
   sub   rsp, 0x10
 
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
   mov   qword [rsp], 0 ; header count
   mov   [rsp+0x8], rsi
 
@@ -49,11 +55,11 @@ load_headers:
   inc   qword [rsp]
   mov   rax, HEADERS_MAX_COUNT
   cmp   qword [rsp], rax
-  jge   .return
+  jge   .load_post_headers
 
   jmp   .loop
-  
-.return:
+
+.load_post_headers:
   ; load post_headers
   xor   rax, rax
   mov   al, CARRIAGE_RETURN
@@ -63,6 +69,12 @@ load_headers:
 
   lea   rax, [rdi]
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x10
   ret
 
@@ -73,6 +85,15 @@ load_headers:
 ; @return rax: return code
 set_header:
   sub   rsp, 0x20
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -184,6 +205,12 @@ set_header:
 header_exist:
   sub   rsp, 0x20
 
+  cmp   rdi, 0
+  jle   .not_equal
+
+  cmp   rsi, 0
+  jle   .not_equal
+
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x10], 0 ; header_count
@@ -236,6 +263,12 @@ header_exist:
 ; @return rax: pointer to value
 get_header_value:
   sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   [rsp], rdi
 
@@ -295,11 +328,17 @@ get_header_value:
 
 
 ; delete header, returns -1 if does not exist
-; @param  rsi: headers
 ; @param  rdi: key
+; @param  rsi: headers
 ; @return rax: code
 del_header:
   sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -336,6 +375,9 @@ del_header:
 ; @return rax: canonical format of the header key
 canonical_mime_header_key:
   sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 1 ; next char needs to be upper

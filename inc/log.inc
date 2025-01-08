@@ -32,6 +32,9 @@ section .text
 log:
   sub   rsp, 0x8
 
+  cmp   rdi, 0
+  jle   .error
+
   mov   rax, rsi
   cmp   rax, 0
   jg    .known_length
@@ -52,6 +55,11 @@ log:
   mov   rdi, qword [log_output]
   syscall
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
 .return:
   add   rsp, 0x8
   ret
@@ -61,6 +69,9 @@ log:
 ; @param  rsi: (optional) string length
 logln:
   sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jle   .error
 
   call  log 
   cmp   rax, 0
@@ -78,6 +89,11 @@ logln:
 
   ; clean stack
   xor   rax, rax
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, 0x8
@@ -119,6 +135,7 @@ enable_log_color:
   ret
 
 ; initial log of the available routes and port the server is listening to
+; TODO: pass server as argument
 log_server_init:
   sub   rsp, 0x18 ; routes count for route logs
 
@@ -228,6 +245,7 @@ log_server_init:
   ret
 
 ; store duration inside log_duration
+; TODO: pass duration as arg
 log_get_duration:
   sub   rsp, 0x10
   mov   qword [rsp], 0 ; length of duration str
@@ -305,6 +323,7 @@ log_get_duration:
   ret
 
 ; log the current request
+; TODO: pass request as argument
 log_request:
   ; [LOG] 
   xor   rdi, rdi
@@ -358,6 +377,7 @@ log_request:
   ret
 
 ; log the status code
+; TODO: pass status code as argument
 log_status_code:
   sub   rsp, 0x8
 
@@ -428,7 +448,8 @@ log_time:
   sub   rsp, 0x10 ; store timestamp
 
   cmp   rdi, 0
-  je   .get_unix
+  je    .get_unix
+  jl    .error
 
   jmp   .print_time
 

@@ -17,6 +17,12 @@ section .text
 add_middleware:
   sub   rsp, 0x10
 
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
   mov   [rsp], rdi
 
   lea   rdi, [middleware]
@@ -80,6 +86,9 @@ add_middleware:
 ; @return rax: return code
 run_middlewares:
   sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   [rsp], rdi
 

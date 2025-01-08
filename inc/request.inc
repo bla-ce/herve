@@ -1,11 +1,12 @@
-%ifndef REQUEST_INC
-%define REQUEST_INC
-
+section .text
 ; parse the string representation of the request onto the request struct
 ; @param  rdi: pointer to request
 ; @return rax: code
 parse_request:
   sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   [rsp], rdi
 
@@ -202,7 +203,7 @@ verify_request:
   lea   rsi, [STR_METHOD_NOT_ALLOWED]
   call  send_error_response
 
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
 
   jmp   .return
 
@@ -213,18 +214,20 @@ verify_request:
   lea   rsi, [STR_NOT_FOUND]
   call  send_error_response
 
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
 
   jmp   .return
 
 .return:
   ret
 
+; TODO: pass request struct as arg
 get_body:
   ; rdi -> request
   lea   rax, [request_body]
   ret
 
+; TODO: pass request struct as arg
 check_method:
   sub   rsp, 0x18
 
@@ -244,7 +247,7 @@ check_method:
   jge   .method_exists
   
 .method_not_allowed:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   jmp   .return
 
 .method_exists:
@@ -285,6 +288,7 @@ check_method:
   add   rsp, 0x18
   ret
 
+; TODO: pass request as arg
 check_route:
   sub   rsp, 0x18 
   
@@ -349,7 +353,7 @@ check_route:
   jmp   .next_route
   
 .route_not_found:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   jmp   .return
 
 .route_found:
@@ -414,6 +418,10 @@ check_route:
 get_param:
   ; init stack
   sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
   mov   [rsp], rdi
 
   ; load query params
@@ -480,6 +488,4 @@ get_param:
   mov   rax, FAILURE_CODE
   add   rsp, 0x10
   ret
-
-%endif
 

@@ -155,6 +155,9 @@ is_cookie_name_valid:
 
   mov   [rsp], rdi
 
+  cmp   rdi, 0
+  jle   .is_not_valid
+
   call  strlen
   cmp   rax, 0
   jle   .is_not_valid

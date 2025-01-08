@@ -6,6 +6,12 @@ section .text
 cmpstr:
   sub   rsp, 0x10
 
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
@@ -24,6 +30,10 @@ cmpstr:
 
 .str_not_equal:
   mov   rax, 0
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, 0x10
@@ -34,6 +44,12 @@ cmpstr:
 ; @param  rsi: src
 strcpy:
   sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -48,10 +64,16 @@ strcpy:
 
   mov   rax, SUCCESS_CODE
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x10
   ret
 
-; converts UNSIGNED int in rdi into string
+; converts int in rdi into string
 ; string pointer needs to be passed
 ; @param  rdi: int
 ; @param  rsi: string
@@ -59,6 +81,9 @@ strcpy:
 ; @return rax: pointer to str(int)
 to_string:
   sub   rsp, 0x18
+
+  cmp   rsi, 0
+  jle   .error
 
   ; save parameters onto the stack
   mov   qword [rsp], rdi
@@ -97,6 +122,9 @@ to_string:
 
   jmp   .return
 
+.error:
+  mov   rax, FAILURE_CODE
+
 .return:
   add   rsp, 0x18
   ret
@@ -107,14 +135,14 @@ to_string:
 ; @param  rsi: char
 ; @return rax: index
 find_next_char:
-  push  rsi
-
-  lea   rsi, [rdi]
-
-  pop   rdx
-
   sub   rsp, 0x8
   mov   qword [rsp], 0
+
+  cmp   rdi, 0
+  jle   .not_found
+
+  mov   rdx, rsi
+  mov   rsi, rdi
 
 .loop:
   mov   al, byte [rsi]
@@ -147,6 +175,12 @@ find_next_char:
 ; @param  rax: return
 strpos:
   sub   rsp, 0x28
+
+  cmp   rdi, 0
+  jle   .does_not_contain
+
+  cmp   rsi, 0
+  jle   .does_not_contain
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -206,6 +240,9 @@ strpos:
 ; @param  rdi: string
 ; @return rax: length of the string
 strlen:
+  cmp   rdi, 0
+  jle   .error
+
   lea   rsi, [rdi]
   mov   rcx, 0
 
@@ -223,6 +260,10 @@ strlen:
 
   jmp   .loop
 
+.error:
+  mov   rax, FAILURE_CODE
+  ret
+
 .return:
   mov   rax, rcx
   ret
@@ -231,19 +272,22 @@ strlen:
 ; @param  rdi: sring
 ; @param  rsi: (optional) string length
 print:
-  push  rbp
-  mov   rbp, rsp
+  sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
 
   mov   rax, rsi
   cmp   rax, 0
   jg    .known_length
 
-  push  rdi
   call  strlen
   test  rax, rax
   jz    .return
 
-  pop   rdi
+  mov   rdi, [rsp]
 
 .known_length:
   lea   rsi, [rdi]
@@ -252,8 +296,13 @@ print:
   mov   rdi, STDOUT
   syscall
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
 .return:
-  leave
+  add   rsp, 0x8
   ret
 
 ; prints the string followed by a new line character
@@ -263,6 +312,9 @@ print:
 println:
   push  rbp
   mov   rbp, rsp
+
+  cmp   rdi, 0
+  jle   .error
 
   call  print
   cmp   rax, 0
@@ -281,6 +333,11 @@ println:
   ; clean stack
   pop   rax
   xor   rax, rax
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
 
 .return:
   leave  
@@ -310,6 +367,9 @@ print_char:
 ; @return rax: int or -1 if error
 stoi:
   sub   rsp, 0x18
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   qword [rsp+0x8], 0
   mov   qword [rsp+0x10], 0
@@ -418,6 +478,9 @@ ascii_to_int:
 padding_print:
   sub   rsp, 0x18
 
+  cmp   rdi, 0
+  jle   .error
+
   mov   [rsp], rdi
   mov   qword [rsp+0x8], rsi
 
@@ -476,6 +539,12 @@ padding_print:
 
   cmp   r9, 0
   jg    .loop_dots
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+  jle   .error
 
 .return:
   add   rsp, 0x18
