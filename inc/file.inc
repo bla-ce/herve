@@ -18,12 +18,6 @@ section .data
   SVG_EXT   db ".svg", NULL_CHAR
   XML_EXT   db ".xml", NULL_CHAR
 
-	SYS_READ	  equ 0x0
-	SYS_WRITE	  equ 0x1
-	SYS_OPEN	  equ 0x2
-	SYS_CLOSE	  equ 0x3
-	SYS_LSEEK	  equ 0x8
-
   SEEK_SET equ 0x0
   SEEK_END equ 0x2
 

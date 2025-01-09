@@ -1,7 +1,5 @@
-; TODO: calling convention preserving registers
-
-%ifndef BYT_ASM_INC
-%define BYT_ASM_INC
+; TODO: null freed pointers
+; TODO: verify paddings and alignments
 
 %include "ascii.inc"
 %include "calloc.inc"
@@ -91,13 +89,8 @@ section .data
   methods_list_len equ $ - methods_list
 
   not_allowed_methods times methods_list_len db SPACE
-  not_allowed_methods_end db 0
 
   routes_list     times MAX_ROUTES_COUNT * STRUCT_ROUTE_LEN db 0
-  routes_list_len equ $ - routes_list
 
   post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
-  post_headers_len  equ $ - post_headers - 1
-
-%endif
 

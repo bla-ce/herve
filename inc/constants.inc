@@ -20,15 +20,6 @@ PORT_MIN                equ 0x1
 DEFAULT_MAX_CONNECTIONS equ 0x1
 PORT_MAX                equ 0xffff
 
-; request struct constants
-METHOD_MAX_LEN        equ 0x8
-PROTO_MAX_LEN         equ 0x9
-HOST_MAX_LEN          equ 0xFF
-QUERY_MAX_LEN         equ 0x20
-QUERY_MAX_VALUE_LEN   equ 0x10
-URL_MAX_LEN           equ 0x30
-BODY_MAX_LEN          equ 0x2000
-
 ; response struct constants
 STATUS_MAX_LEN      equ 0x40
 RESPONSE_MAX_LEN    equ 0x2000
@@ -52,6 +43,7 @@ SYS_WRITE         equ 1
 SYS_OPEN          equ 2
 SYS_CLOSE         equ 3
 SYS_FSTAT         equ 5
+SYS_LSEEK         equ 8
 SYS_SOCKET        equ 41
 SYS_CONNECT       equ 42
 SYS_ACCEPT        equ 43

@@ -82,7 +82,7 @@ add_middleware:
   ret
 
 ; run the chain of middlewares
-; @param  rdi: request
+; @param  rdi: pointer to request struct
 ; @return rax: return code
 run_middlewares:
   sub   rsp, 0x10
@@ -92,6 +92,7 @@ run_middlewares:
 
   mov   [rsp], rdi
 
+  xor   rdi, rdi
   lea   rdi, [middleware_struct]
   cmp   qword [rdi], 0
   je    .end

@@ -504,7 +504,7 @@ server_init:
 
 run_server:
   ; rdi -> sockfd
-  sub   rsp, 0x10
+  sub   rsp, 0x30
 
   mov   qword [rsp], rdi
   mov   qword [rsp+0x8], 0
@@ -532,29 +532,17 @@ run_server:
   mov   qword [callback], 0
 
   ; log previous request
+  mov   rdi, [rsp+0x28]
   call  log_request
 
+  ; free request
+  mov   rdi, [rsp+0x28]
+  call  free_request
+
 .timer_not_defined:
-  ; clear response, route and method and query
-  mov   rcx, URL_MAX_LEN
-  xor   rax, rax
-  lea   rdi, [request_url]
-  rep   stosb
-
-  mov   rcx, METHOD_MAX_LEN
-  xor   rax, rax
-  lea   rdi, [request_method]
-  rep   stosb
-
   mov   rcx, QUERY_MAX_LEN
   xor   rax, rax
   lea   rdi, [query_params]
-  rep   stosb
-
-  ; clear body
-  mov   rcx, BODY_MAX_LEN
-  xor   rax, rax
-  lea   rdi, [request_body]
   rep   stosb
 
   mov   rcx, HEADERS_MAX_LEN
@@ -567,11 +555,6 @@ run_server:
   lea   rdi, [response]
   rep   stosb
 
-  mov   rcx, REQUEST_MAX_LEN
-  xor   rax, rax
-  lea   rdi, [request]
-  rep   stosb
-
   ; accept connection
   mov   rax, SYS_ACCEPT
   mov   rdi, qword [rsp]
@@ -582,7 +565,7 @@ run_server:
   cmp   rax, 0
   jl    .close
 
-  mov   qword [request_client], rax
+  mov   qword [rsp+0x10], rax
 
   ; set start timer
   mov   rax, SYS_CLOCK_GETTIME
@@ -590,37 +573,44 @@ run_server:
   lea   rsi, [start_tv_sec]
   syscall
 
-  ; map request
+  ; malloc request string
   mov   rdi, REQUEST_MAX_LEN
   call  malloc
 
   cmp   rax, 0
   jl    .error
 
-  mov   [request], rax
+  mov   [rsp+0x18], rax
 
   ; receive client request
   mov   rax, SYS_RECVFROM
-  mov   rdi, qword [request_client]
-  mov   rsi, [request]
+  mov   rdi, qword [rsp+0x10]
+  mov   rsi, [rsp+0x18]
   mov   rdx, REQUEST_MAX_LEN
   xor   r10, r10
   xor   r9, r9
   xor   r8, r8
   syscall
 
-  mov   qword [request_len], rax
+  mov   qword [rsp+0x20], rax
 
   ; parse_request
-  mov   rdi, [request]
+  mov   rdi, [rsp+0x18]
+  mov   rsi, qword [rsp+0x10]
+  mov   rdx, qword [rsp+0x20]
   call  parse_request
+
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [request]
+  ; save request pointer
+  mov   [rsp+0x28], rax
+
+  mov   rdi, rax
   call  run_middlewares
 
   ; verify request
+  mov   rdi, [rsp+0x28]
   call  verify_request
   cmp   rax, 0
   jl    .error
@@ -628,25 +618,21 @@ run_server:
   cmp   qword [callback], 0
   je    .skip_callback
 
-  mov   rdi, [request]
+  mov   rdi, [rsp+0x28]
   call  [rel callback]
 
 .skip_callback:
-  mov   rdi, [request]
-  call  free
-
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [request_client] 
+  mov   rsi, [rsp+0x28] 
+  mov   rdi, [rsi+REQ_OFF_CLIENT]
   syscall
   
   jmp   .loop
 
 .error:
-  mov   rdi, [request]
-  call  free
-
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [request_client] 
+  mov   rsi, [rsp+0x28] 
+  mov   rdi, [rsi+REQ_OFF_CLIENT]
   syscall
 
   ; jump to next request, skipping logs
@@ -658,16 +644,8 @@ run_server:
   mov   rdi, qword [rsp]
   syscall
 
-  add   rsp, 0x10
+  add   rsp, 0x30
   ret
-
-.server_unavailable:
-  mov   qword [response_status_code], SERVICE_UNAVAILABLE
-  mov   rdi, qword [request_client]
-  lea   rsi, STR_SERVICE_UNAVAILABLE
-  call  send_error_response
-
-  jmp   .error
 
 trim_query_parameters:
   ; rdi -> request_url

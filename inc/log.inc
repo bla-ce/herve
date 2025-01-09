@@ -323,8 +323,12 @@ log_get_duration:
   ret
 
 ; log the current request
-; TODO: pass request as argument
+; @param  rdi: request
 log_request:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
   ; [LOG] 
   xor   rdi, rdi
   lea   rdi, [log_pre]
@@ -357,8 +361,9 @@ log_request:
   call  log
 
   ; log method
-  xor   rdi, rdi
-  lea   rdi, [request_method]
+  mov   rsi, [rsp]
+  add   rsi, REQ_OFF_METHOD
+  mov   rdi, [rsi]
   mov   rsi, METHOD_MAX_LEN
   call  log
 
@@ -368,12 +373,15 @@ log_request:
   call  log
 
   ; log url
-  xor   rdi, rdi
-  lea   rdi, [request_url]
+  mov   rsi, [rsp]
+  add   rsi, REQ_OFF_URL
+  mov   rdi, [rsi]
   mov   rsi, 0
   call  logln
 
   mov   rax, 0
+
+  add   rsp, 0x8
   ret
 
 ; log the status code

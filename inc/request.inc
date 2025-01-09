@@ -1,17 +1,81 @@
+section .data
+  ; constants
+  METHOD_MAX_LEN        equ 0x8
+  PROTO_MAX_LEN         equ 0x9
+  HOST_MAX_LEN          equ 0xFF
+  QUERY_MAX_LEN         equ 0x20
+  QUERY_MAX_VALUE_LEN   equ 0x10
+  URL_MAX_LEN           equ 0x30
+  BODY_MAX_LEN          equ 0x2000
+
+  request_struct:
+    req_client      dq 0
+    req_len         dq 0
+    req_method      dq 0
+    req_url         dq 0
+    req_proto       dq 0
+    req_headers     dq 0
+    req_body        dq 0
+    req_content_len dq 0
+    req_host        dq 0
+    req_close       db 0
+  request_struct_end:
+
+  REQ_STRUCT_LEN equ request_struct_end - request_struct
+
+  ; offsets
+  REQ_OFF_CLIENT      equ 0x0
+  REQ_OFF_LEN         equ REQ_OFF_CLIENT + 0x8
+  REQ_OFF_METHOD      equ REQ_OFF_LEN + 0x8
+  REQ_OFF_URL         equ REQ_OFF_METHOD + 0x8
+  REQ_OFF_PROTO       equ REQ_OFF_URL + 0x8
+  REQ_OFF_HEADERS     equ REQ_OFF_PROTO + 0x8
+  REQ_OFF_BODY        equ REQ_OFF_HEADERS + 0x8
+  REQ_OFF_CONTENT_LEN equ REQ_OFF_BODY + 0x8
+  REQ_OFF_HOST        equ REQ_OFF_CONTENT_LEN + 0x8
+  REQ_OFF_CLOSE       equ REQ_OFF_HOST + 0x8
+  
 section .text
 ; parse the string representation of the request onto the request struct
-; @param  rdi: pointer to request
-; @return rax: code
+; @param  rdi: pointer to request str
+; @param  rsi: client fd
+; @param  rdx: request length
+; @return rax: pointer to request struct
 parse_request:
-  sub   rsp, 0x8
+  sub   rsp, 0x20
 
   cmp   rdi, 0
   jle   .error
 
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
   mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  ; malloc struct
+  mov   rdi, REQ_STRUCT_LEN
+  call  malloc
+
+  cmp   rdi, 0
+  jl    .error
+
+  ; save pointer
+  mov   [rsp+0x18], rax
+
+  ; save request data
+  mov   rdi, [rsp+0x8]
+  mov   [rax+REQ_OFF_CLIENT], rdi
+
+  mov   rdi, [rsp+0x10]
+  mov   [rax+REQ_OFF_LEN], rdi
 
   ; extract method: look for the next space
-  lea   rdi, [rsi]
+  mov   rdi, [rsp]
   mov   rsi, SPACE
   call  find_next_char
 
@@ -24,9 +88,21 @@ parse_request:
   ; if bigger, send bad request
   jg    .error
 
+  mov   qword [rsp+0x10], rax
+
+  ; malloc method
+  mov   rdi, rax
+  call  malloc
+
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, [rsp+0x18]
+  mov   [rdi+REQ_OFF_METHOD], rax
+
   ; load method
-  lea   rdi, [request_method]
-  mov   rcx, rax
+  mov   rdi, rax
+  mov   rcx, qword [rsp+0x10]
   mov   rsi, [rsp] 
   rep   movsb
 
@@ -38,6 +114,7 @@ parse_request:
   mov   [rsp], rsi
 
   ; extract url: look for the next space
+  xor   rdi, rdi
   lea   rdi, [rsi]
   mov   rsi, SPACE
   call  find_next_char
@@ -49,9 +126,20 @@ parse_request:
   cmp   rax, URL_MAX_LEN
   jg    .error
 
+  mov   qword [rsp+0x10], rax
+
+  mov   rdi, rax
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   [rdi+REQ_OFF_URL], rax
+
   ; load url
-  lea   rdi, [request_url]
-  mov   rcx, rax
+  mov   rdi, rax
+  mov   rcx, qword [rsp+0x10]
   mov   rsi, [rsp]
   rep   movsb
 
@@ -62,61 +150,33 @@ parse_request:
   ; save rsi pointer to the stack
   mov   [rsp], rsi
 
+  xor   rdi, rdi
   lea   rdi, [rsi]
   mov   rsi, CARRIAGE_RETURN
   call  find_next_char  ; find next \r to get the entire protocol
   cmp   rax, 0x0
   jl    .error
 
+  mov   qword [rsp+0x10],rax
+
+  ; malloc request protocol
+  mov   rdi, PROTO_MAX_LEN
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   [rdi+REQ_OFF_PROTO], rax
+
   ; load protocol
-  mov   rcx, rax
-  lea   rdi, [request_proto]
+  mov   rdi, rax
+  mov   rcx, qword [rsp+0x10]
   mov   rsi, [rsp]
   rep   movsb
 
   ; save rsi pointer to the stack
   mov   [rsp], rsi
-
-  ; parse proto -> format: HTTP/0.0
-  lea   rdi, [request_proto]
-  mov   rsi, SLASH
-  call  find_next_char ; go to '/' after 'HTTP'
-  cmp   rax, 0x0
-  jl    .error
-
-  mov   rcx, rax
-
-  ; rsp points to the end of the protocol
-  mov   rsi, [rsp]
-
-  ; go back to slash
-  sub   rsi, rcx
-
-  ; mov to proto major
-  inc   rsi
-
-  xor   rdi, rdi
-  mov   dil, byte [rsi]
-  call  ascii_to_int
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   dword [request_proto_major], eax
-
-  ; rsi points to the proto major, mov to proto minor
-  add   rsi, 0x2
-
-  xor   rdi, rdi
-  mov   dil, byte [rsi]
-  call  ascii_to_int
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   dword [request_proto_minor], eax
-
-  inc   rsi
 
   ; mov to new line (skip 2 char \r\n)
   add   rsi, 0x2
@@ -135,10 +195,21 @@ parse_request:
   ; verify headers overflow
   cmp   rax, HEADERS_MAX_LEN
   jg    .error
+
+  mov   qword [rsp+0x10], rax
    
-  mov   rcx, rax
+  mov   rdi, rax
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   [rdi+REQ_OFF_HEADERS], rax
+
+  mov   rdi, rax
+  mov   rcx, qword [rsp+0x10]
   mov   rsi, [rsp]
-  lea   rdi, [request_headers]
   rep   movsb
 
   ; get body
@@ -157,12 +228,25 @@ parse_request:
   cmp   rax, BODY_MAX_LEN
   jg    .error
 
-  lea   rdi, [request_body]
-  mov   rcx, rax
+  mov   qword [rsp+0x10], rax
+  mov   rdi, [rsp+0x18]
+  mov   [rdi+REQ_OFF_CONTENT_LEN], rax
+
+  mov   rdi, rax
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   [rdi+REQ_OFF_BODY], rax
+
+  mov   rdi, rax
+  mov   rcx, qword [rsp+0x10]
   mov   rsi, [rsp]
   rep   movsb
 
-  mov   rax, 0
+  mov   rax, [rsp+0x18]
 
   jmp   .return
 
@@ -176,17 +260,27 @@ parse_request:
   jmp   .return
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x20
   ret
 
 
-; TODO: pass the request struct as an arg
 ; verifies the request, making sure the route exists and is allowed
+; @param  rdi: pointer to request struct
+; @return rax: return code
 verify_request:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
+  add   rdi, REQ_OFF_METHOD
   call  check_method
   cmp   rax, 0
   jl    .method_not_allowed
 
+  mov   rdi, [rsp]
+  add   rdi, REQ_OFF_URL
+  mov   rsi, [rsp]
+  add   rsi, REQ_OFF_METHOD
   call  check_route
   cmp   rax, 0
   jl    .not_found
@@ -199,7 +293,8 @@ verify_request:
 .method_not_allowed:
   mov   qword [response_status_code], METHOD_NOT_ALLOWED
 
-  mov   rdi, qword [request_client]
+  mov   rdi, [rsp]
+  add   rdi, REQ_OFF_CLIENT
   lea   rsi, [STR_METHOD_NOT_ALLOWED]
   call  send_error_response
 
@@ -210,7 +305,8 @@ verify_request:
 .not_found:
   mov   qword [response_status_code], NOT_FOUND
 
-  mov   rdi, qword [request_client]
+  mov   rdi, [rsp]
+  add   rdi, REQ_OFF_CLIENT
   lea   rsi, [STR_NOT_FOUND]
   call  send_error_response
 
@@ -219,6 +315,7 @@ verify_request:
   jmp   .return
 
 .return:
+  add   rsp, 0x8
   ret
 
 ; TODO: pass request struct as arg
@@ -227,20 +324,28 @@ get_body:
   lea   rax, [request_body]
   ret
 
-; TODO: pass request struct as arg
+; checks if the method is allowed and returns its position in methods list
+; @param  rdi: request method
+; @return rax: method position in routes list
 check_method:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
-  lea   rdi, [request_method]
+  mov   rsi, [rdi]
+  mov   [rsp], rsi
+
+  mov   rdi, rsi
   call  strlen
 
-  mov   qword [rsp], 0 ; string index
-  mov   [rsp+0x8], rdi 
+  cmp   rax, 0
+  jle   .method_not_allowed
+
+  mov   qword [rsp+0x8], 0
   mov   qword [rsp+0x10], rax
 
   ; look for the method inside methods list
+  xor   rdi, rdi
   lea   rdi, [methods_list]
-  mov   rsi, [rsp+0x8]
+  mov   rsi, [rsp]
   call  strpos
 
   cmp   rax, 0
@@ -252,11 +357,12 @@ check_method:
 
 .method_exists:
   ; store method's position onto the stack
-  mov   qword [rsp], rax
+  mov   qword [rsp+0x8], rax
 
   ; go to the method
+  xor   rdi, rdi
   lea   rdi, [methods_list]
-  add   rdi, qword [rsp]
+  add   rdi, qword [rsp+0x8]
 
   ; check if we are the beginning of the method
   dec   rdi
@@ -274,49 +380,60 @@ check_method:
   jne   .method_not_allowed
 
   ; check if the method is allowed
+  xor   rdi, rdi
   lea   rdi, [not_allowed_methods]
-  mov   rsi, [rsp+0x8]
+  mov   rsi, [rsp]
   call  strpos
 
   cmp   rax, 0
   jge   .method_not_allowed
 
   ; return method's position
-  mov   rax, qword [rsp]
+  mov   rax, qword [rsp+0x8]
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
-; TODO: pass request as arg
+; checks if the route is available and returns its position in routes list
+; @param  rdi: request url
+; @param  rsi: request method
+; @return rax: route position in routes list
 check_route:
-  sub   rsp, 0x18 
-  
-  lea   rdi, [request_url]
-  call  strlen
+  sub   rsp, 0x20
 
-  mov   [rsp], rdi
+  mov   rdx, [rdi]
+  mov   [rsp], rdx
+
+  mov   rdx, [rsi]
+  mov   [rsp+0x8], rdx
+  
   mov   qword [rsp+0x10], 0 ; route position inside list
+
+  ; get url length
+  mov   rdi, [rsp]
+  call  strlen
 
   mov   rbx, rax
 
   ; remove query parameters, return url length
   mov   rsi, rbx
   call  trim_query_parameters
+
   cmp   rax, 0
   cmovg rbx, rax ; if rax > 0: found query param, exclude them
 
-  mov   qword [rsp+0x8], rbx
+  mov   qword [rsp+0x18], rbx
   
   ; load url
   mov   rsi, [rsp]
 
   ; check if route is '/', if yes skip trim end slash
-  cmp   qword [rsp+0x8], 1
+  cmp   qword [rsp+0x18], 1
   je    .skip_trim
   
   ; go to the end of the url
-  add   rsi, qword [rsp+0x8] ; rsi points to the null_char
+  add   rsi, qword [rsp+0x18] ; rsi points to the null_char
 
   ;  check if last char is slash
   dec   rsi
@@ -325,7 +442,7 @@ check_route:
   
   ; if yes, change to null char and dec route length
   mov   byte [rsi], NULL_CHAR
-  dec   qword [rsp+0x8]
+  dec   qword [rsp+0x18]
   
 .skip_trim:
   ; check if route is in routes_list
@@ -334,17 +451,17 @@ check_route:
   mov   rsi, [rsp]
 
 .next_route:
-  mov   rcx, qword [rsp+0x8]
+  mov   rcx, qword [rsp+0x18]
   cld
   rep   cmpsb
   je    .route_found
 
 .not_entire:
   add   rdi, STRUCT_ROUTE_LEN
-  sub   rdi, qword [rsp+0x8]
+  sub   rdi, qword [rsp+0x18]
   add   rdi, rcx
   add   rsi, rcx
-  sub   rsi, qword [rsp+0x8]
+  sub   rsi, qword [rsp+0x18]
 
   inc   rbx
   cmp   rbx, qword [routes_count]
@@ -357,7 +474,7 @@ check_route:
   jmp   .return
 
 .route_found:
-  ; make sure we checked the entire method
+  ; make sure we checked the entire route
   mov   al, byte [rdi]
   cmp   al, NULL_CHAR
   jne   .not_entire
@@ -368,14 +485,14 @@ check_route:
   mul   rbx
   mov   qword [rsp+0x10], rax
 
-  lea   rdi, [request_method]
+  mov   rdi, [rsp+0x8]
   call  strlen
 
   ; check the method is correct
   lea   rdi, [routes_list]
   add   rdi, qword [rsp+0x10]
   add   rdi, URL_MAX_LEN
-  lea   rsi, [request_method] 
+  mov   rsi, [rsp+0x8] 
   mov   rcx, rax
   rep   cmpsb
 
@@ -406,10 +523,10 @@ check_route:
   mov   [rel callback], rax
 
 .skip_exec:
-  mov   rax, qword [rsp+0x8]
+  mov   rax, qword [rsp+0x18]
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; extracts the value of a specified query parameter from a given URL string
@@ -487,5 +604,48 @@ get_param:
 .error:
   mov   rax, FAILURE_CODE
   add   rsp, 0x10
+  ret
+
+; frees the request structrure and all malloc'd variable
+; @param  rdi: pointer to request struct
+; @return rax: return code
+free_request:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
+  mov   rsi, [rsp]
+  add   rsi, REQ_OFF_METHOD
+  mov   rdi, [rsi]
+  call  free
+
+  mov   rsi, [rsp]
+  add   rsi, REQ_OFF_URL
+  mov   rdi, [rsi]
+  call  free
+
+  mov   rsi, [rsp]
+  add   rsi, REQ_OFF_PROTO
+  mov   rdi, [rsi]
+  call  free
+
+  mov   rsi, [rsp]
+  add   rsi, REQ_OFF_HEADERS
+  mov   rdi, [rsi]
+  call  free
+
+  mov   rsi, [rsp]
+  add   rsi, REQ_OFF_BODY
+  mov   rdi, [rsi]
+  test  rdi, rdi
+  jz    .free_request
+  call  free
+
+.free_request:
+  mov   rdi, [rsp]
+  call  free
+  
+.return:
+  add   rsp, 0x8
   ret
 
