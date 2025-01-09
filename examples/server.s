@@ -16,7 +16,13 @@ cookie_func:
   ret 
 
 header:
-  lea   rdi, [request_headers]
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
+  call  get_request_headers
+
+  mov   rdi, rax
   mov   rsi, 0
   call  println
 
@@ -32,12 +38,18 @@ header:
   lea   rdi, [STR_OK]
   mov   rsi, 0
   mov   rdx, 0
+  mov   rcx, [rsp]
   call  send_response
+
+  add   rsp, 0x8
 
   ret
 
 ; @param rdi: request
 health:
+  sub   rsp, 0x8
+  mov   [rsp], rdi
+
   call  get_headers
   mov   [headers], rax
 
@@ -62,11 +74,17 @@ health:
   call  println
 
   lea   rdi, [ok]
+  mov   rsi, [rsp]
   call  serve_string
 
+  add   rsp, 0x8
   ret
 
 post:
+  sub   rsp, 0x8
+  
+  mov   [rsp], rdi
+
   call  get_body
   lea   rdi, [rax]
   mov   rsi, 0
@@ -75,23 +93,36 @@ post:
   lea   rdi, [STR_OK]
   mov   rsi, 0
   mov   rdx, 0
+  mov   rcx, [rsp]
   call  send_response
 
+  add   rsp, 0x8
   ret
 
 index:
+  sub   rsp, 0x8
+
+  mov   rdi, [rsp]
+
   lea   rdi, [index_path]
-  lea   rsi, [CONTENT_HTML]
+  mov   rsi, [rsp]
   call  serve_static_file
+
+  add   rsp, 0x8
 
   ret
 
 send_200:
+  sub   rsp, 0x8
+  mov   [rsp], rdi
+
   lea   rdi, [STR_OK]
   mov   rsi, 0
   mov   rdx, 0
+  mov   rcx, [rsp]
   call  send_response
 
+  add   rsp, 0x8
   ret
 
 _start:
@@ -160,7 +191,7 @@ _start:
   lea   rdi, [views_dir]
   mov   rsi, 1
   call  add_dir_route
-
+ 
   mov   rdi, qword [sockfd]
   call  run_server
 

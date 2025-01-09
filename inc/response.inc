@@ -6,13 +6,18 @@ send_response:
   ; rdi -> status code str
   ; rsi -> content type
   ; rdx -> body
+  ; rcx -> pointer to request struct
   sub   rsp, 0x30
 
   cmp   rdi, 0
   jle   .error
 
-  mov   rax, qword [request_client]
-  mov   qword [rsp], rax
+  cmp   rcx, 0
+  jle   .error
+
+  mov   r9, [rcx]
+  add   r9, REQ_OFF_CLIENT
+  mov   qword [rsp], r9
   mov   [rsp+0x8], rdi
   mov   [rsp+0x10], rsi
   mov   [rsp+0x18], rdx
@@ -213,12 +218,16 @@ send_error_response:
 
 serve_string:
   ; rdi -> string
+  ; rsi -> request pointer
   sub   rsp, 0x8 ; string
 
   cmp   rdi, 0
   jle   .error
 
   mov   [rsp], rdi
+
+  mov   rcx, [rsi]
+  add   rcx, REQ_OFF_CLIENT
   
   lea   rdi, [STR_OK]
   lea   rsi, [CONTENT_PLAIN]
@@ -239,14 +248,18 @@ serve_string:
 ; TODO: make sure we have permissions
 ; serves a static file
 ; @param  rdi: file path
+; @param  rsi: pointer to request struct
 ; @return rax: void
 serve_static_file:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   cmp   rdi, 0
   jle   .error
 
   mov   [rsp], rdi
+
+  ; save request client fd
+  mov   [rsp+0x20], rsi
 
   ; get file ext
   call  get_ext
@@ -282,6 +295,7 @@ serve_static_file:
   lea   rdi, [STR_OK]
   mov   rsi, [rsp+0x18]
   mov   rdx, [rsp+0x8]
+  mov   rcx, qword [rsp+0x20]
   call  send_response
 
   mov   rax, SUCCESS_CODE
@@ -291,13 +305,13 @@ serve_static_file:
   call  free
 
   ; clean stack
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 .error_open:
   ; load 404
   mov   qword [response_status_code], NOT_FOUND
-  mov   rdi, qword [request_client]
+  mov   rdi, qword [rsp+0x20]
   lea   rsi, [STR_NOT_FOUND]
   call  send_error_response
   jmp   .error
@@ -305,25 +319,27 @@ serve_static_file:
 .error_read:
   ; load 500
   mov   qword [response_status_code], INTERNAL_SERVER_ERROR
-  mov   rdi, qword [request_client]
+  mov   rdi, qword [rsp+0x20]
   lea   rsi, [STR_INTERNAL_SERVER_ERROR]
   call  send_error_response
 
 .error:
   ; clean stack
-  add   rsp, 0x20
+  add   rsp, 0x28
 
   ; return
   mov   rax, FAILURE_CODE
   ret
 
 ; serve file from directory
-; TODO: pass request as argument
+; @param  rdi: pointer to request struct
 serve_dir:
-  lea   rdi, [request_url]  
+  mov   rsi, rdi
+  mov   rdx, rdi
+  add   rdx, REQ_OFF_URL
+  mov   rdi, [rdx]
   ; add one to remove '/'
   inc   rdi
   call  serve_static_file
 
   ret
-

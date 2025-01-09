@@ -199,9 +199,12 @@ add_to_free_list:
 
 ; frees previously allocated memory
 ; @param  rdi: pointer to chunk data
-; @return rax: void
+; @return rax: return code
 free:
   sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jl    .error
   
   ; go to the beginning of the struct
   sub   rdi, CHUNK_SIZE
@@ -226,6 +229,14 @@ free:
   mov   qword [rdi+CHUNK_OFFSET_INUSE], 0
   call  add_to_free_list
 
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x8
   ret
 

@@ -90,8 +90,9 @@ parse_request:
 
   mov   qword [rsp+0x10], rax
 
-  ; malloc method
+  ; add one for null char
   mov   rdi, rax
+  inc   rdi
   call  malloc
 
   cmp   rax, 0
@@ -105,6 +106,9 @@ parse_request:
   mov   rcx, qword [rsp+0x10]
   mov   rsi, [rsp] 
   rep   movsb
+
+  xor   rax, rax
+  stosb
 
   ; method url HTTP/n.n 
   ;       | inc rsi to go to first char of the url
@@ -128,7 +132,9 @@ parse_request:
 
   mov   qword [rsp+0x10], rax
 
+  ; add one for null char
   mov   rdi, rax
+  inc   rdi
   call  malloc
 
   cmp   rax, 0
@@ -142,6 +148,9 @@ parse_request:
   mov   rcx, qword [rsp+0x10]
   mov   rsi, [rsp]
   rep   movsb
+
+  xor   rax, rax
+  stosb
 
   ; inc rsi to go to the protocol 
   inc   rsi
@@ -174,6 +183,10 @@ parse_request:
   mov   rcx, qword [rsp+0x10]
   mov   rsi, [rsp]
   rep   movsb
+
+  ; add null char to avoid garbage values
+  xor   rax, rax
+  stosb
 
   ; save rsi pointer to the stack
   mov   [rsp], rsi
@@ -222,8 +235,10 @@ parse_request:
   lea   rdi, [rsi]
   mov   rsi, NULL_CHAR
   call  find_next_char
-  cmp   rax, 0x0
+
+  cmp   rax, 0
   jl    .error
+  je    .no_body
 
   cmp   rax, BODY_MAX_LEN
   jg    .error
@@ -250,9 +265,16 @@ parse_request:
 
   jmp   .return
 
+.no_body:
+  mov   rdi, [rsp+0x18]
+  mov   qword [rdi+REQ_OFF_BODY], 0
+
+  mov   rax, [rsp+0x18]
+  jmp   .return
+
 .error:
   mov   qword [response_status_code], BAD_REQUEST
-  mov   rdi, qword [request_client]
+  mov   rdi, qword [rsp+0x8]
   lea   rsi, [STR_BAD_REQUEST]
   call  send_error_response
 
@@ -293,8 +315,10 @@ verify_request:
 .method_not_allowed:
   mov   qword [response_status_code], METHOD_NOT_ALLOWED
 
-  mov   rdi, [rsp]
+  mov   rsi, [rsp]
+  mov   rdi, [rsi]
   add   rdi, REQ_OFF_CLIENT
+  xor   rsi, rsi
   lea   rsi, [STR_METHOD_NOT_ALLOWED]
   call  send_error_response
 
@@ -305,7 +329,8 @@ verify_request:
 .not_found:
   mov   qword [response_status_code], NOT_FOUND
 
-  mov   rdi, [rsp]
+  mov   rsi, [rsp]
+  mov   rdi, [rsi]
   add   rdi, REQ_OFF_CLIENT
   lea   rsi, [STR_NOT_FOUND]
   call  send_error_response
@@ -318,10 +343,20 @@ verify_request:
   add   rsp, 0x8
   ret
 
-; TODO: pass request struct as arg
+; returns the body of a request
+; @param  rdi: pointer to request struct
+; @return rax: pointer to request's body
 get_body:
-  ; rdi -> request
-  lea   rax, [request_body]
+  add   rdi, REQ_OFF_BODY
+  mov   rax, [rdi]
+  ret
+
+; returns the headers of a request
+; @param  rdi: pointer to request struct
+; @return rax: pointer to request's header
+get_request_headers:
+  add   rdi, REQ_OFF_HEADERS
+  mov   rax, [rdi]
   ret
 
 ; checks if the method is allowed and returns its position in methods list

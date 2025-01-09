@@ -364,7 +364,7 @@ log_request:
   mov   rsi, [rsp]
   add   rsi, REQ_OFF_METHOD
   mov   rdi, [rsi]
-  mov   rsi, METHOD_MAX_LEN
+  mov   rsi, 0
   call  log
 
   xor   rdi, rdi

@@ -1,5 +1,6 @@
 ; TODO: null freed pointers
 ; TODO: verify paddings and alignments
+; TODO: timeout with alarm syscall
 
 %include "ascii.inc"
 %include "calloc.inc"
@@ -24,26 +25,8 @@
 section .bss
   port  resq 1
 
-  request     resq 1
-  request_len resq 1
-
   response     resq RESPONSE_MAX_LEN
   response_len resq 1
-
-  ; request string
-  request_method  resb METHOD_MAX_LEN
-  request_url     resb URL_MAX_LEN
-  request_proto   resb PROTO_MAX_LEN
-  request_headers resb HEADERS_MAX_LEN
-  request_body    resb BODY_MAX_LEN
-
-  ; request value
-  request_proto_major     resd 1
-  request_proto_minor     resd 1
-  request_content_length  resw 1
-  request_close           resb 1
-  request_host            resb HOST_MAX_LEN
-  request_client          resq 1
 
   ; response string
   response_status   resb STATUS_MAX_LEN
