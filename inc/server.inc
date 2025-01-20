@@ -3,6 +3,23 @@ section .bss
 section .data
   DEFAULT_PORT equ 8080
 
+  server_struct:
+    server_sockfd              dq 0
+    server_disallowed_methods  dq 0
+    server_routes              dq 0
+    server_sockaddr            dq 0
+    server_port                dw 0
+  end_server_struct:
+
+  SERVER_STRUCT_LEN equ end_server_struct - server_struct
+
+  ; offsets
+  SERVER_OFF_SOCKFD              equ 0x0
+  SERVER_OFF_DISALLOWED_METHODS  equ SERVER_OFF_SOCKFD + 0x8
+  SERVER_OFF_ROUTES              equ SERVER_OFF_DISALLOWED_METHODS + 0x8
+  SERVER_OFF_SOCKADDR            equ SERVER_OFF_ROUTES + 0x8
+  SERVER_OFF_PORT                equ SERVER_OFF_SOCKADDR + 0x8
+
 section .text
 htons:
   ; rdi -> port
@@ -379,10 +396,11 @@ add_route:
   add   rsp, 0x20
   ret
 
+; initialise server
+; @param  rdi: port
+; @return rax: pointer to server struct | error
 server_init:
-  ; rdi -> port
-  ; return value: rax -> socket fd | error
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   cmp   rdi, 0
   jg    .port_defined
@@ -410,103 +428,107 @@ server_init:
   mov   rdi, rbx
 
 .port_defined:
-  mov   qword [port], rdi
-  mov   qword [rsp], 0  ; sockfd
+  mov   qword [rsp], rdi
+
+  ; malloc server struct
+  mov   rdi, SERVER_STRUCT_LEN
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
 
   ; check if port is in bounds
-  cmp   qword [port], PORT_MIN
+  cmp   qword [rsp], PORT_MIN
   jl    .error
 
-  cmp   qword [port], PORT_MAX
+  cmp   qword [rsp], PORT_MAX
   jg    .error
 
-  ; create socket
-  mov   rax, SYS_SOCKET
-  mov   edi, AF_INET
+  ; add port to server struct
+  mov   rdi, qword [rsp]
+  mov   dword [rax+SERVER_OFF_PORT], edi
+
+  mov   rdi, AF_INET
   mov   rsi, SOCK_STREAM
   mov   rdx, 0
-  syscall
+  call  create_socket
 
   cmp   rax, 0
   jl    .error
 
-  ; store server fd
-  mov   qword [rsp], rax
+  mov   rdi, [rsp+0x8]
+  mov   qword [rdi+SERVER_OFF_SOCKFD], rax
 
   ; set socket options
-  mov   rax, SYS_SETSOCKOPT
-  mov   rdi, qword [rsp]
+  mov   rdi, rax
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEPORT
-  mov   r10, enable
-  mov   r8, 4 
-  syscall
+  call  set_socket_option
 
   cmp   rax, 0
   jl    .error
 
-  mov   rax, SYS_SETSOCKOPT
-  mov   rdi, qword [rsp]
+  mov   rsi, [rsp+0x8]
+  add   rsi, SERVER_OFF_SOCKFD
+
+  mov   rdi, qword [rsi]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEADDR
-  mov   r10, enable
-  mov   r8, 4 
-  syscall
+  call  set_socket_option
 
   cmp   rax, 0
   jl    .error
 
-  ; convert host port to network
-  xor   rax, rax
-  mov   rdi, qword [port]
-  call  htons
-
-  ; bind socket
-  mov   dword [server_sin_port], eax
-  mov   rax, SYS_BIND
-  mov   rdi, qword [rsp]
-  lea   rsi, [server_sin_family]
-  mov   rdx, server_addrlen
-  syscall
+  mov   rdx, [rsp+0x8]
+  mov   rdi, qword [rdx+SERVER_OFF_SOCKFD]
+  mov   rsi, qword [rdx+SERVER_OFF_PORT]
+  mov   rdx, AF_INET
+  call  bind_socket
 
   cmp   rax, 0
   jl    .error
 
   ; listen socket
-  mov   rax, SYS_LISTEN
-  mov   rdi, qword [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdi, qword [rsi+SERVER_OFF_SOCKFD]
   xor   rsi, rsi
-  syscall
+  call  listen_socket
 
   cmp   rax, 0
   jl    .error
 
-  mov   rax, qword [rsp]
+  mov   rax, [rsp+0x8]
   jmp   .return
 
 .error:
   ; check if socket have been opened
-  cmp   qword [rsp], 0
+  cmp   qword [rsp+0x8], 0
   jle   .skip_close_socket
 
   ; if yes close it
+  mov   rsi, [rsp+0x8]
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsp]
+  mov   rdi, qword [rsi+SERVER_OFF_SOCKFD]
   syscall
+
   ; don't need to check for error, we exit anyway
 
 .skip_close_socket:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
+; runs the server
+; @param  rdi: pointer to server struct
+; @param  rax: return value
 run_server:
-  ; rdi -> sockfd
   sub   rsp, 0x30
 
-  mov   qword [rsp], rdi
+  mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
 
   call  log_server_init
@@ -556,11 +578,8 @@ run_server:
   rep   stosb
 
   ; accept connection
-  mov   rax, SYS_ACCEPT
-  mov   rdi, qword [rsp]
-  lea   rsi, [client_sin_family]
-  lea   rdx, [client_addrlen]
-  syscall
+  mov   rdi, [rsp]
+  call  accept_connection
 
   cmp   rax, 0
   jl    .close

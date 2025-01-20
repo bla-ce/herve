@@ -1,4 +1,4 @@
-; TODO: null freed pointers
+; TODO: socket, server, client, engine?, response struct
 ; TODO: verify paddings and alignments
 ; TODO: timeout with alarm syscall
 
@@ -21,10 +21,9 @@
 %include "string.inc"
 %include "time.inc"
 %include "cookie.inc"
+%include "socket.inc"
 
 section .bss
-  port  resq 1
-
   response     resq RESPONSE_MAX_LEN
   response_len resq 1
 
@@ -56,17 +55,11 @@ section .bss
 section .data
   enable  dw 1
 
-  server_sin_family  dw AF_INET
-  server_sin_port    dw 0
-  server_sin_addr    dd INADDR_ANY
-  server_sa_zero     dq 0
-  server_addrlen     equ $ - server_sin_family
-
   client_sin_family  dw AF_INET
   client_sin_port    dw 0
   client_sin_addr    dd 0
   client_sa_zero     dq 0
-  client_addrlen     dq server_addrlen
+  client_addrlen     dq $ - client_sin_family
 
   methods_list  db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
   methods_list_len equ $ - methods_list

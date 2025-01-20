@@ -135,9 +135,11 @@ enable_log_color:
   ret
 
 ; initial log of the available routes and port the server is listening to
-; TODO: pass server as argument
+; @param  rdi: pointer to server struct
 log_server_init:
   sub   rsp, 0x18 ; routes count for route logs
+
+  mov   [rsp], rdi
 
   xor   rdi, rdi
   lea   rdi, [log_debug]
@@ -157,7 +159,8 @@ log_server_init:
 
   mov   [rsp+0x10], rax
 
-  mov   rdi, qword [port]
+  mov   rsi, [rsp]
+  mov   rdi, qword [rsi+SERVER_OFF_PORT]
   mov   rsi, rax
   mov   rdx, STR_PORT_MAX_LENGTH
   call  to_string

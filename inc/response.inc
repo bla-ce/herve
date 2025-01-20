@@ -226,8 +226,7 @@ serve_string:
 
   mov   [rsp], rdi
 
-  mov   rcx, [rsi]
-  add   rcx, REQ_OFF_CLIENT
+  mov   rcx, rsi
   
   lea   rdi, [STR_OK]
   lea   rsi, [CONTENT_PLAIN]
