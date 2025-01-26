@@ -145,16 +145,16 @@ _start:
 
   mov   [rsp], rax
 
-  mov   rdi, print_hello
-  mov   rsi, qword [sockfd]
+  mov   rdi, [rsp]
+  mov   rsi, print_hello
   call  add_middleware
 
-  mov   rdi, print_hello
-  mov   rsi, qword [sockfd]
+  mov   rdi, [rsp]
+  mov   rsi, print_hello
   call  add_middleware
 
-  mov   rdi, print_hello
-  mov   rsi, qword [sockfd]
+  mov   rdi, [rsp]
+  mov   rsi, print_hello
   call  add_middleware
 
   mov   rdi, [rsp]

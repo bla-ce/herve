@@ -2,20 +2,24 @@ section .bss
 section .data
 
   middleware_struct:
-    middleware  dq 0
-    _next       dq 0 
-  middleware_end:
+    middleware_addr dq 0
+    middleware_next dq 0 
+  middleware_struct_end:
 
-  MIDDLEWARE_OFF_NEXT equ 0x8
+  MIDDLEWARE_STRUCT_LEN equ middleware_struct_end - middleware_struct
+
+  MIDDLEWARE_OFF_ADDR equ 0x0
+  MIDDLEWARE_OFF_NEXT equ MIDDLEWARE_OFF_ADDR + 0x8
+
 section .text
 
 ; TODO: add middleware to route
 ; adds a middleware to the end of the chain
-; @param  rdi: middleware
-; @param  rsi: pointer to server
+; @param  rdi: pointer to server
+; @param  rsi: middleware
 ; @return rax: return code
 add_middleware:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   cmp   rdi, 0
   jle   .error
@@ -24,16 +28,21 @@ add_middleware:
   jle   .error
 
   mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
-  lea   rdi, [middleware]
+  mov   rsi, rdi
 
   ; check if first middleware is null
-  cmp   qword [rdi], 0
-  jne    .loop
+  cmp   qword [rdi+SERVER_OFF_MIDDLEWARES], 0
+  je    .middlewares_init
 
-  mov   rax, [rsp]
-  mov   [rdi], rax
-  jmp   .return
+  mov   rdi, [rsi+SERVER_OFF_MIDDLEWARES]
+
+  jmp   .loop
+
+.middlewares_init:
+  add   rdi, SERVER_OFF_MIDDLEWARES
+  jmp   .add
 
 .loop:
   ; go to *next
@@ -52,13 +61,15 @@ add_middleware:
 
 .add:
   ; save next pos onto the stack
-  mov   [rsp+0x8], rdi
+  mov   [rsp+0x10], rdi
 
-  mov   rdi, middleware_end
-  sub   rdi, middleware_struct
+  mov   rdi, MIDDLEWARE_STRUCT_LEN
   call  malloc
 
-  mov   rdi, [rsp+0x8]
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
   mov   rsi, [rsp]
 
   ; rax contains address of new middleware struct
@@ -66,7 +77,8 @@ add_middleware:
   ; rsi contains the middleware
 
   ; mov middleware inside address of middleware struct
-  mov   [rax], rsi
+  mov   [rax+MIDDLEWARE_OFF_ADDR], rsi
+  mov   qword [rax+MIDDLEWARE_OFF_NEXT], 0
 
   ; mov middleware struct inside rdi
   mov   [rdi], rax
@@ -78,7 +90,7 @@ add_middleware:
   mov    rax, FAILURE_CODE
   
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; run the chain of middlewares

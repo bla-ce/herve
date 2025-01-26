@@ -8,6 +8,7 @@ section .data
     server_disallowed_methods dq 0
     server_routes             dq 0
     server_sockaddr           dq 0
+    server_middlewares        dq 0
     server_port               dw 0
   end_server_struct:
 
@@ -18,7 +19,8 @@ section .data
   SERVER_OFF_DISALLOWED_METHODS  equ SERVER_OFF_SOCKFD + 0x8
   SERVER_OFF_ROUTES              equ SERVER_OFF_DISALLOWED_METHODS + 0x8
   SERVER_OFF_SOCKADDR            equ SERVER_OFF_ROUTES + 0x8
-  SERVER_OFF_PORT                equ SERVER_OFF_SOCKADDR + 0x8
+  SERVER_OFF_MIDDLEWARES         equ SERVER_OFF_SOCKADDR + 0x8
+  SERVER_OFF_PORT                equ SERVER_OFF_MIDDLEWARES + 0x8
 
   route_struct:
     route_method    dq 0  
@@ -500,6 +502,7 @@ server_init:
   ; set default values
   mov   qword [rdi+SERVER_OFF_DISALLOWED_METHODS], 0
   mov   qword [rdi+SERVER_OFF_ROUTES], 0
+  mov   qword [rdi+SERVER_OFF_MIDDLEWARES], 0
 
   ; malloc resources for server
   mov   rdi, MAX_ROUTES_COUNT
