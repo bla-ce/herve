@@ -67,7 +67,7 @@ health:
   lea   rsi, [header_key]
   call  get_header_value
   cmp   rax, 0
-  jl    error
+  jl    .error
 
   mov   rdi, rax
   mov   rsi, 0
@@ -76,7 +76,14 @@ health:
   lea   rdi, [ok]
   mov   rsi, [rsp]
   call  serve_string
+  
+  mov   rax, SUCCESS_CODE
+  jmp   .return
 
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x8
   ret
 
@@ -126,12 +133,21 @@ send_200:
   ret
 
 _start:
+  sub   rsp, 0x8
+
   mov   rdi, 1337
   call  server_init
   cmp   rax, 0
-  jl    error
+  jl    .error
 
-  mov   qword [sockfd], rax
+  mov   rdi, qword [rax+SERVER_OFF_SOCKFD]
+  mov   qword [sockfd], rdi
+
+  mov   [rsp], rax
+
+  mov   rdi, print_hello
+  mov   rsi, qword [sockfd]
+  call  add_middleware
 
   mov   rdi, print_hello
   mov   rsi, qword [sockfd]
@@ -141,17 +157,17 @@ _start:
   mov   rsi, qword [sockfd]
   call  add_middleware
 
-  mov   rdi, print_hello
-  mov   rsi, qword [sockfd]
-  call  add_middleware
-
-  lea   rdi, [CONNECT]
+  mov   rdi, [rsp]
+  lea   rsi, [CONNECT]
   call  disallow_method
   cmp   rax, 0
-  jl    error
+  jl    .error
 
-  lea   rdi, [DELETE] 
+  mov   rdi, [rsp]
+  lea   rsi, [DELETE] 
   call  disallow_method
+  cmp   rax, 0
+  jl    .error
 
   lea   rdi, [POST]
   lea   rsi, [post_route]
@@ -195,11 +211,15 @@ _start:
   mov   rdi, qword [sockfd]
   call  run_server
 
+  add   rsp, 0x8
+
   mov   rax, SYS_EXIT
   mov   rdi, SUCCESS_CODE
   syscall
 
-error:
+.error:
+  add   rsp, 0x8
+
   mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
   syscall

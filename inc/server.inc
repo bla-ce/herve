@@ -4,11 +4,11 @@ section .data
   DEFAULT_PORT equ 8080
 
   server_struct:
-    server_sockfd              dq 0
-    server_disallowed_methods  dq 0
-    server_routes              dq 0
-    server_sockaddr            dq 0
-    server_port                dw 0
+    server_sockfd             dq 0
+    server_disallowed_methods dq 0
+    server_routes             dq 0
+    server_sockaddr           dq 0
+    server_port               dw 0
   end_server_struct:
 
   SERVER_STRUCT_LEN equ end_server_struct - server_struct
@@ -20,6 +20,30 @@ section .data
   SERVER_OFF_SOCKADDR            equ SERVER_OFF_ROUTES + 0x8
   SERVER_OFF_PORT                equ SERVER_OFF_SOCKADDR + 0x8
 
+  route_struct:
+    route_method    dq 0  
+    route_url       dq 0
+    route_callback  dq 0
+    route_next      dq 0
+  route_struct_end:
+
+  ROUTE_STRUCT_LEN equ route_struct_end - route_struct
+
+  ROUTE_OFF_METHOD    equ 0x0
+  ROUTE_OFF_URL       equ ROUTE_OFF_METHOD + 0x8
+  ROUTE_OFF_CALLBACK  equ ROUTE_OFF_URL + 0x8
+  ROUTE_OFF_NEXT      equ ROUTE_OFF_CALLBACK + 0x8
+
+  method_struct:
+    method_str    dq 0
+    method_next   dq 0
+  method_struct_end:
+
+  METHOD_STRUCT_LEN equ method_struct_end - method_struct
+
+  METHOD_OFF_STR    equ 0x0
+  METHOD_OFF_NEXT   equ METHOD_OFF_STR + 0x8
+
 section .text
 htons:
   ; rdi -> port
@@ -29,7 +53,8 @@ htons:
   ret
 
 ; disallows a specific method
-; @param  rdi: method constant
+; @param  rdi: pointer to server struct
+; @param  rsi: pointer to method string
 ; @return rax: code
 disallow_method:
   sub   rsp, 0x10
@@ -37,44 +62,78 @@ disallow_method:
   cmp   rdi, 0
   jle   .error
 
-  mov   [rsp+0x8], rdi
+  cmp   rsi, 0
+  jle   .error
 
-  ; get length of the method
-  call  strlen
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
-  ; store the length of the method onto the stack
-  mov   qword [rsp], rax
-
-  ; check method arg, variable should be between GET and CONNECT
-  mov   rsi, [rsp+0x8]
-  lea   rax, [GET]
-  lea   rbx, [CONNECT]
-
+  ; make sure the method is valid
+  mov   rax, GET
   cmp   rsi, rax
   jl    .error
 
-  cmp   rsi, rbx
+  mov   rax, CONNECT
+  cmp   rsi, rax
   jg    .error
 
-  ; look if method is inside the list
-  ; load request into rdx
-  lea   rdi, [methods_list]
-  mov   rsi, [rsp+0x8]
-  call  strpos
+  ; check if the method is already in the disallowed methods ll
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+SERVER_OFF_DISALLOWED_METHODS]
+
+  cmp   rdi, 0
+  je    .end_loop
+
+  xor   rax, rax
+.loop:
+  mov   rdx, [rsp+0x8]
+  cmp   rdx, [rdi+METHOD_OFF_STR]
+  je    .return
+
+  cmp   qword [rdi+METHOD_OFF_NEXT], 0
+  je    .end_loop
+
+  mov   rsi, [rdi+METHOD_OFF_NEXT]
+  mov   rdi, rsi
+
+  jmp   .loop
+.end_loop:
+
+  ; malloc method struct
+  mov   rdi, METHOD_STRUCT_LEN
+  call  malloc
 
   cmp   rax, 0
   jl    .error
 
-  ; add method to not allowed list
-  lea   rdi, [not_allowed_methods]
+  ; populate struct
+  mov   rbx, [rsp+0x8]
+  mov   [rax+METHOD_OFF_STR], rbx
+  mov   qword [rax+METHOD_OFF_NEXT], 0
 
-  ; point rdi to the position of the method inside allowed list
-  add   rdi, rax
+  ; add to server's linked list
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+SERVER_OFF_DISALLOWED_METHODS]
 
-  ; put method inside not allowed lists
-  mov   rsi, [rsp+0x8]
-  mov   rcx, qword [rsp]
-  rep   movsb
+  cmp   rdi, 0
+  jne   .loop2
+
+.init_dis_methods:
+  mov   [rsi+SERVER_OFF_DISALLOWED_METHODS], rax
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.loop2:
+  cmp   qword [rdi+METHOD_OFF_NEXT], 0
+  je    .end_loop2
+
+  mov   rsi, [rdi+METHOD_OFF_NEXT]
+  mov   rdi, rsi
+
+  jmp   .loop2
+
+.end_loop2:
+  mov   [rdi+METHOD_OFF_NEXT], rax
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -83,7 +142,6 @@ disallow_method:
   mov   rax, FAILURE_CODE
 
 .return:
-  ; clean stack
   add   rsp, 0x10
   ret
 
@@ -439,6 +497,18 @@ server_init:
 
   mov   [rsp+0x8], rax
 
+  ; set default values
+  mov   qword [rdi+SERVER_OFF_DISALLOWED_METHODS], 0
+  mov   qword [rdi+SERVER_OFF_ROUTES], 0
+
+  ; malloc resources for server
+  mov   rdi, MAX_ROUTES_COUNT
+  mov   rsi, ROUTE_STRUCT_LEN
+  call  calloc
+
+  mov   rdi, [rsp+0x8]
+  mov   qword [rdi+SERVER_OFF_ROUTES], rax
+
   ; check if port is in bounds
   cmp   qword [rsp], PORT_MIN
   jl    .error
@@ -447,6 +517,7 @@ server_init:
   jg    .error
 
   ; add port to server struct
+  mov   rax, [rsp+0x8]
   mov   rdi, qword [rsp]
   mov   dword [rax+SERVER_OFF_PORT], edi
 
