@@ -53,7 +53,7 @@ add_middleware:
   je    .add
 
   ; rdi contains the address of next
-  ; needs to contain the address pointer by next
+  ; needs to contain the address pointed by next
   mov   rsi, rdi
   mov   rdi, [rsi]
 
@@ -70,7 +70,7 @@ add_middleware:
   jl    .error
 
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp]
+  mov   rsi, [rsp+0x8]
 
   ; rax contains address of new middleware struct
   ; rdi contains the address of next
@@ -94,35 +94,39 @@ add_middleware:
   ret
 
 ; run the chain of middlewares
-; @param  rdi: pointer to request struct
+; @param  rdi: pointer to server struct
+; @param  rsi: pointer to request struct
 ; @return rax: return code
 run_middlewares:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   cmp   rdi, 0
   jle   .error
 
-  mov   [rsp], rdi
+  cmp   rsi, 0
+  jle   .error
 
-  xor   rdi, rdi
-  lea   rdi, [middleware_struct]
-  cmp   qword [rdi], 0
-  je    .end
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  mov   rsi, rdi
+  add   rsi, SERVER_OFF_MIDDLEWARES
+  mov   rdi, [rsi]
 
 .loop:
   ; rdi contains the address of middleware_struct
-  mov   rax, [rdi]
+  mov   rax, [rdi+MIDDLEWARE_OFF_ADDR]
 
-  mov   [rsp+0x8], rdi  ; save address of middleware struct
+  mov   [rsp+0x10], rdi
   mov   rdi, [rsp]
-  call  rax             ; call middleware
+  call  rax
 
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x8]  ; load address of middleware struct
+  mov   rdi, [rsp+0x10]  ; load address of middleware struct
 
-  add   rdi, 0x8        ; go to next
+  add   rdi, MIDDLEWARE_OFF_NEXT
   cmp   qword [rdi], 0
   je    .end
 
@@ -141,7 +145,7 @@ run_middlewares:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 

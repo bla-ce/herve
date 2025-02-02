@@ -111,14 +111,23 @@ STR_INTERNAL_SERVER_ERROR db "500 Internal Server Error", NULL_CHAR
 STR_SERVICE_UNAVAILABLE   db "503 Service Unavailable", NULL_CHAR
 
 ; methods
+align 8
 GET     db "GET", NULL_CHAR
+align 8
 POST    db "POST", NULL_CHAR
+align 8
 PUT     db "PUT", NULL_CHAR
+align 8
 DELETE  db "DELETE", NULL_CHAR
+align 8
 HEAD    db "HEAD", NULL_CHAR
+align 8
 OPTIONS db "OPTIONS", NULL_CHAR
+align 8
 PATCH   db "PATCH", NULL_CHAR
+align 8
 TRACE   db "TRACE", NULL_CHAR
+align 8
 CONNECT db "CONNECT", NULL_CHAR
 
 ; protocol

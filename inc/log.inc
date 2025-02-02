@@ -137,7 +137,7 @@ enable_log_color:
 ; initial log of the available routes and port the server is listening to
 ; @param  rdi: pointer to server struct
 log_server_init:
-  sub   rsp, 0x18 ; routes count for route logs
+  sub   rsp, 0x20
 
   mov   [rsp], rdi
 
@@ -189,9 +189,14 @@ log_server_init:
   mov   rsi, 0
   call	println
 
-  ; log routes - [DEBUG] METHOD ROUTE
-  ; keep track of routes
-  mov   qword [rsp], 0
+  ; load server routes
+  mov   rdi, [rsp]
+  add   rdi, SERVER_OFF_ROUTES
+  mov   rsi, [rdi]  
+  mov   [rsp+0x18], rsi
+
+  cmp   rsi, 0
+  je    .end_loop
 
 .loop:
   ; log debug 
@@ -201,25 +206,12 @@ log_server_init:
   call	print
 
   ; load routes_list
-  xor   rdi, rdi
-  lea   rdi, [routes_list]
-
-  ; get route pos
-  xor   rdx, rdx
-  mov   rax, qword [rsp]
-  mov   rbx, STRUCT_ROUTE_LEN
-  mul   rbx
-
-  ; go to route
-  add   rdi, rax
-
-  ; save route pos onto the stack
-  mov   [rsp+0x8], rdi
+  mov   rsi, [rsp+0x18]
 
   ; log method
   ; go to method
-  add   rdi, URL_MAX_LEN
-  mov   rsi, METHOD_MAX_LEN
+  mov   rdi, [rsi+ROUTE_OFF_METHOD]
+  mov   rsi, 0
   call  print
 
   ; print space
@@ -227,24 +219,29 @@ log_server_init:
   call  print_char
 
   ; load url and log it
-  mov   rdi, [rsp+0x8]
-  mov   rsi, URL_MAX_LEN
+  mov   rsi, [rsp+0x18]
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  mov   rsi, 0
   call  println
 
-  inc   qword [rsp]
-  
-  mov   rax, qword [rsp]
-  cmp   rax, qword [routes_count]
-  je    .return
+  mov   rsi, [rsp+0x18]
+  cmp   qword [rsi+ROUTE_OFF_NEXT], 0
+  je    .end_loop
+
+  add   rsi, ROUTE_OFF_NEXT
+  mov   rdi, [rsi]
+
+  mov   [rsp+0x18], rdi
   
   jmp   .loop
+.end_loop:
 
 .return:
   ; log new line
   mov   rdi, LINE_FEED
   call	print_char
 
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; store duration inside log_duration

@@ -157,58 +157,66 @@ _start:
   mov   rsi, print_hello
   call  add_middleware
 
-  mov   rdi, [rsp]
-  lea   rsi, [CONNECT]
-  call  disallow_method
-  cmp   rax, 0
-  jl    .error
+  ; mov   rdi, [rsp]
+  ; lea   rsi, [CONNECT]
+  ; call  disallow_method
+  ; cmp   rax, 0
+  ; jl    .error
+
+  ; mov   rdi, [rsp]
+  ; lea   rsi, [DELETE] 
+  ; call  disallow_method
+  ; cmp   rax, 0
+  ; jl    .error
 
   mov   rdi, [rsp]
-  lea   rsi, [DELETE] 
-  call  disallow_method
-  cmp   rax, 0
-  jl    .error
-
-  lea   rdi, [POST]
-  lea   rsi, [post_route]
-  mov   rdx, post
-  call  add_route 
-
-  lea   rdi, [GET]
-  lea   rsi, [v1_route]
-  mov   rdx, send_200
-  call  add_route 
-
-  lea   rdi, [GET]
-  lea   rsi, [header_route]
-  mov   rdx, header
-  call  add_route 
-
-  lea   rdi, [GET]
-  lea   rsi, [api_route]
-  mov   rdx, send_200
-  call  add_route 
-
-  lea   rdi, [GET]
-  lea   rsi, [health_route]
-  mov   rdx, health
-  call  add_route 
-
-  lea   rdi, [GET]
-  lea   rsi, [index_route]
-  mov   rdx, index
+  lea   rsi, [POST]
+  lea   rdx, [post_route]
+  mov   rcx, post
   call  add_route
 
-  lea   rdi, [GET]
-  lea   rsi, [cookie_route]
-  mov   rdx, cookie_func
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [v1_route]
+  mov   rcx, send_200
   call  add_route 
 
-  lea   rdi, [views_dir]
-  mov   rsi, 1
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [header_route]
+  mov   rcx, header
+  call  add_route 
+
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [api_route]
+  mov   rcx, send_200
+  call  add_route 
+
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [health_route]
+  mov   rcx, health
+  call  add_route 
+
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [index_route]
+  mov   rcx, index
+  call  add_route
+
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [cookie_route]
+  mov   rcx, cookie_func
+  call  add_route 
+
+  mov   rdi, [rsp]
+  lea   rsi, [views_dir]
+  mov   rdx, 1
   call  add_dir_route
  
-  mov   rdi, qword [sockfd]
+  mov   rdi, [rsp]
   call  run_server
 
   add   rsp, 0x8

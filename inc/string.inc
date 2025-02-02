@@ -54,7 +54,7 @@ strcpy:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  lea   rdi, [rsi]
+  mov   rdi, rsi
   call  strlen
   mov   rcx, rax
 
