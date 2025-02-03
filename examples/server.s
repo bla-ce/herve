@@ -140,14 +140,15 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [rax+SERVER_OFF_SOCKFD]
-  mov   qword [sockfd], rdi
-
   mov   [rsp], rax
 
-  mov   rdi, [rsp]
-  mov   rsi, print_hello
-  call  add_middleware
+  mov   rdi, rax
+  call  get_server_sockfd
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [sockfd], rax
 
   mov   rdi, [rsp]
   mov   rsi, print_hello
@@ -157,17 +158,9 @@ _start:
   mov   rsi, print_hello
   call  add_middleware
 
-  ; mov   rdi, [rsp]
-  ; lea   rsi, [CONNECT]
-  ; call  disallow_method
-  ; cmp   rax, 0
-  ; jl    .error
-
-  ; mov   rdi, [rsp]
-  ; lea   rsi, [DELETE] 
-  ; call  disallow_method
-  ; cmp   rax, 0
-  ; jl    .error
+  mov   rdi, [rsp]
+  mov   rsi, print_hello
+  call  add_middleware
 
   mov   rdi, [rsp]
   lea   rsi, [POST]

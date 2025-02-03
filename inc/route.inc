@@ -473,7 +473,13 @@ add_route_struct_to_server:
   mov   [rsp+0x8], rsi
 
   ; get routes list
-  add   rdi, SERVER_OFF_ROUTES
+  call  get_server_routes
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+
   cmp   qword [rdi], 0
   je    .add
 

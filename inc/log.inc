@@ -191,8 +191,12 @@ log_server_init:
 
   ; load server routes
   mov   rdi, [rsp]
-  add   rdi, SERVER_OFF_ROUTES
-  mov   rsi, [rdi]  
+  call  get_server_routes
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rsi, [rax]
   mov   [rsp+0x18], rsi
 
   cmp   rsi, 0
@@ -236,11 +240,16 @@ log_server_init:
   jmp   .loop
 .end_loop:
 
-.return:
   ; log new line
   mov   rdi, LINE_FEED
   call	print_char
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x20
   ret
 

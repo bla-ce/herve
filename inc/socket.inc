@@ -129,9 +129,14 @@ accept_connection:
   mov   rbx, qword [sockaddr_addrlen]
   mov   qword [rax+SOCKADDR_OFF_ADDRLEN], rbx
 
+  mov   rdi, [rsp]
+  call  get_server_sockfd 
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rax, SYS_ACCEPT
-  mov   rsi, [rsp]
-  mov   rdi, qword [rsi+SERVER_OFF_SOCKFD]
   mov   rsi, [rsp+0x8]
   lea   rdx, [sockaddr_addrlen]
   syscall

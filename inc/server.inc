@@ -5,7 +5,6 @@ section .data
 
   server_struct:
     server_sockfd             dq 0
-    server_disallowed_methods dq 0
     server_routes             dq 0
     server_sockaddr           dq 0
     server_middlewares        dq 0
@@ -16,13 +15,122 @@ section .data
 
   ; offsets
   SERVER_OFF_SOCKFD              equ 0x0
-  SERVER_OFF_DISALLOWED_METHODS  equ SERVER_OFF_SOCKFD + 0x8
-  SERVER_OFF_ROUTES              equ SERVER_OFF_DISALLOWED_METHODS + 0x8
+  SERVER_OFF_ROUTES              equ SERVER_OFF_SOCKFD + 0x8
   SERVER_OFF_SOCKADDR            equ SERVER_OFF_ROUTES + 0x8
   SERVER_OFF_MIDDLEWARES         equ SERVER_OFF_SOCKADDR + 0x8
   SERVER_OFF_PORT                equ SERVER_OFF_MIDDLEWARES + 0x8
 
 section .text
+; returns the socket fd associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: socket fd
+get_server_sockfd:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, qword [rdi+SERVER_OFF_SOCKFD]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the socket fd associated to the server
+; @param  rdi: pointer to server struct 
+; @param  rsi: sockfd
+; @return rax: return code
+set_server_sockfd:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   qword [rdi+SERVER_OFF_SOCKFD], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the port associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: port
+get_server_port:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, qword [rdi+SERVER_OFF_PORT]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the port the server will be listening to
+; @param  rdi: pointer to server struct 
+; @param  rsi: port
+; @return rax: return code
+set_server_port:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   dword [rdi+SERVER_OFF_PORT], esi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the first route struct associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: pointer to the route offset
+get_server_routes:
+  cmp   rdi, 0
+  jle   .error
+
+  add   rdi, SERVER_OFF_ROUTES
+  mov   rax, rdi
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the first route struct associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: pointer to the middleware offset
+get_server_middlewares:
+  cmp   rdi, 0
+  jle   .error
+
+  add   rdi, SERVER_OFF_MIDDLEWARES
+  mov   rax, rdi
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; converts a integer from host byte order to network byte order (big-endian).
 ; @param  rdi: integer
 ; @return rax: integer to network byte order
@@ -35,7 +143,7 @@ htons:
 ; @param  rdi: port
 ; @return rax: pointer to server struct | error
 server_init:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   cmp   rdi, 0
   jg    .port_defined
@@ -75,7 +183,6 @@ server_init:
   mov   [rsp+0x8], rax
 
   ; set default values
-  mov   qword [rdi+SERVER_OFF_DISALLOWED_METHODS], 0
   mov   qword [rdi+SERVER_OFF_ROUTES], 0
   mov   qword [rdi+SERVER_OFF_MIDDLEWARES], 0
 
@@ -89,9 +196,12 @@ server_init:
   jg    .error
 
   ; add port to server struct
-  mov   rax, [rsp+0x8]
-  mov   rdi, qword [rsp]
-  mov   dword [rax+SERVER_OFF_PORT], edi
+  mov   rdi, [rsp+0x8]
+  mov   rsi, qword [rsp]
+  call  set_server_port
+
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, AF_INET
   mov   rsi, SOCK_STREAM
@@ -101,11 +211,17 @@ server_init:
   cmp   rax, 0
   jl    .error
 
+  mov   qword [rsp+0x10], rax
+
   mov   rdi, [rsp+0x8]
-  mov   qword [rdi+SERVER_OFF_SOCKFD], rax
+  mov   rsi, rax
+  call  set_server_sockfd
+
+  cmp   rax, 0
+  jl    .error
 
   ; set socket options
-  mov   rdi, rax
+  mov   rdi, qword [rsp+0x10]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEPORT
   call  set_socket_option
@@ -113,10 +229,7 @@ server_init:
   cmp   rax, 0
   jl    .error
 
-  mov   rsi, [rsp+0x8]
-  add   rsi, SERVER_OFF_SOCKFD
-
-  mov   rdi, qword [rsi]
+  mov   rdi, qword [rsp+0x10]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEADDR
   call  set_socket_option
@@ -124,9 +237,14 @@ server_init:
   cmp   rax, 0
   jl    .error
 
-  mov   rdx, [rsp+0x8]
-  mov   rdi, qword [rdx+SERVER_OFF_SOCKFD]
-  mov   rsi, qword [rdx+SERVER_OFF_PORT]
+  mov   rdi, [rsp+0x8]
+  call  get_server_port
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rsi, rax
+  mov   rdi, qword [rsp+0x10]
   mov   rdx, AF_INET
   call  bind_socket
 
@@ -134,8 +252,7 @@ server_init:
   jl    .error
 
   ; listen socket
-  mov   rsi, [rsp+0x8]
-  mov   rdi, qword [rsi+SERVER_OFF_SOCKFD]
+  mov   rdi, qword [rsp+0x10]
   xor   rsi, rsi
   call  listen_socket
 
@@ -153,7 +270,7 @@ server_init:
   ; if yes close it
   mov   rsi, [rsp+0x8]
   mov   rax, SYS_CLOSE
-  mov   rdi, qword [rsi+SERVER_OFF_SOCKFD]
+  mov   rdi, qword [rsp+0x10]
   syscall
 
   ; don't need to check for error, we exit anyway
@@ -162,7 +279,7 @@ server_init:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; runs the server

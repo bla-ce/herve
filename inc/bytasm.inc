@@ -1,3 +1,5 @@
+; TODO: get field for each struct
+; TODO: check route and method -> validate request?
 ; TODO: socket, server, client, engine?, response struct
 ; TODO: verify paddings and alignments
 ; TODO: timeout with alarm syscall
@@ -42,7 +44,15 @@ section .bss
   response_content_length   resw 1
   response_close            resb 1
 
+  file      resb FILE_MAX_LEN
+  file_len  resq 1
+
   duration resq 1
+
+  routes_count resq 1
+
+  callback_list resq MAX_ROUTES_COUNT
+  callback      resq 1
 
   query_params  resb QUERY_MAX_LEN
   query         resb QUERY_MAX_VALUE_LEN
@@ -50,5 +60,13 @@ section .bss
 section .data
   enable  dw 1
 
+  methods_list  db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
+  methods_list_len equ $ - methods_list
+
+  not_allowed_methods times methods_list_len db SPACE
+
+  routes_list     times MAX_ROUTES_COUNT * STRUCT_ROUTE_LEN db 0
+
   post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
+
 
