@@ -14,139 +14,59 @@ section .data
   ROUTE_OFF_NEXT      equ ROUTE_OFF_CALLBACK + 0x8
 
 section .text
-; checks if the route is available and returns its position in routes list
-; @param  rdi: pointer to sever struct
-; @param  rdi: request url
-; @param  rsi: request method
-; @return rax: route position in routes list
-check_route:
-  sub   rsp, 0x20
 
-  mov   rdx, [rdi]
-  mov   [rsp], rdx
+; returns the callback associated to the route struct
+; @param  rdi: pointer to route struct
+; @return rax: callback address
+get_route_callback:
+  mov   rax, [rdi+ROUTE_OFF_CALLBACK]
+  ret
 
-  mov   rdx, [rsi]
-  mov   [rsp+0x8], rdx
-  
-  mov   qword [rsp+0x10], 0 ; route position inside list
+; compares the route with the url and the method provided in args
+; @param  rdi: pointer to request struct
+; @param  rsi: pointer to route
+; @param  rax: (bool) route corresponds to the request
+compare_route:
+  sub   rsp, 0x10
 
-  ; get url length
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; compare methods
   mov   rdi, [rsp]
-  call  strlen
-
-  mov   rbx, rax
-
-  ; remove query parameters, return url length
-  mov   rsi, rbx
-  call  trim_query_parameters
+  mov   rsi, [rdi+REQ_OFF_METHOD] 
+  mov   rdx, [rsp+0x8]
+  mov   rdi, [rdx+ROUTE_OFF_METHOD]
+  call  cmpstr
 
   cmp   rax, 0
-  cmovg rbx, rax ; if rax > 0: found query param, exclude them
+  jl    .error
+  je    .not_the_same
 
-  mov   qword [rsp+0x18], rbx
-  
-  ; load url
-  mov   rsi, [rsp]
+  ; compare urls
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+REQ_OFF_URL] 
+  mov   rdx, [rsp+0x8]
+  mov   rdi, [rdx+ROUTE_OFF_URL]
+  call  cmpstr
 
-  ; check if route is '/', if yes skip trim end slash
-  cmp   qword [rsp+0x18], 1
-  je    .skip_trim
-  
-  ; go to the end of the url
-  add   rsi, qword [rsp+0x18] ; rsi points to the null_char
+  cmp   rax, 0
+  jl    .error
+  je    .not_the_same
 
-  ;  check if last char is slash
-  dec   rsi
-  cmp   byte [rsi], SLASH
-  jne   .skip_trim
-  
-  ; if yes, change to null char and dec route length
-  mov   byte [rsi], NULL_CHAR
-  dec   qword [rsp+0x18]
-  
-.skip_trim:
-  ; check if route is in routes_list
-  xor   rbx, rbx
-  lea   rdi, [routes_list]
-  mov   rsi, [rsp]
+  mov   rax, TRUE
 
-.next_route:
-  mov   rcx, qword [rsp+0x18]
-  cld
-  rep   cmpsb
-  je    .route_found
-
-.not_entire:
-  add   rdi, STRUCT_ROUTE_LEN
-  sub   rdi, qword [rsp+0x18]
-  add   rdi, rcx
-  add   rsi, rcx
-  sub   rsi, qword [rsp+0x18]
-
-  inc   rbx
-  cmp   rbx, qword [routes_count]
-  jg    .route_not_found
-
-  jmp   .next_route
-  
-.route_not_found:
-  mov   rax, FAILURE_CODE
   jmp   .return
 
-.route_found:
-  ; make sure we checked the entire route
-  mov   al, byte [rdi]
-  cmp   al, NULL_CHAR
-  jne   .not_entire
+.not_the_same:
+  mov   rax, FALSE
+  jmp   .return
 
-  ; store position of the route
-  xor   rdx, rdx
-  mov   rax, STRUCT_ROUTE_LEN
-  mul   rbx
-  mov   qword [rsp+0x10], rax
-
-  mov   rdi, [rsp+0x8]
-  call  strlen
-
-  ; check the method is correct
-  lea   rdi, [routes_list]
-  add   rdi, qword [rsp+0x10]
-  add   rdi, URL_MAX_LEN
-  mov   rsi, [rsp+0x8] 
-  mov   rcx, rax
-  rep   cmpsb
-
-  jne   .route_not_found
-
-  ; load callback
-  lea   rdi, [callback_list]
-  mov   rax, qword [rsp+0x10]
-
-  ; get index of the route
-  xor   rdx, rdx
-  mov   rbx, STRUCT_ROUTE_LEN
-  div   rbx
-
-  ; go to callback inside callback_list
-  xor   rdx, rdx
-  mov   rbx, 8
-  mul   rbx
-
-  add   rdi, rax
-
-  mov   rax, [rdi]
-
-  ; check route has a callback
-  cmp   rax, 0
-  je    .skip_exec
-
-  mov   [rel callback], rax
-
-.skip_exec:
-  mov   rax, qword [rsp+0x18]
+.error:
+  mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x10
   ret
 
 ; create a route serving files located in a specified dir 

@@ -25,11 +25,11 @@ cmpstr:
   rep   cmpsb
   jne   .str_not_equal
 
-  mov   rax, 1
+  mov   rax, TRUE
   jmp   .return
 
 .str_not_equal:
-  mov   rax, 0
+  mov   rax, FALSE
   jmp   .return
 
 .error:

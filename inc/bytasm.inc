@@ -1,5 +1,5 @@
-; TODO: get field for each struct
 ; TODO: check route and method -> validate request?
+; TODO: getter and setter methods 
 ; TODO: socket, server, client, engine?, response struct
 ; TODO: verify paddings and alignments
 ; TODO: timeout with alarm syscall

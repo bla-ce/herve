@@ -285,62 +285,57 @@ parse_request:
   add   rsp, 0x20
   ret
 
-
 ; verifies the request, making sure the route exists and is allowed
-; @param  rdi: pointer to request struct
-; @return rax: return code
+; @param  rdi: pointer to server struct
+; @param  rsi: pointer to request struct
+; @return rax: pointer to route
 verify_request:
-  sub   rsp, 0x8
+  sub   rsp, 0x20
 
   mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  
+  call  get_server_routes 
 
-  add   rdi, REQ_OFF_METHOD
-  call  check_method
+  mov   rdi, INTERNAL_SERVER_ERROR
   cmp   rax, 0
-  jl    .method_not_allowed
+  jl    .error
 
-  mov   rdi, [rsp]
-  add   rdi, REQ_OFF_URL
-  mov   rsi, [rsp]
-  add   rsi, REQ_OFF_METHOD
-  call  check_route
+  ; save routes onto the stack
+  mov   [rsp+0x10], rax
+
+  mov   rsi, [rax]
+
+.loop:
+  ; save route onto the stack
+  mov   [rsp+0x18], rsi
+
+  mov   rdi, [rsp+0x8]
+  call  compare_route
+
   cmp   rax, 0
-  jl    .not_found
+  jl    .error
+  jg    .end_loop ; route is valid
 
-  mov   qword [response_status_code], OK
-  mov   rax, 0
+  ; go to next route
+  mov   rdx, [rsp+0x18]
+  mov   rsi, [rdx+ROUTE_OFF_NEXT]
 
+  cmp   rsi, 0
+  je    .error
+
+  jmp   .loop
+.end_loop:
+  
+  mov   rax, [rsp+0x18]
   jmp   .return
 
-.method_not_allowed:
-  mov   qword [response_status_code], METHOD_NOT_ALLOWED
-
-  mov   rsi, [rsp]
-  mov   rdi, [rsi]
-  add   rdi, REQ_OFF_CLIENT
-  xor   rsi, rsi
-  lea   rsi, [STR_METHOD_NOT_ALLOWED]
-  call  send_error_response
-
+.error:
+  ; in the future, need to set a specific code when I have context struct
   mov   rax, FAILURE_CODE
-
-  jmp   .return
-
-.not_found:
-  mov   qword [response_status_code], NOT_FOUND
-
-  mov   rsi, [rsp]
-  mov   rdi, [rsi]
-  add   rdi, REQ_OFF_CLIENT
-  lea   rsi, [STR_NOT_FOUND]
-  call  send_error_response
-
-  mov   rax, FAILURE_CODE
-
-  jmp   .return
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x20
   ret
 
 ; returns the body of a request

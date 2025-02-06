@@ -390,16 +390,21 @@ run_server:
   call  run_middlewares
 
   ; verify request
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x28]
   call  verify_request
   cmp   rax, 0
   jl    .error
 
-  cmp   qword [callback], 0
+  ; check if route has a callback
+  mov   rdi, rax
+  call  get_route_callback
+
+  cmp   rax, 0
   je    .skip_callback
 
   mov   rdi, [rsp+0x28]
-  call  [rel callback]
+  call  rax
 
 .skip_callback:
   mov   rax, SYS_CLOSE

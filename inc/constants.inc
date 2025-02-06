@@ -1,6 +1,10 @@
 %ifndef CONSTANTS_INC
 %define CONSTANTS_INC
 
+; boolean
+TRUE  equ 1
+FALSE equ 0
+
 STDOUT          equ 1
 LONG_SIZE       equ 10
 
