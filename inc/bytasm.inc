@@ -1,5 +1,5 @@
-; TODO: check route and method -> validate request?
 ; TODO: getter and setter methods 
+; TODO: free ctx resources
 ; TODO: socket, server, client, engine?, response struct
 ; TODO: verify paddings and alignments
 ; TODO: timeout with alarm syscall
@@ -27,6 +27,8 @@
 %include "socket.inc"
 %include "route.inc"
 %include "method.inc"
+%include "context.inc"
+%include "client.inc"
 
 section .bss
   response     resq RESPONSE_MAX_LEN

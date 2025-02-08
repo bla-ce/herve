@@ -284,7 +284,7 @@ server_init:
 ; @param  rdi: pointer to server struct
 ; @param  rax: return value
 run_server:
-  sub   rsp, 0x30
+  sub   rsp, 0x38
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
@@ -335,6 +335,14 @@ run_server:
   lea   rdi, [response]
   rep   stosb
 
+  mov   rdi, [rsp]
+  call  ctx_init
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax ; TODO: REDO Stack
+
   ; accept connection
   mov   rdi, [rsp]
   call  accept_connection
@@ -344,11 +352,21 @@ run_server:
 
   mov   qword [rsp+0x10], rax
 
-  ; set start timer
+  ; set start timer -> TODO: malloc?
   mov   rax, SYS_CLOCK_GETTIME
   mov   rdi, CLOCK_REALTIME
   lea   rsi, [start_tv_sec]
   syscall
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x30]
+  mov   rsi, qword [start_tv_sec]
+  call  set_ctx_start_time
+
+  cmp   rax, 0
+  jl    .error
 
   ; malloc request string
   mov   rdi, REQUEST_MAX_LEN
@@ -427,7 +445,7 @@ run_server:
   mov   rdi, qword [rsp]
   syscall
 
-  add   rsp, 0x30
+  add   rsp, 0x38
   ret
 
 trim_query_parameters:
