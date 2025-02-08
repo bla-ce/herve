@@ -341,16 +341,14 @@ run_server:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x30], rax ; TODO: REDO Stack
+  mov   [rsp+0x10], rax
 
   ; accept connection
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x10]
   call  accept_connection
 
   cmp   rax, 0
   jl    .close
-
-  mov   qword [rsp+0x10], rax
 
   ; set start timer -> TODO: malloc?
   mov   rax, SYS_CLOCK_GETTIME
@@ -361,45 +359,26 @@ run_server:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x30]
+  mov   rdi, [rsp+0x10]
   mov   rsi, qword [start_tv_sec]
   call  set_ctx_start_time
 
   cmp   rax, 0
   jl    .error
 
-  ; malloc request string
-  mov   rdi, REQUEST_MAX_LEN
-  call  malloc
+  mov   rdi, [rsp+0x10]
+  call  receive_request
 
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
-
-  ; receive client request
-  mov   rax, SYS_RECVFROM
-  mov   rdi, qword [rsp+0x10]
-  mov   rsi, [rsp+0x18]
-  mov   rdx, REQUEST_MAX_LEN
-  xor   r10, r10
-  xor   r9, r9
-  xor   r8, r8
-  syscall
-
-  mov   qword [rsp+0x20], rax
-
   ; parse_request
-  mov   rdi, [rsp+0x18]
-  mov   rsi, qword [rsp+0x10]
-  mov   rdx, qword [rsp+0x20]
+  ; CONTINUE HERE -> PARSING REQUEST
+  mov   rdi, [rsp+0x10]
   call  parse_request
 
   cmp   rax, 0
   jl    .error
-
-  ; save request pointer
-  mov   [rsp+0x28], rax
 
   mov   rdi, [rsp]
   mov   rsi, rax

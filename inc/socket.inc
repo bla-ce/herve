@@ -104,9 +104,9 @@ listen_socket:
 
   ret
 
-; accepts a connection
-; @param  rdi: pointer to server struct
-; @return rax: client fd
+; accepts a connection and store client fd into client struct
+; @param  rdi: pointer to context
+; @return rax: return code
 accept_connection:
   sub   rsp, 0x18
 
@@ -129,7 +129,14 @@ accept_connection:
   mov   rbx, qword [sockaddr_addrlen]
   mov   qword [rax+SOCKADDR_OFF_ADDRLEN], rbx
 
+  ; get server from context
   mov   rdi, [rsp]
+  call  get_ctx_server
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   call  get_server_sockfd 
 
   cmp   rax, 0
@@ -146,10 +153,22 @@ accept_connection:
 
   mov   [rsp+0x10], rax
 
+  ; get client from the context
+  mov   rdi, [rsp]
+  call  get_ctx_client
+
+  cmp   rax, 0
+  jl    .error
+
+  ; save client fd into the client struct
+  mov   rdi, rax
+  mov   rsi, [rsp+0x10]
+  call  set_client_fd
+
   mov   rdi, [rsp+0x8]
   call  free
 
-  mov   rax, [rsp+0x10]
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 

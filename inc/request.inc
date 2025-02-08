@@ -18,6 +18,7 @@ section .data
     req_body        dq 0
     req_content_len dq 0
     req_host        dq 0
+    req_str         dq 0
     req_close       db 0
   request_struct_end:
 
@@ -33,54 +34,173 @@ section .data
   REQ_OFF_BODY        equ REQ_OFF_HEADERS + 0x8
   REQ_OFF_CONTENT_LEN equ REQ_OFF_BODY + 0x8
   REQ_OFF_HOST        equ REQ_OFF_CONTENT_LEN + 0x8
-  REQ_OFF_CLOSE       equ REQ_OFF_HOST + 0x8
+  REQ_OFF_STR         equ REQ_OFF_HOST + 0x8
+  REQ_OFF_CLOSE       equ REQ_OFF_STR + 0x8
   
 section .text
-; parse the string representation of the request onto the request struct
-; @param  rdi: pointer to request str
-; @param  rsi: client fd
-; @param  rdx: request length
-; @return rax: pointer to request struct
+; sets the string represenation of the request
+; @param  rdi: pointer to request struct
+; @param  rsi: request str
+; @return rax: return code
+set_request_str:
+  cmp   rdi, 0
+  jl    .error
+  
+  cmp   rsi, 0
+  jl    .error
+
+  mov   qword [rdi+REQ_OFF_STR], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the length of the request length
+; @param  rdi: pointer to request struct
+; @param  rsi: request length
+; @return rax: return code
+set_request_length:
+  cmp   rdi, 0
+  jl    .error
+  
+  cmp   rsi, 0
+  jl    .error
+
+  mov   qword [rdi+REQ_OFF_LEN], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; receives the request from the client and put it into the request struct
+; @param  rdi: pointer to the context struct
+; @param  rax: return code
+receive_request:
+  sub   rsp, 0x18
+
+  mov   [rsp], rdi
+
+  ; malloc request str  
+  mov   rdi, REQUEST_MAX_LEN
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax 
+
+  ; get request struct
+  mov   rdi, [rsp]
+  call  get_ctx_request
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; get client
+  mov   rdi, [rsp]
+  call  get_ctx_client
+
+  cmp   rax, 0
+  jl    .error
+
+  ; get client fd
+  mov   rdi, rax
+  call  get_client_fd
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+
+  ; receive client request
+  mov   rax, SYS_RECVFROM
+  mov   rsi, [rsp+0x8]
+  mov   rdx, REQUEST_MAX_LEN
+  xor   r10, r10
+  xor   r9, r9
+  xor   r8, r8
+  syscall
+
+  cmp   rax, 0
+  jl    .error
+
+  ; save request length
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  set_request_length
+
+  cmp   rax, 0
+  jl    .error
+
+  ; save request str
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
+  call  set_request_str
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+  
+.return:
+  add   rsp, 0x18
+  ret
+
+
+; parses the string representation of the request onto the request struct
+; and saves it inside the context
+; @param  rdi: pointer to context struct
+; @return rax: return code
 parse_request:
   sub   rsp, 0x20
 
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
-  jle   .error
-
   mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
 
-  ; malloc struct
-  mov   rdi, REQ_STRUCT_LEN
-  call  malloc
+  ; get request struct
+  call  get_ctx_request
 
-  cmp   rdi, 0
+  cmp   rax, 0
   jl    .error
 
-  ; save pointer
-  mov   [rsp+0x18], rax
+  ; save pointer of the request struct
+  mov   [rsp+0x8], rax
+  
+  ; get request str
+  mov   rdi, rax
+  call  get_request_str
 
-  ; save request data
-  mov   rdi, [rsp+0x8]
-  mov   [rax+REQ_OFF_CLIENT], rdi
+  cmp   rax, 0
+  jl    .error
 
-  mov   rdi, [rsp+0x10]
-  mov   [rax+REQ_OFF_LEN], rdi
+  mov   [rsp+0x10], rax
 
   ; extract method: look for the next space
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x10]
   mov   rsi, SPACE
   call  find_next_char
 
   ; if < 0, bad request
-  cmp   rax, 0x0
+  cmp   rax, 0
   jl    .error 
 
   ; compare the length of the method with METHOD_MAX_LEN
@@ -88,7 +208,7 @@ parse_request:
   ; if bigger, send bad request
   jg    .error
 
-  mov   qword [rsp+0x10], rax
+  mov   qword [rsp+0x18], rax
 
   ; add one for null char
   mov   rdi, rax
@@ -98,13 +218,13 @@ parse_request:
   cmp   rax, 0
   jle   .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_METHOD], rax
 
   ; load method
   mov   rdi, rax
-  mov   rcx, qword [rsp+0x10]
-  mov   rsi, [rsp] 
+  mov   rcx, qword [rsp+0x18]
+  mov   rsi, [rsp+0x10] 
   rep   movsb
 
   xor   rax, rax
@@ -115,7 +235,7 @@ parse_request:
   inc   rsi
 
   ; save rsi pointer to the stack
-  mov   [rsp], rsi
+  mov   [rsp+0x10], rsi
 
   ; extract url: look for the next space
   xor   rdi, rdi
@@ -130,7 +250,7 @@ parse_request:
   cmp   rax, URL_MAX_LEN
   jg    .error
 
-  mov   qword [rsp+0x10], rax
+  mov   qword [rsp+0x18], rax
 
   ; add one for null char
   mov   rdi, rax
@@ -140,13 +260,13 @@ parse_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_URL], rax
 
   ; load url
   mov   rdi, rax
-  mov   rcx, qword [rsp+0x10]
-  mov   rsi, [rsp]
+  mov   rcx, qword [rsp+0x18]
+  mov   rsi, [rsp+0x10]
   rep   movsb
 
   xor   rax, rax
@@ -157,7 +277,7 @@ parse_request:
 
   ; extract proto
   ; save rsi pointer to the stack
-  mov   [rsp], rsi
+  mov   [rsp+0x10], rsi
 
   xor   rdi, rdi
   lea   rdi, [rsi]
@@ -166,7 +286,7 @@ parse_request:
   cmp   rax, 0x0
   jl    .error
 
-  mov   qword [rsp+0x10],rax
+  mov   qword [rsp+0x18],rax
 
   ; malloc request protocol
   mov   rdi, PROTO_MAX_LEN
@@ -175,13 +295,13 @@ parse_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_PROTO], rax
 
   ; load protocol
   mov   rdi, rax
-  mov   rcx, qword [rsp+0x10]
-  mov   rsi, [rsp]
+  mov   rcx, qword [rsp+0x18]
+  mov   rsi, [rsp+0x10]
   rep   movsb
 
   ; add null char to avoid garbage values
@@ -189,13 +309,13 @@ parse_request:
   stosb
 
   ; save rsi pointer to the stack
-  mov   [rsp], rsi
+  mov   [rsp+0x10], rsi
 
   ; mov to new line (skip 2 char \r\n)
   add   rsi, 0x2
 
   ; save headers onto the stack
-  mov   [rsp], rsi
+  mov   [rsp+0x10], rsi
 
   ; find the end of the headers (\r\n\r\n)
   lea   rdi, [rsi]
@@ -209,7 +329,7 @@ parse_request:
   cmp   rax, HEADERS_MAX_LEN
   jg    .error
 
-  mov   qword [rsp+0x10], rax
+  mov   qword [rsp+0x18], rax
    
   mov   rdi, rax
   call  malloc
@@ -217,19 +337,19 @@ parse_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_HEADERS], rax
 
   mov   rdi, rax
-  mov   rcx, qword [rsp+0x10]
-  mov   rsi, [rsp]
+  mov   rcx, qword [rsp+0x18]
+  mov   rsi, [rsp+0x10]
   rep   movsb
 
   ; get body
   ; move to new line (skip 4 char \r\n\r\n)
   add   rsi, 0x4
 
-  mov   [rsp], rsi
+  mov   [rsp+0x10], rsi
 
   ; find the end of the request
   lea   rdi, [rsi]
@@ -243,8 +363,8 @@ parse_request:
   cmp   rax, BODY_MAX_LEN
   jg    .error
 
-  mov   qword [rsp+0x10], rax
-  mov   rdi, [rsp+0x18]
+  mov   qword [rsp+0x18], rax
+  mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_CONTENT_LEN], rax
 
   mov   rdi, rax
@@ -253,23 +373,23 @@ parse_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_BODY], rax
 
   mov   rdi, rax
-  mov   rcx, qword [rsp+0x10]
-  mov   rsi, [rsp]
+  mov   rcx, qword [rsp+0x18]
+  mov   rsi, [rsp+0x10]
   rep   movsb
 
-  mov   rax, [rsp+0x18]
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 
 .no_body:
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   qword [rdi+REQ_OFF_BODY], 0
 
-  mov   rax, [rsp+0x18]
+  mov   rax, [rsp+0x8]
   jmp   .return
 
 .error:
@@ -472,5 +592,22 @@ free_request:
   
 .return:
   add   rsp, 0x8
+  ret
+
+; returns the pointer to the string representation of the request
+; @param  rdi: pointer to request
+; @return rax: pointer to string
+get_request_str:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+REQ_OFF_STR]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 

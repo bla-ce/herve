@@ -105,6 +105,23 @@ ctx_init:
   add   rsp, 0x28
   ret
 
+; returns the pointer to the request of the context
+; @param  rdi: pointer to context
+; @return rax: pointer to the request
+get_ctx_request:
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rax, [rdi+CTX_OFF_REQUEST]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; sets the start time of the context
 ; @param  rdi: pointer to context
 ; @param  rsi: timestamp
@@ -229,6 +246,40 @@ set_ctx_response:
   mov   [rdi+CTX_OFF_RESPONSE], rsi
 
   mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the client struct of the context
+; @param  rdi: pointer to context
+; @return rax: pointer to client
+get_ctx_client:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+CTX_OFF_CLIENT]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the server struct of the context
+; @param  rdi: pointer to context
+; @return rax: pointer to server
+get_ctx_server:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+CTX_OFF_SERVER]
+
   jmp   .return
 
 .error:
