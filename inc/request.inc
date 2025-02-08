@@ -406,31 +406,48 @@ parse_request:
   ret
 
 ; verifies the request, making sure the route exists and is allowed
-; @param  rdi: pointer to server struct
-; @param  rsi: pointer to request struct
+; @param  rdi: pointer to context struct
 ; @return rax: pointer to route
 verify_request:
   sub   rsp, 0x20
 
+  cmp   rdi, 0
+  jle   .error
+
   mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  
+
+  ; get context server
+  call  get_ctx_server
+
+  cmp   rax, 0
+  jl    .error
+
+  ; get routes server
+  mov   rdi, rax
   call  get_server_routes 
 
-  mov   rdi, INTERNAL_SERVER_ERROR
   cmp   rax, 0
   jl    .error
 
   ; save routes onto the stack
+  mov   [rsp+0x8], rax
+
+  ; get ctx request
+  mov   rdi, [rsp]
+  call  get_ctx_request
+
+  cmp   rax, 0
+  jl    .error
+
   mov   [rsp+0x10], rax
 
-  mov   rsi, rax
+  mov   rsi, [rsp+0x8]
 
 .loop:
   ; save route onto the stack
   mov   [rsp+0x18], rsi
 
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x10]
   call  compare_route
 
   cmp   rax, 0

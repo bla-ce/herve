@@ -373,7 +373,6 @@ run_server:
   jl    .error
 
   ; parse_request
-  ; CONTINUE HERE -> PARSING REQUEST
   mov   rdi, [rsp+0x10]
   call  parse_request
 
@@ -385,8 +384,7 @@ run_server:
   call  run_middlewares
 
   ; verify request
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x28]
+  mov   rdi, [rsp+0x10]
   call  verify_request
   cmp   rax, 0
   jl    .error
