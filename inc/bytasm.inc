@@ -60,13 +60,6 @@ section .bss
 section .data
   enable  dw 1
 
-  methods_list  db SPACE, "GET POST PUT DELETE HEAD OPTIONS PATCH TRACE CONNECT", SPACE ; add spaces for method checking
-  methods_list_len equ $ - methods_list
-
-  not_allowed_methods times methods_list_len db SPACE
-
-  routes_list     times MAX_ROUTES_COUNT * STRUCT_ROUTE_LEN db 0
-
   post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
 
 

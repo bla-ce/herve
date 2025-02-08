@@ -1,4 +1,27 @@
 section .data
+  response_struct:
+    res_str         dq 0
+    res_client      dq 0    
+    res_len         dq 0
+    res_proto       dq 0
+    res_headers     dq 0
+    res_body        dq 0
+    res_status_code dq 0
+    res_content_len dq 0
+  end_response_struct:
+
+  RESPONSE_STRUCT_LEN equ end_response_struct - response_struct
+
+  ; offsets
+  RESPONSE_OFF_STR           equ 0x0
+  RESPONSE_OFF_CLIENT        equ RESPONSE_OFF_STR + 0x8
+  RESPONSE_OFF_LEN           equ RESPONSE_OFF_CLIENT + 0x8
+  RESPONSE_OFF_PROTO         equ RESPONSE_OFF_LEN + 0x8
+  RESPONSE_OFF_HEADERS       equ RESPONSE_OFF_PROTO + 0x8
+  RESPONSE_OFF_BODY          equ RESPONSE_OFF_HEADERS + 0x8
+  RESPONSE_OFF_STATUS_CODE   equ RESPONSE_OFF_BODY + 0x8
+  RESPONSE_OFF_CONTENT_LEN   equ RESPONSE_OFF_STATUS_CODE + 0x8
+
   STR_CONTENT_LENGTH_MAX_LENGTH equ 7 ; add one for null char
 
 section .text
@@ -342,3 +365,4 @@ serve_dir:
   call  serve_static_file
 
   ret
+
