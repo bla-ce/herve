@@ -392,13 +392,8 @@ add_route_struct_to_server:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  ; get routes list
-  call  get_server_routes
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
+  ; get route offset to check if routes are init
+  add   rdi, SERVER_OFF_ROUTES
 
   cmp   qword [rdi], 0
   je    .add

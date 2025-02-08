@@ -30,18 +30,14 @@ add_middleware:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  call  get_server_middlewares
-
-  cmp   rax, 0
-  jl    .error
-
-  ; check if first middleware is null
-  mov   rdi, rax
+  add   rdi, SERVER_OFF_MIDDLEWARES
 
   cmp   qword [rdi], 0
   je    .add
 
-  mov   rdi, [rax]
+  ; check if first middleware is null
+  mov   rsi, [rdi]
+  mov   rdi, rsi
 
 .loop:
   ; go to *next
@@ -113,7 +109,7 @@ run_middlewares:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rax]
+  mov   rdi, rax
 
 .loop:
   ; rdi contains the address of middleware_struct

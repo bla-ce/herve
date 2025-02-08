@@ -99,13 +99,12 @@ set_server_port:
 
 ; returns the first route struct associated to the server
 ; @param  rdi: pointer to server struct 
-; @return rax: pointer to the route offset
+; @return rax: pointer to the first route struct
 get_server_routes:
   cmp   rdi, 0
   jle   .error
 
-  add   rdi, SERVER_OFF_ROUTES
-  mov   rax, rdi
+  mov   rax, [rdi+SERVER_OFF_ROUTES]
   jmp   .return
 
 .error:
@@ -116,13 +115,12 @@ get_server_routes:
 
 ; returns the first route struct associated to the server
 ; @param  rdi: pointer to server struct 
-; @return rax: pointer to the middleware offset
+; @return rax: pointer to the first middleware struct
 get_server_middlewares:
   cmp   rdi, 0
   jle   .error
 
-  add   rdi, SERVER_OFF_MIDDLEWARES
-  mov   rax, rdi
+  mov   rax, [rdi+SERVER_OFF_MIDDLEWARES]
   jmp   .return
 
 .error:

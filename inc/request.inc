@@ -304,7 +304,7 @@ verify_request:
   ; save routes onto the stack
   mov   [rsp+0x10], rax
 
-  mov   rsi, [rax]
+  mov   rsi, rax
 
 .loop:
   ; save route onto the stack

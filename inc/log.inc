@@ -196,10 +196,9 @@ log_server_init:
   cmp   rax, 0
   jl    .error
 
-  mov   rsi, [rax]
-  mov   [rsp+0x18], rsi
+  mov   [rsp+0x18], rax
 
-  cmp   rsi, 0
+  cmp   rax, 0
   je    .end_loop
 
 .loop:
