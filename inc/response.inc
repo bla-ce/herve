@@ -25,6 +25,14 @@ section .data
   STR_CONTENT_LENGTH_MAX_LENGTH equ 7 ; add one for null char
 
 section .text
+
+
+
+
+
+
+
+
 send_response:
   ; rdi -> status code str
   ; rsi -> content type

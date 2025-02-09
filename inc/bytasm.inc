@@ -32,21 +32,6 @@
 %include "status_code.inc"
 
 section .bss
-  response     resq RESPONSE_MAX_LEN
-  response_len resq 1
-
-  ; response string
-  response_status   resb STATUS_MAX_LEN
-  response_proto    resb PROTO_MAX_LEN
-  response_body     resb BODY_MAX_LEN
-
-  ; response value
-  response_status_code      resq 1
-  response_proto_major      resd 1
-  response_proto_minor      resd 1
-  response_content_length   resw 1
-  response_close            resb 1
-
   file      resb FILE_MAX_LEN
   file_len  resq 1
 

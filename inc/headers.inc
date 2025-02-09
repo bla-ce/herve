@@ -1,7 +1,3 @@
-section .bss
-response_headers  resb HEADERS_MAX_LEN
-buf_header_value  resb HEADER_VALUE_MAX_LEN
-
 section .data
 ; headers constants
 HEADERS_MAX_COUNT     equ 0x20
@@ -16,24 +12,30 @@ CONNECTION_HEADER     db "Connection", NULL_CHAR
 
 section .text
 ; load the headers into the response
-; @param  rdi: response
-; @param  rsi: headers string
-; @return rax: points to the response after headers
-load_headers:
-  sub   rsp, 0x10
+; @param  rdi: pointer to headers array
+; @return rax: pointer to string
+stringify_headers:
+  sub   rsp, 0x18
 
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, 0
-  jle   .error
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0 ; headers index
 
-  mov   qword [rsp], 0 ; header count
-  mov   [rsp+0x8], rsi
+  ; malloc string
+  mov   rdi, HEADERS_MAX_LEN
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+  mov   rdi, rax
 
 .loop:
-  mov   rsi, [rsp+0x8]
-  mov   rax, qword [rsp]
+  mov   rsi, [rsp]
+  mov   rax, qword [rsp+0x8]
   mov   rbx, HEADER_LEN
   mul   rbx
   add   rsi, rax
@@ -52,9 +54,9 @@ load_headers:
   stosb
 
 .skip_cpy:
-  inc   qword [rsp]
+  inc   qword [rsp+0x8]
   mov   rax, HEADERS_MAX_COUNT
-  cmp   qword [rsp], rax
+  cmp   qword [rsp+0x8], rax
   jge   .load_post_headers
 
   jmp   .loop
@@ -67,7 +69,7 @@ load_headers:
   mov   al, LINE_FEED
   stosb
 
-  lea   rax, [rdi]
+  mov   rax, [rsp+0x10]
 
   jmp   .return
 
@@ -75,7 +77,7 @@ load_headers:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; set the headers
@@ -260,9 +262,10 @@ header_exist:
 ; gets value of header, returns -1 if does not exist
 ; @param  rdi: headers
 ; @param  rsi: key
-; @return rax: pointer to value
+; @param  rdx: pointer to value -> dev handles malloc'ing freeing the string
+; @return rax: return code
 get_header_value:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   cmp   rdi, 0
   jle   .error
@@ -270,16 +273,21 @@ get_header_value:
   cmp   rsi, 0
   jle   .error
 
+  cmp   rdx, 0
+  jle   .error
+
   mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
 
   ; get canonical format of the header key
-  lea   rdi, [rsi]
+  mov   rdi, rsi
   call  canonical_mime_header_key
   cmp   rax, 0
   jl    .error
 
   ; save canonical format
-  lea   rdi, [rax]
+  mov   rdi, rax
   mov   [rsp+0x8], rdi
 
   ; make sure the header key exist
@@ -307,23 +315,23 @@ get_header_value:
 
   ; clear value buffer
   xor   rax, rax
-  lea   rdi, [buf_header_value]
+  mov   rdi, [rsp+0x10]
   mov   rcx, HEADER_VALUE_MAX_LEN
   rep   stosb
 
   ; get header value
-  lea   rdi, [buf_header_value]
+  mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
   call  strcpy
 
-  lea   rax, [buf_header_value]
+  mov   rax, [rsp+0x10]
   jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 
@@ -448,13 +456,5 @@ canonical_mime_header_key:
 .return:
   mov   rax, [rsp]
   add   rsp, 0x10
-  ret
-
-; get response headers
-; TODO: use response struct to get headers
-; TODO: pass response pointer as arg
-; @return rax: pointer response headers
-get_headers:
-  lea   rax, [response_headers]
   ret
 

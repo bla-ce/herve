@@ -395,11 +395,6 @@ parse_request:
   jmp   .return
 
 .error:
-  mov   qword [response_status_code], BAD_REQUEST
-  mov   rdi, qword [rsp+0x8]
-  lea   rsi, [STR_BAD_REQUEST]
-  call  send_error_response
-
   mov   rax, FAILURE_CODE
   jmp   .return
 
