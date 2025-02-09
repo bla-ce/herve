@@ -108,6 +108,7 @@ run_middlewares:
 
   cmp   rax, 0
   jl    .error
+  je    .end
 
   mov   rdi, rax
 

@@ -140,8 +140,16 @@ STR_NETWORK_AUTHENTICATION_REQUIRED db "511 Network Authentication Required", NU
 ; @param  rdi: status code (int)
 ; @return rax: string status_code
 get_status_string:
-  
+  cmp   rdi, NO_CONTENT
+  je    .no_content
 
+  jmp   .error
+
+.no_content:
+  lea   rax, [STR_NO_CONTENT]
   ret
 
+.error:
+  mov   rax, FAILURE_CODE
+  ret
 

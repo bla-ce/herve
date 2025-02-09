@@ -330,21 +330,11 @@ run_server:
   lea   rdi, [query_params]
   rep   stosb
 
-  mov   rcx, HEADERS_MAX_LEN
-  xor   rax, rax
-  lea   rdi, [response_headers]
-  rep   stosb
-
-  mov   rcx, RESPONSE_MAX_LEN
-  xor   rax, rax
-  lea   rdi, [response]
-  rep   stosb
-
   mov   rdi, [rsp]
   call  ctx_init
 
   cmp   rax, 0
-  jl    .error
+  jl    .close_server
 
   mov   [rsp+0x10], rax
 
@@ -353,7 +343,7 @@ run_server:
   call  accept_connection
 
   cmp   rax, 0
-  jl    .close
+  jl    .close_server
 
   ; set start timer -> TODO: malloc?
   mov   rax, SYS_CLOCK_GETTIME
@@ -362,27 +352,27 @@ run_server:
   syscall
 
   cmp   rax, 0
-  jl    .error
+  jl   .ctx_close 
 
   mov   rdi, [rsp+0x10]
   mov   rsi, qword [start_tv_sec]
   call  set_ctx_start_time
 
   cmp   rax, 0
-  jl    .error
+  jl   .ctx_close 
 
   mov   rdi, [rsp+0x10]
   call  receive_request
 
   cmp   rax, 0
-  jl    .error
+  jl   .ctx_close 
 
   ; parse_request
   mov   rdi, [rsp+0x10]
   call  parse_request
 
   cmp   rax, 0
-  jl    .error
+  jl   .ctx_close 
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
@@ -392,36 +382,25 @@ run_server:
   mov   rdi, [rsp+0x10]
   call  verify_request
   cmp   rax, 0
-  jl    .error
+  jl   .ctx_close 
 
   ; check if route has a callback
   mov   rdi, rax
   call  get_route_callback
 
   cmp   rax, 0
-  je    .skip_callback
+  je   .ctx_close 
 
   mov   rdi, [rsp+0x10]
   call  rax
 
-.skip_callback:
-  mov   rax, SYS_CLOSE
-  mov   rsi, [rsp+0x28] 
-  mov   rdi, [rsi+REQ_OFF_CLIENT]
-  syscall
+.ctx_close:
+  mov   rdi, [rsp+0x10]
+  call  ctx_close
   
   jmp   .loop
 
-.error:
-  mov   rax, SYS_CLOSE
-  mov   rsi, [rsp+0x28] 
-  mov   rdi, [rsi+REQ_OFF_CLIENT]
-  syscall
-
-  ; jump to next request, skipping logs
-  jmp   .loop
-
-.close:
+.close_server:
   ; shutdown server
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp]

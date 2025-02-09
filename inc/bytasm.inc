@@ -1,6 +1,5 @@
 ; TODO: getter and setter methods 
-; TODO: free ctx resources
-; TODO: socket, server, client, engine?, response struct
+; TODO: free ctx resources after connection
 ; TODO: verify paddings and alignments
 ; TODO: timeout with alarm syscall
 ; TODO: abort request from middleware

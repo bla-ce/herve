@@ -20,6 +20,32 @@ section .data
   CTX_OFF_END_TIME    equ CTX_OFF_START_TIME + 0x8
 
 section .text
+; closes the connection
+; @param  rdi: pointer to context struct
+; @return rax: return code
+ctx_close:
+  call  get_ctx_client
+
+  cmp   rax, 0
+  jl    .error
+
+  call  get_client_fd
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rax, SYS_CLOSE
+  syscall
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; initialise context structure
 ; @param  rdi: pointer to server
 ; @return rax: pointer to ctx struct
@@ -69,10 +95,8 @@ ctx_init:
   cmp   rax, 0
   jl    .error
 
-  ; malloc response
-  mov   rdi, RESPONSE_STRUCT_LEN
-  call  malloc
-
+  ; init response
+  call  response_init
   cmp   rax, 0
   jl    .error
 
@@ -113,6 +137,23 @@ get_ctx_request:
   jl    .error
 
   mov   rax, [rdi+CTX_OFF_REQUEST]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the pointer to the response of the context
+; @param  rdi: pointer to context
+; @return rax: pointer to the response
+get_ctx_response:
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rax, [rdi+CTX_OFF_RESPONSE]
 
   jmp   .return
 

@@ -397,7 +397,7 @@ log_request:
 log_status_code:
   sub   rsp, 0x8
 
-  mov   rdi, qword [response_status_code]
+  mov   rdi, 204 ; TODO: CHANGE to read real status code
   cmp   qword [log_color], 0
   je    .no_color
 
@@ -436,7 +436,7 @@ log_status_code:
   mov   [rsp], rax
 
   ; print status code
-  mov   rdi, qword [response_status_code]
+  mov   rdi, 204 ; TODO: CHANGE after testing
   mov   rsi, rax
   mov   rdx, 4 ; add one for null char
   call  to_string
