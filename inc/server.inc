@@ -1,7 +1,12 @@
 section .bss
 
 section .data
+  ; server constants
+  DEFAULT_MAX_CONNECTIONS equ 0x1
+
+  PORT_MIN     equ 0x1
   DEFAULT_PORT equ 8080
+  PORT_MAX     equ 0xffff
 
   server_struct:
     server_sockfd             dq 0
@@ -380,7 +385,7 @@ run_server:
   jl    .error
 
   mov   rdi, [rsp]
-  mov   rsi, rax
+  mov   rsi, [rsp+0x10]
   call  run_middlewares
 
   ; verify request
@@ -396,7 +401,7 @@ run_server:
   cmp   rax, 0
   je    .skip_callback
 
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x10]
   call  rax
 
 .skip_callback:

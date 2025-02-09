@@ -90,7 +90,7 @@ add_middleware:
 
 ; run the chain of middlewares
 ; @param  rdi: pointer to server struct
-; @param  rsi: pointer to request struct
+; @param  rsi: pointer to context struct
 ; @return rax: return code
 run_middlewares:
   sub   rsp, 0x18
@@ -116,7 +116,7 @@ run_middlewares:
   mov   rax, [rdi+MIDDLEWARE_OFF_ADDR]
 
   mov   [rsp+0x10], rdi
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   call  rax
 
   cmp   rax, 0

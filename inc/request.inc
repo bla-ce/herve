@@ -8,6 +8,8 @@ section .data
   URL_MAX_LEN           equ 0x30
   BODY_MAX_LEN          equ 0x2000
 
+  REQUEST_MAX_LEN     equ 0x2000
+
   request_struct:
     req_client      dq 0
     req_len         dq 0

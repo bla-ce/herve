@@ -1,4 +1,15 @@
 section .data
+  ; socket constants
+  INADDR_ANY          equ 0
+  SOCK_STREAM         equ 1
+  SOL_SOCKET          equ 1
+  SO_REUSEADDR        equ 2
+  AF_INET             equ 2
+  STATUS_CODE_LEN     equ 3
+  MAX_ROUTES_COUNT    equ 20
+  SO_REUSEPORT        equ 15
+  MSG_TRUNC           equ 0x20
+
   sockaddr_struct:
     sockaddr_sin_family  dw 0
     sockaddr_sin_port    dw 0

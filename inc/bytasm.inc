@@ -29,6 +29,7 @@
 %include "method.inc"
 %include "context.inc"
 %include "client.inc"
+%include "status_code.inc"
 
 section .bss
   response     resq RESPONSE_MAX_LEN

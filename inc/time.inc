@@ -18,6 +18,17 @@ section .bss
   now_tv_nsec resq 1
 
 section .data
+  ; time constants
+  CLOCK_REALTIME  equ 0
+  HOURS_IN_DAY    equ 24
+  EPOCH_YEAR      equ 1970
+  
+  SECONDS_IN_MINUTE equ 60
+  SECONDS_IN_HOUR   equ 3600
+  SECONDS_IN_DAY    equ 86400
+  DAYS_IN_YEAR      equ 365
+  DAYS_IN_LEAP_YEAR equ 366
+
   utc_str db "UTC", NULL_CHAR
 
   days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31

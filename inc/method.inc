@@ -1,4 +1,24 @@
 section .data
+  ; methods
+  align 8
+  GET     db "GET", NULL_CHAR
+  align 8
+  POST    db "POST", NULL_CHAR
+  align 8
+  PUT     db "PUT", NULL_CHAR
+  align 8
+  DELETE  db "DELETE", NULL_CHAR
+  align 8
+  HEAD    db "HEAD", NULL_CHAR
+  align 8
+  OPTIONS db "OPTIONS", NULL_CHAR
+  align 8
+  PATCH   db "PATCH", NULL_CHAR
+  align 8
+  TRACE   db "TRACE", NULL_CHAR
+  align 8
+  CONNECT db "CONNECT", NULL_CHAR
+
   method_struct:
     method_str    dq 0
     method_next   dq 0
