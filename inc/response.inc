@@ -348,7 +348,6 @@ stringify_response:
   mov   [rsp+0x28], rdi
 
 .skip_body:
-
   mov   rdi, [rsp+0x28]
   ; add null_char
   mov   rax, NULL_CHAR

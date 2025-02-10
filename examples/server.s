@@ -32,14 +32,14 @@ _start:
   mov   qword [sockfd], rax
 
   ; add no content route
-  ; mov   rdi, [rsp]
-  ; lea   rsi, [GET]
-  ; lea   rdx, [root_url]
-  ; mov   rcx, test_no_content
-  ; call  add_route
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [root_url]
+  mov   rcx, test_no_content
+  call  add_route
 
-  ; cmp   rax, 0
-  ; jl    .error
+  cmp   rax, 0
+  jl    .error
 
   ; add health route
   mov   rdi, [rsp]

@@ -33,10 +33,10 @@ compare_route:
   mov   [rsp+0x8], rsi
 
   ; compare methods
-  mov   rdi, [rsp]
-  mov   rsi, [rdi+REQ_OFF_METHOD] 
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+REQ_OFF_METHOD] 
   mov   rdx, [rsp+0x8]
-  mov   rdi, [rdx+ROUTE_OFF_METHOD]
+  mov   rsi, [rdx+ROUTE_OFF_METHOD]
   call  cmpstr
 
   cmp   rax, 0
@@ -44,10 +44,10 @@ compare_route:
   je    .not_the_same
 
   ; compare urls
-  mov   rdi, [rsp]
-  mov   rsi, [rdi+REQ_OFF_URL] 
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+REQ_OFF_URL] 
   mov   rdx, [rsp+0x8]
-  mov   rdi, [rdx+ROUTE_OFF_URL]
+  mov   rsi, [rdx+ROUTE_OFF_URL]
   call  cmpstr
 
   cmp   rax, 0
