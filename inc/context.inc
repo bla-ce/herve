@@ -7,6 +7,7 @@ section .data
     ctx_response    dq 0
     ctx_start_time  dq 0
     ctx_end_time    dq 0
+    ctx_aborted     db 0
   ctx_struct_end:
 
   CTX_STRUCT_LEN equ ctx_struct_end - ctx_struct
@@ -18,10 +19,48 @@ section .data
   CTX_OFF_RESPONSE    equ CTX_OFF_REQUEST + 0x8
   CTX_OFF_START_TIME  equ CTX_OFF_RESPONSE + 0x8
   CTX_OFF_END_TIME    equ CTX_OFF_START_TIME + 0x8
+  CTX_ABORTED         equ CTX_OFF_END_TIME + 0x8
 
   HTTP_1_1 db "HTTP/1.1", NULL_CHAR
 
 section .text
+; abort context, close the connection
+; @param  rdi: ctx
+; @return rax: return code
+ctx_abort:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   byte [rdi+CTX_ABORTED], 1
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; check if ctx has been aborted
+; @param  rdi: ctx
+; @return rax: is_aborted
+is_ctx_aborted:
+  cmp   rdi, 0
+  jle   .error
+
+  xor   rax, rax
+  mov   al, byte [rdi+CTX_ABORTED]
+  movsx rax, al
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; closes the connection
 ; @param  rdi: pointer to context struct
 ; @return rax: return code
@@ -118,6 +157,10 @@ ctx_init:
 
   cmp   rax, 0
   jl    .error
+
+  ; set aborted to 0
+  mov   rdi, [rsp+0x8]
+  mov   byte [rdi+CTX_ABORTED], 0
 
   ; return context
   mov   rax, [rsp+0x8]

@@ -246,13 +246,6 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
-  ; stringify headers
-  mov   rdi, rax
-  call  stringify_headers
-
-  cmp   rax, 0
-  jl    .error
-
   mov   [rsp+0x18], rax
 
   ; get body
@@ -316,7 +309,16 @@ stringify_response:
   mov   [rsp+0x28], rdi
 
   ; append headers
+  ; stringify headers
   mov   rdi, [rsp+0x18]
+  cmp   rdi, 0
+  je    .skip_headers
+  call  stringify_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   call  strlen
 
   cmp   rax, 0
@@ -330,6 +332,7 @@ stringify_response:
   mov   [rsp+0x28], rdi
 
   ; check if body
+.skip_headers:
   mov   rdi, [rsp+0x20]
   cmp   rdi, 0
   je    .skip_body

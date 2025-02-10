@@ -369,8 +369,8 @@ log_request:
   call  log
 
   ; log method
-  mov   rdi, [rsp]
-  add   rdi, REQ_OFF_METHOD
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+REQ_OFF_METHOD]
   mov   rsi, 0
   call  log
 
@@ -380,10 +380,10 @@ log_request:
   call  log
 
   ; log url
-  mov   rdi, [rsp]
-  add   rdi, REQ_OFF_URL
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+REQ_OFF_URL]
   mov   rsi, 0
-  call  logln
+  call  log
 
   mov   rax, 0
 

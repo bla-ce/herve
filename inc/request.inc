@@ -456,7 +456,7 @@ verify_request:
   mov   rsi, [rdx+ROUTE_OFF_NEXT]
 
   cmp   rsi, 0
-  je    .error
+  je    .not_found
 
   jmp   .loop
 .end_loop:
@@ -464,8 +464,21 @@ verify_request:
   mov   rax, [rsp+0x18]
   jmp   .return
 
-.error:
-  ; in the future, need to set a specific code when I have context struct
+.not_found:
+  ; send 404
+  mov   rdi, [rsp] 
+  mov   rsi, NOT_FOUND
+  call  send_response
+
+  mov   rdi, [rsp]
+  call  ctx_abort
+
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+  
+ .error:
   mov   rax, FAILURE_CODE
 
 .return:

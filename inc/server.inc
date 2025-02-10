@@ -289,7 +289,7 @@ server_init:
 ; @param  rdi: pointer to server struct
 ; @param  rax: return value
 run_server:
-  sub   rsp, 0x38
+  sub   rsp, 0x28
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
@@ -313,15 +313,12 @@ run_server:
 
   mov   qword [duration], rax
 
-  ; clear callback
-  mov   qword [callback], 0
-
   ; log previous request
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x20]
   call  log_request
 
   ; free request
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x20]
   call  free_request
 
 .timer_not_defined:
@@ -382,10 +379,19 @@ run_server:
   mov   rdi, [rsp+0x10]
   call  verify_request
   cmp   rax, 0
-  jl   .ctx_close 
+  jl   .ctx_close
+
+  mov   [rsp+0x18], rax
+
+  ; check if ctx has been aborted
+  mov   rdi, [rsp+0x10]
+  call  is_ctx_aborted
+
+  cmp   rax, TRUE
+  je    .ctx_close
 
   ; check if route has a callback
-  mov   rdi, rax
+  mov   rdi, [rsp+0x18]
   call  get_route_callback
 
   cmp   rax, 0
@@ -406,7 +412,7 @@ run_server:
   mov   rdi, qword [rsp]
   syscall
 
-  add   rsp, 0x38
+  add   rsp, 0x28
   ret
 
 trim_query_parameters:
