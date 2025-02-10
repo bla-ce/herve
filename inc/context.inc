@@ -19,6 +19,8 @@ section .data
   CTX_OFF_START_TIME  equ CTX_OFF_RESPONSE + 0x8
   CTX_OFF_END_TIME    equ CTX_OFF_START_TIME + 0x8
 
+  HTTP_1_1 db "HTTP/1.1", NULL_CHAR
+
 section .text
 ; closes the connection
 ; @param  rdi: pointer to context struct

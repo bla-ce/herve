@@ -7,6 +7,12 @@ test_no_content:
   call  send_no_content
   ret
 
+test_string:
+  mov   rsi, OK  
+  lea   rdx, [ok_msg]
+  call  send_string
+  ret
+
 _start:
   sub   rsp, 0x8
 
@@ -26,10 +32,20 @@ _start:
   mov   qword [sockfd], rax
 
   ; add no content route
+  ; mov   rdi, [rsp]
+  ; lea   rsi, [GET]
+  ; lea   rdx, [root_url]
+  ; mov   rcx, test_no_content
+  ; call  add_route
+
+  ; cmp   rax, 0
+  ; jl    .error
+
+  ; add health route
   mov   rdi, [rsp]
   lea   rsi, [GET]
-  lea   rdx, [root_url]
-  mov   rcx, test_no_content
+  lea   rdx, [health_url]
+  mov   rcx, test_string
   call  add_route
 
   cmp   rax, 0
@@ -56,5 +72,8 @@ section .bss
 section .data
   sockfd  dq 0
 
-  root_url db "/", NULL_CHAR
+  root_url    db "/", NULL_CHAR
+  health_url  db "/health", NULL_CHAR
+
+  ok_msg db "ok", NULL_CHAR
 

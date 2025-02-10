@@ -136,17 +136,46 @@ STR_LOOP_DETECTED                   db "508 Loop Detected", NULL_CHAR
 STR_NOT_EXTENDED                    db "510 Not Extended", NULL_CHAR
 STR_NETWORK_AUTHENTICATION_REQUIRED db "511 Network Authentication Required", NULL_CHAR
 
-; returns the string representation of a status code
+section .text
+; Returns the string representation of a status code
 ; @param  rdi: status code (int)
 ; @return rax: string status_code
 get_status_string:
   cmp   rdi, NO_CONTENT
   je    .no_content
 
+  cmp   rdi, OK
+  je    .ok
+
+  cmp   rdi, BAD_REQUEST
+  je    .bad_request
+
+  cmp   rdi, NOT_FOUND
+  je    .not_found
+
+  cmp   rdi, INTERNAL_SERVER_ERROR
+  je    .internal_server_error
+
   jmp   .error
 
 .no_content:
   lea   rax, [STR_NO_CONTENT]
+  ret
+
+.ok:
+  lea   rax, [STR_OK]
+  ret
+
+.bad_request:
+  lea   rax, [STR_BAD_REQUEST]
+  ret
+
+.not_found:
+  lea   rax, [STR_NOT_FOUND]
+  ret
+
+.internal_server_error:
+  lea   rax, [STR_INTERNAL_SERVER_ERROR]
   ret
 
 .error:

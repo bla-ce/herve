@@ -35,9 +35,6 @@ SYS_CLOCK_GETTIME equ 228
 MICRO_FIRST   equ 0xCE
 MICRO_SECOND  equ 0xBC
 
-; protocol
-HTTP_1_1 db "HTTP/1.1", NULL_CHAR
-
 ; content type
 CONTENT_HTML  db "text/html; charset=UTF-8", NULL_CHAR
 CONTENT_CSS   db "text/css; charset=UTF-8", NULL_CHAR

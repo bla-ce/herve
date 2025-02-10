@@ -7,30 +7,90 @@ section .data
     res_headers     dq 0
     res_body        dq 0
     res_content_len dq 0
-    res_status_code dw 0
+    res_status_code dq 0
   end_response_struct:
 
   RESPONSE_STRUCT_LEN equ end_response_struct - response_struct
 
+  RESPONSE_MAX_LEN equ 0x8000
+
   ; offsets
-  RESPONSE_OFF_STR           equ 0x0
-  RESPONSE_OFF_CLIENT        equ RESPONSE_OFF_STR + 0x8
-  RESPONSE_OFF_LEN           equ RESPONSE_OFF_CLIENT + 0x8
-  RESPONSE_OFF_PROTO         equ RESPONSE_OFF_LEN + 0x8
-  RESPONSE_OFF_HEADERS       equ RESPONSE_OFF_PROTO + 0x8
-  RESPONSE_OFF_BODY          equ RESPONSE_OFF_HEADERS + 0x8
-  RESPONSE_OFF_CONTENT_LEN   equ RESPONSE_OFF_BODY + 0x8
-  RESPONSE_OFF_STATUS_CODE   equ RESPONSE_OFF_CONTENT_LEN + 0x8
+  RESPONSE_OFF_STR              equ 0x0
+  RESPONSE_OFF_CLIENT           equ RESPONSE_OFF_STR + 0x8
+  RESPONSE_OFF_LEN              equ RESPONSE_OFF_CLIENT + 0x8
+  RESPONSE_OFF_PROTO            equ RESPONSE_OFF_LEN + 0x8
+  RESPONSE_OFF_HEADERS          equ RESPONSE_OFF_PROTO + 0x8
+  RESPONSE_OFF_BODY             equ RESPONSE_OFF_HEADERS + 0x8
+  RESPONSE_OFF_CONTENT_LEN_STR  equ RESPONSE_OFF_BODY + 0x8
+  RESPONSE_OFF_STATUS_CODE      equ RESPONSE_OFF_CONTENT_LEN_STR + 0x8
 
   STR_CONTENT_LENGTH_MAX_LENGTH equ 7 ; add one for null char
 
   EMPTY_CONTENT db "0", NULL_CHAR
 
-  test_response db "HTTP/1.1 204 No Content", CARRIAGE_RETURN, LINE_FEED 
-                db "Content-Length: 0", CARRIAGE_RETURN, LINE_FEED,
-                db CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
-
 section .text
+; sets the response content length string
+; @param  rdi: pointer to response
+; @param  rsi: pointer to string
+; @return rax: return code
+set_response_content_len_str:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+RESPONSE_OFF_CONTENT_LEN_STR], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; TODO: read ctx protocol, return HTTP/1.1 for now
+; returns the response protocol 
+; @param  rdi: pointer to response
+; @param  rax: pointer to response headers
+get_response_protocol:
+  lea   rax, [HTTP_1_1]
+  ret
+
+; returns the response headers 
+; @param  rdi: pointer to response
+; @param  rax: pointer to response headers
+get_response_headers:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+RESPONSE_OFF_HEADERS]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the response status code 
+; @param  rdi: pointer to response
+; @param  rax: pointer to response status code
+get_response_status_code:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+RESPONSE_OFF_STATUS_CODE]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; initialise the response struct and malloc necessary resources
 ; @return rax: pointer to response struct
 response_init:
@@ -113,14 +173,38 @@ set_response_status_code:
 .return:
   ret
 
-; returns the headers of the response struct
+; sets the body of the response
 ; @param  rdi: pointer to the response struct
-; @return rax: pointer to the headers array
-get_response_headers:
+; @param  rsi: pointer to body
+; @return rax: return code
+set_response_body:
   cmp   rdi, 0
   jle   .error
 
-  mov   rax, [rdi+RESPONSE_OFF_HEADERS]
+  cmp   rsi, 0
+  jle   .error
+
+  ; check if body is 0
+  mov   [rdi+RESPONSE_OFF_BODY], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the body of the response
+; @param  rdi: pointer to the response struct
+; @return rax: pointer to the body (can be null)
+get_response_body:
+  cmp   rdi, 0
+  jle   .error
+
+  ; check if body is 0
+  mov   rax, [rdi+RESPONSE_OFF_BODY]
   jmp   .return
 
 .error:
@@ -133,7 +217,153 @@ get_response_headers:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
 stringify_response:
-  lea   rax, [test_response]
+  sub   rsp, 0x38
+
+  mov   [rsp], rdi
+
+  ; get context protocol
+  call  get_response_protocol
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; get status code
+
+  mov   rdi, [rsp]
+  call  get_response_status_code
+
+  cmp   rax, 0
+  jl    .error
+   
+  mov   [rsp+0x10], rax
+
+  ; get headers
+  mov   rdi, [rsp]
+  call  get_response_headers
+  
+  cmp   rax, 0
+  jl    .error
+
+  ; stringify headers
+  mov   rdi, rax
+  call  stringify_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; get body
+  mov   rdi, [rsp]
+  call  get_response_body
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; TODO: get length before?
+  ; malloc response string
+  mov   rdi, RESPONSE_MAX_LEN
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax ; dynamic pointer
+  mov   [rsp+0x30], rax ; origin
+
+  ; append protocol
+  mov   rdi, [rsp+0x8]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x8]
+  mov   rcx, rax
+  rep   movsb
+
+  ; add space -> no need to increment
+  mov   rax, SPACE
+  stosb
+
+  ; save rdi's position
+  mov   [rsp+0x28], rdi
+
+  ; append status code
+  mov   rdi, [rsp+0x10]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x10]
+  mov   rcx, rax
+  rep   movsb
+
+  ; add new line
+  mov   rax, CARRIAGE_RETURN
+  stosb
+
+  mov   rax, LINE_FEED
+  stosb
+
+  mov   [rsp+0x28], rdi
+
+  ; append headers
+  mov   rdi, [rsp+0x18]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x18]
+  mov   rcx, rax
+  rep   movsb
+
+  mov   [rsp+0x28], rdi
+
+  ; check if body
+  mov   rdi, [rsp+0x20]
+  cmp   rdi, 0
+  je    .skip_body
+
+  ; append body
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x20]
+  mov   rcx, rax
+  rep   movsb
+
+  mov   [rsp+0x28], rdi
+
+.skip_body:
+
+  mov   rdi, [rsp+0x28]
+  ; add null_char
+  mov   rax, NULL_CHAR
+  stosb
+
+  ; return response
+  mov   rax, [rsp+0x30]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x38
   ret
 
 ; sends a response without content
@@ -183,6 +413,111 @@ send_no_content:
   add   rsp, 0x8
   ret
 
+; sends a string response
+; @param  rdi: pointer to context struct
+; @param  rsi: status code
+; @param  rdx: pointer to string
+; @return rax: return code
+send_string:
+  sub   rsp, 0x38
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  ; get response
+  call  get_ctx_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, rax
+  call  get_response_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+  
+  ; set content type headers
+  mov   rdi, [rsp+0x20]
+  lea   rsi, [CONTENT_TYPE_HEADER]
+  lea   rdx, [CONTENT_PLAIN]
+  call  set_header
+
+  cmp   rax, 0
+  jl    .error
+ 
+  ; get string length   
+  mov   rdi, [rsp+0x10]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x28], rax
+
+  mov   rdi, LONG_SIZE
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
+  ; TODO: save it to free it later
+
+  mov   rdi, qword [rsp+0x28]
+  mov   rsi, [rsp+0x30]
+  mov   rdx, LONG_SIZE
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  ; set content length
+  mov   rdx, rax
+  mov   rdi, [rsp+0x20]
+  lea   rsi, [CONTENT_LENGTH_HEADER]
+  call  set_header
+
+  cmp   rax, 0
+  jl    .error
+
+  ; add string to body
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x10]
+  call  set_response_body
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  send_response
+
+  cmp   rax, 0
+  jl    .error
+  
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x38
+  ret
 
 ; sends response to client fd
 ; @param  rdi: pointer to context struct
@@ -202,16 +537,16 @@ send_response:
   mov   [rsp+0x10], rax
 
   ; get string status code
-  ; mov   rdi, rsi
-  ; call  get_status_string
+  mov   rdi, rsi
+  call  get_status_string
 
-  ; cmp   rax, 0
-  ; jl    .error
+  cmp   rax, 0
+  jl    .error
 
   ; set response status code
-  ; mov   rdi, [rsp+0x10]
-  ; mov   rsi, rax
-  ; call  set_response_status_code
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  set_response_status_code
 
   ; stringify response
   mov   rdi, [rsp+0x10]
