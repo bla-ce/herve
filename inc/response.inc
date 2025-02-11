@@ -318,6 +318,8 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x18], rax
+
   mov   rdi, rax
   call  strlen
 
@@ -477,8 +479,6 @@ send_string:
 
   mov   [rsp+0x30], rax
 
-  ; TODO: save it to free it later
-
   mov   rdi, qword [rsp+0x28]
   mov   rsi, [rsp+0x30]
   mov   rdx, LONG_SIZE
@@ -507,6 +507,13 @@ send_string:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   call  send_response
+
+  cmp   rax, 0
+  jl    .error
+
+  ; free content length str
+  mov   rdi, [rsp+0x30]
+  call  free
 
   cmp   rax, 0
   jl    .error
@@ -610,32 +617,59 @@ send_response:
 
 ; TODO: make sure we have permissions
 ; serves a static file
-; @param  rdi: file path
-; @param  rsi: pointer to request struct
+; @param  rdi: ctx
+; @param  rsi: file path
 ; @return rax: void
-serve_static_file:
-  sub   rsp, 0x28
+send_static_file:
+  sub   rsp, 0x48
 
   cmp   rdi, 0
   jle   .error
 
-  mov   [rsp], rdi
+  cmp   rsi, 0
+  jle   .error
 
-  ; save request client fd
-  mov   [rsp+0x20], rsi
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
   ; get file ext
-  call  get_ext
+  mov   rdi, rsi
+  call  get_content_type
 
   cmp   rax, 0
   jl    .error_open
 
+  mov   [rsp+0x10], rax ; save content type header
+
+  ; get context response
+  mov   rdi, [rsp]
+  call  get_ctx_response
+
+  cmp   rax, 0
+  jl    .error
+
   mov   [rsp+0x18], rax
 
-  ; load file path
-  mov   rdi, [rsp]
+  ; get response headers
+  mov   rdi, [rsp+0x18]
+  call  get_response_headers
 
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; set content type header
+  mov   rdi, [rsp+0x20]
+  lea   rsi, [CONTENT_TYPE_HEADER]
+  mov   rdx, [rsp+0x10]
+  call  set_header
+
+  cmp   rax, 0
+  jl    .error
+ 
   ; open file
+  mov   rdi, [rsp+0x8]
   mov   rsi, O_RDONLY
   mov   rdx, 0
   call  open_file
@@ -643,32 +677,78 @@ serve_static_file:
   cmp   rax, 0
   jl    .error_open
 
-  mov   qword [rsp+0x10], rax
+  mov   qword [rsp+0x28], rax
 
   ; read file
-  mov   rdi, qword [rsp+0x10]
+  mov   rdi, qword [rsp+0x28]
   call  read_file
 
   cmp   rax, 0
   jl    .error_read
 
-  mov   [rsp+0x8], rax
+  mov   [rsp+0x30], rax
+
+  ; get content length   
+  mov   rdi, [rsp+0x30]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+  
+  mov   qword [rsp+0x38], rax
+
+  mov   rdi, LONG_SIZE
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x40], rax
+
+  mov   rdi, qword [rsp+0x38]
+  mov   rsi, [rsp+0x40]
+  mov   rdx, LONG_SIZE
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  ; set content length
+  mov   rdx, rax
+  mov   rdi, [rsp+0x20]
+  lea   rsi, [CONTENT_LENGTH_HEADER]
+  call  set_header
+
+  cmp   rax, 0
+  jl    .error
+
+  ; add string to body
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x30]
+  call  set_response_body
+
+  cmp   rax, 0
+  jl    .error
 
   ; send response
-  lea   rdi, [STR_OK]
-  mov   rsi, [rsp+0x18]
-  mov   rdx, [rsp+0x8]
-  mov   rcx, qword [rsp+0x20]
+  mov   rdi, [rsp]
+  mov   rsi, OK
   call  send_response
+
+  cmp   rax, 0
+  jl    .error
+
+  ; free file content
+  mov   rdi, [rsp+0x40]
+  call  free
+
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
 
-  ; free file content
-  mov   rdi, [rsp+0x8]
-  call  free
-
   ; clean stack
-  add   rsp, 0x28
+  add   rsp, 0x48
   ret
 
 .error_open:
@@ -679,7 +759,7 @@ serve_static_file:
 
 .error:
   ; clean stack
-  add   rsp, 0x28
+  add   rsp, 0x48
 
   ; return
   mov   rax, FAILURE_CODE
@@ -694,7 +774,7 @@ serve_dir:
   mov   rdi, [rdx]
   ; add one to remove '/'
   inc   rdi
-  call  serve_static_file
+  call  send_static_file
 
   ret
 

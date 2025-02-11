@@ -153,10 +153,10 @@ close_file:
 
   ret
 
-; extract extension of a file
-; @param  rdi: file_path
-; @return rax: content type
-get_ext:
+; extracts extension of a file and returns content type header
+; @param  rdi: pointer to file path
+; @return rax: pointer to content type header
+get_content_type:
   sub   rsp, 0x8
 
   cmp   rdi, 0

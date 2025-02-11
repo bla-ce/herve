@@ -13,6 +13,11 @@ test_string:
   call  send_string
   ret
 
+test_static:
+  lea   rsi, [index_path]
+  call  send_static_file
+  ret
+
 _start:
   sub   rsp, 0x8
 
@@ -48,6 +53,13 @@ _start:
   mov   rcx, test_string
   call  add_route
 
+  ; add health route
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [index_url]
+  mov   rcx, test_static
+  call  add_route
+
   cmp   rax, 0
   jl    .error
 
@@ -74,6 +86,10 @@ section .data
 
   root_url    db "/", NULL_CHAR
   health_url  db "/health", NULL_CHAR
+  index_url  db "/index", NULL_CHAR
+
+  index_path db "examples/views/index.html", NULL_CHAR
 
   ok_msg db "ok", NULL_CHAR
+
 
