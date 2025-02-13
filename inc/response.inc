@@ -230,13 +230,19 @@ stringify_response:
   mov   [rsp+0x8], rax
 
   ; get status code
-
   mov   rdi, [rsp]
   call  get_response_status_code
 
   cmp   rax, 0
   jl    .error
    
+  ; get string status code
+  mov   rdi, rax
+  call  get_status_string
+
+  cmp   rax, 0
+  jl    .error
+
   mov   [rsp+0x10], rax
 
   ; get headers
@@ -545,16 +551,9 @@ send_response:
   
   mov   [rsp+0x10], rax
 
-  ; get string status code
-  mov   rdi, rsi
-  call  get_status_string
-
-  cmp   rax, 0
-  jl    .error
-
   ; set response status code
   mov   rdi, [rsp+0x10]
-  mov   rsi, rax
+  mov   rsi, [rsp+0x8]
   call  set_response_status_code
 
   ; stringify response

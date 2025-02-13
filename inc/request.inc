@@ -40,6 +40,40 @@ section .data
   REQ_OFF_CLOSE       equ REQ_OFF_STR + 0x8
   
 section .text
+; returns the method of the request
+; @param  rdi: pointer to request struct
+; @return rax: pointer to url 
+get_request_method:
+  cmp   rdi, 0
+  jl    .error
+  
+  mov   rax, qword [rdi+REQ_OFF_METHOD]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the url of the request
+; @param  rdi: pointer to request struct
+; @return rax: pointer to url 
+get_request_url:
+  cmp   rdi, 0
+  jl    .error
+  
+  mov   rax, qword [rdi+REQ_OFF_URL]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; sets the string represenation of the request
 ; @param  rdi: pointer to request struct
 ; @param  rsi: request str

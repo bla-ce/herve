@@ -293,33 +293,33 @@ run_server:
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x10], 0
 
   call  log_server_init
 
 .loop:
+  ; TODO: update to use ctx
   ; set end timer
   mov   rax, SYS_CLOCK_GETTIME
   mov   rdi, CLOCK_REALTIME
   lea   rsi, [end_tv_sec]
   syscall
 
-  ; check if we have set start timer
-  cmp   qword [start_tv_sec], 0
+  ; check if we are reading ctx
+  cmp   qword [rsp+0x10], 0
   je    .timer_not_defined
 
   ; if yes, compute the difference
-  mov   rax, qword [end_tv_nsec]
-  sub   rax, qword [start_tv_nsec]
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [end_tv_nsec]
+  call  set_ctx_end_time
 
-  mov   qword [duration], rax
+  cmp   rax, 0
+  jl    .error
 
   ; log previous request
-  mov   rdi, [rsp+0x20]
-  call  log_request
-
-  ; free request
-  mov   rdi, [rsp+0x20]
-  call  free_request
+  mov   rdi, [rsp+0x10]
+  call  log_ctx
 
 .timer_not_defined:
   mov   rcx, QUERY_MAX_LEN
@@ -412,6 +412,8 @@ run_server:
   mov   rdi, qword [rsp]
   syscall
 
+.error:
+  mov   rax, FAILURE_CODE
   add   rsp, 0x28
   ret
 

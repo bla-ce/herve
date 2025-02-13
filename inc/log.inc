@@ -330,10 +330,10 @@ log_get_duration:
   add   rsp, 0x10
   ret
 
-; log the current request
-; @param  rdi: request
-log_request:
-  sub   rsp, 0x8
+; log the current context
+; @param  rdi: pointer to context
+log_ctx:
+  sub   rsp, 0x10
 
   mov   [rsp], rdi
 
@@ -343,8 +343,14 @@ log_request:
   mov   rsi, 0
   call  log
 
+  mov   rdi, [rsp]
+  call  get_ctx_start_time
+
+  mov   rax, 0
+  jl    .error
+
   ; log time
-  mov   rdi, qword [start_tv_sec]
+  mov   rdi, rax
   call  log_time
 
   xor   rdi, rdi
@@ -352,6 +358,7 @@ log_request:
   mov   rsi, 0
   call  log
 
+  mov   rdi, [rsp]
   call  log_get_duration
 
   xor   rdi, rdi
@@ -360,6 +367,21 @@ log_request:
   call  log
 
   ; log status code
+  ; get context response
+  mov   rdi, [rsp]
+  call  get_ctx_response
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  get_response_status_code
+
+  cmp   rax, 0
+  jl    .error
+
+  ; get response status code
+  mov   rdi, rax
   call  log_status_code
 
   ; log delimiter
@@ -369,8 +391,21 @@ log_request:
   call  log
 
   ; log method
-  mov   rsi, [rsp]
-  mov   rdi, [rsi+REQ_OFF_METHOD]
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, rax
+  call  get_request_method
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, 0
   call  log
 
@@ -380,22 +415,33 @@ log_request:
   call  log
 
   ; log url
-  mov   rsi, [rsp]
-  mov   rdi, [rsi+REQ_OFF_URL]
+  mov   rdi, [rsp+0x8]
+  call  get_request_url
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, 0
-  call  log
+  call  logln
 
-  mov   rax, 0
+  mov   rax, SUCCESS_CODE
+  jmp   .return
 
-  add   rsp, 0x8
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; log the status code
 ; TODO: pass status code as argument
 log_status_code:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
-  mov   rdi, 204 ; TODO: CHANGE to read real status code
+  mov   [rsp], rdi
+
   cmp   qword [log_color], 0
   je    .no_color
 
@@ -431,11 +477,11 @@ log_status_code:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
+  mov   [rsp+0x8], rax
 
   ; print status code
-  mov   rdi, 204 ; TODO: CHANGE after testing
-  mov   rsi, rax
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
   mov   rdx, 4 ; add one for null char
   call  to_string
 
@@ -443,7 +489,7 @@ log_status_code:
   mov   rsi, 0
   call  log
 
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   call  free
 
   ; back to default color
@@ -452,7 +498,7 @@ log_status_code:
   call  log
 
 .error:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; log current date and time

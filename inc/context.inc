@@ -70,6 +70,7 @@ ctx_close:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, rax
   call  get_client_fd
   cmp   rax, 0
   jl    .error
@@ -208,6 +209,23 @@ get_ctx_response:
 .return:
   ret
 
+; returns the start time of the context
+; @param  rdi: pointer to context
+; @return rax: timestamp
+get_ctx_start_time:
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rax, qword [rdi+CTX_OFF_START_TIME]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; sets the start time of the context
 ; @param  rdi: pointer to context
 ; @param  rsi: timestamp
@@ -235,10 +253,10 @@ set_ctx_start_time:
 ; @param  rsi: timestamp
 ; @return rax: return code
 set_ctx_end_time:
-  mov   rdi, 0
+  cmp   rdi, 0
   jl    .error
 
-  mov   rsi, 0
+  cmp   rsi, 0
   jl    .error
 
   mov   qword [rdi+CTX_OFF_END_TIME], rsi
