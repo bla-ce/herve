@@ -28,6 +28,7 @@
 %include "context.inc"
 %include "client.inc"
 %include "status_code.inc"
+%include "syscall.inc"
 
 section .bss
 section .data

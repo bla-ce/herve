@@ -372,6 +372,7 @@ parse_request:
   mov   qword [rsp+0x18], rax
    
   mov   rdi, rax
+  inc   rdi       ; add one for null char
   call  malloc
 
   cmp   rax, 0
@@ -384,6 +385,10 @@ parse_request:
   mov   rcx, qword [rsp+0x18]
   mov   rsi, [rsp+0x10]
   rep   movsb
+
+  ; add null char
+  xor   rax, rax
+  stosb
 
   ; get body
   ; move to new line (skip 4 char \r\n\r\n)
@@ -608,34 +613,66 @@ free_request:
 
   mov   [rsp], rdi
 
-  mov   rsi, [rsp]
-  add   rsi, REQ_OFF_METHOD
-  mov   rdi, [rsi]
+  mov   rdi, [rsp]
+  call  get_request_method
+
+  cmp   rax, 0
+  jle   .free_url
+
+  mov   rdi, rax
   call  free
 
-  mov   rsi, [rsp]
-  add   rsi, REQ_OFF_URL
-  mov   rdi, [rsi]
+.free_url:
+  mov   rdi, [rsp]
+  call  get_request_url
+
+  cmp   rax, 0
+  jle   .free_proto
+
+  mov   rdi, rax
   call  free
 
-  mov   rsi, [rsp]
-  add   rsi, REQ_OFF_PROTO
-  mov   rdi, [rsi]
+.free_proto:
+  mov   rdi, [rsp]
+  call  get_request_proto
+
+  cmp   rax, 0
+  jle   .free_headers
+
+  mov   rdi, rax
   call  free
 
-  mov   rsi, [rsp]
-  add   rsi, REQ_OFF_HEADERS
-  mov   rdi, [rsi]
+.free_headers:
+  mov   rdi, [rsp]
+  call  get_request_headers
+
+  cmp   rax, 0
+  jle   .free_body
+
+  mov   rdi, rax
   call  free
 
-  mov   rsi, [rsp]
-  add   rsi, REQ_OFF_BODY
-  mov   rdi, [rsi]
-  test  rdi, rdi
-  jz    .free_request
+.free_body:
+  mov   rdi, [rsp]
+  call  get_request_body
+
+  cmp   rax, 0
+  jle   .free_request_str
+
+  mov   rdi, rax
   call  free
 
-.free_request:
+.free_request_str:
+  mov   rdi, [rsp]
+  call  get_request_str
+  
+  cmp   rax, 0
+  jle   .free_request_struct
+
+  mov   rdi, rax
+  call  free
+
+.free_request_struct:
   mov   rdi, [rsp]
   call  free
   
@@ -651,6 +688,57 @@ get_request_str:
   jle   .error
 
   mov   rax, [rdi+REQ_OFF_STR]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the pointer to the protocol of the request
+; @param  rdi: pointer to request
+; @return rax: pointer to request protocol
+get_request_proto:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+REQ_OFF_PROTO]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the pointer to the headers of the request
+; @param  rdi: pointer to request
+; @return rax: pointer to request headers
+get_request_headers:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+REQ_OFF_HEADERS]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the pointer to the body of the request
+; @param  rdi: pointer to request
+; @return rax: pointer to request body
+get_request_body:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+REQ_OFF_BODY]
 
   jmp   .return
 

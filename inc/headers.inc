@@ -6,9 +6,28 @@ HEADER_VALUE_MAX_LEN  equ 0x2000
 HEADER_LEN            equ HEADER_KEY_MAX_LEN + HEADER_VALUE_MAX_LEN
 HEADERS_MAX_LEN       equ HEADER_LEN * HEADERS_MAX_COUNT
 
+; headers key
 CONTENT_TYPE_HEADER   db "Content-Type", NULL_CHAR
 CONTENT_LENGTH_HEADER db "Content-Length", NULL_CHAR
 CONNECTION_HEADER     db "Connection", NULL_CHAR
+
+; content type
+CONTENT_HTML  db "text/html; charset=UTF-8", NULL_CHAR
+CONTENT_CSS   db "text/css; charset=UTF-8", NULL_CHAR
+CONTENT_JS    db "text/javascript; charset=UTF-8", NULL_CHAR
+CONTENT_PLAIN db "text/plain; charset=UTF-8", NULL_CHAR
+CONTENT_BIN   db "application/octet-stream", NULL_CHAR
+CONTENT_CSV   db "text/csv; charset=UTF-8", NULL_CHAR
+CONTENT_GIF   db "image/gif", NULL_CHAR
+CONTENT_JPEG  db "image/jpeg", NULL_CHAR
+CONTENT_JSON  db "application/json; charset=UTF-8", NULL_CHAR
+CONTENT_MP4   db "video/mp4", NULL_CHAR
+CONTENT_PNG   db "image/png", NULL_CHAR
+CONTENT_SVG   db "image/svg+xml", NULL_CHAR
+CONTENT_XML   db "application/xml", NULL_CHAR
+
+; connection
+CONNECTION_CLOSE db "close", NULL_CHAR
 
 section .text
 ; load the headers into the response

@@ -119,6 +119,14 @@ response_init:
   cmp   rax, 0
   jl    .error
 
+  ; set body to 0
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_response_body
+
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, [rsp]
   jmp   .return
 
@@ -181,10 +189,8 @@ set_response_body:
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, 0
-  jle   .error
+  ; body can be 0
 
-  ; check if body is 0
   mov   [rdi+RESPONSE_OFF_BODY], rsi
 
   mov   rax, SUCCESS_CODE
@@ -550,6 +556,21 @@ send_response:
   jl    .error
   
   mov   [rsp+0x10], rax
+
+  ; set connection close header TODO: use variable from context
+  mov   rdi, [rsp+0x10]
+  call  get_response_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  lea   rsi, [CONNECTION_HEADER]
+  lea   rdx, [CONNECTION_CLOSE]
+  call  set_header
+
+  cmp   rax, 0
+  jl    .error
 
   ; set response status code
   mov   rdi, [rsp+0x10]

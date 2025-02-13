@@ -64,7 +64,7 @@ _start:
   jl    .error
 
   mov   rdi, [rsp]
-  lea   rsi, [dir_url]
+  lea   rsi, [dir_path]
   mov   rdx, 1
   call  add_dir_route
 

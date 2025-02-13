@@ -24,6 +24,41 @@ section .data
   HTTP_1_1 db "HTTP/1.1", NULL_CHAR
 
 section .text
+; frees the resources associated to the context
+; @param  rdi: pointer to the context
+free_ctx:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
+  ; get request
+  mov   rdi, [rsp]
+  call  get_ctx_request
+
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, rax
+  call  free_request
+
+  ; get client
+  mov   rdi, [rsp]
+  call  get_ctx_response
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+
+  jmp   .return
+
+.error:
+  ; TODO: what?
+
+.return:
+  add   rsp, 0x8
+  ret
+
 ; abort context, close the connection
 ; @param  rdi: ctx
 ; @return rax: return code
