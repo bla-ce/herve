@@ -27,10 +27,13 @@ get_route_callback:
 ; @param  rsi: pointer to route
 ; @param  rax: (bool) route corresponds to the request
 compare_route:
-  sub   rsp, 0x10
+  sub   rsp, 0x30
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+
+  ; init to 0 -> this is for query parameters
+  mov   qword [rsp+0x20], 0
 
   ; compare methods
   mov   rsi, [rsp]
@@ -46,6 +49,39 @@ compare_route:
   ; compare urls
   mov   rsi, [rsp]
   mov   rdi, [rsi+REQ_OFF_URL] 
+
+  ; save url
+  mov   [rsp+0x10], rdi
+
+  ; check if there is any query parameters
+  mov   rsi, QUESTION_MARK
+  call  find_next_char
+
+  cmp   rax, 0
+  jl    .no_query
+
+  ; save position
+  mov   qword [rsp+0x18], rax
+
+  ; malloc new url without string
+  mov   rdi, rax
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  mov   rdi, rax
+  mov   rsi, [rsp+0x10]
+  mov   rcx, qword [rsp+0x18]
+  rep   movsb
+
+  mov   rdi, [rsp+0x20]
+  mov   [rsp+0x10], rdi
+
+.no_query:
+  mov   rdi, [rsp+0x10]
   mov   rdx, [rsp+0x8]
   mov   rsi, [rdx+ROUTE_OFF_URL]
   call  cmpstr
@@ -66,7 +102,7 @@ compare_route:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x30
   ret
 
 ; create a route serving files located in a specified dir 

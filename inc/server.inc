@@ -322,11 +322,6 @@ run_server:
   call  log_ctx
 
 .timer_not_defined:
-  mov   rcx, QUERY_MAX_LEN
-  xor   rax, rax
-  lea   rdi, [query_params]
-  rep   stosb
-
   mov   rdi, [rsp]
   call  ctx_init
 
@@ -417,46 +412,4 @@ run_server:
   add   rsp, 0x28
   ret
 
-trim_query_parameters:
-  ; rdi -> request_url
-  ; rsi -> route_length
-  ; return value: rax -> url length
-  sub   rsp, 0x10 ; url length and query start length
-
-  cmp   rdi, 0
-  jle   .error
-
-  mov   qword [rsp], rsi
-
-  mov   rsi, QUESTION_MARK
-  call  find_next_char
-  cmp   rax, 0
-  jle   .no_query
-
-  mov   qword [rsp+0x8], rax
-
-  add   rdi, rax
-  mov   al, NULL_CHAR
-  stosb
-
-  lea   rsi, [rdi]
-  lea   rdi, [query_params]
-  mov   rcx, qword [rsp]
-  sub   rcx, qword [rsp+0x8]
-  rep   movsb
-
-  mov   rax, qword [rsp+0x8]
-  mov   qword [rsp], rax
-
-.no_query:
-  mov   rax, qword [rsp]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x10
-  ret
 

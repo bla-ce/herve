@@ -10,6 +10,8 @@ section .data
   SO_REUSEPORT        equ 15
   MSG_TRUNC           equ 0x20
 
+  enable  dw 1
+
   sockaddr_struct:
     sockaddr_sin_family  dw 0
     sockaddr_sin_port    dw 0

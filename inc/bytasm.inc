@@ -1,6 +1,5 @@
 ; TODO: getter and setter methods 
 ; TODO: free ctx resources after connection
-; TODO: verify paddings and alignments
 ; TODO: timeout with alarm syscall
 ; TODO: abort request from middleware
 
@@ -31,22 +30,7 @@
 %include "status_code.inc"
 
 section .bss
-  file      resb FILE_MAX_LEN
-  file_len  resq 1
-
-  duration resq 1
-
-  routes_count resq 1
-
-  callback_list resq MAX_ROUTES_COUNT
-  callback      resq 1
-
-  query_params  resb QUERY_MAX_LEN
-  query         resb QUERY_MAX_VALUE_LEN
-
 section .data
-  enable  dw 1
-
   post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
 
 

@@ -21,6 +21,7 @@ section .data
     req_content_len dq 0
     req_host        dq 0
     req_str         dq 0
+    req_query_param dq 0
     req_close       db 0
   request_struct_end:
 
@@ -37,8 +38,12 @@ section .data
   REQ_OFF_CONTENT_LEN equ REQ_OFF_BODY + 0x8
   REQ_OFF_HOST        equ REQ_OFF_CONTENT_LEN + 0x8
   REQ_OFF_STR         equ REQ_OFF_HOST + 0x8
-  REQ_OFF_CLOSE       equ REQ_OFF_STR + 0x8
-  
+  REQ_OFF_QUERY_PARAM equ REQ_OFF_STR + 0x8
+  REQ_OFF_CLOSE       equ REQ_OFF_QUERY_PARAM + 0x8
+
+  query_params dq 0
+  query dq 0
+
 section .text
 ; returns the method of the request
 ; @param  rdi: pointer to request struct
@@ -274,8 +279,7 @@ parse_request:
   mov   [rsp+0x10], rsi
 
   ; extract url: look for the next space
-  xor   rdi, rdi
-  lea   rdi, [rsi]
+  mov   rdi, rsi
   mov   rsi, SPACE
   call  find_next_char
 
@@ -289,7 +293,7 @@ parse_request:
   mov   qword [rsp+0x18], rax
 
   ; add one for null char
-  mov   rdi, rax
+  mov   rdi, qword [rsp+0x18]
   inc   rdi
   call  malloc
 
