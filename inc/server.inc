@@ -352,7 +352,7 @@ run_server:
   jl   .ctx_close 
 
   mov   rdi, [rsp+0x10]
-  mov   rsi, qword [start_tv_sec]
+  mov   rsi, qword [start_tv_nsec]
   call  set_ctx_start_time
 
   cmp   rax, 0

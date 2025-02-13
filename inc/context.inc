@@ -226,6 +226,23 @@ get_ctx_start_time:
 .return:
   ret
 
+; returns the end time of the context
+; @param  rdi: pointer to context
+; @return rax: timestamp
+get_ctx_end_time:
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rax, qword [rdi+CTX_OFF_END_TIME]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; sets the start time of the context
 ; @param  rdi: pointer to context
 ; @param  rsi: timestamp

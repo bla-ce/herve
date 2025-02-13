@@ -3,6 +3,13 @@ global  _start
 %include "bytasm.inc"
 
 section .text
+middleware:
+  lea   rdi, [ok_msg]  
+  mov   rsi, 0
+  call  println
+
+  ret
+
 test_no_content:
   call  send_no_content
   ret
@@ -64,6 +71,20 @@ _start:
   jl    .error
 
   mov   rdi, [rsp]
+  mov   rsi, middleware
+  call  add_middleware
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, middleware
+  call  add_middleware
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
   call  run_server
 
   add   rsp, 0x8
@@ -90,6 +111,5 @@ section .data
 
   index_path db "examples/views/index.html", NULL_CHAR
 
-  ok_msg db "ok", NULL_CHAR
-
+  ok_msg db "middlewares ok", NULL_CHAR
 

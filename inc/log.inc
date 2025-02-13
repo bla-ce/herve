@@ -252,12 +252,34 @@ log_server_init:
   add   rsp, 0x20
   ret
 
-; store duration inside log_duration
-; TODO: pass duration as arg
+; log the duration of the context
+; @param  rdi: pointer to context
 log_get_duration:
-  sub   rsp, 0x10
-  mov   qword [rsp], 0 ; length of duration str
-  mov   qword [rsp+0x8], 0
+  sub   rsp, 0x20
+
+  mov   [rsp], rdi
+
+  ; get end and start time
+  mov   rdi, [rsp]
+  call  get_ctx_start_time
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  get_ctx_end_time
+
+  cmp   rax, 0
+  jl    .error
+
+  ; subtract end and start time
+  mov   rbx, qword [rsp+0x8]
+  sub   rax, rbx
+
+  ; save duration
+  mov   qword [rsp+0x10], rax
 
   mov   rdi, 0x18 ; TODO: Update magic value
   mov   rsi, 1
@@ -266,7 +288,7 @@ log_get_duration:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  mov   [rsp+0x18], rax
 
   mov   rsi, rax
   add   rsi, 0x18 ; TODO: Update magic value
@@ -277,7 +299,7 @@ log_get_duration:
   mov   byte [rsi], LOWERCASE_N
   dec   rsi
 
-  mov   rax, qword [duration]
+  mov   rax, qword [rsp+0x10]
 
   ; convert ns in ms if duration is greater than 999ns
   cmp   rax, 999
@@ -311,7 +333,7 @@ log_get_duration:
   jne   .loop
 
   ; print duration
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x18]
   mov   rsi, 0x18 ; TODO: Update magic value
   add   rsi, 2
   call  log
@@ -319,15 +341,15 @@ log_get_duration:
   jmp   .free
 
 .error:
-  cmp   qword [rsp+0x8], 0
+  cmp   qword [rsp+0x18], 0
   jne   .return
 
 .free:
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x18]
   call  free
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x20
   ret
 
 ; log the current context
@@ -435,8 +457,8 @@ log_ctx:
   add   rsp, 0x10
   ret
 
-; log the status code
-; TODO: pass status code as argument
+; log the status code of the response
+; @param  rdi: pointer to context
 log_status_code:
   sub   rsp, 0x10
 
