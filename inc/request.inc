@@ -523,22 +523,6 @@ verify_request:
   add   rsp, 0x20
   ret
 
-; returns the body of a request
-; @param  rdi: pointer to request struct
-; @return rax: pointer to request's body
-get_body:
-  add   rdi, REQ_OFF_BODY
-  mov   rax, [rdi]
-  ret
-
-; returns the headers of a request
-; @param  rdi: pointer to request struct
-; @return rax: pointer to request's header
-get_request_headers:
-  add   rdi, REQ_OFF_HEADERS
-  mov   rax, [rdi]
-  ret
-
 ; extracts the value of a specified query parameter from a given URL string
 ; @param  rdi: query parameter
 ; @return rax: pointer to value

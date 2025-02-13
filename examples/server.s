@@ -60,6 +60,17 @@ _start:
   mov   rcx, test_string
   call  add_route
 
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  lea   rsi, [dir_url]
+  mov   rdx, 1
+  call  add_dir_route
+
+  cmp   rax, 0
+  jl    .error
+
   ; add health route
   mov   rdi, [rsp]
   lea   rsi, [GET]
@@ -107,9 +118,10 @@ section .data
 
   root_url    db "/", NULL_CHAR
   health_url  db "/health", NULL_CHAR
-  index_url  db "/index", NULL_CHAR
+  index_url   db "/index", NULL_CHAR
 
-  index_path db "examples/views/index.html", NULL_CHAR
+  index_path  db "examples/views/index.html", NULL_CHAR
+  dir_path    db "examples/views", NULL_CHAR
 
   ok_msg db "middlewares ok", NULL_CHAR
 

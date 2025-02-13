@@ -765,15 +765,45 @@ send_static_file:
   ret
 
 ; serve file from directory
-; @param  rdi: pointer to request struct
+; @param  rdi: pointer to context struct
 serve_dir:
-  mov   rsi, rdi
-  mov   rdx, rdi
-  add   rdx, REQ_OFF_URL
-  mov   rdi, [rdx]
-  ; add one to remove '/'
-  inc   rdi
+  sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+
+  ; get context request
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  get_request_url
+
+  cmp   rax, 0
+  jl    .error
+
+  ; request url starts with '/', remove it
+  inc   rax
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
   call  send_static_file
 
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  ; TODO: return 500?
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
 

@@ -4,7 +4,7 @@ section .text
 ; @param  rsi: substr
 ; @return rax: rdi == rsi
 cmpstr:
-  sub   rsp, 0x10
+  sub   rsp, 0x20
 
   cmp   rdi, 0
   jle   .error
@@ -15,13 +15,31 @@ cmpstr:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
+  ; get length of the first
+  mov   rdi, [rsp]
   call  strlen
-  test  rax, rax
-  jz    .str_not_equal
-  mov   rcx, rax
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x10], rax
+
+  ; get length of the second
+  mov   rdi, [rsp+0x8]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x18], rax
+
+  mov   rbx, qword [rsp+0x10]
+  cmp   rbx, rax
+  jne   .str_not_equal
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
+  mov   rcx, rax
   rep   cmpsb
   jne   .str_not_equal
 
@@ -36,7 +54,7 @@ cmpstr:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x20
   ret
 
 ; copy the string pointed to by src, into a string at the buffer pointed to by dst

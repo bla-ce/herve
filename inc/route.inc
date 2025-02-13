@@ -378,6 +378,7 @@ add_route:
   mov   [rsp+0x28], rax
 
   ; malloc url
+  inc   rax       ; increase by one to have null char
   mov   rdi, rax
   call  malloc
 
@@ -389,10 +390,11 @@ add_route:
   ; copy url
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
-  call  strcpy
+  mov   rcx, [rsp+0x28]
+  rep   movsb
 
-  cmp   rax, 0
-  jl    .error
+  xor   rax, rax
+  stosb
 
   ; add to url struct
   mov   rdi, [rsp+0x30]
