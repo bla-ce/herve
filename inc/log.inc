@@ -21,7 +21,7 @@ default_fg  db 0x1b, "[39m", NULL_CHAR
 log_color dq 1
 
 ; where to store logs, standard output by default 
-log_output dq STDOUT
+log_output dq STDOUT_FILENO
 
 section .text
 

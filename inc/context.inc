@@ -48,8 +48,6 @@ free_ctx:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-
   jmp   .return
 
 .error:

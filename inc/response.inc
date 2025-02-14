@@ -29,6 +29,62 @@ section .data
   EMPTY_CONTENT db "0", NULL_CHAR
 
 section .text
+; sets the string representation of the response
+; @param  rdi: pointer to response struct
+; @param  rsi: pointer to the string
+; @return rax: return code
+set_response_str:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+RESPONSE_OFF_STR], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the response string
+; @param  rdi: pointer to response struct
+; @return rax: pointer to the string
+get_response_str:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+RESPONSE_OFF_STR]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the response content length string
+; @param  rdi: pointer to response
+; @return  rax: pointer to string
+get_response_content_len_str:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+RESPONSE_OFF_CONTENT_LEN_STR]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; sets the response content length string
 ; @param  rdi: pointer to response
 ; @param  rsi: pointer to string
@@ -369,6 +425,14 @@ stringify_response:
   ; add null_char
   mov   rax, NULL_CHAR
   stosb
+
+  ; save response str
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x30]
+  call  set_response_str
+
+  cmp   rax, 0
+  jl    .error
 
   ; return response
   mov   rax, [rsp+0x30]

@@ -311,7 +311,7 @@ print:
   lea   rsi, [rdi]
   mov   rdx, rax
   mov   rax, SYS_WRITE
-  mov   rdi, STDOUT
+  mov   rdi, STDOUT_FILENO
   syscall
 
   jmp   .return
@@ -343,7 +343,7 @@ println:
   xor   rsi, rsi
 
   mov   rax, SYS_WRITE
-  lea   rdi, STDOUT
+  lea   rdi, STDOUT_FILENO
   lea   rsi, [rsp]
   mov   rdx, 1
   syscall
@@ -372,7 +372,7 @@ print_char:
   xor   rsi, rsi
 
   mov   rax, SYS_WRITE
-  mov   rdi, STDOUT
+  mov   rdi, STDOUT_FILENO
   lea   rsi, [rsp]
   mov   rdx, 1
   syscall

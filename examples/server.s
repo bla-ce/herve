@@ -4,7 +4,7 @@ global  _start
 
 section .text
 middleware:
-  lea   rdi, [ok_msg]  
+  lea   rdi, [middleware_msg]  
   mov   rsi, 0
   call  println
 
@@ -15,9 +15,39 @@ test_no_content:
   ret
 
 test_string:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
+  ; test print request headers
+  mov   rdi, [rsp]
+  call  get_ctx_request
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  get_request_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, 0
+  call  println
+
+  mov   rdi, [rsp]
   mov   rsi, OK  
   lea   rdx, [ok_msg]
   call  send_string
+
+  jmp   .return
+
+.error: 
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
 
 test_static:
@@ -123,5 +153,6 @@ section .data
   index_path  db "examples/views/index.html", NULL_CHAR
   dir_path    db "examples/views", NULL_CHAR
 
-  ok_msg db "middlewares ok", NULL_CHAR
+  ok_msg          db "ok", NULL_CHAR
+  middleware_msg  db "Hello, World!", NULL_CHAR
 

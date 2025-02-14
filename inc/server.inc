@@ -397,7 +397,7 @@ run_server:
 
 .free_ctx:
   mov   rdi, [rsp+0x10]
-  call  free_ctx
+  ; call  free_ctx
 
   jmp   .loop
 
