@@ -85,6 +85,12 @@ get_index_from_hash:
 ht_get:
   sub   rsp, 0x20
 
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
@@ -114,6 +120,10 @@ ht_get:
   mov   rax, qword [rsp+0x10]
 
   mov   rdi, [rsi+rax*8]
+
+  ; if rdi is 0, this key does not exist
+  cmp   rdi, 0
+  je    .error
 
   ; save entry
   mov   [rsp+0x18], rdi
@@ -164,6 +174,15 @@ ht_get:
 ; @return rax: return value
 ht_insert:
   sub   rsp, 0x40
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
