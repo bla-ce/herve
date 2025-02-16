@@ -65,18 +65,58 @@ hash_string_key:
   add   rsp, 0x10
   ret
 
+; returns the index of the key given the hash
+; @param  rdi: hash value
+; @param  rsi: number of buckets
+; @return rax: index of the key
+get_index_from_hash:
+  xor   rdx, rdx
+  mov   rax, rdi
+  div   rsi
+  
+  mov   rax, rdx
+
+  ret
+
 ; returns the value of the associated key
 ; @param  rdi: pointer to the hash table
 ; @param  rsi: pointer to the key
 ; @return rax: pointer to the value
 ht_get:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
   ; hash string key
+  mov   rdi, [rsp+0x8]
+  call  hash_string_key
 
-  ; get value
+  cmp   rax, 0
+  jl    .error
+
+  ; get index from hash
+  mov   rdi, rax
+
+  mov   rax, [rsp]
+  mov   rsi, qword [rax+HT_OFF_NBUCKET]
+  call  get_index_from_hash
+
+  ; store index
+  mov   qword [rsp+0x10], rax 
+
+  ; get table
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+HT_OFF_TABLE]
+
+  ; go to index
+  xor   rdx, rdx
+  mov   rax, qword [rsp+0x10]
+
+  mov   rdi, [rsi+rax*8]
+
+  ; get value from entry
+  mov   rax, [rdi+HT_ENTRY_OFF_VALUE]
 
   jmp   .return  
 
@@ -84,7 +124,7 @@ ht_get:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 
@@ -110,16 +150,15 @@ ht_insert:
   mov   qword [rsp+0x18], rax
 
   ; get number of buckets
-  mov   rdi, [rsp]
+  mov   rax, [rsp]
 
   ; mod to the number of buckets
-  xor   rdx, rdx
-  mov   rax, qword [rsp+0x18]
-  mov   rbx, qword [rdi+HT_OFF_NBUCKET]
-  div   rbx ; remainder is in rdx
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, qword [rax+HT_OFF_NBUCKET]
+  call  get_index_from_hash
 
   ; store index
-  mov   qword [rsp+0x20], rdx
+  mov   qword [rsp+0x20], rax
 
   ; get hash table 
   mov   rsi, [rsp]
