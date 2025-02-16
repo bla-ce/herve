@@ -1,8 +1,8 @@
-; *************************** WARNING *************************** ;
- 
+; ******************************** WARNING ******************************* ;
+;                                                                          ;
 ; This implementation of hash table only support string keys at the moment ;
-
-; *************************** WARNING *************************** ;
+;                                                                          ;
+; ******************************** WARNING ******************************* ;
 
 section .data
 
@@ -83,7 +83,7 @@ get_index_from_hash:
 ; @param  rsi: pointer to the key
 ; @return rax: pointer to the value
 ht_get:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -115,6 +115,35 @@ ht_get:
 
   mov   rdi, [rsi+rax*8]
 
+  ; save entry
+  mov   [rsp+0x18], rdi
+
+.loop:
+  ; get key 
+  mov   rsi, [rdi+HT_ENTRY_OFF_KEY]
+  mov   rdi, [rsp+0x8]
+  ; compare with wanted key
+  call  cmpstr
+
+  cmp   rax, TRUE
+  ; if equal, jmp to the end of the loop
+  je    .loop_end
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rdi+HT_ENTRY_OFF_NEXT]
+  cmp   rsi, 0
+  je    .error
+
+  ; go to the next node on the linked list
+  mov   rdi, rsi
+
+  mov   [rsp+0x18], rdi
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x18]
+
   ; get value from entry
   mov   rax, [rdi+HT_ENTRY_OFF_VALUE]
 
@@ -124,7 +153,7 @@ ht_get:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 
@@ -134,60 +163,22 @@ ht_get:
 ; @param  rdx: pointer to the value
 ; @return rax: return value
 ht_insert:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  ; hash string
-  mov   rdi, [rsp+0x8]
-  call  hash_string_key
-
-  cmp   rax, 0
-  jl   .error
-
-  mov   qword [rsp+0x18], rax
-
-  ; get number of buckets
-  mov   rax, [rsp]
-
-  ; mod to the number of buckets
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, qword [rax+HT_OFF_NBUCKET]
-  call  get_index_from_hash
-
-  ; store index
-  mov   qword [rsp+0x20], rax
-
-  ; get hash table 
-  mov   rsi, [rsp]
-  mov   rdi, [rsi+HT_OFF_TABLE]
-
-  ; check if there is an entry at the index
-  mov   rbx, qword [rsp+0x20]
-
-  xor   rdx, rdx
-  mov   rax, rbx
-  mov   rbx, 8
-  mul   rbx
-  add   rdi, rax
-
-  mov   [rsp+0x30], rdi
-
-  ; if key is 0, go to store key
-  test  rax, rax
-  jz    .store_key
-
-  ; move to next available spot if key is different
-
-.store_key:
+  ; create ht_entry
   ; malloc entry
   mov   rdi, HT_ENTRY_STRUCT_LEN
   call  malloc
 
   cmp   rax, 0
   jl    .error
+
+  ; save entry
+  mov   [rsp+0x18], rax
 
   ; store key
   mov   rdi, [rsp+0x8] 
@@ -200,8 +191,76 @@ ht_insert:
   ; set next as 0
   mov   qword [rax+HT_ENTRY_OFF_NEXT], 0
 
+  ; hash string
+  mov   rdi, [rsp+0x8]
+  call  hash_string_key
+
+  cmp   rax, 0
+  jl   .error
+
+  mov   qword [rsp+0x20], rax
+
+  ; get number of buckets
+  mov   rax, [rsp]
+
+  ; mod to the number of buckets
+  mov   rdi, qword [rsp+0x20]
+  mov   rsi, qword [rax+HT_OFF_NBUCKET]
+  call  get_index_from_hash
+
+  ; store index
+  mov   qword [rsp+0x28], rax
+
+  ; get hash table 
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+HT_OFF_TABLE]
+
+  ; check if there is an entry at the index
+  mov   rbx, qword [rsp+0x28]
+
+  xor   rdx, rdx
+  mov   rax, rbx
+  mov   rbx, 8
+  mul   rbx
+  add   rdi, rax
+
+  ; rdi points to the position of the array
+  mov   [rsp+0x38], rdi
+
+  ; if key is 0, go to store key
+  cmp   qword [rdi], 0
+  je    .store_key
+
+  ; check if current key is the same, if yes replace
+  mov   rax, [rdi]
+
+  mov   rdi, [rax+HT_ENTRY_OFF_KEY]
+  mov   rsi, [rsp+0x8]
+  call  cmpstr
+
+  cmp   rax, 0
+  jl    .error
+  jg    .store_key  ; the key is the same, we can replace
+
+  ; get array position
+  mov   rdi, [rsp+0x38]
+
+  ; get the entry
+  mov   rax, [rdi]
+
+  ; get the entry we want to add
+  mov   rdi, [rsp+0x18]
+
+  ; update next to point to the current entry
+  mov   [rdi+HT_ENTRY_OFF_NEXT], rax
+
+  ; now the entry we want to add is the head of the linked list and 
+  ; next points to the previous head
+
+.store_key:
   ; store ht entry 
-  mov   rdi, [rsp+0x30]
+  mov   rdi, [rsp+0x38]
+  mov   rax, [rsp+0x18]
   mov   [rdi], rax
   
   mov   rax, SUCCESS_CODE
@@ -211,7 +270,7 @@ ht_insert:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret 
   
 ; returns a hash table of n buckets
