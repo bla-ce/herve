@@ -35,29 +35,39 @@ HT_ENTRY_KEY_MAX_LENGTH   equ 0xFF
 HT_ENTRY_VALUE_MAX_LENGTH equ 0x1000
 
 section .text
-; returns an array of keys
+; returns an array of keys. The function also puts the number of keys in 
+; the address passed to rsi
 ; @param  rdi: pointer to hash table
 ; @return rax: pointer to array
 ht_get_keys:
-  sub   rsp, 0x28
+  sub   rsp, 0x38
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
+  mov   [rsp+0x8], rsi
+
+  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0 ; counter
 
   ; save n entries
   mov   rax, qword [rdi+HT_OFF_NENTRY]
-  mov   qword [rsp+0x10], rax
+  mov   qword [rsp+0x20], rax
 
   ; malloc an array of n_entry keys (array of pointers)
   mov   rsi, [rsp]
-  mov   rdi, qword [rsp+0x10]
+  mov   rdi, qword [rsp+0x20]
   mov   rsi, 8
   call  calloc
 
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  mov   [rsp+0x10], rax
 
   xor   r9, r9
 
@@ -65,11 +75,11 @@ ht_get_keys:
   mov   rsi, [rsp]
   mov   rdi, [rsi+HT_OFF_TABLE]
 
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x28], rdi
 
 .loop:
   ; get entry address
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x28]
   xor   rdx, rdx
   mov   rax, r9
   mov   rbx, 8
@@ -85,17 +95,27 @@ ht_get_keys:
   jz    .empty
 
   ; save position
-  mov   [rsp+0x20], rsi
+  mov   [rsp+0x30], rsi
 
-  ; get key
+  ; save key into the array
   mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
-  mov   rsi, 0
-  call  println
 
+  ; get array
+  mov   rsi, [rsp+0x10]
+  xor   rdx, rdx
+  mov   rax, qword [rsp+0x18]
+  mov   rbx, 8
+  mul   rbx
+
+  add   rsi, rax
+  mov   [rsi], rdi
+
+  inc   qword [rsp+0x18]
+  
   ; check if the key has next populated
 .inner_loop:  ; AHHAHAHAHAHAHA O(n^2) this is not optimized
   ; save position
-  mov   rsi, [rsp+0x20]
+  mov   rsi, [rsp+0x30]
 
   cmp   qword [rsi+HT_ENTRY_OFF_NEXT], 0
   je    .inner_loop_end
@@ -104,11 +124,21 @@ ht_get_keys:
   mov   rax, [rsi+HT_ENTRY_OFF_NEXT]
 
   ; save new position
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x30], rax
 
+  ; save key
   mov   rdi, [rax+HT_ENTRY_OFF_KEY]
-  mov   rsi, 0
-  call  println
+
+  mov   rsi, [rsp+0x10]
+  xor   rdx, rdx
+  mov   rax, qword [rsp+0x18]
+  mov   rbx, 8
+  mul   rbx
+
+  add   rsi, rax
+  mov   [rsi], rdi
+
+  inc   qword [rsp+0x18]
 
   jmp   .inner_loop
 
@@ -127,20 +157,27 @@ ht_get_keys:
   jmp   .loop
     
 .end_loop:
+  ; put the numbers of keys into the second argument
+  mov   rax, [rsp+0x8]
+  mov   rdi, qword [rsp+0x20]
+
+  mov   [rax], rdi
+
+  mov   rax, [rsp+0x10]
   jmp   .return
 
 .error:
-  cmp   qword [rsp+0x8], 0
+  cmp   qword [rsp+0x10], 0
   je    .no_free
 
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x10]
   call  free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x38
   ret
 
 ht_get_number_of_buckets:
