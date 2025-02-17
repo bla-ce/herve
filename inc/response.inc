@@ -161,9 +161,9 @@ response_init:
 
   mov   [rsp], rax
 
-  ; malloc headers
-  mov   rdi, HEADERS_MAX_LEN
-  call  malloc
+  ; create hash table for headers
+  mov   rdi, HEADERS_MAX_COUNT
+  call  ht_create
 
   cmp   rax, 0
   jl    .error
