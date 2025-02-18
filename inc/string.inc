@@ -60,6 +60,7 @@ cmpstr:
 ; copy the string pointed to by src, into a string at the buffer pointed to by dst
 ; @param  rdi: dst
 ; @param  rsi: src
+; @return rdi: pointer to dst after copy
 strcpy:
   sub   rsp, 0x10
 
@@ -80,7 +81,7 @@ strcpy:
   mov   rsi, [rsp+0x8]
   rep   movsb
 
-  mov   rax, SUCCESS_CODE
+  mov   rax, rdi
 
   jmp   .return
 

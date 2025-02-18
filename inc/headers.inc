@@ -31,72 +31,142 @@ CONNECTION_CLOSE db "close", NULL_CHAR
 
 section .text
 ; load the headers into the response
-; @param  rdi: pointer to headers array
+; @param  rdi: pointer to headers hash table
 ; @return rax: pointer to string
 stringify_headers:
-  sub   rsp, 0x18
+  sub   rsp, 0x30
 
   cmp   rdi, 0
   jle   .error
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0 ; headers index
+  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0
 
-  ; malloc string
-  mov   rdi, HEADERS_MAX_LEN
+  ; get hash table length
+  mov   rdi, [rsp]
+  call  ht_get_length
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rbx, HEADERS_MAX_COUNT
+  
+  ; make sure length does not exceed HEADERS_MAX_COUNT
+  cmp   rax, rbx
+  cmovg rax, rbx
+
+  mov   qword [rsp+0x8], rax
+
+  ; malloc string 
+  xor   rdx, rdx
+  mov   rbx, HEADER_LEN
+  mul   rbx
+
+  mov   rdi, rax
   call  malloc
 
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x10], rax
-  mov   rdi, rax
+  mov   [rsp+0x18], rax ; dynamic pointer
 
+  ; get all keys
+  mov   rdi, [rsp]
+  call  ht_get_keys
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  xor   r9, r9
+
+  ; for each key
 .loop:
-  mov   rsi, [rsp]
-  mov   rax, qword [rsp+0x8]
-  mov   rbx, HEADER_LEN
-  mul   rbx
-  add   rsi, rax
+  cmp   r9, qword [rsp+0x8]
+  jge   .end_loop
 
-  cmp   byte [rsi], NULL_CHAR
-  je    .skip_cpy
+  ; get array of keys
+  mov   rsi, [rsp+0x20]
 
-  ; load header
+  ; load key
+  mov   rdi, [rsi+r9*8]
+
+  ; save key address
+  mov   [rsp+0x28], rdi
+
+  ; copy key
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x28]
   call  strcpy
 
-  ; load new line
-  xor   rax, rax
-  mov   al, CARRIAGE_RETURN
-  stosb
-  mov   al, LINE_FEED
+  cmp   rax, 0
+  jl    .error
+
+  ; load ':'
+  mov   rdi, rax
+  mov   rax, COLON
   stosb
 
-.skip_cpy:
-  inc   qword [rsp+0x8]
-  mov   rax, HEADERS_MAX_COUNT
-  cmp   qword [rsp+0x8], rax
-  jge   .load_post_headers
+  ; load ' '
+  mov   rax, SPACE
+  stosb
+
+  mov   [rsp+0x18], rdi
+
+  ; get value
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x28]
+  call  ht_get
+
+  cmp   rax, 0
+  jl    .error
+
+  ; load value 
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  strcpy
+
+  cmp   rax, 0
+  jl    .error
+
+  ; load new line
+  mov   rdi, rax
+  mov   rax, CARRIAGE_RETURN
+  stosb
+
+  mov   rax, LINE_FEED
+  stosb
+
+  inc   r9
+
+  mov   [rsp+0x18], rdi
 
   jmp   .loop
 
-.load_post_headers:
-  ; load post_headers
-  xor   rax, rax
-  mov   al, CARRIAGE_RETURN
-  stosb
-  mov   al, LINE_FEED
+.end_loop:
+  ; load post headers
+  mov   rdi, [rsp+0x18]
+  mov   rax, CARRIAGE_RETURN
   stosb
 
+  mov   rax, LINE_FEED
+  stosb
+
+  mov   rax, NULL_CHAR
+  stosb
+  
   mov   rax, [rsp+0x10]
-
+  
   jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x30
   ret
 
 ; set the headers
@@ -120,9 +190,27 @@ set_header:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
+  ; make sure key and value length are below max lengths
   mov   rdi, [rsp+0x8]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, HEADER_KEY_MAX_LEN
+  jg    .error
+
+  mov   rdi, [rsp+0x10]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, HEADER_VALUE_MAX_LEN
+  jg    .error
 
   ; get canonical format of header key
+  mov   rdi, [rsp+0x8]
   call  canonical_mime_header_key
   cmp   rax, 0
   jl    .error
@@ -235,12 +323,12 @@ canonical_mime_header_key:
   jmp   .error
 
 .is_hyphen:
-  mov   qword [rsp+0x8], 1
+  mov   qword [rsp+0x8], TRUE
   inc   rsi
   jmp   .loop
 
 .is_lower:
-  cmp   qword [rsp+0x8], 0
+  cmp   qword [rsp+0x8], FALSE
   jne   .upper
 
   inc   rsi
@@ -249,12 +337,12 @@ canonical_mime_header_key:
 .upper:
   sub   byte [rsi], LOWER_TO_UPPER
 
-  mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x8], FALSE
   inc   rsi
   jmp   .loop
 
 .is_upper:
-  mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x8], FALSE
   inc   rsi
   jmp   .loop
 

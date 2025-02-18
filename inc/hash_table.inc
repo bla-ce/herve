@@ -7,9 +7,9 @@
 section .data
 
 hash_table_struct:
-  n_bucket  dq 0
-  n_entries dq 0
-  table     dq 0  ; table is an array of addresses pointing to an entry
+  ht_n_bucket  dq 0
+  ht_n_entries dq 0
+  ht_table     dq 0  ; table is an array of addresses pointing to an entry
 hash_table_struct_end:
 
 ht_entry_struct:
@@ -35,8 +35,26 @@ HT_ENTRY_KEY_MAX_LENGTH   equ 0xFF
 HT_ENTRY_VALUE_MAX_LENGTH equ 0x1000
 
 section .text
+; returns the number of entries in the hash table
+; @param  rdi: pointer to the hash table
+; @return rax: number of entries
+ht_get_length:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, qword [rdi+HT_OFF_NENTRY]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns an array of keys. The function also puts the number of keys in 
-; the address passed to rsi
+; the address passed to rsi. Users have to deal with freeing the pointer 
+; (might change)
 ; @param  rdi: pointer to hash table
 ; @return rax: pointer to array
 ht_get_keys:
@@ -45,11 +63,7 @@ ht_get_keys:
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, 0
-  jle   .error
-
   mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
 
   mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x18], 0 ; counter
@@ -157,12 +171,6 @@ ht_get_keys:
   jmp   .loop
     
 .end_loop:
-  ; put the numbers of keys into the second argument
-  mov   rax, [rsp+0x8]
-  mov   rdi, qword [rsp+0x20]
-
-  mov   [rax], rdi
-
   mov   rax, [rsp+0x10]
   jmp   .return
 
@@ -179,8 +187,6 @@ ht_get_keys:
 .return:
   add   rsp, 0x38
   ret
-
-ht_get_number_of_buckets:
 
 ; hash function to map values to key
 ; @param  rdi: pointer to hash
