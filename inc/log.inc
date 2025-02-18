@@ -282,8 +282,7 @@ log_get_duration:
   mov   qword [rsp+0x10], rax
 
   mov   rdi, 0x18 ; TODO: Update magic value
-  mov   rsi, 1
-  call  calloc
+  call  malloc
 
   cmp   rax, 0
   jl    .error
@@ -292,6 +291,10 @@ log_get_duration:
 
   mov   rsi, rax
   add   rsi, 0x18 ; TODO: Update magic value
+
+  ; add null char at the end
+  dec   rsi
+  mov   byte [rsi], NULL_CHAR
 
   ; print ns backwards
   mov   byte [rsi], LOWERCASE_S
@@ -316,9 +319,11 @@ log_get_duration:
   mov   byte [rsi], MICRO_SECOND    ; Second byte of the UTF-8 sequence for 'μ'
   inc   rsi
   mov   byte [rsi], LOWERCASE_S
-  sub   rsi, 3    ; go back to original position
+  sub   rsi, 2    ; go back to original position
   
 .loop:
+  dec   rsi
+
   xor   rdx, rdx
   mov   rcx, 0xA  ; divisor, dividend in rax
   div   rcx       ; quotient in rax and remainder in edx
@@ -327,15 +332,12 @@ log_get_duration:
 
   mov   byte [rsi], dl
 
-  dec   rsi
-
   cmp   rax, 0
   jne   .loop
 
   ; print duration
-  mov   rdi, [rsp+0x18]
-  mov   rsi, 0x18 ; TODO: Update magic value
-  add   rsi, 2
+  mov   rdi, rsi
+  mov   rsi, 0
   call  log
 
   jmp   .free
