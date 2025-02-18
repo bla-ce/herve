@@ -1,4 +1,3 @@
-; TODO: hash table
 ; TODO: push rbp etc... :) fun
 ; TODO: getter and setter methods 
 ; TODO: free ctx resources after connection
