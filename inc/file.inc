@@ -43,6 +43,7 @@ section .data
   PNG_EXT   db ".png", NULL_CHAR
   SVG_EXT   db ".svg", NULL_CHAR
   XML_EXT   db ".xml", NULL_CHAR
+  APL_EXT   db ".apl", NULL_CHAR ; template extension
 
   SEEK_SET equ 0x0
   SEEK_END equ 0x2
@@ -187,9 +188,20 @@ get_content_type:
   call  cmpstr
 
   cmp   rax, 1
-  jne   .check_js
+  jne   .check_apl
 
   lea   rax, [CONTENT_HTML]
+  jmp   .return
+
+.check_apl:
+  lea   rdi, [APL_EXT]
+  mov   rsi, [rsp]
+  call  cmpstr
+
+  cmp   rax, 1
+  jne   .check_js
+
+  lea   rax, [CONTENT_HTML] ; template extension
   jmp   .return
 
 .check_js:

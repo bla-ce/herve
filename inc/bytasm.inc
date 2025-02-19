@@ -1,4 +1,4 @@
-; TODO: push rbp etc... :) fun
+; TODO: disallow duplicated routes
 ; TODO: getter and setter methods 
 ; TODO: free ctx resources after connection
 ; TODO: timeout with alarm syscall

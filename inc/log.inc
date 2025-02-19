@@ -295,6 +295,7 @@ log_get_duration:
   ; add null char at the end
   dec   rsi
   mov   byte [rsi], NULL_CHAR
+  dec   rsi
 
   ; print ns backwards
   mov   byte [rsi], LOWERCASE_S

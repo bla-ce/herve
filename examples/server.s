@@ -73,6 +73,15 @@ _start:
 
   mov   qword [sockfd], rax
 
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [index_url]
+  mov   rcx, test_static
+  call  add_route
+
+  cmp   rax, 0
+  jl    .error
+
   ; add no content route
   mov   rdi, [rsp]
   lea   rsi, [GET]
@@ -97,16 +106,6 @@ _start:
   lea   rsi, [dir_path]
   mov   rdx, 1
   call  add_dir_route
-
-  cmp   rax, 0
-  jl    .error
-
-  ; add health route
-  mov   rdi, [rsp]
-  lea   rsi, [GET]
-  lea   rdx, [index_url]
-  mov   rcx, test_static
-  call  add_route
 
   cmp   rax, 0
   jl    .error
@@ -150,8 +149,8 @@ section .data
   health_url  db "/health", NULL_CHAR
   index_url   db "/index", NULL_CHAR
 
-  index_path  db "examples/views/index.html", NULL_CHAR
-  dir_path    db "examples/views", NULL_CHAR
+  index_path    db "examples/views/index.html", NULL_CHAR
+  dir_path      db "examples/views", NULL_CHAR
 
   ok_msg          db "ok", NULL_CHAR
   middleware_msg  db "Hello, World!", NULL_CHAR

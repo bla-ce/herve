@@ -14,12 +14,55 @@ section .data
   ROUTE_OFF_NEXT      equ ROUTE_OFF_CALLBACK + 0x8
 
 section .text
+; returns the url associated to the route struct
+; @param  rdi: pointer to route struct
+; @return rax: url address
+get_route_url:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_URL]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the method associated to the route struct
+; @param  rdi: pointer to route struct
+; @return rax: method address
+get_route_method:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_METHOD]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
 
 ; returns the callback associated to the route struct
 ; @param  rdi: pointer to route struct
 ; @return rax: callback address
 get_route_callback:
+  cmp   rdi, 0
+  jle   .error
+
   mov   rax, [rdi+ROUTE_OFF_CALLBACK]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 
 ; compares the route with the url and the method provided in args
@@ -148,6 +191,10 @@ add_dir_route:
   mov   rax, SLASH
   stosb
   call  strcpy
+
+  ; load null char
+  mov   rax, NULL_CHAR
+  stosb
   
   mov   rdi, [rsp+0x8]
 
@@ -222,6 +269,10 @@ add_dir_route:
 
   call  strcpy
 
+  ; add null char at the end
+  mov   rax, NULL_CHAR
+  stosb
+
   mov   rdi, [rsp+0x40]
   lea   rsi, [GET]
   mov   rdx, [rsp+0x30] 
@@ -269,8 +320,11 @@ add_dir_route:
 
   call  strcpy
 
-  mov   rsi, [rsp+0x30]
-  lea   rdi, [rsi]
+  ; add null char at the end
+  mov   rax, NULL_CHAR
+  stosb
+
+  mov   rdi, [rsp+0x30]
 
   ; add one to remove slash at the beginning
   cmp   qword [rsp+0x38], 1
@@ -317,6 +371,96 @@ add_dir_route:
   add   rsp, 0x48
   ret
 
+; checks if a route already exists
+; @param  rdi: pointer to server struct
+; @param  rsi: pointer to method
+; @param  rdx: pointer to url
+; @return rax: (bool) route exist
+route_exist:
+  sub   rsp, 0x20
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  ; load server routes
+  mov   rdi, [rsp]
+  call  get_server_routes
+
+  cmp   rax, 0
+  jl    .error
+  je    .loop_end
+
+  ; save route address
+  mov   [rsp+0x18], rax
+
+.loop:
+  ; for each route
+  ; check if the url is the same
+  mov   rdi, [rsp+0x18]
+  call  get_route_url
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rsi, rax
+  mov   rdi, [rsp+0x10]  
+  call  cmpstr
+
+  cmp   rax, 0
+  jl    .error
+  je    .not_equal
+
+  mov   rdi, [rsp+0x18]
+  call  get_route_method
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rsi, rax
+  mov   rdi, [rsp+0x10]  
+  call  cmpstr  
+
+  cmp   rax, 0
+  jl    .error
+  je    .equal
+
+  ; go to next
+.not_equal:
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rdi+ROUTE_OFF_NEXT]
+
+  test  rsi, rsi
+  jz    .loop_end
+
+  mov   [rsp+0x18], rsi
+
+  jmp   .loop
+
+.loop_end:
+  mov   rax, FALSE
+  jmp   .return
+
+.equal:
+  mov   rax, TRUE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
 ; adds a route to the server
 ; @param  rdi: pointer to server struct
 ; @param  rsi: pointer to method
@@ -339,6 +483,18 @@ add_route:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rcx
+
+  ; make sure the route does not already exist
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, [rsp+0x10]
+  call  route_exist
+
+  cmp   rax, 0
+  jl    .error 
+
+  cmp   rax, TRUE
+  je    .error
 
   ; make sure method is valid
   mov   rdi, [rsp+0x8]
