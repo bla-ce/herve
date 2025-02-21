@@ -41,10 +41,197 @@ section .data
   REQ_OFF_QUERY_PARAM equ REQ_OFF_STR + 0x8
   REQ_OFF_CLOSE       equ REQ_OFF_QUERY_PARAM + 0x8
 
-  query_params dq 0
-  query dq 0
-
 section .text
+; parses the query parameters of the request url
+; @param  rdi: pointer to the request url
+; @return rax: pointer to the hash table
+parse_query_param:
+  sub   rsp, 0x30
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+
+  ; first check if there is query parameter    
+  mov   rdi, [rsp]
+  mov   rsi, QUESTION_MARK
+  call  find_next_char
+
+  cmp   rax, 0
+  jl    .no_query
+  
+  inc   rax   ; go after '?'
+
+  ; go to query parameter 
+  mov   rdi, [rsp]
+  add   rdi, rax
+
+  ; save position
+  mov   [rsp+0x8], rdi
+
+  ; rdi now points to the beginning of the query param
+  ; get the number of '&' to get the number of keys
+  mov   rdi, [rsp+0x8]
+  mov   rsi, AMPERSAND
+  call  count_char
+
+  cmp   rax, 0
+  jl    .error
+
+  inc   rax ; add one (for the first key)
+
+  mov   qword [rsp+0x10], rax
+
+  ; create hash table
+  mov   rdi, qword [rsp+0x10]
+  call  ht_create
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; load url at the query pos
+  mov   rdi, [rsp+0x8]
+
+.loop:
+  mov   rdi, [rsp+0x8]
+
+  ; look for '=' 
+  mov   rsi, EQUAL_SIGN
+  call  find_next_char
+
+  cmp   rax, 0
+  jl    .loop_end
+  
+  mov   rsi, [rsp+0x8]
+  mov   rdi, rsi
+
+  add   rsi, rax
+  inc   rsi             ; add one to go after the '='
+  mov   [rsp+0x8], rsi
+
+  ; strndup key
+  mov   rsi, rax
+  call  strndup
+  
+  cmp   rax, 0
+  jl    .error
+
+  ; save key
+  mov   [rsp+0x20], rax
+
+  ; get next ampersand
+  mov   rdi, [rsp+0x8]
+  mov   rsi, AMPERSAND
+  call  find_next_char
+
+  cmp   rax, 0
+  jl    .get_last_key
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rdi
+  add   rsi, rax
+  inc   rsi       ; add one to go after '&'
+  mov   [rsp+0x8], rsi
+
+  ; strndup value
+  mov   rsi, rax
+  call  strndup
+
+  cmp   rax, 0
+  jl    .error
+  
+  mov   [rsp+0x28], rax
+
+.add_key_value:
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
+  mov   rdx, [rsp+0x28]
+  call  ht_insert
+
+  cmp   rax, 0
+  jl    .error
+
+  ; go to next
+  jmp   .loop
+
+  ; check if last query  
+.get_last_key:
+  mov   rdi, [rsp+0x8]
+  call  strlen
+
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  strndup
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
+  mov   rdx, rax
+  call  ht_insert
+
+  cmp   rax, 0
+  jl    .error
+
+.loop_end:
+  mov   rax, [rsp+0x18]
+
+  jmp   .return
+
+.no_query:
+  xor   rax, rax
+  jmp   .return
+    
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x30
+  ret
+
+; returns query parameter
+; @param  rdi: pointer to request struct
+; @param  rsi: key
+; @return rax: value
+get_query_param:
+  sub   rsp, 0x10
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get query hash table
+  mov   rdi, [rsp]
+  call  get_request_param
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  ht_get
+
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; returns the method of the request
 ; @param  rdi: pointer to request struct
 ; @return rax: pointer to url 
@@ -91,6 +278,45 @@ set_request_str:
   jl    .error
 
   mov   qword [rdi+REQ_OFF_STR], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the query parameters of the request
+; @param  rdi: pointer to request struct
+; @return rax: pointer to the hash table
+get_request_param:
+  cmp   rdi, 0
+  jl    .error
+  
+  mov   rax, qword [rdi+REQ_OFF_QUERY_PARAM]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the query parameters of the request
+; @param  rdi: pointer to request struct
+; @param  rsi: pointer to the hash table
+; @return rax: return code
+set_request_query_param:
+  cmp   rdi, 0
+  jl    .error
+  
+  cmp   rsi, 0
+  jl    .error
+
+  mov   qword [rdi+REQ_OFF_QUERY_PARAM], rsi
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -198,6 +424,32 @@ receive_request:
   jmp   .return
 
 .error:
+  ; if client fd is defined, send 500
+  mov   rdi, [rsp]
+  call  get_ctx_client
+
+  cmp   rax, 0
+  jl    .return
+
+  mov   rdi, rax
+  call  get_client_fd
+
+  cmp   rax, 0
+  jl    .return
+
+  ; zero the request pointer
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_ctx_request
+
+  ; send 500
+  mov   rdi, [rsp] 
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_response
+
+  mov   rdi, [rsp]
+  call  ctx_abort
+
   mov   rax, FAILURE_CODE
   
 .return:
@@ -252,7 +504,7 @@ parse_request:
   mov   qword [rsp+0x18], rax
 
   ; add one for null char
-  mov   rdi, rax
+  mov   rdi, qword [rsp+0x18]
   inc   rdi
   call  malloc
 
@@ -283,7 +535,7 @@ parse_request:
   mov   rsi, SPACE
   call  find_next_char
 
-  cmp   rax, 0x0
+  cmp   rax, 0
   jl    .error
 
   ; verify url length
@@ -319,8 +571,7 @@ parse_request:
   ; save rsi pointer to the stack
   mov   [rsp+0x10], rsi
 
-  xor   rdi, rdi
-  lea   rdi, [rsi]
+  mov   rdi, rsi
   mov   rsi, CARRIAGE_RETURN
   call  find_next_char  ; find next \r to get the entire protocol
   cmp   rax, 0x0
@@ -358,7 +609,7 @@ parse_request:
   mov   [rsp+0x10], rsi
 
   ; find the end of the headers (\r\n\r\n)
-  lea   rdi, [rsi]
+  mov   rdi, rsi
   lea   rsi, [post_headers]
   call  strpos
 
@@ -413,6 +664,7 @@ parse_request:
   mov   [rdi+REQ_OFF_CONTENT_LEN], rax
 
   mov   rdi, rax
+  inc   rdi       ; add one for null char
   call  malloc
 
   cmp   rax, 0
@@ -426,14 +678,41 @@ parse_request:
   mov   rsi, [rsp+0x10]
   rep   movsb
 
+  ; add null char
+  mov   rax, NULL_CHAR
+  stosb
+
   mov   rax, [rsp+0x8]
 
-  jmp   .return
+  jmp   .parse_request
 
 .no_body:
   mov   rdi, [rsp+0x8]
   mov   qword [rdi+REQ_OFF_BODY], 0
 
+.parse_request:
+  ; get request url
+  mov   rdi, [rsp+0x8]
+  call  get_request_url
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  parse_query_param
+
+  cmp   rax, 0
+  jl    .error 
+  je    .no_query
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  set_request_query_param
+
+  cmp   rax, 0
+  jl    .error
+
+.no_query:
   mov   rax, [rsp+0x8]
   jmp   .return
 
@@ -526,83 +805,6 @@ verify_request:
 
 .return:
   add   rsp, 0x20
-  ret
-
-; extracts the value of a specified query parameter from a given URL string
-; @param  rdi: query parameter
-; @return rax: pointer to value
-get_param:
-  ; init stack
-  sub   rsp, 0x10
-
-  cmp   rdi, 0
-  jle   .error
-
-  mov   [rsp], rdi
-
-  ; load query params
-  lea   rdi, [query_params]
-  mov   rsi, [rsp]
-
-  ; check if parameter is in url
-  call  strpos
-  mov   rbx, rax
-
-  cmp   rbx, 0
-  jl    .error
-
-  ; go to param
-  lea   rdi, [query_params]
-  add   rdi, rbx
-
-  ; save param position onto the stack
-  mov   [rsp], rdi
-
-  ; go to the next equal
-  mov   rsi, EQUAL_SIGN
-  call  find_next_char
-  add   rdi, rax
-
-  ; jump after equal
-  inc   rdi
-
-  ; save value position onto the stack
-  mov   [rsp], rdi
-
-  ; find the next '&' or '\0'
-  mov   rsi, AMPERSAND
-  call  find_next_char
-  mov   rbx, rax
-
-  mov   rsi, NULL_CHAR
-  call  find_next_char
-
-  cmp   rbx, 0
-  cmovg rcx, rbx
-
-  cmp   rcx, rax
-  cmovg rcx, rax
-
-  cmp   rcx, 0
-  jl    .error
-
-  ; save param into buffer
-  lea   rsi, [rdi] 
-  xor   rdi, rdi
-  lea   rdi, [query]
-  mov   rcx, rax
-  rep   movsb
-
-  ; clean stack
-  add   rsp, 0x10
-
-  ; return param
-  lea   rax, [query]
-  ret
-
-.error:
-  mov   rax, FAILURE_CODE
-  add   rsp, 0x10
   ret
 
 ; frees the request structrure and all malloc'd variable

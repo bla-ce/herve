@@ -421,6 +421,7 @@ log_ctx:
   
   cmp   rax, 0
   jl    .error
+  je    .no_request
 
   mov   [rsp+0x8], rax
 
@@ -448,7 +449,11 @@ log_ctx:
 
   mov   rdi, rax
   mov   rsi, 0
-  call  logln
+  call  log
+
+.no_request:
+  mov   rdi, LINE_FEED
+  call  log_char
 
   mov   rax, SUCCESS_CODE
   jmp   .return

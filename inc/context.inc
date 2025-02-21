@@ -328,8 +328,8 @@ set_ctx_request:
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, 0
-  jle   .error
+  cmp   rsi, 0 ; ok to have zero request
+  jl    .error
 
   mov   [rdi+CTX_OFF_REQUEST], rsi
 

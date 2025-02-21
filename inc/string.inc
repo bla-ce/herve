@@ -1,4 +1,167 @@
 section .text
+; returns a pointer to a new string which is a duplicate of the string s
+; user has to handle freeing the string
+; @param  rdi: pointer to the string
+; @return rax: pointer to the duplicated string
+strdup:
+  sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+
+  ; get length of the string
+  mov   rdi, [rsp]
+  call  strlen
+
+  cmp   rax, 0
+  jle   .error
+
+  ; call strndup with same amount of bytes
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  strndup
+
+  cmp   rax, 0
+  jle   .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; returns a pointer to a new string which is a duplicate of the string s, 
+; it copies at most n bytes
+; user has to handle freeing the string
+; @param  rdi: pointer to the string
+; @param  rsi: number of bytes to be copied
+; @return rax: pointer to the duplicated string
+strndup:
+  sub   rsp, 0x18
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], rsi
+
+  ; get length of the string
+  mov   rdi, [rsp]
+  call  strlen
+
+  cmp   rax, 0
+  jle   .error
+
+  mov   rbx, qword [rsp+0x8] 
+  cmp   rax, rbx
+  cmovg rax, rbx
+
+  mov   qword [rsp+0x8], rax
+
+  mov   rdi, rax
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, rax
+  mov   rsi, [rsp]
+  mov   rcx, qword [rsp+0x8]
+  rep   movsb
+
+  mov   rax, NULL_CHAR
+  stosb
+
+  mov   rax, [rsp+0x10]
+  
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; returns the number of occurence of a specific character in the string
+; @param  rdi: string
+; @param  rsi: char
+; @return rax: count
+count_char:
+  sub   rsp, 0x18
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+
+  mov   rdi, qword [rsp+0x8]
+  call  is_ascii
+
+  test  rax, rax
+  jz    .error
+
+  mov   rdi, qword [rsp+0x8]
+  mov   rsi, [rsp]
+
+  xor   rax, rax
+
+.loop:
+  lodsb
+
+  cmp   rax, 0
+  je    .end_loop
+
+  cmp   al, dil
+  jne   .loop  
+
+  inc   qword [rsp+0x10]
+  jmp   .loop
+
+.end_loop:
+  mov   rax, qword [rsp+0x10]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; returns if RDI contains a ASCII character
+; @param  rdi: int
+; @return rax: is_ascii
+is_ascii:
+  movzx rdi, dil
+
+  cmp   rdi, 0
+  jl    .is_not
+
+  cmp   rdi, 0xFF
+  jg    .is_not
+
+  mov   rax, TRUE
+  jmp   .return
+
+.is_not:
+  mov   rax, FALSE
+
+.return:
+  ret
+
 ; compare rdi and rsi
 ; @param  rdi: str
 ; @param  rsi: substr

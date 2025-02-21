@@ -11,7 +11,43 @@ middleware:
   ret
 
 test_no_content:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
+  mov   rdi, [rsp]
+  call  get_ctx_request
+
+  cmp   rax, 0
+  jl    .error
+
+  ; get query
+  mov   rdi, rax
+  lea   rsi, [name_query]
+  call  get_query_param
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, 0
+  call  println
+
+  mov   rdi, [rsp]
   call  send_no_content
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp]
+  mov   rsi, BAD_REQUEST
+  lea   rdx, [error_no_query]
+  call  send_string
+
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
 
 test_string:
@@ -152,6 +188,10 @@ section .data
   index_path    db "examples/views/index.html", NULL_CHAR
   dir_path      db "examples/views", NULL_CHAR
 
+  name_query db "name", NULL_CHAR
+
   ok_msg          db "ok", NULL_CHAR
   middleware_msg  db "Hello, World!", NULL_CHAR
+
+  error_no_query  db "failed to get query parameter", NULL_CHAR
 
