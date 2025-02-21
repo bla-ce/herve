@@ -15,8 +15,8 @@ This project is a lightweight, high-performance HTTP server library written enti
 - **Linux x86 Only**: Designed exclusively for Linux on x86 architecture.
 - **Lightweight**: Minimal memory footprint and no external dependencies.
 - **High Performance**: Optimized for speed with custom memory management.
-- **Custom Malloc Implementation**: Efficient memory allocation using unstack.
-- **HTTP/1.1 Support**: Full support for HTTP/1.1 requests and responses.
+- **Custom Malloc Implementation**: Efficient memory allocation using custom malloc.
+- **HTTP/1.1 Support**: Support for HTTP/1.1 requests and responses.
 - **Request Parsing**: Built-in HTTP request parser.
 - **Configurable Port Number**: Users can specify the listening port.
 - **Custom Request Handlers**: Users can define custom handlers for different request routes.
@@ -24,6 +24,7 @@ This project is a lightweight, high-performance HTTP server library written enti
 - **Static File Serving**: Supports serving static files and entire directories.
 - **Memory Management**: Built-in memory management with automatic cleanup.
 - **Hash Table Implementation**: Users can use hash tables
+- **Support Query Parameters**: Is able to read and parse query parameters
 
 ## Example
 
