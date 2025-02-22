@@ -40,14 +40,6 @@ free_response:
 
   mov   [rsp], rdi
 
-  ; free response str
-  mov   rdi, [rsp]
-  call  get_response_str
-
-  cmp   rax, 0
-  jl    .error
-  je    .free_struct
-
   mov   rdi, rax
   call  free
 
