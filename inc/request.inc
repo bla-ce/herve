@@ -822,6 +822,20 @@ free_request:
 
   cmp   rax, 0
   jl    .error
+  je    .free_url
+
+  mov   rdi, rax
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+.free_url:
+  mov   rdi, [rsp]
+  call  get_request_str
+
+  cmp   rax, 0
+  jl    .error
   je    .free_struct
 
   mov   rdi, rax
