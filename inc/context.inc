@@ -44,6 +44,18 @@ free_ctx:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [rsp]
+  call  get_ctx_request
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  free_request
+
+  cmp   rax, 0
+  jl    .error
+
   ; free ctx struct
   mov   rdi, [rsp]
   call  free

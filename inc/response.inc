@@ -40,12 +40,6 @@ free_response:
 
   mov   [rsp], rdi
 
-  mov   rdi, rax
-  call  free
-
-  cmp   rax, 0
-  jl    .error
-
 .free_struct:
   ; free response struct
   mov   rdi, [rsp]
@@ -334,6 +328,7 @@ stringify_response:
   jl    .error
 
   mov   [rsp+0x8], rax
+  mov   qword [rsp+0x28], 0
 
   ; get status code
   mov   rdi, [rsp]
@@ -484,6 +479,14 @@ stringify_response:
   jmp   .return
 
 .error:
+  mov   rax, [rsp+0x28]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -557,6 +560,7 @@ send_string:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x30], 0
 
   ; get response
   call  get_ctx_response
@@ -642,6 +646,14 @@ send_string:
   jmp   .return
 
 .error:
+  mov   rax, [rsp+0x30]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -657,6 +669,7 @@ send_response:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], 0
 
   ; get response
   call  get_ctx_response
@@ -737,6 +750,14 @@ send_response:
 
 .error:
   ; make sure you free the response
+  mov   rax, qword [rsp+0x18]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+  
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -759,6 +780,7 @@ send_static_file:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x40], 0
 
   ; get file ext
   mov   rdi, rsi
@@ -876,8 +898,7 @@ send_static_file:
   mov   rax, SUCCESS_CODE
 
   ; clean stack
-  add   rsp, 0x48
-  ret
+  jmp   .return
 
 .error_open:
   ; load 404
@@ -886,11 +907,19 @@ send_static_file:
   ; load 500
 
 .error:
+  mov   rax, [rsp+0x40]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+  
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
   ; clean stack
   add   rsp, 0x48
-
-  ; return
-  mov   rax, FAILURE_CODE
   ret
 
 ; serve file from directory

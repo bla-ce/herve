@@ -815,69 +815,32 @@ free_request:
 
   mov   [rsp], rdi
 
+  ; free method
+.free_method:
   mov   rdi, [rsp]
   call  get_request_method
 
   cmp   rax, 0
-  jle   .free_url
+  jl    .error
+  je    .free_struct
 
   mov   rdi, rax
   call  free
-
-.free_url:
-  mov   rdi, [rsp]
-  call  get_request_url
 
   cmp   rax, 0
-  jle   .free_proto
+  jl    .error
 
-  mov   rdi, rax
+.free_struct:
+  ; free request struct
+  mov   rdi, [rsp]
   call  free
 
-.free_proto:
-  mov   rdi, [rsp]
-  call  get_request_proto
-
-  cmp   rax, 0
-  jle   .free_headers
-
-  mov   rdi, rax
-  call  free
-
-.free_headers:
-  mov   rdi, [rsp]
-  call  get_request_headers
-
-  cmp   rax, 0
-  jle   .free_body
-
-  mov   rdi, rax
-  call  free
-
-.free_body:
-  mov   rdi, [rsp]
-  call  get_request_body
-
-  cmp   rax, 0
-  jle   .free_request_str
-
-  mov   rdi, rax
-  call  free
-
-.free_request_str:
-  mov   rdi, [rsp]
-  call  get_request_str
+  mov   rax, SUCCESS_CODE
+  jmp   .return
   
-  cmp   rax, 0
-  jle   .free_request_struct
+.error:
+  mov   rax, FAILURE_CODE
 
-  mov   rdi, rax
-  call  free
-
-.free_request_struct:
-  mov   rdi, [rsp]
-  call  free
-  
 .return:
   add   rsp, 0x8
   ret
