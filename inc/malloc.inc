@@ -5,11 +5,11 @@ section .data
   CHUNK_SIZE equ end_chunk-chunk
 
   CHUNK_OFFSET_MAGIC  equ 0
-  CHUNK_OFFSET_SIZE   equ 0x8
-  CHUNK_OFFSET_INUSE  equ 0x10
-  CHUNK_OFFSET_NEXT   equ 0x18
-  CHUNK_OFFSET_PREV   equ 0x20
-  CHUNK_OFFSET_DATA   equ 0x28
+  CHUNK_OFFSET_SIZE   equ CHUNK_OFFSET_MAGIC + 0x8
+  CHUNK_OFFSET_INUSE  equ CHUNK_OFFSET_SIZE + 0x8
+  CHUNK_OFFSET_NEXT   equ CHUNK_OFFSET_INUSE + 0x8 
+  CHUNK_OFFSET_PREV   equ CHUNK_OFFSET_NEXT + 0x8
+  CHUNK_OFFSET_DATA   equ CHUNK_OFFSET_PREV + 0x8
 
   ; magic value on top of each header making sure the heap is not
   ; corrupted
@@ -21,14 +21,17 @@ section .data
   N_BINS              equ 0xA
 
   chunk:
-    magic_value dq 0
-    size        dq 0
-    inuse       dq 0
-    next        dq 0
-    prev        dq 0
+    chunk_magic_value dq 0
+    chunk_size        dq 0
+    chunk_inuse       dq 0
+    chunk_next        dq 0
+    chunk_prev        dq 0
   end_chunk:
 
   seg_free_list times N_BINS dq 0
+
+  mallocd dq 0
+  freed   dq 0
 
 section .text
 ; checks if the chunk can be splitted
@@ -313,6 +316,9 @@ malloc:
   mov   qword [rax+CHUNK_OFFSET_NEXT],  0
   mov   qword [rax+CHUNK_OFFSET_PREV],  0
   mov   qword [rax+CHUNK_OFFSET_INUSE], 1
+
+  mov   rbx, qword [rax+CHUNK_OFFSET_SIZE]
+  add   qword [mallocd], rbx
 
   add   rax, CHUNK_OFFSET_DATA
 

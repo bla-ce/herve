@@ -209,6 +209,9 @@ free:
   ; go to the beginning of the struct
   sub   rdi, CHUNK_SIZE
 
+  mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
+  add   qword [freed], rbx
+
   mov   [rsp], rdi
 
   ; check if adjacent chunk is free for coalescing

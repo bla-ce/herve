@@ -20,7 +20,6 @@
 %include "server.inc"
 %include "string.inc"
 %include "time.inc"
-%include "cookie.inc"
 %include "socket.inc"
 %include "route.inc"
 %include "method.inc"

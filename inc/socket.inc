@@ -65,6 +65,7 @@ bind_socket:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
 
   ; malloc sockaddr struct
   mov   rdi, SOCKADDR_STRUCT_LEN
@@ -98,9 +99,25 @@ bind_socket:
   cmp   rax, 0
   jl    .error
 
+  ; free socket addr
+  mov   rdi, [rsp+0x18]
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
+  mov   rax, [rsp+0x18]
+  test  rax, rax
+  jz    .no_free
+  
+  mov   rdi, rax
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -178,8 +195,12 @@ accept_connection:
   mov   rsi, [rsp+0x10]
   call  set_client_fd
 
+  ; free client address -> might need it after
   mov   rdi, [rsp+0x8]
   call  free
+
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
 
@@ -187,12 +208,12 @@ accept_connection:
 
 .error:
   cmp   qword [rsp+0x8], 0
-  je    .skip_free
+  je    .no_free
 
   mov   rdi, [rsp+0x8]
   call  free
 
-.skip_free:
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
