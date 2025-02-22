@@ -140,6 +140,7 @@ log_server_init:
   sub   rsp, 0x20
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x10], 0
 
   xor   rdi, rdi
   lea   rdi, [log_debug]
@@ -175,6 +176,8 @@ log_server_init:
   ; free port string
   mov   rdi, [rsp+0x10]
   call  free
+
+  mov   qword [rsp+0x10], 0
 
   mov   rdi, LINE_FEED
   call  print_char
@@ -246,6 +249,15 @@ log_server_init:
   jmp   .return
 
 .error:
+  ; free port string
+  mov   rax, qword [rsp+0x10]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -522,12 +534,28 @@ log_status_code:
   mov   rdi, [rsp+0x8]
   call  free
 
+  mov   qword [rsp+0x8], 0
+
   ; back to default color
   lea   rdi, [default_fg]
   mov   rsi, 0
   call  log
 
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
 .error:
+  mov   rax, [rsp+0x8]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x10
   ret
 

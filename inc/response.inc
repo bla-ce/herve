@@ -29,6 +29,48 @@ section .data
   EMPTY_CONTENT db "0", NULL_CHAR
 
 section .text
+; frees the response structure and all associated resources
+; @param  rdi: pointer to the response
+; @return rax: return code
+free_response:
+  sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jl    .error
+
+  mov   [rsp], rdi
+
+  ; free response str
+  mov   rdi, [rsp]
+  call  get_response_str
+
+  cmp   rax, 0
+  jl    .error
+  je    .free_struct
+
+  mov   rdi, rax
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+.free_struct:
+  ; free response struct
+  mov   rdi, [rsp]
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret 
+
 ; sets the string representation of the response
 ; @param  rdi: pointer to response struct
 ; @param  rsi: pointer to the string
@@ -152,6 +194,8 @@ get_response_status_code:
 response_init:
   sub   rsp, 0x8
 
+  mov   qword [rsp], 0
+
   ; malloc response
   mov   rdi, RESPONSE_STRUCT_LEN
   call  malloc
@@ -187,6 +231,14 @@ response_init:
   jmp   .return
 
 .error:
+  mov   rax, qword [rsp]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:

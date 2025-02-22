@@ -12,14 +12,13 @@ section .data
   MIDDLEWARE_OFF_NEXT equ MIDDLEWARE_OFF_ADDR + 0x8
 
 section .text
-
 ; TODO: add middleware to route
 ; adds a middleware to the end of the chain
 ; @param  rdi: pointer to server
 ; @param  rsi: middleware
 ; @return rax: return code
 add_middleware:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   cmp   rdi, 0
   jle   .error
@@ -29,6 +28,8 @@ add_middleware:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+
+  mov   qword [rsp+0x18], 0
 
   add   rdi, SERVER_OFF_MIDDLEWARES
 
@@ -64,6 +65,8 @@ add_middleware:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x18], rax
+
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
 
@@ -82,10 +85,18 @@ add_middleware:
   jmp   .return
   
 .error:
+  mov   rax, [rsp+0x18]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
   mov    rax, FAILURE_CODE
   
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; run the chain of middlewares

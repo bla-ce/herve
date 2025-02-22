@@ -175,6 +175,7 @@ server_init:
 
 .port_defined:
   mov   qword [rsp], rdi
+  mov   qword [rsp+0x8], 0
 
   ; malloc server struct
   mov   rdi, SERVER_STRUCT_LEN
@@ -271,12 +272,17 @@ server_init:
   jle   .skip_close_socket
 
   ; if yes close it
-  mov   rsi, [rsp+0x8]
   mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+0x10]
   syscall
 
-  ; don't need to check for error, we exit anyway
+  ; free server struct
+  mov   rax, [rsp+0x8]
+  test  rax, rax
+  jz    .skip_close_socket
+
+  mov   rdi, rax
+  call  free
 
 .skip_close_socket:
   mov   rax, FAILURE_CODE
@@ -397,7 +403,7 @@ run_server:
 
 .free_ctx:
   mov   rdi, [rsp+0x10]
-  ; call  free_ctx
+  call  free_ctx
 
   jmp   .loop
 
