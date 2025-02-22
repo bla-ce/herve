@@ -835,6 +835,48 @@ free_request:
 
   cmp   rax, 0
   jl    .error
+  je    .free_proto
+
+  mov   rdi, rax
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+.free_proto:
+  mov   rdi, [rsp]
+  call  get_request_proto
+
+  cmp   rax, 0
+  jl    .error
+  je    .free_headers
+
+  mov   rdi, rax
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+.free_headers:
+  mov   rdi, [rsp]
+  call  get_request_headers
+
+  cmp   rax, 0
+  jl    .error
+  je    .free_request_str
+
+  mov   rdi, rax
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+.free_body:
+  mov   rdi, [rsp]
+  call  get_request_body
+
+  cmp   rax, 0
+  jl    .error
   je    .free_request_str
 
   mov   rdi, rax
@@ -849,7 +891,7 @@ free_request:
 
   cmp   rax, 0
   jl    .error
-  je    .free_request_str
+  je    .free_struct
 
   mov   rdi, rax
   call  free
