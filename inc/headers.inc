@@ -103,7 +103,7 @@ stringify_headers:
   call  strcpy
 
   cmp   rax, 0
-  jl    .error
+  jl    .empty_header
 
   ; load ':'
   mov   rdi, rax
@@ -140,6 +140,7 @@ stringify_headers:
   mov   rax, LINE_FEED
   stosb
 
+.empty_header:
   inc   r9
 
   mov   [rsp+0x18], rdi

@@ -279,6 +279,7 @@ log_get_duration:
   jl    .error
 
   mov   qword [rsp+0x8], rax
+  mov   qword [rsp+0x18], 0
 
   mov   rdi, [rsp]
   call  get_ctx_end_time
@@ -289,6 +290,9 @@ log_get_duration:
   ; subtract end and start time
   mov   rbx, qword [rsp+0x8]
   sub   rax, rbx
+
+  cmp   rax, 0
+  jl    .error
 
   ; save duration
   mov   qword [rsp+0x10], rax
@@ -309,30 +313,18 @@ log_get_duration:
   mov   byte [rsi], NULL_CHAR
   dec   rsi
 
-  ; print ns backwards
+  ; print micro second backwards
   mov   byte [rsi], LOWERCASE_S
   dec   rsi
-  mov   byte [rsi], LOWERCASE_N
+  mov   byte [rsi], MICRO_SECOND
   dec   rsi
+  mov   byte [rsi], MICRO_FIRST
 
   mov   rax, qword [rsp+0x10]
-
-  ; convert ns in ms if duration is greater than 999ns
-  cmp   rax, 999
-  jl    .loop
 
   xor   rdx, rdx
   mov   rcx, 1000
   div   rcx
-
-  ; Replace 'n' by 'μ' (UTF-8 encoding) 
-  inc   rsi
-  mov   byte [rsi], MICRO_FIRST     ; First byte of the UTF-8 sequence for 'μ'
-  inc   rsi
-  mov   byte [rsi], MICRO_SECOND    ; Second byte of the UTF-8 sequence for 'μ'
-  inc   rsi
-  mov   byte [rsi], LOWERCASE_S
-  sub   rsi, 2    ; go back to original position
   
 .loop:
   dec   rsi
@@ -353,15 +345,23 @@ log_get_duration:
   mov   rsi, 0
   call  log
 
-  jmp   .free
-
-.error:
-  cmp   qword [rsp+0x18], 0
-  jne   .return
-
-.free:
   mov   rdi, [rsp+0x18]
   call  free
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, qword [rsp+0x18]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, 0x20

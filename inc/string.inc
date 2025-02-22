@@ -67,6 +67,7 @@ strndup:
   mov   qword [rsp+0x8], rax
 
   mov   rdi, rax
+  inc   rdi         ; add one for null char
   call  malloc
 
   cmp   rax, 0
@@ -230,7 +231,7 @@ strcpy:
   cmp   rdi, 0
   jle   .error
 
-  cmp   rdi, 0
+  cmp   rsi, 0
   jle   .error
 
   mov   [rsp], rdi

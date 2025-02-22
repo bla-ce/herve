@@ -73,7 +73,6 @@ ht_get_keys:
   mov   qword [rsp+0x20], rax
 
   ; malloc an array of n_entry keys (array of pointers)
-  mov   rsi, [rsp]
   mov   rdi, qword [rsp+0x20]
   mov   rsi, 8
   call  calloc
@@ -510,6 +509,9 @@ ht_create:
 
   mov   rbx, qword [rsp]
   mov   qword [rdi+HT_OFF_NBUCKET], rbx
+
+  mov   rbx, qword [rsp]
+  mov   qword [rdi+HT_OFF_NENTRY], 0
   
   mov   rax, [rsp+0x8]
   jmp   .return

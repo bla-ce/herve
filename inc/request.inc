@@ -3,9 +3,7 @@ section .data
   METHOD_MAX_LEN        equ 0x8
   PROTO_MAX_LEN         equ 0x9
   HOST_MAX_LEN          equ 0xFF
-  QUERY_MAX_LEN         equ 0x20
-  QUERY_MAX_VALUE_LEN   equ 0x10
-  URL_MAX_LEN           equ 0x30
+  URL_MAX_LEN           equ 0x2000
   BODY_MAX_LEN          equ 0x2000
 
   REQUEST_MAX_LEN     equ 0x2000
@@ -581,6 +579,7 @@ parse_request:
 
   ; malloc request protocol
   mov   rdi, PROTO_MAX_LEN
+  inc   rdi                 ; add one for null char
   call  malloc
 
   cmp   rax, 0
@@ -610,7 +609,7 @@ parse_request:
 
   ; find the end of the headers (\r\n\r\n)
   mov   rdi, rsi
-  lea   rsi, [post_headers]
+  mov   rsi, post_headers
   call  strpos
 
   cmp   rax, 0
@@ -648,7 +647,7 @@ parse_request:
   mov   [rsp+0x10], rsi
 
   ; find the end of the request
-  lea   rdi, [rsi]
+  mov   rdi, rsi
   mov   rsi, NULL_CHAR
   call  find_next_char
 
@@ -684,13 +683,13 @@ parse_request:
 
   mov   rax, [rsp+0x8]
 
-  jmp   .parse_request
+  jmp   .parse_query_param
 
 .no_body:
   mov   rdi, [rsp+0x8]
   mov   qword [rdi+REQ_OFF_BODY], 0
 
-.parse_request:
+.parse_query_param:
   ; get request url
   mov   rdi, [rsp+0x8]
   call  get_request_url
@@ -832,11 +831,25 @@ free_request:
 
 .free_url:
   mov   rdi, [rsp]
+  call  get_request_url
+
+  cmp   rax, 0
+  jl    .error
+  je    .free_request_str
+
+  mov   rdi, rax
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+.free_request_str:
+  mov   rdi, [rsp]
   call  get_request_str
 
   cmp   rax, 0
   jl    .error
-  je    .free_struct
+  je    .free_request_str
 
   mov   rdi, rax
   call  free
