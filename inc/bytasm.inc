@@ -1,3 +1,7 @@
+; TODO: use strndup for parsing
+; TODO: return 400 if host header is not present
+; TODO: persist connection by default
+; TODO: return date
 ; TODO: error management
 ; TODO: free ctx resources after connection
 ; TODO: timeout with alarm syscall
@@ -31,6 +35,6 @@
 
 section .bss
 section .data
-  post_headers      db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
+  CRLF  db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
 
 

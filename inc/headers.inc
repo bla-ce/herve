@@ -30,6 +30,147 @@ CONTENT_XML   db "application/xml", NULL_CHAR
 CONNECTION_CLOSE db "close", NULL_CHAR
 
 section .text
+; parses the headers string into a hash table
+; @param  rdi: pointer to headers string
+; @return rax: pointer to the hash table
+parse_headers:
+  sub   rsp, 0x20
+
+  cmp   rdi, 0
+  jle   .error ; TODO: will have to confirm if it can be null
+
+  mov   [rsp], rdi
+
+  ; get the number of headers (count ':')
+  mov   rdi, [rsp]
+  mov   rsi, LINE_FEED
+  call  count_char
+
+  cmp   rax, 0
+  jl    .error
+
+  ; add one for the last header
+  inc   rax
+
+  ; create a hash table for n entries
+  mov   rdi, rax
+  call  ht_create
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; load headers string
+  mov   rdi, [rsp]
+  mov   [rsp+0x10], rdi
+
+.loop:
+; look for the following colon  
+  mov   rdi, [rsp+0x10]   
+  mov   rsi, COLON
+  call  find_next_char
+
+  cmp   rax, 0
+  jl    .error
+  je    .end_loop ; TODO: is it an error?
+
+  ; go to after the colon
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rdi
+  add   rsi, rax
+  mov   [rsp+0x10], rsi
+
+  ; strndup the key
+  mov   rsi, rax
+  call  strndup
+
+  cmp   rax, 0
+  jl    .error
+
+  ; save the key
+  mov   [rsp+0x18], rax
+
+  ; get the following carriage return
+  mov   rsi, [rsp+0x10]
+  
+  ; next characters should be ':' and ' '
+  xor   rax, rax
+  lodsb
+
+  mov   rdi, rsi
+
+  cmp   rax, COLON
+  jne   .error
+
+  lodsb ; check if there is a space after
+  cmp     rax, SPACE
+  cmove   rdi, rsi    ; if the next char is not a space, go back one   
+
+  mov   [rsp+0x10], rdi
+
+  mov   rsi, CARRIAGE_RETURN 
+  call  find_next_char
+
+  cmp   rax, 0
+  jl    .last_key
+
+  jmp   .copy_value
+
+.last_key:
+  mov   rdi, [rsp+0x10]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+.copy_value:
+  ; strndup the value
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rdi
+  add   rsi, rax
+  mov   [rsp+0x10], rsi
+  mov   rsi, rax
+  call  strndup
+
+  cmp   rax, 0
+  jl    .error
+
+  ; insert into the hash table
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x18]
+  mov   rdx, rax
+  call  ht_insert
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  cmp   byte [rdi], NULL_CHAR
+  je    .end_loop
+
+  ; add two to go after CRLF
+  add   rdi, 2
+  mov   [rsp+0x10], rdi
+
+  jmp   .loop
+
+.end_loop:
+  mov   rax, [rsp+0x8]
+
+  jmp   .return
+
+.empty:
+  xor   rax, rax
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
 ; load the headers into the response
 ; @param  rdi: pointer to headers hash table
 ; @return rax: pointer to string

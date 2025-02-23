@@ -523,7 +523,7 @@ set_request_length:
 ; @param  rdi: pointer to the context struct
 ; @param  rax: return code
 receive_request:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   mov   [rsp], rdi
 
@@ -573,6 +573,8 @@ receive_request:
   cmp   rax, 0
   jl    .error
 
+  mov   qword [rsp+0x18], rax
+
   ; save request length
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
@@ -580,6 +582,13 @@ receive_request:
 
   cmp   rax, 0
   jl    .error
+
+  ; add null char at the end of the request to avoid garbage
+  mov   rdi, [rsp+0x8]
+  mov   rax, qword [rsp+0x18]
+  add   rdi, rax
+  mov   rax, NULL_CHAR
+  stosb
 
   ; save request str
   mov   rdi, [rsp+0x10]
@@ -623,7 +632,7 @@ receive_request:
   mov   rax, FAILURE_CODE
   
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 
@@ -632,7 +641,7 @@ receive_request:
 ; @param  rdi: pointer to context struct
 ; @return rax: return code
 parse_request:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   cmp   rdi, 0
   jle   .error
@@ -781,7 +790,7 @@ parse_request:
 
   ; find the end of the headers (\r\n\r\n)
   mov   rdi, rsi
-  mov   rsi, post_headers
+  mov   rsi, CRLF
   call  strpos
 
   cmp   rax, 0
@@ -800,8 +809,7 @@ parse_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x8]
-  mov   [rdi+REQ_OFF_HEADERS], rax
+  mov   [rsp+0x20], rax
 
   mov   rdi, rax
   mov   rcx, qword [rsp+0x18]
@@ -813,13 +821,35 @@ parse_request:
   stosb
 
   ; get body
-  ; move to new line (skip 4 char \r\n\r\n)
+  ; move to new line (skip CRLF)
   add   rsi, 0x4
 
   mov   [rsp+0x10], rsi
 
+  ; parse headers
+  mov   rdi, [rsp+0x20]
+  call  parse_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  ; save headers
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  set_request_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  ; free headers string
+  mov   rdi, [rsp+0x20]
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
   ; find the end of the request
-  mov   rdi, rsi
+  mov   rdi, [rsp+0x10]
   mov   rsi, NULL_CHAR
   call  find_next_char
 
@@ -899,7 +929,7 @@ parse_request:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; verifies the request, making sure the route exists and is allowed
