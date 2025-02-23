@@ -1,11 +1,11 @@
 main
 server 
 test
+git.sh
 
 
 *.o
 *.s
-*.sh
 *.c
 *.txt
 
