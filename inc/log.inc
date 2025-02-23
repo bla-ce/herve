@@ -442,6 +442,7 @@ log_ctx:
 
   cmp   rax, 0
   jl    .error
+  je    .no_request
 
   mov   rdi, rax
   mov   rsi, 0
@@ -458,6 +459,7 @@ log_ctx:
 
   cmp   rax, 0
   jl    .error
+  je    .no_request
 
   mov   rdi, rax
   mov   rsi, 0

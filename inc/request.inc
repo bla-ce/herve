@@ -3,7 +3,7 @@ section .data
   METHOD_MAX_LEN        equ 0x8
   PROTO_MAX_LEN         equ 0x9
   HOST_MAX_LEN          equ 0xFF
-  URL_MAX_LEN           equ 0x2000
+  URL_MAX_LEN           equ 0x20
   BODY_MAX_LEN          equ 0x2000
 
   REQUEST_MAX_LEN     equ 0x2000
@@ -40,6 +40,178 @@ section .data
   REQ_OFF_CLOSE       equ REQ_OFF_QUERY_PARAM + 0x8
 
 section .text
+; initialise the request with null pointers
+; @param  rdi: pointer to the request struct
+; @return rax: return value
+request_init:
+  sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jl    .error
+
+  mov   [rsp], rdi
+
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_request_body
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_request_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_request_proto
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_request_method
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_request_url
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_request_str
+
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; sets the url of the request
+; @param  rdi: pointer to the request
+; @param  rsi: pointer to the url
+; @return rax: return code
+set_request_url:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+REQ_OFF_URL], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the method of the request
+; @param  rdi: pointer to the request
+; @param  rsi: pointer to the method
+; @return rax: return code
+set_request_method:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+REQ_OFF_METHOD], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the protocol of the request
+; @param  rdi: pointer to the request
+; @param  rsi: pointer to the protocol
+; @return rax: return code
+set_request_proto:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+REQ_OFF_PROTO], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the headers of the request
+; @param  rdi: pointer to the request
+; @param  rsi: pointer to the headers
+; @return rax: return code
+set_request_headers:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+REQ_OFF_HEADERS], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the body of the request
+; @param  rdi: pointer to the request
+; @param  rsi: pointer to the body
+; @return rax: return code
+set_request_body:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+REQ_OFF_BODY], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; parses the query parameters of the request url
 ; @param  rdi: pointer to the request url
 ; @return rax: pointer to the hash table
@@ -716,8 +888,15 @@ parse_request:
   jmp   .return
 
 .error:
+  ; send 500
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
+  mov   rdi, [rsp]
+  call  ctx_abort
+
   mov   rax, FAILURE_CODE
-  jmp   .return
 
 .return:
   add   rsp, 0x20

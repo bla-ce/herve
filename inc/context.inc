@@ -162,6 +162,11 @@ ctx_init:
 
   mov   [rsp+0x10], rax
 
+  mov   rdi, [rsp+0x10]
+  call  request_init
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
   call  set_ctx_request

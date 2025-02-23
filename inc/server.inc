@@ -346,11 +346,25 @@ run_server:
   call  parse_request
 
   cmp   rax, 0
-  jl   .ctx_close 
+  jl    .ctx_close
+
+; check if ctx has been aborted
+  mov   rdi, [rsp+0x10]
+  call  is_ctx_aborted
+
+  cmp   rax, TRUE
+  je    .ctx_close
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
   call  run_middlewares
+
+; check if ctx has been aborted
+  mov   rdi, [rsp+0x10]
+  call  is_ctx_aborted
+
+  cmp   rax, TRUE
+  je    .ctx_close
 
   ; verify request
   mov   rdi, [rsp+0x10]

@@ -495,11 +495,21 @@ stringify_response:
 
 ; sends a response without content
 ; @param  rdi: pointer to context struct
+; @param  rsi: status code
 ; @return rax: return code
 send_no_content:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jl    .error
+
+  ; default status code is 204 No Content
+  mov   rax, NO_CONTENT
+  cmp   rsi, 0
+  cmove rsi, rax
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x8], rsi
 
   ; get response
   call  get_ctx_response
@@ -524,7 +534,7 @@ send_no_content:
 
   ; send response
   mov   rdi, [rsp]
-  mov   rsi, NO_CONTENT
+  mov   rsi, qword [rsp+0x8]
   call  send_response
 
   cmp   rax, 0
@@ -537,7 +547,7 @@ send_no_content:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; sends a string response

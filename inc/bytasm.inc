@@ -1,6 +1,6 @@
+; TODO: error management
 ; TODO: free ctx resources after connection
 ; TODO: timeout with alarm syscall
-; TODO: abort request from middleware
 
 %include "ascii.inc"
 %include "calloc.inc"

@@ -4,10 +4,23 @@ global  _start
 
 section .text
 middleware:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
   lea   rdi, [middleware_msg]  
   mov   rsi, 0
   call  println
 
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
 
 test_no_content:
@@ -34,6 +47,7 @@ test_no_content:
   call  println
 
   mov   rdi, [rsp]
+  mov   rsi, NO_CONTENT
   call  send_no_content
 
   jmp   .return
@@ -194,4 +208,6 @@ section .data
   middleware_msg  db "Hello, World!", NULL_CHAR
 
   error_no_query  db "failed to get query parameter", NULL_CHAR
+
+  error db "ERROR", NULL_CHAR
 

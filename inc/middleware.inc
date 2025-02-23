@@ -134,6 +134,13 @@ run_middlewares:
   cmp   rax, 0
   jl    .error
 
+  ; check if the contxt has been aborted
+  mov   rdi, [rsp]
+  call  is_ctx_aborted
+  
+  cmp   rax, TRUE
+  je    .return
+
   mov   rdi, [rsp+0x10]  ; load address of middleware struct
 
   add   rdi, MIDDLEWARE_OFF_NEXT
