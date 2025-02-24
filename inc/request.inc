@@ -683,24 +683,18 @@ parse_request:
   mov   qword [rsp+0x18], rax
 
   ; add one for null char
-  mov   rdi, qword [rsp+0x18]
-  inc   rdi
-  call  malloc
-
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [rsp+0x18]
+  call  strndup
   cmp   rax, 0
-  jle   .error
+  jl    .error
 
   mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_METHOD], rax
 
   ; load method
-  mov   rdi, rax
-  mov   rcx, qword [rsp+0x18]
   mov   rsi, [rsp+0x10] 
-  rep   movsb
-
-  xor   rax, rax
-  stosb
+  add   rsi, qword [rsp+0x18]
 
   ; method url HTTP/n.n 
   ;       | inc rsi to go to first char of the url
@@ -724,10 +718,9 @@ parse_request:
   mov   qword [rsp+0x18], rax
 
   ; add one for null char
-  mov   rdi, qword [rsp+0x18]
-  inc   rdi
-  call  malloc
-
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [rsp+0x18]
+  call  strndup
   cmp   rax, 0
   jl    .error
 
@@ -735,13 +728,8 @@ parse_request:
   mov   [rdi+REQ_OFF_URL], rax
 
   ; load url
-  mov   rdi, rax
-  mov   rcx, qword [rsp+0x18]
   mov   rsi, [rsp+0x10]
-  rep   movsb
-
-  xor   rax, rax
-  stosb
+  add   rsi, qword [rsp+0x18]
 
   ; inc rsi to go to the protocol 
   inc   rsi
@@ -759,10 +747,9 @@ parse_request:
   mov   qword [rsp+0x18],rax
 
   ; malloc request protocol
-  mov   rdi, PROTO_MAX_LEN
-  inc   rdi                 ; add one for null char
-  call  malloc
-
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [rsp+0x18]
+  call  strndup
   cmp   rax, 0
   jl    .error
 
@@ -770,17 +757,8 @@ parse_request:
   mov   [rdi+REQ_OFF_PROTO], rax
 
   ; load protocol
-  mov   rdi, rax
-  mov   rcx, qword [rsp+0x18]
   mov   rsi, [rsp+0x10]
-  rep   movsb
-
-  ; add null char to avoid garbage values
-  xor   rax, rax
-  stosb
-
-  ; save rsi pointer to the stack
-  mov   [rsp+0x10], rsi
+  add   rsi, qword [rsp+0x18]
 
   ; mov to new line (skip 2 char \r\n)
   add   rsi, 0x2
@@ -802,23 +780,16 @@ parse_request:
 
   mov   qword [rsp+0x18], rax
    
-  mov   rdi, rax
-  inc   rdi       ; add one for null char
-  call  malloc
-
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [rsp+0x18]
+  call  strndup
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x20], rax
 
-  mov   rdi, rax
-  mov   rcx, qword [rsp+0x18]
   mov   rsi, [rsp+0x10]
-  rep   movsb
-
-  ; add null char
-  xor   rax, rax
-  stosb
+  add   rsi, qword [rsp+0x18]
 
   ; get body
   ; move to new line (skip CRLF)
@@ -864,24 +835,14 @@ parse_request:
   mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_CONTENT_LEN], rax
 
-  mov   rdi, rax
-  inc   rdi       ; add one for null char
-  call  malloc
-
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [rsp+0x18]
+  call  strndup
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x8]
   mov   [rdi+REQ_OFF_BODY], rax
-
-  mov   rdi, rax
-  mov   rcx, qword [rsp+0x18]
-  mov   rsi, [rsp+0x10]
-  rep   movsb
-
-  ; add null char
-  mov   rax, NULL_CHAR
-  stosb
 
   mov   rax, [rsp+0x8]
 

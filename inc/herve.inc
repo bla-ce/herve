@@ -1,5 +1,6 @@
 ; TODO: return date
 ; TODO: use strndup for parsing
+; TODO: free hash table and free key/values after ht_insert if not used
 ; TODO: persist connection by default
 ; TODO: error management
 ; TODO: free ctx resources after connection
