@@ -8,7 +8,7 @@
 
 ## Overview
 
-This project is a lightweight, high-performance HTTP server library written entirely in Netwide Assembly (NASM) for x86 systems. It provides a simple API for handling HTTP requests and responses, making it easier for developers to build web applications in pure Assembly without worrying about low-level network operations.
+Herve is a lightweight, high-performance HTTP server library written entirely in Netwide Assembly (NASM) for x86 systems. It provides a simple API for handling HTTP requests and responses, making it easier for developers to build web applications in pure Assembly without worrying about low-level network operations.
 
 ## Features
 
@@ -20,7 +20,7 @@ This project is a lightweight, high-performance HTTP server library written enti
 - **Request Parsing**: Built-in HTTP request parser.
 - **Configurable Port Number**: Users can specify the listening port.
 - **Custom Request Handlers**: Users can define custom handlers for different request routes.
-- **Middleware Support**: Users can add middleware to extend request processing.
+- **Middleware Support**: Users can add middlewares to extend request processing.
 - **Static File Serving**: Supports serving static files and entire directories.
 - **Memory Management**: Built-in memory management with automatic cleanup.
 - **Hash Table Implementation**: Users can use hash tables

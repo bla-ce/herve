@@ -968,6 +968,18 @@ verify_request:
 
   mov   [rsp+0x10], rax
 
+  ; check if the host header is present in the request
+  mov   rdi, [rsp+0x10]
+  call  get_request_headers
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  lea   rsi, [HOST_HEADER]
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
   mov   rsi, [rsp+0x8]
 
 .loop:
@@ -1008,7 +1020,18 @@ verify_request:
 
   jmp   .return
   
- .error:
+.error:
+  ; send bad request
+  mov   rdi, [rsp] 
+  mov   rsi, BAD_REQUEST
+  call  send_response
+
+  mov   rdi, [rsp]
+  call  ctx_abort
+
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, FAILURE_CODE
 
 .return:

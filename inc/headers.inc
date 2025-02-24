@@ -10,6 +10,7 @@ HEADERS_MAX_LEN       equ HEADER_LEN * HEADERS_MAX_COUNT
 CONTENT_TYPE_HEADER   db "Content-Type", NULL_CHAR
 CONTENT_LENGTH_HEADER db "Content-Length", NULL_CHAR
 CONNECTION_HEADER     db "Connection", NULL_CHAR
+HOST_HEADER           db "Host", NULL_CHAR
 
 ; content type
 CONTENT_HTML  db "text/html; charset=UTF-8", NULL_CHAR

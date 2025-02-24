@@ -1,7 +1,6 @@
-; TODO: use strndup for parsing
-; TODO: return 400 if host header is not present
-; TODO: persist connection by default
 ; TODO: return date
+; TODO: use strndup for parsing
+; TODO: persist connection by default
 ; TODO: error management
 ; TODO: free ctx resources after connection
 ; TODO: timeout with alarm syscall

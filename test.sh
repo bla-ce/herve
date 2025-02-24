@@ -29,13 +29,15 @@ tests=(
   "http://192.168.122.129:1337/nonot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundt-found GET 500"
 )
 
+sum_time_us=0  # Accumulate total processing time in microseconds
+sum_tests=0
+
 # Loop for repeated test runs
 for i in {1..100}
 do
   total_tests=${#tests[@]}
   passed_tests=0
   routes=0
-  sum_time_us=0  # Accumulate total processing time in microseconds
 
   # Function to perform the test
   perform_test() {
@@ -91,13 +93,14 @@ do
 
     # Increment the test number
     test_number=$((test_number + 1))
+    sum_tests=$((sum_tests + 1))
   done
 
   # Calculate the average processing time in microseconds for the run
-  avg_time_us=$(echo "scale=0; $sum_time_us / $total_tests" | bc)
 
   echo -e "\n--------------- Results for Run #$i ---------------\n"
   echo -e "Total Tests: $total_tests, ${GREEN}PASSED${NC}: $passed_tests, ${RED}FAILED${NC}: $((total_tests - passed_tests))"
-  echo -e "Average Processing Time: ${avg_time_us} µs\n"
 done
 
+avg_time_us=$(echo "scale=0; $sum_time_us / $sum_tests" | bc)
+echo -e "Average Processing Time: ${avg_time_us} µs\n"
