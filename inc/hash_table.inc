@@ -379,16 +379,28 @@ ht_insert:
   ; save entry
   mov   [rsp+0x18], rax
 
-  ; store key
+  ; dup and store key
   mov   rdi, [rsp+0x8] 
-  mov   [rax+HT_ENTRY_OFF_KEY], rdi
+  call  strdup
 
-  ; store value
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   [rdi+HT_ENTRY_OFF_KEY], rax
+
+  ; dup and store value
   mov   rdi, [rsp+0x10] 
-  mov   [rax+HT_ENTRY_OFF_VALUE], rdi
+  call  strdup
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   [rdi+HT_ENTRY_OFF_VALUE], rax
 
   ; set next as 0
-  mov   qword [rax+HT_ENTRY_OFF_NEXT], 0
+  mov   qword [rdi+HT_ENTRY_OFF_NEXT], 0
 
   ; hash string
   mov   rdi, [rsp+0x8]
