@@ -317,7 +317,7 @@ get_response_body:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
 stringify_response:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
 
   mov   [rsp], rdi
 
@@ -425,7 +425,7 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x38], rax
 
   mov   rdi, rax
   call  strlen
@@ -434,15 +434,21 @@ stringify_response:
   jl    .error
 
   mov   rdi, [rsp+0x28]
-  mov   rsi, [rsp+0x18]
+  mov   rsi, [rsp+0x38]
   mov   rcx, rax
   rep   movsb
 
   mov   [rsp+0x28], rdi
 
   ; free headers string
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x38]
   call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free headers hash table
+  mov   rdi, [rsp+0x18]
+  call  ht_free
   cmp   rax, 0
   jl    .error
 
@@ -492,6 +498,13 @@ stringify_response:
   mov   rdi, rax
   call  free
 
+  mov   rax, [rsp+0x38]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
   mov   rax, [rsp+0x18]
   test  rax, rax
   jz    .no_free
@@ -503,7 +516,7 @@ stringify_response:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 ; sends a response without content
