@@ -142,6 +142,11 @@ log_server_init:
   mov   [rsp], rdi
   mov   qword [rsp+0x10], 0
 
+  ; log the logo :)
+  lea   rdi, [HERVE_LOGO]
+  mov   rsi, 0
+  call  println
+
   xor   rdi, rdi
   lea   rdi, [log_debug]
   mov   rsi, 0
