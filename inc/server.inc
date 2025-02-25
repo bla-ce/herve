@@ -9,11 +9,11 @@ section .data
   PORT_MAX     equ 0xffff
 
   server_struct:
-    server_sockfd             dq 0
-    server_routes             dq 0
-    server_sockaddr           dq 0
-    server_middlewares        dq 0
-    server_port               dw 0
+    server_sockfd             dq 0  ; socket file descriptor
+    server_routes             dq 0  ; pointer to linked list of routes
+    server_sockaddr           dq 0  ; pointer to sockaddr struct
+    server_middlewares        dq 0  ; pointer to middlewares linked list
+    server_port               dw 0  ; port
   end_server_struct:
 
   SERVER_STRUCT_LEN equ end_server_struct - server_struct

@@ -4,7 +4,9 @@
 > This library is for educational or experimental purposes only.
 > It is NOT suitable yet for production use
 
-## Official Documentation will be available soon
+## Documentation (Work In Progress)
+
+https://herve-1.gitbook.io/herve-docs
 
 ## Overview
 
@@ -13,6 +15,7 @@ Herve is a lightweight, high-performance HTTP server library written entirely in
 ## Features
 
 - **Linux x86 Only**: Designed exclusively for Linux on x86 architecture.
+- **Built-in Utility Functions**: Provides low-level functions allowing users to focus on their application logic and speed up Assembly development.
 - **Tiny executable**: ~25KB (stripped)
 - **Ultra-fast**: ~30-200µs per request
 - **Zero external dependencies**: No libc required

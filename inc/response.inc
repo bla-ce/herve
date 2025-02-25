@@ -994,7 +994,14 @@ serve_dir:
   jmp   .return
 
 .error:
-  ; TODO: return 500?
+  ; send 500
+  mov   rdi, [rsp] 
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_response  
+
+  mov   rdi, [rsp]
+  call  ctx_abort
+
   mov   rax, FAILURE_CODE
 
 .return:
