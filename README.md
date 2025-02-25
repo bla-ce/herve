@@ -13,7 +13,9 @@ Herve is a lightweight, high-performance HTTP server library written entirely in
 ## Features
 
 - **Linux x86 Only**: Designed exclusively for Linux on x86 architecture.
-- **Lightweight**: Minimal memory footprint and no external dependencies.
+- **Tiny executable**: ~25KB (stripped)
+- **Ultra-fast**: ~30-200µs per request
+- **Zero external dependencies**: No libc required
 - **High Performance**: Optimized for speed with custom memory management.
 - **Custom Malloc Implementation**: Efficient memory allocation using custom malloc.
 - **HTTP/1.1 Support**: Support for HTTP/1.1 requests and responses.

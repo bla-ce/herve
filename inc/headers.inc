@@ -30,6 +30,8 @@ CONTENT_XML   db "application/xml", NULL_CHAR
 ; connection
 CONNECTION_CLOSE db "close", NULL_CHAR
 
+CRLF  db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
+
 section .text
 ; parses the headers string into a hash table
 ; @param  rdi: pointer to headers string
