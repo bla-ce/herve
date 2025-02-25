@@ -440,6 +440,12 @@ stringify_response:
 
   mov   [rsp+0x28], rdi
 
+  ; free headers string
+  mov   rdi, [rsp+0x18]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   ; check if body
 .skip_headers:
   mov   rdi, [rsp+0x20]
@@ -480,6 +486,13 @@ stringify_response:
 
 .error:
   mov   rax, [rsp+0x28]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+  mov   rax, [rsp+0x18]
   test  rax, rax
   jz    .no_free
 
