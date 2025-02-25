@@ -106,23 +106,15 @@ compare_route:
   ; save position
   mov   qword [rsp+0x18], rax
 
-  ; malloc new url without string
-  mov   rdi, rax
-  inc   rdi       ; add one for null char
-  call  malloc
+  ; malloc new url without query parameters
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  strndup
 
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x20], rax
-
-  mov   rdi, rax
-  mov   rsi, [rsp+0x10]
-  mov   rcx, qword [rsp+0x18]
-  rep   movsb
-
-  mov   rax, NULL_CHAR
-  stosb
 
   mov   rdi, [rsp+0x20]
   mov   [rsp+0x10], rdi

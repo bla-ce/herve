@@ -1059,7 +1059,7 @@ free_request:
   je    .free_request_str
 
   mov   rdi, rax
-  call  free
+  call  ht_free
 
   cmp   rax, 0
   jl    .error

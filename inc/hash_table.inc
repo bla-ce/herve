@@ -535,3 +535,85 @@ ht_create:
   add   rsp, 0x10
   ret
 
+; frees the hash table and allocated resources
+; @param  rdi: pointer to the hash table
+; @return rax: return code
+ht_free:
+  sub   rsp, 0x20
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+
+  ; get hash table length
+  mov   rdi, [rsp]
+  call  ht_get_length
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x8], rax
+
+  ; get list of keys 
+  mov   rdi, [rsp]
+  call  ht_get_keys
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; index
+  xor   r9, r9
+.loop:
+  cmp   r9, qword [rsp+0x8]
+  jge   .end_loop
+
+  ; get array of keys
+  mov   rsi, [rsp+0x10]
+
+  ; get key 
+  mov   rdi, [rsi+r9*8]
+  mov   [rsp+0x18], rdi
+
+  ; get value
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x18]
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  ; free value
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free key
+  mov   rdi, [rsp+0x18]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  inc   r9
+  jmp   .loop
+
+.end_loop:
+
+  ; free hash table
+  mov   rdi, [rsp]
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
+
