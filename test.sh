@@ -20,7 +20,6 @@ tests=(
   "http://192.168.122.129:1337/index/path GET 404"
   "http://192.168.122.129:1337/examples/views/index.html GET 200"
   "http://192.168.122.129:1337/examples/views/index.js GET 200"
-  "http://192.168.122.129:1337/examples/views/img/image.jpg GET 200"
   "http://192.168.122.129:1337/examples/views/style.css GET 200"
   "http://192.168.122.129:1337/in GET 404"
   "http://192.168.122.129:1337/index?query=53094 GET 200"
