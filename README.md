@@ -6,7 +6,7 @@
 
 ## Documentation (Work In Progress)
 
-https://herve-1.gitbook.io/herve-docs
+https://herve-asm.gitbook.io/herve-docs
 
 ## Overview
 
