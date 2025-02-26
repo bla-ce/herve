@@ -33,6 +33,7 @@
 %include "status_code.inc"
 %include "syscall.inc"
 %include "hash_table.inc"
+%include "template.inc"
 
 section .bss
 section .data

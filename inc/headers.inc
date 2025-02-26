@@ -14,6 +14,7 @@ HOST_HEADER           db "Host", NULL_CHAR
 
 ; content type
 CONTENT_HTML  db "text/html; charset=UTF-8", NULL_CHAR
+CONTENT_APL   db "text/html; charset=UTF-8", NULL_CHAR
 CONTENT_CSS   db "text/css; charset=UTF-8", NULL_CHAR
 CONTENT_JS    db "text/javascript; charset=UTF-8", NULL_CHAR
 CONTENT_PLAIN db "text/plain; charset=UTF-8", NULL_CHAR

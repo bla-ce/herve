@@ -2,8 +2,10 @@ section .data
   ; file constants
   O_RDONLY        equ 0
   O_WRONLY        equ 1
+  O_RDWR          equ 2
   O_CREAT         equ 0x40
   O_APPEND        equ 0x400
+  O_TMPFILE       equ 0x410000
   O_DIRECTORY     equ 65536
   FILE_PATH_LEN   equ 0x40
   FILE_MAX_LEN    equ 0x2000
@@ -201,7 +203,7 @@ get_content_type:
   cmp   rax, 1
   jne   .check_js
 
-  lea   rax, [CONTENT_HTML] ; template extension
+  lea   rax, [CONTENT_APL] ; template extension
   jmp   .return
 
 .check_js:
