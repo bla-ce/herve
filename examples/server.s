@@ -23,6 +23,77 @@ middleware:
   add   rsp, 0x8
   ret
 
+test_template:
+  sub   rsp, 0x10
+  
+  mov   [rsp], rdi
+
+  mov   rdi, 4
+  call  ht_create
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, rax
+  lea   rsi, [title_key]
+  lea   rdx, [title]
+  call  ht_insert
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [header_key]
+  lea   rdx, [header]
+  call  ht_insert
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [content_key]
+  lea   rdx, [content]
+  call  ht_insert
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [footer_key]
+  lea   rdx, [footer]
+  call  ht_insert
+
+  cmp   rax, 0
+  jl    .error
+
+  lea   rdi, [template_path]
+  mov   rsi, [rsp+0x8]
+  call  parse_template
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp] 
+  mov   rsi, OK
+  mov   rdx, rax
+  call  send_HTML
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 test_no_content:
   sub   rsp, 0x8
 
@@ -149,6 +220,13 @@ _start:
   mov   rcx, test_string
   call  add_route
 
+  ; add health route
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [template_url]
+  mov   rcx, test_template
+  call  add_route
+
   cmp   rax, 0
   jl    .error
 
@@ -195,11 +273,13 @@ section .bss
 section .data
   sockfd  dq 0
 
-  root_url    db "/", NULL_CHAR
-  health_url  db "/health", NULL_CHAR
-  index_url   db "/index", NULL_CHAR
+  root_url      db "/", NULL_CHAR
+  health_url    db "/health", NULL_CHAR
+  index_url     db "/index", NULL_CHAR
+  template_url  db "/template", NULL_CHAR
 
   index_path    db "examples/views/index.html", NULL_CHAR
+  template_path db "examples/views/template.apl", NULL_CHAR
   dir_path      db "examples/views", NULL_CHAR
 
   name_query db "name", NULL_CHAR
@@ -210,4 +290,16 @@ section .data
   error_no_query  db "failed to get query parameter", NULL_CHAR
 
   error db "ERROR", NULL_CHAR
+
+  title_key   db "Title", NULL_CHAR
+  header_key  db "Header", NULL_CHAR
+  content_key db "Content", NULL_CHAR
+  footer_key  db "Footer", NULL_CHAR
+
+  title   db "GOAT | HEHE", NULL_CHAR
+  header  db "Be careful, you're walking on a place of divinity", NULL_CHAR
+  content db "This page uses a template engine written in assembly", NULL_CHAR
+  footer  db "Still here?", NULL_CHAR
+
+
 

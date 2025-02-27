@@ -576,6 +576,127 @@ send_no_content:
   add   rsp, 0x10
   ret
 
+; sends a string response as HTML
+; TODO: merge with send string?
+; @param  rdi: pointer to context struct
+; @param  rsi: status code
+; @param  rdx: pointer to the HTML
+; @return rax: return code
+send_HTML:
+  sub   rsp, 0x38
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x30], 0
+
+  ; get response
+  call  get_ctx_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, rax
+  call  get_response_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+  
+  ; set content type headers
+  mov   rdi, [rsp+0x20]
+  lea   rsi, [CONTENT_TYPE_HEADER]
+  lea   rdx, [CONTENT_HTML]
+  call  set_header
+
+  cmp   rax, 0
+  jl    .error
+ 
+  ; get string length   
+  mov   rdi, [rsp+0x10]
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x28], rax
+
+  mov   rdi, LONG_SIZE
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
+  mov   rdi, qword [rsp+0x28]
+  mov   rsi, [rsp+0x30]
+  mov   rdx, LONG_SIZE
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  ; set content length
+  mov   rdx, rax
+  mov   rdi, [rsp+0x20]
+  lea   rsi, [CONTENT_LENGTH_HEADER]
+  call  set_header
+
+  cmp   rax, 0
+  jl    .error
+
+  ; add string to body
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x10]
+  call  set_response_body
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  send_response
+
+  cmp   rax, 0
+  jl    .error
+
+  ; free content length str
+  mov   rdi, [rsp+0x30]
+  call  free
+
+  cmp   rax, 0
+  jl    .error
+  
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, [rsp+0x30]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x38
+  ret
+
 ; sends a string response
 ; @param  rdi: pointer to context struct
 ; @param  rsi: status code

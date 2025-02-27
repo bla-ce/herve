@@ -269,12 +269,22 @@ add_dir_route:
   mov   rax, NULL_CHAR
   stosb
 
+  mov   rdi, [rsp+0x30]
+  call  get_content_type
+
+  cmp   rax, 0
+  jl    .next
+
+  cmp   rax, CONTENT_APL
+  je    .next
+
   mov   rdi, [rsp+0x40]
   lea   rsi, [GET]
   mov   rdx, [rsp+0x30] 
   mov   rcx, serve_dir
   call  add_route
 
+.next:
   mov   rdi, [rsp+0x8]
 
   jmp   .skip_not_dir

@@ -114,6 +114,7 @@ parse_template:
   mov   rsi, rax
   call  ht_get
 
+  ; TODO: return an error
   cmp   rax, 0
   jl    .error
 
