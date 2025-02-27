@@ -1,4 +1,3 @@
-; TODO: redirect
 ; TODO: basic auth
 ; TODO: return date
 ; TODO: persist connection by default
@@ -9,6 +8,7 @@
 ; TODO: update routes data structure faster than O(n)
 
 %include "ascii.inc"
+%include "base64.inc"
 %include "calloc.inc"
 %include "constants.inc"
 %include "error.inc"

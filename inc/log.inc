@@ -510,7 +510,7 @@ log_status_code:
   lea   rdi, [gray_fg]
   jmp   .print_color
 
-  ; load green
+; load green
 .green:
   lea   rdi, [green_fg]
   jmp   .print_color
