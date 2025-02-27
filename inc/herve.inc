@@ -1,7 +1,7 @@
+; TODO: basic auth
 ; TODO: return date
 ; TODO: persist connection by default
 ; TODO: read parameters
-; TODO: template engine
 ; TODO: error management
 ; TODO: free ctx resources after connection
 ; TODO: timeout with alarm syscall

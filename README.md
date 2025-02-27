@@ -29,6 +29,7 @@ Herve is a lightweight, high-performance HTTP server library written entirely in
 - **Static File Serving**: Supports serving static files and entire directories.
 - **Memory Management**: Built-in memory management with automatic cleanup.
 - **Hash Table Implementation**: Users can use hash tables
+- **Basic Template Engine**: Built-in basic template engine
 - **Support Query Parameters**: Is able to read and parse query parameters
 
 ## Example
