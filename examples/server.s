@@ -23,6 +23,13 @@ middleware:
   add   rsp, 0x8
   ret
 
+test_redirect:
+  mov   rsi, FOUND
+  lea   rdx, [template_url]
+  call  redirect
+
+  ret
+
 test_template:
   sub   rsp, 0x10
   
@@ -220,11 +227,24 @@ _start:
   mov   rcx, test_string
   call  add_route
 
-  ; add health route
+  cmp   rax, 0
+  jl    .error
+
+  ; add template route
   mov   rdi, [rsp]
   lea   rsi, [GET]
   lea   rdx, [template_url]
   mov   rcx, test_template
+  call  add_route
+
+  cmp   rax, 0
+  jl    .error
+
+  ; add redirect route
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [redirect_url]
+  mov   rcx, test_redirect
   call  add_route
 
   cmp   rax, 0
@@ -277,6 +297,7 @@ section .data
   health_url    db "/health", NULL_CHAR
   index_url     db "/index", NULL_CHAR
   template_url  db "/template", NULL_CHAR
+  redirect_url  db "/redirect", NULL_CHAR
 
   index_path    db "examples/views/index.html", NULL_CHAR
   template_path db "examples/views/template.apl", NULL_CHAR

@@ -1,3 +1,4 @@
+; TODO: redirect
 ; TODO: basic auth
 ; TODO: return date
 ; TODO: persist connection by default
@@ -34,6 +35,7 @@
 %include "syscall.inc"
 %include "hash_table.inc"
 %include "template.inc"
+%include "redirect.inc"
 
 section .bss
 section .data

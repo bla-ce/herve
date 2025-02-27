@@ -15,6 +15,7 @@ log_arrow     db SPACE, "->", SPACE, NULL_CHAR
 red_fg      db 0x1b, "[31m", NULL_CHAR
 green_fg    db 0x1b, "[32m", NULL_CHAR
 yellow_fg   db 0x1b, "[33m", NULL_CHAR
+gray_fg     db 0x1b, "[90m", NULL_CHAR
 default_fg  db 0x1b, "[39m", NULL_CHAR
 
 ; bool to enable/disable color
@@ -494,13 +495,20 @@ log_status_code:
   cmp   qword [log_color], 0
   je    .no_color
 
-  cmp   rdi, BAD_REQUEST
+  cmp   rdi, 300
   jl    .green
 
-  cmp   rdi, INTERNAL_SERVER_ERROR
+  cmp   rdi, 400
+  jl    .gray
+
+  cmp   rdi, 500
   jl    .yellow
 
   jmp   .red
+
+.gray:
+  lea   rdi, [gray_fg]
+  jmp   .print_color
 
   ; load green
 .green:

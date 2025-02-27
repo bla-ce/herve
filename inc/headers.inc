@@ -11,6 +11,7 @@ CONTENT_TYPE_HEADER   db "Content-Type", NULL_CHAR
 CONTENT_LENGTH_HEADER db "Content-Length", NULL_CHAR
 CONNECTION_HEADER     db "Connection", NULL_CHAR
 HOST_HEADER           db "Host", NULL_CHAR
+LOCATION_HEADER       db "Location", NULL_CHAR
 
 ; content type
 CONTENT_HTML  db "text/html; charset=UTF-8", NULL_CHAR
@@ -316,7 +317,7 @@ stringify_headers:
   ret
 
 ; set the headers
-; @param  rdi: pointer to headers has table
+; @param  rdi: pointer to headers hash table
 ; @param  rsi: key
 ; @param  rdx: value
 ; @return rax: return code

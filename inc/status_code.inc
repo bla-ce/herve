@@ -139,13 +139,38 @@ STR_NETWORK_AUTHENTICATION_REQUIRED db "511 Network Authentication Required", NU
 section .text
 ; Returns the string representation of a status code
 ; @param  rdi: status code (int)
-; @return rax: string status_code
+; @return rax: pointer to a string representing the status code
 get_status_string:
   cmp   rdi, NO_CONTENT
   je    .no_content
 
   cmp   rdi, OK
   je    .ok
+
+  ; Redirection status codes (300-399)
+  cmp   rdi, MULTIPLE_CHOICES
+  je    .multiple_choices
+
+  cmp   rdi, MOVED_PERMANENTLY
+  je    .moved_permanently
+
+  cmp   rdi, FOUND
+  je    .found
+
+  cmp   rdi, SEE_OTHER
+  je    .see_other
+
+  cmp   rdi, NOT_MODIFIED
+  je    .not_modified
+
+  cmp   rdi, USE_PROXY
+  je    .use_proxy
+
+  cmp   rdi, TEMPORARY_REDIRECT
+  je    .temporary_redirect
+
+  cmp   rdi, PERMANENT_REDIRECT
+  je    .permanent_redirect
 
   cmp   rdi, BAD_REQUEST
   je    .bad_request
@@ -164,6 +189,38 @@ get_status_string:
 
 .ok:
   lea   rax, [STR_OK]
+  ret
+
+.multiple_choices:
+  lea   rax, [STR_MULTIPLE_CHOICES]
+  ret
+
+.moved_permanently:
+  lea   rax, [STR_MOVED_PERMANENTLY]
+  ret
+
+.found:
+  lea   rax, [STR_FOUND]
+  ret
+
+.see_other:
+  lea   rax, [STR_SEE_OTHER]
+  ret
+
+.not_modified:
+  lea   rax, [STR_NOT_MODIFIED]
+  ret
+
+.use_proxy:
+  lea   rax, [STR_USE_PROXY]
+  ret
+
+.temporary_redirect:
+  lea   rax, [STR_TEMPORARY_REDIRECT]
+  ret
+
+.permanent_redirect:
+  lea   rax, [STR_PERMANENT_REDIRECT]
   ret
 
 .bad_request:
