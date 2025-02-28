@@ -1,4 +1,5 @@
-; TODO: basic auth
+; TODO: fix date :)
+; TODO: edge cases basic
 ; TODO: add stack usage to functions
 ; TODO: return date
 ; TODO: persist connection by default
@@ -7,6 +8,7 @@
 ; TODO: free ctx resources after connection
 ; TODO: timeout with alarm syscall
 ; TODO: update routes data structure faster than O(n)
+; TODO: switch case implementation
 
 %include "ascii.inc"
 %include "base64.inc"
