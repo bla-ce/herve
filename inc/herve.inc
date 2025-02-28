@@ -1,4 +1,5 @@
 ; TODO: basic auth
+; TODO: add stack usage to functions
 ; TODO: return date
 ; TODO: persist connection by default
 ; TODO: read parameters
@@ -9,6 +10,7 @@
 
 %include "ascii.inc"
 %include "base64.inc"
+%include "basic.inc"
 %include "calloc.inc"
 %include "constants.inc"
 %include "error.inc"

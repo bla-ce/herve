@@ -172,11 +172,21 @@ get_status_string:
   cmp   rdi, PERMANENT_REDIRECT
   je    .permanent_redirect
 
+  ; client error 
+
   cmp   rdi, BAD_REQUEST
   je    .bad_request
 
+  cmp   rdi, UNAUTHORIZED
+  je    .unauthorized
+
+  cmp   rdi, FORBIDDEN
+  je    .forbidden
+
   cmp   rdi, NOT_FOUND
   je    .not_found
+
+  ; server error
 
   cmp   rdi, INTERNAL_SERVER_ERROR
   je    .internal_server_error
@@ -225,6 +235,14 @@ get_status_string:
 
 .bad_request:
   lea   rax, [STR_BAD_REQUEST]
+  ret
+
+.unauthorized:
+  lea   rax, [STR_UNAUTHORIZED]
+  ret
+
+.forbidden:
+  lea   rax, [STR_FORBIDDEN]
   ret
 
 .not_found:

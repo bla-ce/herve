@@ -30,6 +30,78 @@ test_redirect:
 
   ret
 
+test_basic_auth:
+  sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  ; get headers
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .error
+
+  ; get authorization header
+  mov   rdi, rax
+  call  get_request_headers
+  cmp   rax, 0
+  jl    .error
+
+  ; decode auth
+  mov   rdi, rax
+  lea   rsi, [AUTHORIZATION_HEADER]
+  call  get_header_value
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  read_basic_auth
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; compare with expected string
+  mov   rdi, rax
+  lea   rsi, [expected_auth]
+  call  cmpstr
+  cmp   rax, FALSE
+  je    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  call  send_no_content
+
+  ; free decoded basic auth
+  mov   rdi, [rsp+0x8]
+  call  free
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp]
+  mov   rsi, UNAUTHORIZED
+  call  send_no_content
+
+  mov   rax, [rsp+0x8]
+  test  rax, rax
+  jz    .no_free
+
+  mov   rdi, rax
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+  
+.return:
+  add   rsp, 0x10
+  ret
+
 test_template:
   sub   rsp, 0x10
   
@@ -240,6 +312,16 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; add basic auth route
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [basic_url]
+  mov   rcx, test_basic_auth
+  call  add_route
+
+  cmp   rax, 0
+  jl    .error
+
   ; add redirect route
   mov   rdi, [rsp]
   lea   rsi, [GET]
@@ -298,6 +380,7 @@ section .data
   index_url     db "/index", NULL_CHAR
   template_url  db "/template", NULL_CHAR
   redirect_url  db "/redirect", NULL_CHAR
+  basic_url     db "/basic-auth", NULL_CHAR
 
   index_path    db "examples/views/index.html", NULL_CHAR
   template_path db "examples/views/template.apl", NULL_CHAR
@@ -322,5 +405,5 @@ section .data
   content db "This page uses a template engine written in assembly", NULL_CHAR
   footer  db "Still here?", NULL_CHAR
 
-
+  expected_auth db "test:password", NULL_CHAR
 

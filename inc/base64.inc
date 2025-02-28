@@ -18,8 +18,8 @@ section .data
 
 section .text
 
-; @param  rdi: base64 encoded string
-; @return rax: pointer to the string decoded
+; @param  rdi: Pointer to a NUL-terminated Base64 encoded string.
+; @return rax: Pointer to the newly allocated decoded string (or FAILURE_CODE)
 base64_decode:
   sub   rsp, 0x48
 
@@ -59,7 +59,7 @@ base64_decode:
   jz    .end_loop
 
   ; get 6 bit representation
-  call  dec_to_6bit
+  call  decode_base64_char
 
   cmp   rax, 0
   jl    .error
@@ -78,7 +78,7 @@ base64_decode:
   jz    .end_loop
 
   ; get 6 bit representation
-  call  dec_to_6bit
+  call  decode_base64_char
 
   cmp   rax, 0
   jl    .error
@@ -97,7 +97,7 @@ base64_decode:
   jz    .end_loop
 
   ; get 6 bit representation
-  call  dec_to_6bit
+  call  decode_base64_char
   cmp   rax, 0
   jl    .error
 
@@ -115,7 +115,7 @@ base64_decode:
   jz    .end_loop
 
   ; get 6 bit representation
-  call  dec_to_6bit
+  call  decode_base64_char
 
   cmp   rax, 0
   jl    .error
@@ -149,8 +149,8 @@ base64_decode:
   ; check padding
   ; get last char and check if equal
   mov   rax, qword [rsp+0x38]
-  test  rax, rax
-  jz    .padding_1
+  cmp  rax, 0x80
+  je    .padding_1
 
   ; extract first 8-bit char
   mov   rax, qword [rsp+0x40]
@@ -189,8 +189,8 @@ base64_decode:
 .padding_1:
   ; check if padding is 2 long
   mov   rax, qword [rsp+0x30]
-  test  rax, rax
-  jz    .padding_2
+  cmp   rax, 0x80
+  jge   .padding_2
 
   ; extract first 8-bit char
   mov   rax, qword [rsp+0x40]
@@ -243,10 +243,11 @@ base64_decode:
   add   rsp, 0x48
   ret
 
-; converts decimal value into base64 alphabet
+; converts a single Base64 character into its corresponding 6-bit
+; integer value
 ; @param  rdi: char
 ; @return rax: 6bit
-dec_to_6bit:
+decode_base64_char:
   cmp   rdi, 0
   jl    .error
 

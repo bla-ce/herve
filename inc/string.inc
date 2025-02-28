@@ -1,4 +1,43 @@
 section .text
+; returns if a string starts with a substring
+; @param  rdi: string
+; @param  rsi: substring
+; @return rax: bool
+starts_with:
+  sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; get the length of the substring
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  ; compare beginning of the string
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rcx, rax
+  rep   cmpsb
+  jne   .error
+
+  mov   rax, TRUE
+  jmp   .return
+
+.error:
+  mov   rax, FALSE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; returns a pointer to a new string which is a duplicate of the string s
 ; user has to handle freeing the string
 ; @param  rdi: pointer to the string

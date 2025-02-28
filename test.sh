@@ -18,6 +18,7 @@ tests=(
   "http://192.168.122.129:1337/health GET 200"
   "http://192.168.122.129:1337/redirect GET 302"
   "http://192.168.122.129:1337/template GET 200"
+  "http://192.168.122.129:1337/basic-auth GET 401"
   "http://192.168.122.129:1337/index GET 200"
   "http://192.168.122.129:1337/index/path GET 404"
   "http://192.168.122.129:1337/examples/views/index.html GET 200"

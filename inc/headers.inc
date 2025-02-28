@@ -12,6 +12,7 @@ CONTENT_LENGTH_HEADER db "Content-Length", NULL_CHAR
 CONNECTION_HEADER     db "Connection", NULL_CHAR
 HOST_HEADER           db "Host", NULL_CHAR
 LOCATION_HEADER       db "Location", NULL_CHAR
+AUTHORIZATION_HEADER  db "Authorization", NULL_CHAR
 
 ; content type
 CONTENT_HTML  db "text/html; charset=UTF-8", NULL_CHAR
