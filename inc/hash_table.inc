@@ -323,6 +323,125 @@ ht_get:
   add   rsp, 0x20
   ret
 
+; deletes an entry from the hash table
+; @param  rdi: pointer to the hash table
+; @param  rsi: pointer to the key
+; @param  rax: return value
+ht_del:
+  sub   rsp, 0x30
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0   ; prev pointer
+
+  ; get hash from key
+  mov   rdi, [rsp+0x8]
+  call  hash_string_key
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x18], rax
+
+  ; get number of buckets
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+HT_OFF_NBUCKET]
+  mov   rdi, qword [rsp+0x18]
+  call  get_index_from_hash
+
+  mov   qword [rsp+0x20], rax
+
+  ; get hash table
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+HT_OFF_TABLE]
+  
+  ; go to index
+  mov   rsi, [rdi+rax*8]
+  mov   [rsp+0x28], rsi
+
+.loop:
+  mov   rsi, [rsp+0x28]
+  mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
+  ; compare keys
+  mov   rsi, [rsp+0x8]
+  call  cmpstr
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .found_key
+
+  mov   rdi, [rsp+0x28]
+  cmp   qword [rdi+HT_ENTRY_OFF_NEXT], 0 ; key does not exist
+  je    .error
+
+  ; set prev pointer
+  mov   [rsp+0x10], rdi
+
+  mov   rsi, [rdi+HT_ENTRY_OFF_NEXT]
+  mov   [rsp+0x28], rsi
+  jmp   .loop
+
+.found_key:
+  ; get prev pointer
+  mov   rax, qword [rsp+0x10]
+  test  rax, rax
+  ; if zero, entry is root of the bucket
+  jz    .root
+
+  ; get entry
+  mov   rdi, [rsp+0x28]
+
+  ; get next
+  mov   rbx, [rdi+HT_ENTRY_OFF_NEXT]
+
+  ; set prev next to next
+  mov   [rax+HT_ENTRY_OFF_NEXT], rbx
+
+  ; free entry
+  mov   rdi, [rsp+0x28]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.root:
+  ; get the index
+  mov   rax, qword [rsp+0x20]
+
+  ; go to bucket
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+HT_OFF_TABLE]
+  
+  ; set the bucket to 0
+  mov   rsi, [rdi+rax*8]
+  mov   qword [rdi+rax*8], 0
+
+  ; free the entry
+  mov   rdi, rsi
+  call  free
+
+
+  
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x30
+  ret
+
 ; inserts an entry into the hash table
 ; @param  rdi: pointer to the hash table
 ; @param  rsi: pointer to the key
@@ -598,7 +717,6 @@ ht_free:
   jmp   .loop
 
 .end_loop:
-
   ; free hash table
   mov   rdi, [rsp]
   call  free

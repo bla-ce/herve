@@ -34,7 +34,7 @@ section .data
   days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 
 section .text
-; TODO: does not work if 31 Oct
+; TODO: does not work if 31 Oct or 28 Feb
 ; convert unix to date
 ; @param  rdi: timestamp
 ; @return rax: pointer to dt struct
@@ -86,7 +86,7 @@ unix_to_date_time:
   mov   rbx, DAYS_IN_LEAP_YEAR
   mov   rdx, DAYS_IN_YEAR
 
-  cmp   rax, 0
+  cmp   rax, FALSE
   cmove rbx, rdx
 
   cmp   qword [rsp], rbx
@@ -101,9 +101,8 @@ unix_to_date_time:
 
   jmp   .curr_year
 
-
 .curr_month:
-  mov   qword [dt_month], 1
+  mov   qword [dt_month], 0
 
 .loop:
   ; calculate current month
@@ -146,7 +145,7 @@ days_in_month:
   mov   rdi, qword [rsp+0x8]
   call  is_leap_year
 
-  cmp   rax, 0
+  cmp   rax, FALSE
   je    .skip_feb
 
   ; if yes, return 29
