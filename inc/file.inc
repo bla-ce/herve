@@ -106,6 +106,7 @@ read_file:
   mov   qword [rsp+0x10], rax
 
   mov   rdi, rax
+  inc   rdi       ; add for null char
   call  malloc
 
   cmp   rax, 0
@@ -132,6 +133,11 @@ read_file:
 
   cmp   rax, 0
   jl    .error
+
+  mov   rdi, [rsp+0x8]
+  add   rdi, qword [rsp+0x10]
+  mov   rax, NULL_CHAR
+  stosb
 
   ; close file
   mov   rdi, qword [rsp]

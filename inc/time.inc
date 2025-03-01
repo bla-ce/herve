@@ -102,7 +102,7 @@ unix_to_date_time:
   jmp   .curr_year
 
 .curr_month:
-  mov   qword [dt_month], 0
+  mov   qword [dt_month], 1
 
 .loop:
   ; calculate current month
