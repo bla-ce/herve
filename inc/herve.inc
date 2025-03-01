@@ -1,3 +1,5 @@
+; TODO: ipv6 server with dual stack config ?
+; TODO: handling multiple connections (select? concurrency? fork? poll?)
 ; TODO: fix date :)
 ; TODO: edge cases basic
 ; TODO: add stack usage to functions

@@ -3,6 +3,7 @@ section .bss
 section .data
   ; server constants
   DEFAULT_MAX_CONNECTIONS equ 0x1
+  DEFAULT_BACKLOG         equ 10
 
   PORT_MIN     equ 0x1
   DEFAULT_PORT equ 8080
@@ -257,7 +258,7 @@ server_init:
 
   ; listen socket
   mov   rdi, qword [rsp+0x10]
-  xor   rsi, rsi
+  mov   rsi, DEFAULT_BACKLOG
   call  listen_socket
 
   cmp   rax, 0
@@ -295,129 +296,32 @@ server_init:
 ; @param  rdi: pointer to server struct
 ; @param  rax: return value
 run_server:
-  sub   rsp, 0x28
+  sub   rsp, 0x10
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
-  mov   qword [rsp+0x10], 0
 
   call  log_server_init
 
 .loop:
-  mov   rdi, [rsp]
-  call  ctx_init
-
-  cmp   rax, 0
-  jl    .close_server
-
-  mov   [rsp+0x10], rax
-
   ; accept connection
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp]
   call  accept_connection
 
   cmp   rax, 0
   jl    .close_server
 
-  ; set start timer -> TODO: malloc?
-  mov   rax, SYS_CLOCK_GETTIME
-  mov   rdi, CLOCK_REALTIME
-  lea   rsi, [start_tv_sec]
-  syscall
-
-  cmp   rax, 0
-  jl   .ctx_close 
-
-  mov   rdi, [rsp+0x10]
-  mov   rsi, qword [start_tv_nsec]
-  call  set_ctx_start_time
-
-  cmp   rax, 0
-  jl   .ctx_close 
-
-  mov   rdi, [rsp+0x10]
-  call  receive_request
-
-  cmp   rax, 0
-  jl   .ctx_close 
-
-  ; parse_request
-  mov   rdi, [rsp+0x10]
-  call  parse_request
-
-  cmp   rax, 0
-  jl    .ctx_close
-
-; check if ctx has been aborted
-  mov   rdi, [rsp+0x10]
-  call  is_ctx_aborted
-
-  cmp   rax, TRUE
-  je    .ctx_close
+  mov   qword [rsp+0x8], rax
 
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x10]
-  call  run_middlewares
-
-; check if ctx has been aborted
-  mov   rdi, [rsp+0x10]
-  call  is_ctx_aborted
-
-  cmp   rax, TRUE
-  je    .ctx_close
-
-  ; verify request
-  mov   rdi, [rsp+0x10]
-  call  verify_request
+  mov   rsi, qword [rsp+0x8]
+  call  handle_ctx
   cmp   rax, 0
-  jl   .ctx_close
+  jl    .error    ; TODO: check what to do if error
 
-  mov   [rsp+0x18], rax
-
-  ; check if ctx has been aborted
-  mov   rdi, [rsp+0x10]
-  call  is_ctx_aborted
-
-  cmp   rax, TRUE
-  je    .ctx_close
-
-  ; check if route has a callback
-  mov   rdi, [rsp+0x18]
-  call  get_route_callback
-
-  cmp   rax, 0
-  je   .ctx_close 
-
-  mov   rdi, [rsp+0x10]
-  call  rax
-
-.ctx_close:
-  mov   rdi, [rsp+0x10]
-  call  ctx_close
-
-.log_request:
-  ; TODO: update to use ctx
-  ; set end timer
-  mov   rax, SYS_CLOCK_GETTIME
-  mov   rdi, CLOCK_REALTIME
-  lea   rsi, [end_tv_sec]
-  syscall
-
-  ; if yes, compute the difference
-  mov   rdi, [rsp+0x10]
-  mov   rsi, qword [end_tv_nsec]
-  call  set_ctx_end_time
-
-  cmp   rax, 0
-  jl    .error
-
-  ; log previous request
-  mov   rdi, [rsp+0x10]
-  call  log_ctx
-
-.free_ctx:
-  mov   rdi, [rsp+0x10]
-  call  free_ctx
+  ; close connection
+  mov   rdi, qword [rsp+0x8]
+  call  close_file
 
   jmp   .loop
 
@@ -430,7 +334,7 @@ run_server:
 .error:
   mov   rax, FAILURE_CODE
 
-  add   rsp, 0x28
+  add   rsp, 0x10
   ret
 
 

@@ -24,6 +24,138 @@ section .data
   HTTP_1_1 db "HTTP/1.1", NULL_CHAR
 
 section .text
+; initializes and processes a new request context
+; @param  rdi: pointer to the server  
+; @param  rsi: client fd
+; @return rax: return code
+handle_ctx:
+  sub   rsp, 0x20
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], rsi
+
+  ; set start timer -> TODO: not use global
+  mov   rax, SYS_CLOCK_GETTIME
+  mov   rdi, CLOCK_REALTIME
+  lea   rsi, [start_tv_sec]
+  syscall
+
+  cmp   rax, 0
+  jl   .log_request 
+
+  mov   rdi, [rsp] 
+  mov   rsi, qword [rsp+0x8]
+  call  ctx_init
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [start_tv_nsec]
+  call  set_ctx_start_time
+
+  cmp   rax, 0
+  jl   .log_request 
+
+  mov   rdi, [rsp+0x10]
+  call  receive_request
+
+  cmp   rax, 0
+  jl   .log_request 
+
+  ; parse_request
+  mov   rdi, [rsp+0x10]
+  call  parse_request
+
+  cmp   rax, 0
+  jl    .log_request
+
+; check if ctx has been aborted
+  mov   rdi, [rsp+0x10]
+  call  is_ctx_aborted
+
+  cmp   rax, TRUE
+  je    .log_request
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  call  run_middlewares
+
+; check if ctx has been aborted
+  mov   rdi, [rsp+0x10]
+  call  is_ctx_aborted
+
+  cmp   rax, TRUE
+  je    .log_request
+
+  ; verify request
+  mov   rdi, [rsp+0x10]
+  call  verify_request
+  cmp   rax, 0
+  jl   .log_request
+
+  mov   [rsp+0x18], rax
+
+  ; check if ctx has been aborted
+  mov   rdi, [rsp+0x10]
+  call  is_ctx_aborted
+
+  cmp   rax, TRUE
+  je    .log_request
+
+  ; check if route has a callback
+  mov   rdi, [rsp+0x18]
+  call  get_route_callback
+
+  cmp   rax, 0
+  je   .log_request 
+
+  mov   rdi, [rsp+0x10]
+  call  rax
+
+.log_request:
+  ; TODO: update to use ctx
+  ; set end timer
+  mov   rax, SYS_CLOCK_GETTIME
+  mov   rdi, CLOCK_REALTIME
+  lea   rsi, [end_tv_sec]
+  syscall
+
+  ; if yes, compute the difference
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [end_tv_nsec]
+  call  set_ctx_end_time
+
+  cmp   rax, 0
+  jl    .error
+
+  ; log previous request
+  mov   rdi, [rsp+0x10]
+  call  log_ctx
+
+.free_ctx:
+  mov   rdi, [rsp+0x10]
+  call  free_ctx
+  
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
 ; frees the resources associated to the context
 ; @param  rdi: pointer to the context
 free_ctx:
@@ -109,40 +241,21 @@ is_ctx_aborted:
 .return:
   ret
 
-; closes the connection
-; @param  rdi: pointer to context struct
-; @return rax: return code
-ctx_close:
-  call  get_ctx_client
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  call  get_client_fd
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  mov   rax, SYS_CLOSE
-  syscall
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
 ; initialise context structure
 ; @param  rdi: pointer to server
+; @param  rsi: client fd
 ; @return rax: pointer to ctx struct
 ctx_init:
-  sub   rsp, 0x28
+  sub   rsp, 0x30
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x8], rsi
 
   ; malloc ctx
   mov   rdi, CTX_STRUCT_LEN
@@ -151,7 +264,7 @@ ctx_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  mov   [rsp+0x10], rax
 
   ; malloc request
   mov   rdi, REQ_STRUCT_LEN
@@ -160,15 +273,15 @@ ctx_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   call  request_init
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x18]
   call  set_ctx_request
 
   cmp   rax, 0
@@ -181,10 +294,17 @@ ctx_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
+  
+  ; set client fd
+  mov   rdi, [rsp+0x20]
+  mov   rsi, qword [rsp+0x8]
+  call  set_client_fd
+  cmp   rax, 0
+  jl    .error
 
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x18]
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x20]
   call  set_ctx_client
 
   cmp   rax, 0
@@ -195,17 +315,17 @@ ctx_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x28], rax
 
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x20]
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x28]
   call  set_ctx_response
 
   cmp   rax, 0
   jl    .error
 
   ; set server
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x10]
   mov   rsi, [rsp]
   call  set_ctx_server
 
@@ -213,11 +333,11 @@ ctx_init:
   jl    .error
 
   ; set aborted to 0
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x10]
   mov   byte [rdi+CTX_ABORTED], 0
 
   ; return context
-  mov   rax, [rsp+0x8]
+  mov   rax, [rsp+0x10]
 
   jmp   .return
 
@@ -225,7 +345,7 @@ ctx_init:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x30
   ret
 
 ; returns the pointer to the request of the context
