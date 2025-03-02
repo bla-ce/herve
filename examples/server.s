@@ -9,7 +9,6 @@ middleware:
   mov   [rsp], rdi
 
   lea   rdi, [middleware_msg]  
-  mov   rsi, 0
   call  println
 
   mov   rax, SUCCESS_CODE
@@ -193,7 +192,6 @@ test_no_content:
   jl    .error
 
   mov   rdi, rax
-  mov   rsi, 0
   call  println
 
   mov   rdi, [rsp]
@@ -233,7 +231,6 @@ test_string:
   jl    .error
 
   mov   rdi, rax
-  mov   rsi, 0
   call  println
 
   mov   rdi, [rsp]
@@ -406,4 +403,6 @@ section .data
   footer  db "Still here?", NULL_CHAR
 
   expected_auth db "test:password", NULL_CHAR
+
+  custom_delimiter db " -> ", NULL_CHAR
 

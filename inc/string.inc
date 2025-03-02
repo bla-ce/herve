@@ -490,9 +490,9 @@ strlen:
   mov   rax, rcx
   ret
 
-; prints the string, if length is not passed, it will compute its length
-; @param  rdi: sring
-; @param  rsi: (optional) string length
+; prints to the standard output the string in rdi
+; @param  rdi: pointer to the string
+; @return rax: return value
 print:
   sub   rsp, 0x8
 
@@ -501,22 +501,15 @@ print:
 
   mov   [rsp], rdi
 
-  mov   rax, rsi
-  cmp   rax, 0
-  jg    .known_length
-
-  call  strlen
-  test  rax, rax
-  jz    .return
-
   mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
 
-.known_length:
-  lea   rsi, [rdi]
-  mov   rdx, rax
-  mov   rax, SYS_WRITE
   mov   rdi, STDOUT_FILENO
-  syscall
+  mov   rsi, [rsp]
+  mov   rdx, rax
+  call  write_file
 
   jmp   .return
 
@@ -527,13 +520,11 @@ print:
   add   rsp, 0x8
   ret
 
-; prints the string followed by a new line character
-; if length is not passed, it will compute its length
-; @param  rdi: sring
-; @param  rsi: (optional) string length
+; prints to the standard output the string followed by a new line character
+; @param  rdi: string
+; @return rax: return code
 println:
-  push  rbp
-  mov   rbp, rsp
+  sub   rsp, 0x8
 
   cmp   rdi, 0
   jle   .error
@@ -542,19 +533,8 @@ println:
   cmp   rax, 0
   jl    .return
 
-  push  LINE_FEED
-
-  xor   rsi, rsi
-
-  mov   rax, SYS_WRITE
-  lea   rdi, STDOUT_FILENO
-  lea   rsi, [rsp]
-  mov   rdx, 1
-  syscall
-
-  ; clean stack
-  pop   rax
-  xor   rax, rax
+  mov   rdi, LINE_FEED
+  call  print_char
 
   jmp   .return
 
@@ -562,10 +542,67 @@ println:
   mov   rax, FAILURE_CODE
 
 .return:
-  leave  
+  add   rsp, 0x8
   ret
 
-; prints a character
+; prints n bytes from the string to the standard output
+; it does not check buffer overflow, TODO ?
+; @param  rdi: string
+; @param  rsi: number of bytes to be printed
+; @return rax: return code
+nprint:
+  sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], rsi
+
+  mov   rdi, STDOUT_FILENO
+  mov   rsi, [rsp]
+  mov   rdx, qword [rsp+0x8]
+  call  write_file
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; prints n bytes from the string followed by a new line character
+; @param  rdi: string
+; @param  rsi: number of bytes to be printed
+; @return rax: return code
+nprintln:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  call  nprint
+  cmp   rax, 0
+  jl    .return
+
+  mov   rdi, LINE_FEED
+  call  print_char
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; prints a character to the standard output
 ; @param  rdi: character
 print_char:
   push  rbp
@@ -719,14 +756,14 @@ padding_print:
 .equal:
   mov   rdi, [rsp]
   mov   rsi, qword [rsp+0x8]
-  call  print
+  call  nprint
   jmp   .return
 
 .less:
   ; print string
   mov   rdi, [rsp]
   mov   rsi, qword [rsp+0x10]
-  call  print
+  call  nprint
 
   ; get difference
   mov   r9, qword [rsp+0x8]
@@ -749,10 +786,11 @@ padding_print:
   mov   rdi, [rsp]
   mov   rsi, qword [rsp+0x8]
   sub   rsi, 3
-  call  print
+  call  nprint
 
   ; print dots
   mov   r9, 3
+
 .loop_dots:
   mov   rdi, DOT
   call  print_char

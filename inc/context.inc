@@ -137,8 +137,14 @@ handle_ctx:
   cmp   rax, 0
   jl    .error
 
-  ; log previous request
+  ; get server logger
+  mov   rdi, [rsp]
+  call  get_server_logger
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x10]
+  mov   rsi, rax
   call  log_ctx
 
 .free_ctx:

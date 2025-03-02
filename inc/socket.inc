@@ -29,6 +29,71 @@ section .data
   SOCKADDR_OFF_ADDRLEN     equ SOCKADDR_OFF_SA_ZERO + 0x8
 
 section .text
+; initialise the socket (create, bind and listen)
+; @param  rdi: port the socket will be listening to
+; @return rax: file descriptor of the socket
+socket_init:
+  sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   qword [rsp], rdi
+
+  mov   rdi, AF_INET
+  mov   rsi, SOCK_STREAM
+  mov   rdx, 0
+  call  create_socket
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x8], rax
+
+  ; set socket options
+  mov   rdi, qword [rsp+0x8]
+  mov   rsi, SOL_SOCKET
+  mov   rdx, SO_REUSEPORT
+  call  set_socket_option
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [rsp+0x8]
+  mov   rsi, SOL_SOCKET
+  mov   rdx, SO_REUSEADDR
+  call  set_socket_option
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rsi, qword [rsp]
+  mov   rdi, qword [rsp+0x8]
+  mov   rdx, AF_INET
+  call  bind_socket
+
+  cmp   rax, 0
+  jl    .error
+
+  ; listen socket
+  mov   rdi, qword [rsp+0x8]
+  mov   rsi, DEFAULT_BACKLOG
+  call  listen_socket
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, qword [rsp+0x8]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
   
 ; creates socket
 ; @param  rdi: family

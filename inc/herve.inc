@@ -1,3 +1,6 @@
+; TODO: implement strcat
+; TODO: clean up log functions
+; TODO: set file as logger output
 ; TODO: ipv6 server with dual stack config ?
 ; TODO: handling multiple connections (select? concurrency? fork? poll?)
 ; TODO: fix date :)
@@ -21,7 +24,7 @@
 %include "file.inc"
 %include "free.inc"
 %include "headers.inc"
-%include "log.inc"
+%include "logger.inc"
 %include "malloc.inc"
 %include "memset.inc"
 %include "middleware.inc"

@@ -51,6 +51,30 @@ section .data
   SEEK_END equ 0x2
 
 section .text
+; writes to a file
+; @param  rdi: file descriptor
+; @param  rsi: pointer to the string
+; @param  rdx: count
+; @return rax: return value
+write_file:
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   rax, SYS_WRITE
+  ; rdi, rsi and rdx already populated
+  syscall
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; opens a file and return the file descriptor
 ; @param  rdi: pointer to file_path
 ; @param  rsi: flags

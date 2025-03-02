@@ -11,6 +11,7 @@ section .data
 
   server_struct:
     server_sockfd             dq 0  ; socket file descriptor
+    server_logger             dq 0  ; pointer to the logger
     server_routes             dq 0  ; pointer to linked list of routes
     server_sockaddr           dq 0  ; pointer to sockaddr struct
     server_middlewares        dq 0  ; pointer to middlewares linked list
@@ -21,7 +22,8 @@ section .data
 
   ; offsets
   SERVER_OFF_SOCKFD              equ 0x0
-  SERVER_OFF_ROUTES              equ SERVER_OFF_SOCKFD + 0x8
+  SERVER_OFF_LOGGER              equ SERVER_OFF_SOCKFD + 0x8
+  SERVER_OFF_ROUTES              equ SERVER_OFF_LOGGER + 0x8
   SERVER_OFF_SOCKADDR            equ SERVER_OFF_ROUTES + 0x8
   SERVER_OFF_MIDDLEWARES         equ SERVER_OFF_SOCKADDR + 0x8
   SERVER_OFF_PORT                equ SERVER_OFF_MIDDLEWARES + 0x8
@@ -35,6 +37,44 @@ get_server_sockfd:
   jle   .error
 
   mov   rax, qword [rdi+SERVER_OFF_SOCKFD]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the logger associated to the server
+; @param  rdi: pointer to server struct 
+; @param  rsi: pointer to the logger struct
+; @return rax: return code
+set_server_logger:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   qword [rdi+SERVER_OFF_LOGGER], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the logger associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: pointer to the logger struct
+get_server_logger:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, qword [rdi+SERVER_OFF_LOGGER]
   jmp   .return
 
 .error:
@@ -208,63 +248,33 @@ server_init:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, AF_INET
-  mov   rsi, SOCK_STREAM
-  mov   rdx, 0
-  call  create_socket
-
+  mov   rdi, qword [rsp]
+  call  socket_init
   cmp   rax, 0
   jl    .error
 
   mov   qword [rsp+0x10], rax
 
   mov   rdi, [rsp+0x8]
-  mov   rsi, rax
+  mov   rsi, qword [rsp+0x10]
   call  set_server_sockfd
 
   cmp   rax, 0
-  jl    .error
+  jl    .error  
 
-  ; set socket options
-  mov   rdi, qword [rsp+0x10]
-  mov   rsi, SOL_SOCKET
-  mov   rdx, SO_REUSEPORT
-  call  set_socket_option
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, qword [rsp+0x10]
-  mov   rsi, SOL_SOCKET
-  mov   rdx, SO_REUSEADDR
-  call  set_socket_option
-
+  ; set default logger
+  call  logger_default
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x8]
-  call  get_server_port
-
-  cmp   rax, 0
-  jl    .error
-
   mov   rsi, rax
-  mov   rdi, qword [rsp+0x10]
-  mov   rdx, AF_INET
-  call  bind_socket
-
-  cmp   rax, 0
-  jl    .error
-
-  ; listen socket
-  mov   rdi, qword [rsp+0x10]
-  mov   rsi, DEFAULT_BACKLOG
-  call  listen_socket
-
+  call  set_server_logger
   cmp   rax, 0
   jl    .error
 
   mov   rax, [rsp+0x8]
+
   jmp   .return
 
 .error:
