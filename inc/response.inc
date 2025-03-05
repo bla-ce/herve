@@ -583,7 +583,16 @@ send_no_content:
 ; @param  rdx: pointer to the HTML
 ; @return rax: return code
 send_HTML:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to context struct
+  ; [rsp+0x8]   -> status code
+  ; [rsp+0x10]  -> opinter to the html string
+  ; [rsp+0x18]  -> pointer to the response struct
+  ; [rsp+0x20]  -> pointer to the response headers
+  ; [rsp+0x28]  -> content length
+  ; [rsp+0x30]  -> content length string
 
   cmp   rdi, 0
   jle   .error
@@ -597,7 +606,6 @@ send_HTML:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
-  mov   qword [rsp+0x30], 0
 
   ; get response
   call  get_ctx_response
@@ -632,16 +640,8 @@ send_HTML:
 
   mov   qword [rsp+0x28], rax
 
-  mov   rdi, LONG_SIZE
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x30], rax
-
   mov   rdi, qword [rsp+0x28]
-  mov   rsi, [rsp+0x30]
+  lea   rsi, [rsp+0x30]
   mov   rdx, LONG_SIZE
   call  to_string
 
@@ -671,30 +671,15 @@ send_HTML:
 
   cmp   rax, 0
   jl    .error
-
-  ; free content length str
-  mov   rdi, [rsp+0x30]
-  call  free
-
-  cmp   rax, 0
-  jl    .error
   
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
-  mov   rax, [rsp+0x30]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 ; sends a string response
@@ -703,7 +688,16 @@ send_HTML:
 ; @param  rdx: pointer to string
 ; @return rax: return code
 send_string:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to context struct
+  ; [rsp+0x8]   -> status code
+  ; [rsp+0x10]  -> pointer to string to send
+  ; [rsp+0x18]  -> pointer to response struct
+  ; [rsp+0x20]  -> pointer to response headers
+  ; [rsp+0x28]  -> string length
+  ; [rsp+0x30]  -> content length string
 
   cmp   rdi, 0
   jle   .error
@@ -717,7 +711,6 @@ send_string:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
-  mov   qword [rsp+0x30], 0
 
   ; get response
   call  get_ctx_response
@@ -752,16 +745,8 @@ send_string:
 
   mov   qword [rsp+0x28], rax
 
-  mov   rdi, LONG_SIZE
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x30], rax
-
   mov   rdi, qword [rsp+0x28]
-  mov   rsi, [rsp+0x30]
+  lea   rsi, [rsp+0x30]
   mov   rdx, LONG_SIZE
   call  to_string
 
@@ -791,30 +776,15 @@ send_string:
 
   cmp   rax, 0
   jl    .error
-
-  ; free content length str
-  mov   rdi, [rsp+0x30]
-  call  free
-
-  cmp   rax, 0
-  jl    .error
   
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
-  mov   rax, [rsp+0x30]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 ; sends response to client fd
@@ -927,7 +897,18 @@ send_response:
 ; @param  rsi: file path
 ; @return rax: void
 send_static_file:
-  sub   rsp, 0x48
+  sub   rsp, 0x50
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to context struct
+  ; [rsp+0x8]   -> pointer to file path string
+  ; [rsp+0x10]  -> pointer to content type header
+  ; [rsp+0x18]  -> pointer to response struct
+  ; [rsp+0x20]  -> pointer to response headers
+  ; [rsp+0x28]  -> file descriptor
+  ; [rsp+0x30]  -> pointer to file content
+  ; [rsp+0x38]  -> content length
+  ; [rsp+0x40]  -> content length string
 
   cmp   rdi, 0
   jle   .error
@@ -937,7 +918,6 @@ send_static_file:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x40], 0
 
   ; get file ext
   mov   rdi, rsi
@@ -1004,16 +984,8 @@ send_static_file:
   
   mov   qword [rsp+0x38], rax
 
-  mov   rdi, LONG_SIZE
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x40], rax
-
   mov   rdi, qword [rsp+0x38]
-  mov   rsi, [rsp+0x40]
+  lea   rsi, [rsp+0x40]
   mov   rdx, LONG_SIZE
   call  to_string
 
@@ -1045,13 +1017,6 @@ send_static_file:
   cmp   rax, 0
   jl    .error
 
-  ; free file content
-  mov   rdi, [rsp+0x40]
-  call  free
-
-  cmp   rax, 0
-  jl    .error
-
   mov   rax, SUCCESS_CODE
 
   ; clean stack
@@ -1064,19 +1029,11 @@ send_static_file:
   ; load 500
 
 .error:
-  mov   rax, [rsp+0x40]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-  
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
   ; clean stack
-  add   rsp, 0x48
+  add   rsp, 0x50
   ret
 
 ; serve file from directory

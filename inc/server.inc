@@ -199,7 +199,7 @@ server_init:
   cmp   rax, 0
   jl    .default_port
 
-  lea   rdi, [rax]
+  mov   rdi, rax
   call  stoi
 
   mov   rdi, rax

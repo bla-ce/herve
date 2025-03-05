@@ -125,28 +125,28 @@ set_socket_option:
 ; @param  rdx: family
 ; @param  rax: return value
 bind_socket:
-  sub   rsp, 0x20
+  sub   rsp, 0x18
+  sub   rsp, SOCKADDR_STRUCT_LEN
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> socket fd
+  ; [rsp+0x8]   -> port
+  ; [rsp+0x10]  -> family
+  ; [rsp+0x18]  -> sockaddr struct
+
+  cmp   rdi, 0
+  jl    .error
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
-  mov   qword [rsp+0x18], 0
-
-  ; malloc sockaddr struct
-  mov   rdi, SOCKADDR_STRUCT_LEN
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
 
   ; convert port to network port
   xor   rax, rax
   mov   rdi, qword [rsp+0x8]
   call  htons
 
-  mov   rdi, [rsp+0x18]
+  lea   rdi, [rsp+0x18]
   mov   word [rdi+SOCKADDR_OFF_SIN_PORT], ax
 
   mov   rax, qword [rsp+0x10]
@@ -164,29 +164,15 @@ bind_socket:
   cmp   rax, 0
   jl    .error
 
-  ; free socket addr
-  mov   rdi, [rsp+0x18]
-  call  free
-
-  cmp   rax, 0
-  jl    .error
-
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
-  mov   rax, [rsp+0x18]
-  test  rax, rax
-  jz    .no_free
-  
-  mov   rdi, rax
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, SOCKADDR_STRUCT_LEN
+  add   rsp, 0x18
   ret
 
 ; listens to the socket
