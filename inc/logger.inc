@@ -11,6 +11,8 @@ section .data
   DEV_MODE  equ 0
   PROD_MODE equ 1
 
+  DURATION_MAX_SIZE equ 0x10
+
   LOGGER_OFF_OUTPUT     equ 0x0
   LOGGER_OFF_DELIMITER  equ LOGGER_OFF_OUTPUT + 0x8
   LOGGER_OFF_MODE       equ LOGGER_OFF_DELIMITER + 0x8
@@ -309,6 +311,11 @@ get_status_code_color:
 log_status_code:
   sub   rsp, 0x18 
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to logger struct
+  ; [rsp+0x8]   -> status code
+  ; [rsp+0x10]  -> status code string
+
   cmp   rdi, 0
   jle   .error
 
@@ -338,26 +345,15 @@ log_status_code:
   call  log
   
 .no_color:
-  mov   rdi, 4
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-
   ; print status code
   mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
+  lea   rsi, [rsp+0x10]
   mov   rdx, 4 ; add one for null char
   call  to_string
 
   mov   rdi, [rsp]
   mov   rsi, rax
   call  log
-
-  mov   rdi, [rsp+0x10]
-  call  free
 
   ; back to default color
   mov   rdi, [rsp]
@@ -368,14 +364,6 @@ log_status_code:
   jmp   .return
 
 .error:
-  mov   rax, [rsp+0x10]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -500,6 +488,11 @@ log_char:
 log_server_init:
   sub   rsp, 0x20
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to server logger
+  ; [rsp+0x10]  -> port string
+
   mov   [rsp], rdi
   mov   qword [rsp+0x10], 0
 
@@ -524,17 +517,9 @@ log_server_init:
   lea   rsi, [log_server_init_msg]
   call	log 
 
-  mov   rdi, STR_PORT_MAX_LENGTH
-  call  malloc
-
-  cmp   rax, 0
-  jl    .return
-
-  mov   [rsp+0x10], rax
-
   mov   rsi, [rsp]
   mov   rdi, qword [rsi+SERVER_OFF_PORT]
-  mov   rsi, rax
+  lea   rsi, [rsp+0x10]
   mov   rdx, STR_PORT_MAX_LENGTH
   call  to_string
 
@@ -544,12 +529,6 @@ log_server_init:
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call	logln
-
-  ; free port string
-  mov   rdi, [rsp+0x10]
-  call  free
-
-  mov   qword [rsp+0x10], 0
 
   mov   rdi, [rsp+0x8]
   mov   rsi, LINE_FEED
@@ -621,15 +600,6 @@ log_server_init:
   jmp   .return
 
 .error:
-  ; free port string
-  mov   rax, qword [rsp+0x10]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -665,7 +635,15 @@ log_delimiter:
 ; @param  rsi: pointer to the context struct
 ; @return rax: return code
 log_ctx_duration:
-  sub   rsp, 0x28
+  sub   rsp, 0x20
+  sub   rsp, DURATION_MAX_SIZE
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the logger struct
+  ; [rsp+0x8]   -> pointer to the context struct
+  ; [rsp+0x10]  -> ctx start time
+  ; [rsp+0x18]  -> duration
+  ; [rsp+0x20]  -> string duration (size 0x10)
 
   cmp   rdi, 0
   jle   .error
@@ -702,16 +680,8 @@ log_ctx_duration:
   ; save duration
   mov   qword [rsp+0x18], rax
 
-  mov   rdi, 0x18 ; TODO: Update magic value
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
-  mov   rsi, rax
-  add   rsi, 0x18 ; TODO: Update magic value
+  lea   rsi, [rsp+0x20]
+  add   rsi, DURATION_MAX_SIZE
 
   ; add null char at the end
   dec   rsi
@@ -747,28 +717,19 @@ log_ctx_duration:
 
   ; print duration
   mov   rdi, [rsp]
+  ; rsi already populated
   call  log
-
-  mov   rdi, [rsp+0x20]
-  call  free
 
   mov   rax, SUCCESS_CODE
 
   jmp   .return
 
 .error:
-  mov   rax, qword [rsp+0x20]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, DURATION_MAX_SIZE
+  add   rsp, 0x20
   ret
 
 ; log the current context
@@ -893,6 +854,10 @@ log_ctx:
 log_time:
   sub   rsp, 0x10 ; store timestamp
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to logger struct
+  ; [rsp+0x8] -> log string
+
   cmp   rdi, 0
   jle   .error
 
@@ -914,16 +879,8 @@ log_time:
 .print_time:
   call  unix_to_date_time
 
-  mov   rdi, 5  ; add one for null char
-  call  malloc
-  
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
   mov   rdi, qword [dt_year]
-  mov   rsi, rax
+  lea   rsi, [rsp+0x8]
   mov   rdx, 5
   call  to_string
 
@@ -933,9 +890,6 @@ log_time:
   mov   rdi, [rsp]
   mov   rsi, rax
   call  log
-
-  mov   rdi, [rsp+0x8]
-  call  free
 
   mov   rdi, [rsp]
   mov   rsi, SLASH
@@ -949,16 +903,8 @@ log_time:
   call  log_char
 
 .no_zero_month:
-  mov   rdi, 3
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
   mov   rdi, qword [dt_month]
-  mov   rsi, rax
+  lea   rsi, [rsp+0x8]
   mov   rdx, 3
   call  to_string
 
@@ -982,7 +928,7 @@ log_time:
 
 .no_zero_day:
   mov   rdi, qword [dt_day]
-  mov   rsi, [rsp+0x8]
+  lea   rsi, [rsp+0x8]
   mov   rdx, 3
   call  to_string
 
@@ -1014,7 +960,7 @@ log_time:
 
 .no_zero_hour:
   mov   rdi, qword [dt_hour]
-  mov   rsi, [rsp+0x8]
+  lea   rsi, [rsp+0x8]
   mov   rdx, 3
   call  to_string
 
@@ -1038,7 +984,7 @@ log_time:
 
 .no_zero_minute:
   mov   rdi, qword [dt_minute]
-  mov   rsi, [rsp+0x8]
+  lea   rsi, [rsp+0x8]
   mov   rdx, 3
   call  to_string
 
@@ -1062,7 +1008,7 @@ log_time:
 
 .no_zero_second:
   mov   rdi, qword [dt_second]
-  mov   rsi, [rsp+0x8]
+  lea   rsi, [rsp+0x8]
   mov   rdx, 3
   call  to_string
 
@@ -1072,9 +1018,6 @@ log_time:
   mov   rdi, [rsp]
   mov   rsi, rax
   call  log
-
-  mov   rdi, [rsp+0x8]
-  call  free
 
   mov   rdi, [rsp]
   mov   rsi, SPACE
@@ -1093,5 +1036,4 @@ log_time:
 .return:
   add   rsp, 0x10
   ret
-
 

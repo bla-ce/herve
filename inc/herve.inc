@@ -1,3 +1,10 @@
+; TODO: performance gets worse and worse after each request. malloc?
+  ; - use the stack when possible
+  ; - check if there is a way to better allocate and free memory
+  ; - reuse pointers?
+  ; - reuse ctx struct?
+; TODO: add stack usage to functions
+; TODO: better time logs (ns, ms, s)
 ; TODO: implement strcat
 ; TODO: clean up log functions
 ; TODO: set file as logger output
@@ -5,7 +12,6 @@
 ; TODO: handling multiple connections (select? concurrency? fork? poll?)
 ; TODO: fix date :)
 ; TODO: edge cases basic
-; TODO: add stack usage to functions
 ; TODO: return date
 ; TODO: persist connection by default
 ; TODO: read parameters
