@@ -37,7 +37,7 @@ Herve is a lightweight, high-performance HTTP server library written entirely in
 Test Configuration:
 - **Test Duration:** 30 seconds
 - **Test URL:** /index
-- **Benchmark Tool:** (e.g., wrk)
+- **Benchmark Tool:** wrk
 - **Configuration:** 1 thread, 1 connection
 
 Result:
