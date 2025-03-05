@@ -17,7 +17,6 @@ Herve is a lightweight, high-performance HTTP server library written entirely in
 - **Linux x86 Only**: Designed exclusively for Linux on x86 architecture.
 - **Built-in Utility Functions**: Provides low-level functions allowing users to focus on their application logic and speed up Assembly development.
 - **Tiny executable**: ~25KB (stripped)
-- **Ultra-fast**: ~30-200µs per request
 - **Zero external dependencies**: No libc required
 - **High Performance**: Optimized for speed with custom memory management.
 - **Custom Malloc Implementation**: Efficient memory allocation using custom malloc.
@@ -32,6 +31,23 @@ Herve is a lightweight, high-performance HTTP server library written entirely in
 - **Basic Template Engine**: Built-in basic template engine
 - **Support Query Parameters**: Is able to read and parse query parameters
 - **Basic Authorization**: Is able to decode basic authorization
+
+## Performance
+
+Test Configuration:
+- **Test Duration:** 30 seconds
+- **Test URL:** /index
+- **Benchmark Tool:** (e.g., wrk)
+- **Configuration:** 1 thread, 1 connection
+
+Result:
+- **Latency:** 372.95us
+- **Request per sec**: 1,590
+- **Latency Distribution**
+      50%: 49.00us
+      75%: 416.00us
+      90%: 1.35ms
+      99%s: 3.04ms
 
 ## Example
 
