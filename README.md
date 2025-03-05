@@ -43,11 +43,12 @@ Test Configuration:
 Result:
 - **Latency:** 372.95us
 - **Request per sec**: 1,590
-- **Latency Distribution**
-      - 50%: 49.00us
-      - 75%: 416.00us
-      - 90%: 1.35ms
-      - 99%s: 3.04ms
+
+Latency Distribution:
+- **50%:** 49.00us
+- **75%:** 416.00us
+- **90%:** 1.35ms
+- **99%:** 3.04ms
 
 ## Example
 
