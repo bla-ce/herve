@@ -106,3 +106,4 @@ done
 
 avg_time_us=$(echo "scale=0; $sum_time_us / $sum_tests" | bc)
 echo -e "Average Processing Time: ${avg_time_us} µs\n"
+

@@ -41,14 +41,14 @@ Test Configuration:
 - **Configuration:** 1 thread, 1 connection
 
 Result:
-- **Latency:** 372.95us
-- **Request per sec**: 1,590
+- **Latency:** 47.58us
+- **Request per second**: 3,18k
 
 Latency Distribution:
-- **50%:** 49.00us
-- **75%:** 416.00us
-- **90%:** 1.35ms
-- **99%:** 3.04ms
+- **50%:** 37.00us
+- **75%:** 54.00us
+- **90%:** 75.00us
+- **99%:** 202.00us
 
 ## Example
 

@@ -18,7 +18,7 @@ section .data
   ; min size is 8 bytes which gives a result of 3 with 'bsr' 
   ; instruction.
   FIRST_BIN_BSR_INDEX equ 0x3
-  N_BINS              equ 0xA
+  N_BINS              equ 0x10
 
   chunk:
     chunk_magic_value dq 0
@@ -234,7 +234,7 @@ malloc:
   mov   qword [rsp], rax
 
   ; search for an available chunk of data
-  mov   rdi, rax
+  mov   rdi, qword [rsp]
   call  search_chunk
 
   cmp   rax, 0

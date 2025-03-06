@@ -1075,7 +1075,7 @@ serve_dir:
   ; send 500
   mov   rdi, [rsp] 
   mov   rsi, INTERNAL_SERVER_ERROR
-  call  send_response  
+  call  send_response
 
   mov   rdi, [rsp]
   call  ctx_abort

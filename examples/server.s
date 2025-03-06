@@ -224,15 +224,6 @@ test_string:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-  call  get_request_headers
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  call  println
-
   mov   rdi, [rsp]
   mov   rsi, OK  
   lea   rdx, [ok_msg]

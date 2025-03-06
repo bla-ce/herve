@@ -228,10 +228,8 @@ server_init:
   mov   [rsp+0x8], rax
 
   ; set default values
-  mov   qword [rdi+SERVER_OFF_ROUTES], 0
-  mov   qword [rdi+SERVER_OFF_MIDDLEWARES], 0
-
-  mov   rdi, [rsp+0x8]
+  mov   qword [rax+SERVER_OFF_ROUTES], 0
+  mov   qword [rax+SERVER_OFF_MIDDLEWARES], 0
 
   ; check if port is in bounds
   cmp   qword [rsp], PORT_MIN

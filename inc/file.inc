@@ -205,14 +205,7 @@ get_content_type:
   ; go to dot
   add   rdi, rax
 
-  ; make sure there is no extra dot
-  mov   rax, DOT
-  call  find_next_char
-
-  cmp   rax, 0
-  jg    .not_supported
-
-  ; save . position
+  ; save '.' position
   mov   [rsp], rdi
 
   lea   rdi, [HTML_EXT]
