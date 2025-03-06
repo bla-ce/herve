@@ -42,7 +42,6 @@ Test Configuration:
 
 Result:
 - **Latency:** 47.58us
-- **Request per second**: 3,18k
 
 Latency Distribution:
 - **50%:** 37.00us
