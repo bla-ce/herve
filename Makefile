@@ -1,12 +1,21 @@
 INC_DIR = inc
+SERVER_DIR = server
+MALLOC_DIR = malloc
+UTILS_DIR = utils
 INCLUDES = $(wildcard $(INC_DIR)/*.inc)
-INCLUDE_URL = https://github.com/bla-ce/unstack/releases/download/v1.0/unstack-v1.0.tar.gz
+PROGRAM_NAME = examples/server
 
-main: $(INCLUDES) examples/server.s
-	nasm -f elf64 -o examples/server.o examples/server.s -g -w+all -I$(INC_DIR)/
-	ld -o examples/server examples/server.o
+main: $(INCLUDES) $(PROGRAM_NAME).s
+	nasm -f elf64 -o $(PROGRAM_NAME).o $(PROGRAM_NAME).s \
+		-g -w+all  \
+		-I$(INC_DIR)/ \
+		-I$(INC_DIR)/$(SERVER_DIR) \
+		-I$(INC_DIR)/$(UTILS_DIR) \
+		-I$(INC_DIR)/$(MALLOC_DIR)
+	ld -o $(PROGRAM_NAME) $(PROGRAM_NAME).o
 
 test: main.s
-	nasm -f elf64 -o main.o main.s -g -I${INC_DIR} -w+all
+	nasm -f elf64 -o main.o main.s -g -I$(INC_DIR) -w+all
 	ld -o main main.o
+
 
