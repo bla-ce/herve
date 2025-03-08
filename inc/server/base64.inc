@@ -1,0 +1,268 @@
+section .data
+  base64_table  db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,62  ,0x80,0x80,0x80,63  
+                db 52  ,53  ,54  ,55  ,56  ,57  ,58  ,59  ,60  ,61  ,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80, 0  , 1  , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  ,10  ,11  ,12  ,13  ,14  
+                db 15  ,16  ,17  ,18  ,19  ,20  ,21  ,22  ,23  ,24  ,25  ,0x80,0x80,0x80,0x80,0x80
+                db 0x80,26  ,27  ,28  ,29  ,30  ,31  ,32  ,33  ,34  ,35  ,36  ,37  ,38  ,39  ,40  
+                db 41  ,42  ,43  ,44  ,45  ,46  ,47  ,48  ,49  ,50  ,51  ,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+                db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
+
+section .text
+
+; @param  rdi: Pointer to a NUL-terminated Base64 encoded string.
+; @return rax: Pointer to the newly allocated decoded string (or FAILURE_CODE)
+base64_decode:
+  sub   rsp, 0x48
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+
+  ; get length of the string
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x8], rax
+
+  ; malloc same length string
+  mov   rdi, rax
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax ; dynamic pointer
+
+  xor   r9, r9
+
+.loop:
+  mov   rsi, [rsp]
+
+  ; get first char 
+  mov   dil, byte [rsi+r9]
+  movzx rdi, dil
+
+  test  rdi, rdi
+  jz    .end_loop
+
+  ; get 6 bit representation
+  call  decode_base64_char
+
+  cmp   rax, 0
+  jl    .error
+
+  ; save 6bit
+  mov   [rsp+0x20], rax
+
+  inc r9
+
+  ; get second char
+  mov   rsi, [rsp]
+  mov   dil, byte [rsi+r9]
+  movzx rdi, dil
+
+  test  rdi, rdi
+  jz    .end_loop
+
+  ; get 6 bit representation
+  call  decode_base64_char
+
+  cmp   rax, 0
+  jl    .error
+
+  ; save 6bit
+  mov   [rsp+0x28], rax
+
+  inc   r9
+
+  ; get third char
+  mov   rsi, [rsp]
+  mov   dil, byte [rsi+r9]
+  movzx rdi, dil
+
+  test  rdi, rdi
+  jz    .end_loop
+
+  ; get 6 bit representation
+  call  decode_base64_char
+  cmp   rax, 0
+  jl    .error
+
+  ; save 6bit
+  mov   [rsp+0x30], rax
+
+  inc   r9
+
+  ; get fourth char
+  mov   rsi, [rsp]
+  mov   dil, byte [rsi+r9]
+  movzx rdi, dil
+
+  test  rdi, rdi
+  jz    .end_loop
+
+  ; get 6 bit representation
+  call  decode_base64_char
+
+  cmp   rax, 0
+  jl    .error
+
+  ; save 6bit
+  mov   [rsp+0x38], rax
+
+  inc   r9
+
+  ; convert 4*6bit to 3*8bit
+  mov   rax, qword [rsp+0x20]
+  shl   rax, 18
+  mov   qword [rsp+0x20], rax
+
+  mov   rax, qword [rsp+0x28]
+  shl   rax, 12
+  mov   qword [rsp+0x28], rax
+
+  mov   rax, qword [rsp+0x30]
+  shl   rax, 6
+  mov   qword [rsp+0x30], rax
+
+  mov   rax, qword [rsp+0x20]
+  or    rax, qword [rsp+0x28]
+  or    rax, qword [rsp+0x30]
+  or    rax, qword [rsp+0x38]
+
+  ; save triple
+  mov   qword [rsp+0x40], rax
+
+  ; check padding
+  ; get last char and check if equal
+  mov   rax, qword [rsp+0x38]
+  cmp  rax, 0x80
+  je    .padding_1
+
+  ; extract first 8-bit char
+  mov   rax, qword [rsp+0x40]
+  shr   rax, 16
+  and   rax, 0xFF
+  
+  ; move to decoded string
+  mov   rdi, [rsp+0x18]
+  stosb
+
+  mov   [rsp+0x18], rdi
+
+  ; extract second 8-bit char
+  mov   rax, qword [rsp+0x40]
+  shr   rax, 8
+  and   rax, 0xFF
+  
+  ; move to decoded string
+  mov   rdi, [rsp+0x18]
+  stosb
+
+  mov   [rsp+0x18], rdi
+
+  ; extract third 8-bit char
+  mov   rax, qword [rsp+0x40]
+  and   rax, 0xFF
+  
+  ; move to decoded string
+  mov   rdi, [rsp+0x18]
+  stosb
+
+  mov   [rsp+0x18], rdi
+
+  jmp   .loop
+
+.padding_1:
+  ; check if padding is 2 long
+  mov   rax, qword [rsp+0x30]
+  cmp   rax, 0x80
+  jge   .padding_2
+
+  ; extract first 8-bit char
+  mov   rax, qword [rsp+0x40]
+  shr   rax, 16
+  and   rax, 0xFF
+  
+  ; move to decoded string
+  mov   rdi, [rsp+0x18]
+  stosb
+
+  ; extract first 8-bit char
+  mov   rax, qword [rsp+0x40]
+  shr   rax, 8
+  and   rax, 0xFF
+  
+  ; move to decoded string
+  mov   rdi, [rsp+0x18]
+  stosb
+
+  mov   [rsp+0x18], rdi
+
+  jmp   .end_loop
+
+.padding_2:
+  ; extract first 8-bit char
+  mov   rax, qword [rsp+0x40]
+  shr   rax, 16
+  and   rax, 0xFF
+  
+  ; move to decoded string
+  mov   rdi, [rsp+0x18]
+  stosb
+
+  mov   [rsp+0x18], rdi
+
+  jmp   .end_loop
+
+.end_loop:
+  mov   rdi, [rsp+0x18]
+  mov   rax, NULL_CHAR
+  stosb
+
+  mov   rax, [rsp+0x10]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x48
+  ret
+
+; converts a single Base64 character into its corresponding 6-bit
+; integer value
+; @param  rdi: char
+; @return rax: 6bit
+decode_base64_char:
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rdi, 0xFF
+  jg    .error
+
+  ; get value from base 64 table
+  mov   al, byte [base64_table+rdi]
+  movzx rax, al
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+

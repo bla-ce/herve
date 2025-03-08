@@ -1,0 +1,348 @@
+section .bss
+
+section .data
+  ; server constants
+  DEFAULT_MAX_CONNECTIONS equ 0x1
+  DEFAULT_BACKLOG         equ 10
+
+  PORT_MIN     equ 0x1
+  DEFAULT_PORT equ 8080
+  PORT_MAX     equ 0xffff
+
+  server_struct:
+    server_sockfd             dq 0  ; socket file descriptor
+    server_logger             dq 0  ; pointer to the logger
+    server_routes             dq 0  ; pointer to linked list of routes
+    server_sockaddr           dq 0  ; pointer to sockaddr struct
+    server_middlewares        dq 0  ; pointer to middlewares linked list
+    server_port               dw 0  ; port
+  end_server_struct:
+
+  SERVER_STRUCT_LEN equ end_server_struct - server_struct
+
+  ; offsets
+  SERVER_OFF_SOCKFD              equ 0x0
+  SERVER_OFF_LOGGER              equ SERVER_OFF_SOCKFD + 0x8
+  SERVER_OFF_ROUTES              equ SERVER_OFF_LOGGER + 0x8
+  SERVER_OFF_SOCKADDR            equ SERVER_OFF_ROUTES + 0x8
+  SERVER_OFF_MIDDLEWARES         equ SERVER_OFF_SOCKADDR + 0x8
+  SERVER_OFF_PORT                equ SERVER_OFF_MIDDLEWARES + 0x8
+
+section .text
+; returns the socket fd associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: socket fd
+get_server_sockfd:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, qword [rdi+SERVER_OFF_SOCKFD]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the logger associated to the server
+; @param  rdi: pointer to server struct 
+; @param  rsi: pointer to the logger struct
+; @return rax: return code
+set_server_logger:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   qword [rdi+SERVER_OFF_LOGGER], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the logger associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: pointer to the logger struct
+get_server_logger:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, qword [rdi+SERVER_OFF_LOGGER]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the socket fd associated to the server
+; @param  rdi: pointer to server struct 
+; @param  rsi: sockfd
+; @return rax: return code
+set_server_sockfd:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   qword [rdi+SERVER_OFF_SOCKFD], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the port associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: port
+get_server_port:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, qword [rdi+SERVER_OFF_PORT]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the port the server will be listening to
+; @param  rdi: pointer to server struct 
+; @param  rsi: port
+; @return rax: return code
+set_server_port:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   dword [rdi+SERVER_OFF_PORT], esi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the first route struct associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: pointer to the first route struct
+get_server_routes:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVER_OFF_ROUTES]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the first route struct associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: pointer to the first middleware struct
+get_server_middlewares:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVER_OFF_MIDDLEWARES]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; converts a integer from host byte order to network byte order (big-endian).
+; @param  rdi: integer
+; @return rax: integer to network byte order
+htons:
+  mov   rax, rdi
+  xchg  al, ah ; bswap 16-bit registers
+  ret
+
+; initialise server
+; @param  rdi: port
+; @return rax: pointer to server struct | error
+server_init:
+  sub   rsp, 0x18
+
+  cmp   rdi, 0
+  jg    .port_defined
+
+  ; check if port is in environment variables
+  lea   rdi, [PORT_ENV]
+  call  getenv
+
+  cmp   rax, 0
+  jl    .default_port
+
+  mov   rdi, rax
+  call  stoi
+
+  mov   rdi, rax
+
+  cmp   rax, 0
+  jg    .port_defined
+
+.default_port:
+  mov   rbx, DEFAULT_PORT
+  cmp   rax, 0
+  cmovl rax, rbx
+
+  mov   rdi, rbx
+
+.port_defined:
+  mov   qword [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  ; malloc server struct
+  mov   rdi, SERVER_STRUCT_LEN
+  call  malloc
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; set default values
+  mov   qword [rax+SERVER_OFF_ROUTES], 0
+  mov   qword [rax+SERVER_OFF_MIDDLEWARES], 0
+
+  ; check if port is in bounds
+  cmp   qword [rsp], PORT_MIN
+  jl    .error
+
+  cmp   qword [rsp], PORT_MAX
+  jg    .error
+
+  ; add port to server struct
+  mov   rdi, [rsp+0x8]
+  mov   rsi, qword [rsp]
+  call  set_server_port
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [rsp]
+  call  socket_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, qword [rsp+0x10]
+  call  set_server_sockfd
+
+  cmp   rax, 0
+  jl    .error  
+
+  ; set default logger
+  call  logger_default
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  set_server_logger
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x8]
+
+  jmp   .return
+
+.error:
+  ; check if socket have been opened
+  cmp   qword [rsp+0x8], 0
+  jle   .skip_close_socket
+
+  ; if yes close it
+  mov   rax, SYS_CLOSE
+  mov   rdi, qword [rsp+0x10]
+  syscall
+
+  ; free server struct
+  mov   rax, [rsp+0x8]
+  test  rax, rax
+  jz    .skip_close_socket
+
+  mov   rdi, rax
+  call  free
+
+.skip_close_socket:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; runs the server
+; @param  rdi: pointer to server struct
+; @param  rax: return value
+run_server:
+  sub   rsp, 0x10
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  call  log_server_init
+
+.loop:
+  ; accept connection
+  mov   rdi, [rsp]
+  call  accept_connection
+
+  cmp   rax, 0
+  jl    .close_server
+
+  mov   qword [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  mov   rsi, qword [rsp+0x8]
+  call  handle_ctx
+  cmp   rax, 0
+  jl    .error    ; TODO: check what to do if error
+
+  ; close connection
+  mov   rdi, qword [rsp+0x8]
+  call  close_file
+
+  jmp   .loop
+
+.close_server:
+  ; shutdown server
+  mov   rax, SYS_CLOSE
+  mov   rdi, qword [rsp]
+  syscall
+
+.error:
+  mov   rax, FAILURE_CODE
+
+  add   rsp, 0x10
+  ret
+
+

@@ -1,5 +1,5 @@
 main
-server 
+examples/server 
 test
 git.sh
 
