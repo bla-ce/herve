@@ -319,16 +319,21 @@ run_server:
   cmp   rax, 0
   jl    .close_server
 
-  mov   qword [rsp+0x8], rax
+  mov   [rsp+0x8], rax
 
   mov   rdi, [rsp]
-  mov   rsi, qword [rsp+0x8]
+  mov   rsi, [rsp+0x8]
   call  handle_ctx
   cmp   rax, 0
   jl    .error    ; TODO: check what to do if error
 
   ; close connection
-  mov   rdi, qword [rsp+0x8]
+  mov   rdi, [rsp+0x8]
+  call  get_client_fd
+  cmp   rax, 0
+  jl    .close_server
+
+  mov   rdi, rax
   call  close_file
 
   jmp   .loop

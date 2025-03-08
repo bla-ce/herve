@@ -186,21 +186,22 @@ listen_socket:
   ret
 
 ; accepts a connection and returns the client fd
-; @param  rdi: pointer to server
-; @return rax: client fd
+; @param  rdi: pointer to server struct
+; @return rax: pointer to the client struct
 accept_connection:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
+  sub   rsp, SOCKADDR_STRUCT_LEN
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to server struct
+  ; [rsp+0x8]   -> client fd
+  ; [rsp+0x10]  -> pointer to the client struct
+  ; [rsp+0x18]  -> sockaddr struct
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
 
-  mov   rdi, SOCKADDR_STRUCT_LEN 
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
+  mov   qword [rsp+0x10], 0
+  lea   rax, [rsp+0x18]
 
   mov   word [rax+SOCKADDR_OFF_SIN_FAMILY], AF_INET
   mov   word [rax+SOCKADDR_OFF_SIN_PORT], 0
@@ -219,37 +220,43 @@ accept_connection:
 
   mov   rdi, rax
   mov   rax, SYS_ACCEPT
-  mov   rsi, [rsp+0x8]
+  lea   rsi, [rsp+0x18]
   lea   rdx, [sockaddr_addrlen]
   syscall
 
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   qword [rsp+0x8], rax
 
-  ; free client address -> might need it after
-  mov   rdi, [rsp+0x8]
-  call  free
-
+  ; malloc client struct
+  mov   rdi, CLIENT_STRUCT_LEN
+  call  malloc
   cmp   rax, 0
   jl    .error
 
-  mov   rax, [rsp+0x10]
+  mov   [rsp+0x10], rax
+
+  mov   rbx, qword [rsp+0x8]
+  mov   qword [rax+CLIENT_OFF_CLIENT_FD], rbx
+  mov   qword [rax+CLIENT_OFF_SOCKADDR], 0
 
   jmp   .return
 
 .error:
-  cmp   qword [rsp+0x8], 0
-  je    .no_free
+  mov   rax, [rsp+0x10]
+  test  rax, rax
+  jz    .no_free
 
-  mov   rdi, [rsp+0x8]
+  mov   rdi, rax
   call  free
-
+    
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, SOCKADDR_STRUCT_LEN
+  add   rsp, 0x20
   ret
+
 

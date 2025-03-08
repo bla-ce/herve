@@ -26,7 +26,7 @@ section .data
 section .text
 ; initializes and processes a new request context
 ; @param  rdi: pointer to the server  
-; @param  rsi: client fd
+; @param  rsi: pointer to client struct
 ; @return rax: return code
 handle_ctx:
   sub   rsp, 0x20
@@ -38,7 +38,7 @@ handle_ctx:
   jle   .error
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], rsi
+  mov   [rsp+0x8], rsi
 
   ; set start timer -> TODO: not use global
   mov   rax, SYS_CLOCK_GETTIME
@@ -50,7 +50,7 @@ handle_ctx:
   jl   .log_request 
 
   mov   rdi, [rsp] 
-  mov   rsi, qword [rsp+0x8]
+  mov   rsi, [rsp+0x8]
   call  ctx_init
 
   cmp   rax, 0
@@ -248,11 +248,11 @@ is_ctx_aborted:
   ret
 
 ; initialise context structure
-; @param  rdi: pointer to server
-; @param  rsi: client fd
+; @param  rdi: pointer to server struct
+; @param  rsi: pointer to client struct
 ; @return rax: pointer to ctx struct
 ctx_init:
-  sub   rsp, 0x30
+  sub   rsp, 0x28
 
   cmp   rdi, 0
   jle   .error
@@ -261,7 +261,7 @@ ctx_init:
   jle   .error
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], rsi
+  mov   [rsp+0x8], rsi
 
   ; malloc ctx
   mov   rdi, CTX_STRUCT_LEN
@@ -292,25 +292,10 @@ ctx_init:
 
   cmp   rax, 0
   jl    .error
-
-  ; malloc client
-  mov   rdi, CLIENT_STRUCT_LEN
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-  
+   
   ; set client fd
-  mov   rdi, [rsp+0x20]
-  mov   rsi, qword [rsp+0x8]
-  call  set_client_fd
-  cmp   rax, 0
-  jl    .error
-
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x20]
+  mov   rsi, [rsp+0x8]
   call  set_ctx_client
 
   cmp   rax, 0
@@ -321,10 +306,10 @@ ctx_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x28], rax
+  mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x28]
+  mov   rsi, [rsp+0x20]
   call  set_ctx_response
 
   cmp   rax, 0
@@ -351,7 +336,7 @@ ctx_init:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x28
   ret
 
 ; returns the pointer to the request of the context
