@@ -223,20 +223,6 @@ parse_query_param:
 
   mov   [rsp], rdi
 
-  ; first check if there is query parameter    
-  mov   rdi, [rsp]
-  mov   rsi, QUESTION_MARK
-  call  find_next_char
-
-  cmp   rax, 0
-  jl    .no_query
-  
-  inc   rax   ; go after '?'
-
-  ; go to query parameter 
-  mov   rdi, [rsp]
-  add   rdi, rax
-
   ; save position
   mov   [rsp+0x8], rdi
 
@@ -384,7 +370,7 @@ get_query_param:
   call  get_request_param
 
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   mov   rdi, rax
   mov   rsi, [rsp+0x8]
@@ -641,7 +627,7 @@ receive_request:
 ; @param  rdi: pointer to context struct
 ; @return rax: return code
 parse_request:
-  sub   rsp, 0x28
+  sub   rsp, 0x30
 
   cmp   rdi, 0
   jle   .error
@@ -860,12 +846,22 @@ parse_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
+  mov   [rsp+0x28], rax
+
+  ; go after the '?'
+  mov   rdi, [rsp+0x28]
+  mov   rsi, QUESTION_MARK
+  call  find_next_char
+  cmp   rax, 0
+  jle   .no_query
+  
+  mov   rdi, [rsp+0x28]
+  add   rdi, rax
+  inc   rdi       ; go after the '?'
   call  parse_query_param
 
   cmp   rax, 0
   jl    .error 
-  je    .no_query
 
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
@@ -874,8 +870,13 @@ parse_request:
   cmp   rax, 0
   jl    .error
 
+  mov   rax, [rsp+0x8]
+  jmp   .return
+
 .no_query:
   mov   rax, [rsp+0x8]
+  mov   qword [rax+REQ_OFF_QUERY_PARAM], 0
+
   jmp   .return
 
 .error:
@@ -890,7 +891,7 @@ parse_request:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x30
   ret
 
 ; verifies the request, making sure the route exists and is allowed

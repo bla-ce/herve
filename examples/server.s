@@ -29,6 +29,47 @@ test_redirect:
 
   ret
 
+test_post:
+  sub   rsp, 0x10
+  
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+
+  mov   rdi, [rsp]
+  call  get_ctx_request
+
+  mov   rdi, rax
+  call  get_request_body
+
+  ; parse form
+  mov   rdi, rax
+  call  parse_query_param
+  cmp   rax, 0
+  jl    .error
+  
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [form_fname]
+  call  ht_get
+
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, rax
+  call  send_string
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 test_basic_auth:
   sub   rsp, 0x10
 
@@ -302,6 +343,16 @@ _start:
 
   ; add basic auth route
   mov   rdi, [rsp]
+  lea   rsi, [POST]
+  lea   rdx, [post_url]
+  mov   rcx, test_post
+  call  add_route
+
+  cmp   rax, 0
+  jl    .error
+
+  ; add basic auth route
+  mov   rdi, [rsp]
   lea   rsi, [GET]
   lea   rdx, [basic_url]
   mov   rcx, test_basic_auth
@@ -369,12 +420,15 @@ section .data
   template_url  db "/template", NULL_CHAR
   redirect_url  db "/redirect", NULL_CHAR
   basic_url     db "/basic-auth", NULL_CHAR
+  post_url      db "/post", NULL_CHAR
 
   index_path    db "examples/views/index.html", NULL_CHAR
   template_path db "examples/views/template.apl", NULL_CHAR
   dir_path      db "examples/views", NULL_CHAR
 
-  name_query db "name", NULL_CHAR
+  name_query  db "name", NULL_CHAR
+  form_fname  db "fname", NULL_CHAR
+  hello       db "Hello ", NULL_CHAR
 
   ok_msg          db "ok", NULL_CHAR
   middleware_msg  db "Hello, World!", NULL_CHAR
