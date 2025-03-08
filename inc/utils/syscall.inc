@@ -13,6 +13,7 @@ SYS_SENDTO        equ 44
 SYS_RECVFROM      equ 45
 SYS_BIND          equ 49
 SYS_LISTEN        equ 50
+SYS_GETPEERNAME   equ 52
 SYS_SETSOCKOPT    equ 54
 SYS_EXIT          equ 60
 SYS_GETDENTS      equ 78

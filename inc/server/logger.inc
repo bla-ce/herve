@@ -766,6 +766,14 @@ log_ctx:
   mov   rdi, [rsp+0x8]
   call  log_delimiter
 
+  ; log client ip
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp]
+  call  log_client_ip
+
+  mov   rdi, [rsp+0x8]
+  call  log_delimiter
+
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]
   call  log_ctx_duration
@@ -892,7 +900,7 @@ log_time:
   call  log
 
   mov   rdi, [rsp]
-  mov   rsi, SLASH
+  mov   rsi, HYPHEN
   call  log_char
 
   cmp   qword [dt_month], 10
@@ -916,7 +924,7 @@ log_time:
   call  log
 
   mov   rdi, [rsp]
-  mov   rsi, SLASH
+  mov   rsi, HYPHEN
   call  log_char
 
   cmp   qword [dt_day], 10
@@ -938,14 +946,6 @@ log_time:
   mov   rdi, [rsp]
   mov   rsi, rax
   call  log
-
-  mov   rdi, [rsp]
-  mov   rsi, SPACE
-  call	log_char
-
-  mov   rdi, [rsp]
-  mov   rsi, HYPHEN
-  call	log_char
 
   mov   rdi, [rsp]
   mov   rsi, SPACE
@@ -1031,6 +1031,53 @@ log_time:
   jmp   .return
   
 .error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; logs the client ipv4
+; @param  rdi: pointer to the logger struct
+; @param  rsi: pointer to the context struct
+log_client_ip:
+  sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the logger struct
+  ; [rsp+0x8]   -> pointer to the context struct 
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; get client struct
+  mov   rdi, [rsp+0x8]
+  call  get_ctx_client
+  cmp   rax, 0
+  jl    .no_free
+
+  mov   rdi, rax
+  call  get_client_ip
+  cmp   rax, 0
+  jl    .no_free
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  log
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
