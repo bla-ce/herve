@@ -15,7 +15,12 @@ main: $(INCLUDES) $(PROGRAM_NAME).s
 	ld -o $(PROGRAM_NAME) $(PROGRAM_NAME).o
 
 test: main.s
-	nasm -f elf64 -o main.o main.s -g -I$(INC_DIR) -w+all
+	nasm -f elf64 -o main.o main.s \
+		-g -w+all  \
+		-I$(INC_DIR)/ \
+		-I$(INC_DIR)/$(SERVER_DIR) \
+		-I$(INC_DIR)/$(UTILS_DIR) \
+		-I$(INC_DIR)/$(MALLOC_DIR)
 	ld -o main main.o
 
 
