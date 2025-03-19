@@ -72,6 +72,19 @@ get_route_callback:
 compare_route:
   sub   rsp, 0x30
 
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to request struct
+  ; [rsp+0x8]   -> pointer to server route
+  ; [rsp+0x10]  -> pointer to request url
+  ; [rsp+0x18]  -> '?' position if query parameters
+  ; [rsp+0x20]  -> pointer to request url without query parameters
+
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
@@ -83,11 +96,12 @@ compare_route:
   mov   rdi, [rsi+REQ_OFF_METHOD] 
   mov   rdx, [rsp+0x8]
   mov   rsi, [rdx+ROUTE_OFF_METHOD]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 0
   jl    .error
   je    .not_the_same
+
 
   ; compare urls
   mov   rsi, [rsp]
@@ -97,6 +111,7 @@ compare_route:
   mov   [rsp+0x10], rdi
 
   ; check if there is any query parameters
+  mov   rdi, [rsp+0x10]
   mov   rsi, QUESTION_MARK
   call  find_next_char
 
@@ -120,15 +135,42 @@ compare_route:
   mov   [rsp+0x10], rdi
 
 .no_query:
+  ; check if compared route is a wild card
+  mov   rsi, [rsp+0x8]
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  call  is_wildcard_route
+  cmp   rax, TRUE
+  je    .cmp_wildcard
+
   mov   rdi, [rsp+0x10]
   mov   rdx, [rsp+0x8]
   mov   rsi, [rdx+ROUTE_OFF_URL]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 0
   jl    .error
   je    .not_the_same
 
+  jmp   .equal
+
+.cmp_wildcard:
+  mov   rsi, [rsp+0x8] 
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  mov   rsi, ASTERISK
+  call  find_next_char
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rdx, [rsp+0x8]
+  mov   rsi, [rdx+ROUTE_OFF_URL]
+  mov   rdx, rax
+  call  strncmp
+  cmp   rax, 0
+  jl    .error
+  je    .not_the_same
+
+.equal:
   mov   rax, TRUE
 
   jmp   .return
@@ -138,6 +180,15 @@ compare_route:
   jmp   .return
 
 .error:
+  ; free duplicated route without query
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+  
+  mov   rdi, rax
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -420,7 +471,7 @@ route_exist:
 
   mov   rsi, rax
   mov   rdi, [rsp+0x10]  
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 0
   jl    .error
@@ -434,7 +485,7 @@ route_exist:
 
   mov   rsi, rax
   mov   rdi, [rsp+0x10]  
-  call  cmpstr  
+  call  strcmp  
 
   cmp   rax, 0
   jl    .error
@@ -629,3 +680,43 @@ add_route_struct_to_server:
   add   rsp, 0x10
   ret
 
+; returns if the url is a wildcard (ends with '*')
+; @param  rdi: pointer to the route
+; @return rax: (bool) is a wildcard route
+is_wildcard_route:
+  sub   rsp, 0x8
+  
+  cmp   rdi, 0
+  jl    .error
+
+  mov   [rsp], rdi
+
+  ; get string length
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   rsi, [rsp]
+  add   rsi, rax
+  dec   rsi   ; remove one to get last char
+  lodsb
+
+  cmp   rax, ASTERISK
+  jne   .not_wildcard
+
+  mov   rax, TRUE
+  jmp   .return
+
+.not_wildcard:
+  mov   rax, FALSE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+                 

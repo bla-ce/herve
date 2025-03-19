@@ -2,7 +2,7 @@ INC_DIR = inc
 SERVER_DIR = server
 MALLOC_DIR = malloc
 UTILS_DIR = utils
-INCLUDES = $(wildcard $(INC_DIR)/*.inc)
+INCLUDES = $(shell find $(INC_DIR) -type f -name '*.inc')
 PROGRAM_NAME = examples/server
 
 main: $(INCLUDES) $(PROGRAM_NAME).s
@@ -14,7 +14,7 @@ main: $(INCLUDES) $(PROGRAM_NAME).s
 		-I$(INC_DIR)/$(MALLOC_DIR)
 	ld -o $(PROGRAM_NAME) $(PROGRAM_NAME).o
 
-test: main.s
+test: main.s $(INCLUDES)
 	nasm -f elf64 -o main.o main.s \
 		-g -w+all  \
 		-I$(INC_DIR)/ \
@@ -23,4 +23,7 @@ test: main.s
 		-I$(INC_DIR)/$(MALLOC_DIR)
 	ld -o main main.o
 
+.PHONY: clean
+clean:
+	rm -f $(PROGRAM_NAME) $(PROGRAM_NAME).o main main.o
 

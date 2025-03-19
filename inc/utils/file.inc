@@ -210,7 +210,7 @@ get_content_type:
 
   lea   rdi, [HTML_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_apl
@@ -221,7 +221,7 @@ get_content_type:
 .check_apl:
   lea   rdi, [APL_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_js
@@ -232,7 +232,7 @@ get_content_type:
 .check_js:
   lea   rdi, [JS_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_css
@@ -243,7 +243,7 @@ get_content_type:
 .check_css:
   lea   rdi, [CSS_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_bin
@@ -254,7 +254,7 @@ get_content_type:
 .check_bin:
   lea   rdi, [BIN_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_csv
@@ -265,7 +265,7 @@ get_content_type:
 .check_csv:
   lea   rdi, [CSV_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_gif
@@ -276,7 +276,7 @@ get_content_type:
 .check_gif:
   lea   rdi, [GIF_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_jpeg
@@ -287,7 +287,7 @@ get_content_type:
 .check_jpeg:
   lea   rdi, [JPEG_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_jpg
@@ -298,7 +298,7 @@ get_content_type:
 .check_jpg:
   lea   rdi, [JPG_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_json
@@ -309,7 +309,7 @@ get_content_type:
 .check_json:
   lea   rdi, [JSON_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_mp4
@@ -320,7 +320,7 @@ get_content_type:
 .check_mp4:
   lea   rdi, [MP4_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_png
@@ -331,7 +331,7 @@ get_content_type:
 .check_png:
   lea   rdi, [PNG_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_svg
@@ -342,7 +342,7 @@ get_content_type:
 .check_svg:
   lea   rdi, [SVG_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_xml
@@ -353,7 +353,7 @@ get_content_type:
 .check_xml:
   lea   rdi, [XML_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .check_plain
@@ -364,7 +364,7 @@ get_content_type:
 .check_plain:
   lea   rdi, [TEXT_EXT]
   mov   rsi, [rsp]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 1
   jne   .not_supported

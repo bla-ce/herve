@@ -290,7 +290,7 @@ ht_get:
   mov   rsi, [rdi+HT_ENTRY_OFF_KEY]
   mov   rdi, [rsp+0x8]
   ; compare with wanted key
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, TRUE
   ; if equal, jmp to the end of the loop
@@ -369,7 +369,7 @@ ht_del:
   mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
   ; compare keys
   mov   rsi, [rsp+0x8]
-  call  cmpstr
+  call  strcmp
   cmp   rax, 0
   jl    .error
 
@@ -566,7 +566,7 @@ ht_insert:
 
   mov   rdi, [rax+HT_ENTRY_OFF_KEY]
   mov   rsi, [rsp+0x8]
-  call  cmpstr
+  call  strcmp
 
   cmp   rax, 0
   jl    .error

@@ -913,7 +913,7 @@ verify_request:
 
   ; get routes server
   mov   rdi, rax
-  call  get_server_routes 
+  call  get_server_routes
 
   cmp   rax, 0
   jl    .error

@@ -22,6 +22,12 @@ middleware:
   add   rsp, 0x8
   ret
 
+test_wildcard:
+  mov   rsi, OK
+  lea   rdx, [wildcard_msg]
+  call  send_string
+  ret
+
 test_redirect:
   mov   rsi, FOUND
   lea   rdx, [template_url]
@@ -108,7 +114,7 @@ test_basic_auth:
   ; compare with expected string
   mov   rdi, rax
   lea   rsi, [expected_auth]
-  call  cmpstr
+  call  strcmp
   cmp   rax, FALSE
   je    .error
 
@@ -341,7 +347,7 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; add basic auth route
+  ; add post route
   mov   rdi, [rsp]
   lea   rsi, [POST]
   lea   rdx, [post_url]
@@ -366,6 +372,16 @@ _start:
   lea   rsi, [GET]
   lea   rdx, [redirect_url]
   mov   rcx, test_redirect
+  call  add_route
+
+  cmp   rax, 0
+  jl    .error
+
+  ; add wildcard route
+  mov   rdi, [rsp]
+  lea   rsi, [GET]
+  lea   rdx, [wildcard_url]
+  mov   rcx, test_wildcard
   call  add_route
 
   cmp   rax, 0
@@ -421,6 +437,7 @@ section .data
   redirect_url  db "/redirect", NULL_CHAR
   basic_url     db "/basic-auth", NULL_CHAR
   post_url      db "/post", NULL_CHAR
+  wildcard_url  db "/wild/*", NULL_CHAR
 
   index_path    db "examples/views/index.html", NULL_CHAR
   template_path db "examples/views/template.apl", NULL_CHAR
@@ -432,6 +449,7 @@ section .data
 
   ok_msg          db "ok", NULL_CHAR
   middleware_msg  db "Hello, World!", NULL_CHAR
+  wildcard_msg    db "Where are you coming from?", NULL_CHAR
 
   error_no_query  db "failed to get query parameter", NULL_CHAR
 

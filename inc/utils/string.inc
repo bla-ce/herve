@@ -202,11 +202,11 @@ is_ascii:
 .return:
   ret
 
-; compare rdi and rsi
+; compare two strings
 ; @param  rdi: str
 ; @param  rsi: substr
 ; @return rax: rdi == rsi
-cmpstr:
+strcmp:
   sub   rsp, 0x20
 
   cmp   rdi, 0
@@ -218,31 +218,65 @@ cmpstr:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  ; get length of the first
+  ; get length of the first string
   mov   rdi, [rsp]
   call  strlen
 
-  cmp   rax, 0
+  cmp   rax ,0
   jl    .error
 
   mov   qword [rsp+0x10], rax
 
-  ; get length of the second
+  ; get length of the second string
   mov   rdi, [rsp+0x8]
   call  strlen
 
-  cmp   rax, 0
+  cmp   rax ,0
   jl    .error
 
   mov   qword [rsp+0x18], rax
 
-  mov   rbx, qword [rsp+0x10]
-  cmp   rbx, rax
+  ; if length are not equal, return false
+  cmp   rax, qword [rsp+0x10]
   jne   .str_not_equal
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  mov   rcx, rax
+  mov   rdx, qword [rsp+0x18]
+  call  strncmp
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.str_not_equal:
+  mov   rax, FALSE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
+; compare first `count` bytes of two strings
+; @param  rdi: str
+; @param  rsi: substr
+; @param  rdx: count
+; @return rax: rdi == rsi
+strncmp:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jl    .error
+
+  ; rdi and rsi are already populated
+  mov   rcx, rdx
   rep   cmpsb
   jne   .str_not_equal
 
@@ -257,7 +291,6 @@ cmpstr:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
   ret
 
 ; copy the string pointed to by src, into a string at the buffer pointed to by dst
