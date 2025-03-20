@@ -102,6 +102,46 @@ request_init:
   add   rsp, 0x8
   ret
 
+
+; receives the request from the client and parses it
+; @param  rdi: pointer to the context struct
+; @return rax: return code
+handle_request:
+  sub   rsp, 0x10
+  sub   rsp, REQUEST_MAX_LEN
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the context struct
+  ; [rsp+0x8] -> request string
+
+  mov   [rsp], rdi
+
+  mov   rdi, [rsp]
+  lea   rsi, [rsp+0x8]
+  call  receive_request
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  lea   rsi, [rsp+0x8]
+  call  parse_request
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, REQUEST_MAX_LEN
+  add   rsp, 0x10
+  ret
+
 ; sets the url of the request
 ; @param  rdi: pointer to the request
 ; @param  rsi: pointer to the url
@@ -507,20 +547,19 @@ set_request_length:
 
 ; receives the request from the client and put it into the request struct
 ; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the buffer that will contain the request string
 ; @param  rax: return code
 receive_request:
   sub   rsp, 0x20
 
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
   mov   [rsp], rdi
-
-  ; malloc request str  
-  mov   rdi, REQUEST_MAX_LEN
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax 
+  mov   [rsp+0x8], rsi
 
   ; get request struct
   mov   rdi, [rsp]
@@ -576,14 +615,6 @@ receive_request:
   mov   rax, NULL_CHAR
   stosb
 
-  ; save request str
-  mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x8]
-  call  set_request_str
-
-  cmp   rax, 0
-  jl    .error
-
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -625,6 +656,7 @@ receive_request:
 ; parses the string representation of the request onto the request struct
 ; and saves it inside the context
 ; @param  rdi: pointer to context struct
+; @param  rsi: pointer to the request string
 ; @return rax: return code
 parse_request:
   sub   rsp, 0x30
@@ -632,7 +664,11 @@ parse_request:
   cmp   rdi, 0
   jle   .error
 
+  cmp   rsi, 0
+  jle   .error
+
   mov   [rsp], rdi
+  mov   [rsp+0x10], rsi
 
   ; get request struct
   call  get_ctx_request
@@ -643,15 +679,6 @@ parse_request:
   ; save pointer of the request struct
   mov   [rsp+0x8], rax
   
-  ; get request str
-  mov   rdi, rax
-  call  get_request_str
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-
   ; extract method: look for the next space
   mov   rdi, [rsp+0x10]
   mov   rsi, SPACE
@@ -1057,7 +1084,7 @@ free_request:
 
   cmp   rax, 0
   jl    .error
-  je    .free_request_str
+  je    .free_body
 
   mov   rdi, rax
   call  ht_free
@@ -1068,20 +1095,6 @@ free_request:
 .free_body:
   mov   rdi, [rsp]
   call  get_request_body
-
-  cmp   rax, 0
-  jl    .error
-  je    .free_request_str
-
-  mov   rdi, rax
-  call  free
-
-  cmp   rax, 0
-  jl    .error
-
-.free_request_str:
-  mov   rdi, [rsp]
-  call  get_request_str
 
   cmp   rax, 0
   jl    .error

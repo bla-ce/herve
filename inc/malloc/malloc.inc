@@ -32,6 +32,7 @@ section .data
 
   mallocd dq 0
   freed   dq 0
+  mmapd   dq 0
 
 section .text
 ; checks if the chunk can be splitted
@@ -107,6 +108,8 @@ _split:
 request_from_os:
   mov   rsi, PAGE_SIZE
   call  _align
+
+  add   qword [mmapd], rax
   
   mov   rdi, rax
   call  mmap

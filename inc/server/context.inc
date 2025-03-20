@@ -65,16 +65,8 @@ handle_ctx:
   cmp   rax, 0
   jl   .log_request 
 
-  mov   rdi, [rsp+0x10]
-  call  receive_request
-
-  cmp   rax, 0
-  jl   .log_request 
-
-  ; parse_request
-  mov   rdi, [rsp+0x10]
-  call  parse_request
-
+  mov   rdi,  [rsp+0x10]
+  call  handle_request
   cmp   rax, 0
   jl    .log_request
 
