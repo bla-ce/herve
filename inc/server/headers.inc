@@ -181,14 +181,23 @@ parse_headers:
 ; @param  rdi: pointer to headers hash table
 ; @return rax: pointer to string
 stringify_headers:
-  sub   rsp, 0x30
+  sub   rsp, 0x38
 
   cmp   rdi, 0
   jle   .error
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to headers hash table
+  ; [rsp+0x8]   -> headers count
+  ; [rsp+0x10]  -> array of keys
+  ; [rsp+0x18]  -> key address
+  ; [rsp+0x20]  -> headers string dynamic size
+  ; [rsp+0x28]  -> pointer to headers string
+  ; [rsp+0x30]  -> dynamic pointer headers string
+
   mov   [rsp], rdi
-  mov   qword [rsp+0x10], 0
-  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x28], 0
 
   ; get hash table length
   mov   rdi, [rsp]
@@ -205,20 +214,6 @@ stringify_headers:
 
   mov   qword [rsp+0x8], rax
 
-  ; malloc string 
-  xor   rdx, rdx
-  mov   rbx, HEADER_LEN
-  mul   rbx
-
-  mov   rdi, rax
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-  mov   [rsp+0x18], rax ; dynamic pointer
-
   ; get all keys
   mov   rdi, [rsp]
   call  ht_get_keys
@@ -226,31 +221,90 @@ stringify_headers:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x10], rax
 
   xor   r9, r9
 
-  ; for each key
+  ; get total length of the headers
 .loop:
   cmp   r9, qword [rsp+0x8]
   jge   .end_loop
 
   ; get array of keys
-  mov   rsi, [rsp+0x20]
+  mov   rsi, [rsp+0x10]
 
   ; load key
   mov   rdi, [rsi+r9*8]
 
   ; save key address
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x18], rdi
 
-  ; copy key
+  ; get key length
   mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x28]
-  call  strcpy
+  call  strlen
 
   cmp   rax, 0
   jl    .empty_header
+
+  add   qword [rsp+0x20], rax
+  add   qword [rsp+0x20], 2     ; colon and space
+
+  ; get value
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x18]
+  call  ht_get
+
+  cmp   rax, 0
+  jl    .error
+
+  ; get value length
+  mov   rdi, rax
+  call  strlen
+
+  cmp   rax, 0
+  jl    .error
+
+  add   qword [rsp+0x20], rax
+  add   qword [rsp+0x20], 2     ; CRLF
+
+.empty_header:
+  inc   r9
+
+  jmp   .loop
+.end_loop:
+
+  mov   rdi, qword [rsp+0x20]
+  add   rdi, 3      ; CRLF and NULL_CHAR
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+  mov   [rsp+0x30], rax
+
+  xor   r9, r9
+
+  ; for each key
+.loop2:
+  cmp   r9, qword [rsp+0x8]
+  jge   .end_loop2
+
+  ; get array of keys
+  mov   rsi, [rsp+0x10]
+
+  ; load key
+  mov   rdi, [rsi+r9*8]
+
+  ; save key address
+  mov   [rsp+0x18], rdi
+
+  ; copy key
+  mov   rdi, [rsp+0x30]
+  mov   rsi, [rsp+0x18]
+  call  strcpy
+
+  cmp   rax, 0
+  jl    .empty_header2
 
   ; load ':'
   mov   rdi, rax
@@ -261,18 +315,18 @@ stringify_headers:
   mov   rax, SPACE
   stosb
 
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x30], rdi
 
   ; get value
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x28]
+  mov   rsi, [rsp+0x18]
   call  ht_get
 
   cmp   rax, 0
   jl    .error
 
   ; load value 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x30]
   mov   rsi, rax
   call  strcpy
 
@@ -287,16 +341,16 @@ stringify_headers:
   mov   rax, LINE_FEED
   stosb
 
-.empty_header:
+.empty_header2:
   inc   r9
 
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x30], rdi
 
-  jmp   .loop
+  jmp   .loop2
+.end_loop2:
 
-.end_loop:
   ; load post headers
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x30]
   mov   rax, CARRIAGE_RETURN
   stosb
 
@@ -306,15 +360,23 @@ stringify_headers:
   mov   rax, NULL_CHAR
   stosb
   
-  mov   rax, [rsp+0x10]
+  mov   rax, [rsp+0x28]
   
   jmp   .return
 
 .error:
+  ; free headersif mallocd
+  mov   rdi, [rsp+0x28]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x38
   ret
 
 ; set the headers
