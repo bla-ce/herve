@@ -40,6 +40,18 @@ free_response:
 
   mov   [rsp], rdi
 
+.free_headers:
+  mov   rdi, [rsp]
+  call  get_response_headers
+  cmp   rax, 0
+  jl    .free_struct
+
+  ; free headers hash table
+  mov   rdi, rax
+  call  ht_free
+  cmp   rax, 0
+  jl    .error
+
 .free_struct:
   ; free response struct
   mov   rdi, [rsp]
@@ -317,9 +329,32 @@ get_response_body:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
 stringify_response:
-  sub   rsp, 0x40
+  sub   rsp, 0x68
+
+  cmp   rdi, 0
+  jl    .error
 
   mov   [rsp], rdi
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the response struct
+  ; [rsp+0x8]   -> pointer to the response protocol
+  ; [rsp+0x10]  -> response protocol length
+  ; [rsp+0x18]  -> pointer to status string
+  ; [rsp+0x20]  -> response status length
+  ; [rsp+0x28]  -> pointer to the response headers (hash table)
+  ; [rsp+0x30]  -> pointer to the response body
+  ; [rsp+0x38]  -> response body length
+  ; [rsp+0x40]  -> pointer to the response string
+  ; [rsp+0x48]  -> dynamic pointer to the string
+  ; [rsp+0x50]  -> response string length
+  ; [rsp+0x58]  -> pointer to headers stringified
+  ; [rsp+0x60]  -> headers stringified length
+
+  mov   qword [rsp+0x30], 0
+  mov   qword [rsp+0x40], 0
+  mov   qword [rsp+0x50], 0
+  mov   qword [rsp+0x58], 0
 
   ; get context protocol
   call  get_response_protocol
@@ -328,23 +363,38 @@ stringify_response:
   jl    .error
 
   mov   [rsp+0x8], rax
-  mov   qword [rsp+0x28], 0
+
+  mov   rdi, rax
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x10], rax
+  add   qword [rsp+0x50], rax
+  add   qword [rsp+0x50], 1   ; add space
 
   ; get status code
   mov   rdi, [rsp]
   call  get_response_status_code
-
   cmp   rax, 0
   jl    .error
    
   ; get string status code
   mov   rdi, rax
   call  get_status_string
-
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
+
+  mov   rdi, rax
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+  
+  mov   qword [rsp+0x20], rax
+  add   qword [rsp+0x50], rax
+  add   qword [rsp+0x50], 1   ; add space
 
   ; get headers
   mov   rdi, [rsp]
@@ -353,38 +403,58 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x28], rax
 
   ; get body
   mov   rdi, [rsp]
   call  get_response_body
+  cmp   rax, 0
+  jl    .error
+  je    .skip_body
 
+  mov   [rsp+0x30], rax
+
+  mov   rdi, rax
+  call  strlen
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   qword [rsp+0x38], rax
+  add   qword [rsp+0x50], rax
+  add   qword [rsp+0x50], 2   ; add CRLF
 
-  ; TODO: get length before?
+.skip_body:
+  ; stringify headers
+  mov   rdi, [rsp+0x28]
+  call  stringify_headers
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x58], rax
+
+  mov   rdi, rax
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x60], rax
+  add   qword [rsp+0x50], rax
+  add   qword [rsp+0x50], 5   ; add CRLF x2 and NULL_CHAR
+
   ; malloc response string
-  mov   rdi, RESPONSE_MAX_LEN
+  mov   rdi, qword [rsp+0x50]
   call  malloc
 
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x28], rax ; dynamic pointer
-  mov   [rsp+0x30], rax ; origin
+  mov   [rsp+0x40], rax ; origin
+  mov   [rsp+0x48], rax ; dynamic pointer
 
   ; append protocol
-  mov   rdi, [rsp+0x8]
-  call  strlen
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x48]
   mov   rsi, [rsp+0x8]
-  mov   rcx, rax
+  mov   rcx, qword [rsp+0x10]
   rep   movsb
 
   ; add space -> no need to increment
@@ -392,18 +462,12 @@ stringify_response:
   stosb
 
   ; save rdi's position
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x48], rdi
 
   ; append status code
-  mov   rdi, [rsp+0x10]
-  call  strlen
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x28]
-  mov   rsi, [rsp+0x10]
-  mov   rcx, rax
+  mov   rdi, [rsp+0x48]
+  mov   rsi, [rsp+0x18]
+  mov   rcx, qword [rsp+0x20]
   rep   movsb
 
   ; add new line
@@ -413,50 +477,26 @@ stringify_response:
   mov   rax, LINE_FEED
   stosb
 
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x48], rdi
 
   ; append headers
-  ; stringify headers
-  mov   rdi, [rsp+0x18]
-  cmp   rdi, 0
-  je    .skip_headers
-  call  stringify_headers
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x38], rax
-
-  mov   rdi, rax
-  call  strlen
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x28]
-  mov   rsi, [rsp+0x38]
-  mov   rcx, rax
+  mov   rdi, [rsp+0x48]
+  mov   rsi, [rsp+0x58]
+  mov   rcx, qword [rsp+0x60]
   rep   movsb
 
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x48], rdi
 
   ; free headers string
-  mov   rdi, [rsp+0x38]
+  mov   rdi, [rsp+0x58]
   call  free
   cmp   rax, 0
   jl    .error
 
-  ; free headers hash table
-  mov   rdi, [rsp+0x18]
-  call  ht_free
-  cmp   rax, 0
-  jl    .error
-
   ; check if body
-.skip_headers:
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x30]
   cmp   rdi, 0
-  je    .skip_body
+  je    .skip_copy_body
 
   ; append body
   call  strlen
@@ -464,48 +504,43 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x28]
-  mov   rsi, [rsp+0x20]
-  mov   rcx, rax
+  mov   rdi, [rsp+0x48]
+  mov   rsi, [rsp+0x30]
+  mov   rcx, qword [rsp+0x38]
   rep   movsb
 
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x48], rdi
 
-.skip_body:
-  mov   rdi, [rsp+0x28]
+.skip_copy_body:
+  mov   rdi, [rsp+0x48]
   ; add null_char
   mov   rax, NULL_CHAR
   stosb
 
   ; save response str
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x30]
+  mov   rsi, [rsp+0x40]
   call  set_response_str
 
   cmp   rax, 0
   jl    .error
 
   ; return response
-  mov   rax, [rsp+0x30]
+  mov   rax, [rsp+0x40]
 
   jmp   .return
 
 .error:
-  mov   rax, [rsp+0x28]
+  ; free response string
+  mov   rax, [rsp+0x40]
   test  rax, rax
   jz    .no_free
 
   mov   rdi, rax
   call  free
 
-  mov   rax, [rsp+0x38]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-
-  mov   rax, [rsp+0x18]
+  ; free response string
+  mov   rax, [rsp+0x58]
   test  rax, rax
   jz    .no_free
 
@@ -516,7 +551,7 @@ stringify_response:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x40
+  add   rsp, 0x68
   ret
 
 ; sends a response without content
