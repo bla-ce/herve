@@ -441,8 +441,13 @@ stringify_response:
   add   qword [rsp+0x50], rax
   add   qword [rsp+0x50], 5   ; add CRLF x2 and NULL_CHAR
 
-  ; malloc response string
+  ; make sure the size of the response does not exceed RESPONSE_MAX_LEN
   mov   rdi, qword [rsp+0x50]
+  mov   rbx, RESPONSE_MAX_LEN
+  cmp   rdi, rbx
+  cmovg rdi, rbx
+
+  ; malloc response string
   call  malloc
 
   cmp   rax, 0

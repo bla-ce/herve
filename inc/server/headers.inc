@@ -275,6 +275,10 @@ stringify_headers:
 
   mov   rdi, qword [rsp+0x20]
   add   rdi, 3      ; CRLF and NULL_CHAR
+  mov   rbx, HEADERS_MAX_LEN
+  cmp   rdi, rbx
+  cmovg rdi, rbx
+
   call  malloc
   cmp   rax, 0
   jl    .error
