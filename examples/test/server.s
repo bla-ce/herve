@@ -8,7 +8,7 @@ middleware:
 
   mov   [rsp], rdi
 
-  lea   rdi, [middleware_msg]  
+  mov   rdi, rsi
   call  println
 
   mov   rax, SUCCESS_CODE
@@ -397,6 +397,7 @@ _start:
 
   mov   rdi, [rsp]
   mov   rsi, middleware
+  lea   rdx, [hello]
   call  add_middleware
 
   cmp   rax, 0
@@ -404,6 +405,7 @@ _start:
 
   mov   rdi, [rsp]
   mov   rsi, middleware
+  lea   rdx, [hello2]
   call  add_middleware
 
   cmp   rax, 0
@@ -445,7 +447,8 @@ section .data
 
   name_query  db "name", NULL_CHAR
   form_fname  db "fname", NULL_CHAR
-  hello       db "Hello ", NULL_CHAR
+  hello       db "Hello", NULL_CHAR
+  hello2      db "Hello2", NULL_CHAR
 
   ok_msg          db "ok", NULL_CHAR
   middleware_msg  db "Hello, World!", NULL_CHAR

@@ -3,7 +3,10 @@ SERVER_DIR = server
 MALLOC_DIR = malloc
 UTILS_DIR = utils
 INCLUDES = $(shell find $(INC_DIR) -type f -name '*.inc')
-PROGRAM_NAME = examples/echo/echo
+
+ifndef PROGRAM_NAME
+	$(error PROGRAM_NAME is not set. Please pass it on the command line, e.g., make PROGRAM_NAME=examples/echo/echo main)
+endif
 
 main: $(INCLUDES) $(PROGRAM_NAME).s
 	nasm -f elf64 -o $(PROGRAM_NAME).o $(PROGRAM_NAME).s \
