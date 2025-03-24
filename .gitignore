@@ -1,7 +1,6 @@
 main
-examples/server/server
+examples/test/server
 examples/echo/echo
-test
 git.sh
 
 main.s
