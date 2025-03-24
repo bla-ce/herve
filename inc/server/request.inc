@@ -944,6 +944,7 @@ verify_request:
 
   cmp   rax, 0
   jl    .error
+  je    .not_found
 
   ; save routes onto the stack
   mov   [rsp+0x8], rax
