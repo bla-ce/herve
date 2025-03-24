@@ -1,13 +1,15 @@
 main
-examples/server 
+examples/server/server
+examples/echo/echo
 test
 git.sh
 
+main.s
 
 *.o
-*.s
 *.c
 *.txt
 
 musl*
 gin/
+
