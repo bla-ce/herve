@@ -7,7 +7,8 @@ section .data
     ctx_response    dq 0
     ctx_start_time  dq 0
     ctx_end_time    dq 0
-    ctx_aborted     db 0
+    ctx_aborted     dq 0
+    ctx_done        dq 0
   ctx_struct_end:
 
   CTX_STRUCT_LEN equ ctx_struct_end - ctx_struct
@@ -19,7 +20,8 @@ section .data
   CTX_OFF_RESPONSE    equ CTX_OFF_REQUEST + 0x8
   CTX_OFF_START_TIME  equ CTX_OFF_RESPONSE + 0x8
   CTX_OFF_END_TIME    equ CTX_OFF_START_TIME + 0x8
-  CTX_ABORTED         equ CTX_OFF_END_TIME + 0x8
+  CTX_OFF_ABORTED     equ CTX_OFF_END_TIME + 0x8
+  CTX_OFF_DONE        equ CTX_OFF_ABORTED + 0x8
 
   HTTP_1_1 db "HTTP/1.1", NULL_CHAR
 
@@ -108,10 +110,19 @@ handle_ctx:
   call  get_route_callback
 
   cmp   rax, 0
-  je   .log_request 
+  je   .done
 
   mov   rdi, [rsp+0x10]
   call  rax
+
+  mov   rdi, [rsp+0x10]
+  cmp   qword [rdi+CTX_OFF_DONE], 1
+  je    .log_request
+
+.done:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, OK
+  call  send_no_content
 
 .log_request:
   ; TODO: update to use ctx
@@ -209,7 +220,7 @@ ctx_abort:
   cmp   rdi, 0
   jle   .error
 
-  mov   byte [rdi+CTX_ABORTED], 1
+  mov   qword [rdi+CTX_OFF_ABORTED], 1
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -227,9 +238,7 @@ is_ctx_aborted:
   cmp   rdi, 0
   jle   .error
 
-  xor   rax, rax
-  mov   al, byte [rdi+CTX_ABORTED]
-  movsx rax, al
+  mov   rax, qword [rdi+CTX_OFF_ABORTED]
 
   jmp   .return
 
@@ -317,7 +326,8 @@ ctx_init:
 
   ; set aborted to 0
   mov   rdi, [rsp+0x10]
-  mov   byte [rdi+CTX_ABORTED], 0
+  mov   qword [rdi+CTX_OFF_ABORTED], 0
+  mov   qword [rdi+CTX_OFF_DONE], 0
 
   ; return context
   mov   rax, [rsp+0x10]

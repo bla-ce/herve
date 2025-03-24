@@ -912,7 +912,6 @@ send_response:
   cmp   rax, 0
   jl    .error
 
-  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -928,6 +927,10 @@ send_response:
   mov   rax, FAILURE_CODE
 
 .return:
+  ; ctx is done
+  mov   rdi, [rsp]
+  mov   qword [rdi+CTX_OFF_DONE], 1
+
   add   rsp, 0x30
   ret  
 
