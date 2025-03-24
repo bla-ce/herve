@@ -18,7 +18,7 @@ section .data
   ; min size is 8 bytes which gives a result of 3 with 'bsr' 
   ; instruction.
   FIRST_BIN_BSR_INDEX equ 0x3
-  N_BINS              equ 0x10
+  N_BINS              equ 0xC
 
   chunk:
     chunk_magic_value dq 0

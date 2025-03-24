@@ -3,7 +3,7 @@ SERVER_DIR = server
 MALLOC_DIR = malloc
 UTILS_DIR = utils
 INCLUDES = $(shell find $(INC_DIR) -type f -name '*.inc')
-PROGRAM_NAME = examples/server
+PROGRAM_NAME = examples/echo/echo
 
 main: $(INCLUDES) $(PROGRAM_NAME).s
 	nasm -f elf64 -o $(PROGRAM_NAME).o $(PROGRAM_NAME).s \

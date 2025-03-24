@@ -1,0 +1,2 @@
+section .data
+section .text

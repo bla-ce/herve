@@ -72,6 +72,9 @@ ht_get_keys:
   mov   rax, qword [rdi+HT_OFF_NENTRY]
   mov   qword [rsp+0x20], rax
 
+  test  rax, rax
+  jz    .ht_empty
+
   ; malloc an array of n_entry keys (array of pointers)
   mov   rdi, qword [rsp+0x20]
   mov   rsi, 8
@@ -79,6 +82,7 @@ ht_get_keys:
 
   cmp   rax, 0
   jl    .error
+  je    .ht_empty
 
   mov   [rsp+0x10], rax
 
@@ -171,6 +175,10 @@ ht_get_keys:
     
 .end_loop:
   mov   rax, [rsp+0x10]
+  jmp   .return
+
+.ht_empty:
+  xor   rax, rax
   jmp   .return
 
 .error:
@@ -616,6 +624,10 @@ ht_insert:
 ht_create:
   sub   rsp, 0x10
 
+  cmp   rdi,  0
+  jl    .error
+  je    .ht_empty
+
   mov   [rsp], rdi
 
   ; malloc hash table struct
@@ -631,9 +643,9 @@ ht_create:
   mov   rdi, qword [rsp]   
   mov   rsi, 8  ; addresses of 8 bytes long
   call  calloc
-
   cmp   rax, 0
   jl    .error
+  je    .ht_empty
 
   mov   rdi, [rsp+0x8]
   mov   qword [rdi+HT_OFF_TABLE], rax
@@ -645,6 +657,10 @@ ht_create:
   mov   qword [rdi+HT_OFF_NENTRY], 0
   
   mov   rax, [rsp+0x8]
+  jmp   .return
+
+.ht_empty:  
+  xor   rax, rax
   jmp   .return
 
 .error:
@@ -666,10 +682,10 @@ ht_free:
   mov   [rsp], rdi
 
   ; get hash table length
-  mov   rdi, [rsp]
   call  ht_get_length
   cmp   rax, 0
   jl    .error
+  je    .empty
 
   mov   qword [rsp+0x8], rax
 
@@ -724,6 +740,10 @@ ht_free:
   cmp   rax, 0
   jl    .error
 
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.empty:
   mov   rax, SUCCESS_CODE
   jmp   .return
 
