@@ -15,7 +15,7 @@ section .text
 ; @param  rsi: pointer to the proxy struct
 ; @return rax: success code
 proxy_middleware:
-  sub   rsp, 0x30
+  sub   rsp, 0x48
 
   cmp   rdi, 0
   jle   .error
@@ -23,8 +23,20 @@ proxy_middleware:
   cmp   rsi, 0
   jle   .error
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the proxy struct
+  ; [rsp+0x10]  -> file descriptor upstream server
+  ; [rsp+0x18]  -> pointer to the request struct
+  ; [rsp+0x20]  -> pointer to the request string
+  ; [rsp+0x28]  -> pointer to the response string 
+  ; [rsp+0x30]  -> response length
+  ; [rsp+0x38]  -> status code string
+  ; [rsp+0x40]  -> status code int
+
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x28], 0
 
   ; connect to client   
   mov   rdi, [rsp+0x8]
@@ -41,19 +53,21 @@ proxy_middleware:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-  call  get_request_str
-
   mov   [rsp+0x18], rax
 
   mov   rdi, rax
-  call  strlen
+  call  get_request_str
+
+  mov   [rsp+0x20], rax
+
+  mov   rdi, [rsp+0x18]
+  call  get_request_length
   cmp   rax, 0
   jl    .error
 
   ; sends request
   mov   rdi, qword [rsp+0x10]
-  mov   rsi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
   mov   rdx, rax
   call  write_file
   cmp   rax, 0
@@ -64,26 +78,20 @@ proxy_middleware:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x28], rax
 
   ; receive response
-  ; TODO: in its own function
-  mov   rsi, rax
-  mov   rax, SYS_RECVFROM
   mov   rdi, qword [rsp+0x10]
+  mov   rsi, rax
   mov   rdx, RESPONSE_MAX_LEN
-  xor   r10, r10
-  xor   r9, r9
-  xor   r8, r8
-  syscall
-
+  call  receive_from_file
   cmp   rax, 0
   jl    .error
   
-  mov   qword [rsp+0x28], rax
+  mov   qword [rsp+0x30], rax
 
   ; add null char at the end of the request
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   add   rdi, rax
   xor   rax, rax
   stosb
@@ -102,32 +110,86 @@ proxy_middleware:
   ; send back the response to the client
   ; TODO: in its own function
   mov   rdi, rax
-  mov   rsi, [rsp+0x20]
-  mov   rdx, qword [rsp+0x28]
+  mov   rsi, [rsp+0x28]
+  mov   rdx, qword [rsp+0x30]
   call  write_file
   cmp   rax, 0
   jl    .error
 
   ; close connection with end server TODO: in its own func
-  mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+0x10]
-  syscall
+  call  close_file
 
   ; abort request
-  ; TODO: is it really how it should be done?
   mov   rdi, [rsp]
   call  ctx_abort
 
-  ; TODO: parse response for logging status code
+  mov   rdi, 3
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x38], rax
+
+  ; get status code from response
+  mov   rdi, [rsp+0x28]
+  mov   rsi, SPACE
+  call  find_next_char
+  cmp   rax, 0
+  jl    .error
+
+  ; go after protocol
+  mov   rsi, [rsp+0x28]
+  add   rsi, rax
+  inc   rsi
+
+  ; copy status code
+  mov   rdi, [rsp+0x38]
+  mov   rcx, STATUS_CODE_LENGTH
+  rep   movsb
+
+  xor   rax, rax
+  stosb
+
+  mov   rdi, [rsp+0x38]
+  call  stoi
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x40], rax
+
+  mov   rdi, [rsp]
+  call  get_ctx_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, qword [rsp+0x40]
+  call  set_response_status_code
+  cmp   rax, 0
+  jl    .error
+
+  ; free response string
+  mov   rdi, [rsp+0x28]
+  call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x28]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x48
   ret
 
 ; configures the socket for the end server

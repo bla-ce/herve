@@ -121,8 +121,7 @@ read_file:
 
   ; file is empty, close it
   mov   rdi, qword [rsp]
-  mov   rax, SYS_CLOSE
-  syscall
+  call  close_file
 
   jmp   .error
 
@@ -381,5 +380,20 @@ get_content_type:
 
 .return:
   add   rsp, 0x8
+  ret
+
+; receives a message from a file descriptor
+; @param  rdi: file descriptor
+; @param  rsi: buffer
+; @param  rdx: buffer max length
+; @return rax: number of bytes received
+receive_from_file:
+  mov   rax, SYS_RECVFROM
+  ; rdi, rsi and rdx already populated
+  xor   r10, r10
+  xor   r9, r9
+  xor   r8, r8
+  syscall
+  
   ret
 

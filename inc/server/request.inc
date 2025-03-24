@@ -5,7 +5,6 @@ section .data
   HOST_MAX_LEN          equ 0xFF
   URL_MAX_LEN           equ 0x20
   BODY_MAX_LEN          equ 0x2000
-
   REQUEST_MAX_LEN     equ 0x2000
 
   request_struct:
@@ -523,7 +522,7 @@ set_request_query_param:
 .return:
   ret
 
-; sets the length of the request length
+; sets the length of the request
 ; @param  rdi: pointer to request struct
 ; @param  rsi: request length
 ; @return rax: return code
@@ -537,6 +536,23 @@ set_request_length:
   mov   qword [rdi+REQ_OFF_LEN], rsi
 
   mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; gets the length of the request
+; @param  rdi: pointer to request struct
+; @return rax: request length
+get_request_length:
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rax, qword [rdi+REQ_OFF_LEN]
+
   jmp   .return
 
 .error:
@@ -584,17 +600,11 @@ receive_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-
   ; receive client request
-  mov   rax, SYS_RECVFROM
+  mov   rdi, rax
   mov   rsi, [rsp+0x8]
   mov   rdx, REQUEST_MAX_LEN
-  xor   r10, r10
-  xor   r9, r9
-  xor   r8, r8
-  syscall
-
+  call  receive_from_file
   cmp   rax, 0
   jl    .error
 
@@ -1194,4 +1204,5 @@ get_request_body:
 
 .return:
   ret
+
 

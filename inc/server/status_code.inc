@@ -1,5 +1,7 @@
 section .data
 
+STATUS_CODE_LENGTH equ 3
+
 ; Status Code Constants
 CONTINUE                        equ 100
 SWITCHING_PROTOCOLS             equ 101
