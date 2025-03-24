@@ -604,7 +604,6 @@ receive_request:
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  set_request_length
-
   cmp   rax, 0
   jl    .error
 
@@ -614,6 +613,12 @@ receive_request:
   add   rdi, rax
   mov   rax, NULL_CHAR
   stosb
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
+  call  set_request_str 
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
 

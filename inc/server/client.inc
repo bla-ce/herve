@@ -57,7 +57,7 @@ get_client_fd:
 ; @param  rdi: pointer to the client struct
 ; @return rax: pointer to the string 
 get_client_ip:
-  sub   rsp, 0x30
+  sub   rsp, 0x38
   sub   rsp, SOCKADDR_STRUCT_LEN
 
   cmp   rdi, 0
@@ -70,7 +70,7 @@ get_client_ip:
   ; [rsp+0x18]  -> dynamic pointer for the string
   ; [rsp+0x20]  -> dynamic pointer sockaddr_addrin
   ; [rsp+0x28]  -> temp string to store to convert int to string
-  ; [rsp+0x30]  -> sockaddr struct
+  ; [rsp+0x38]  -> sockaddr struct
 
   mov   [rsp], rdi
   mov   qword [rsp+0x10], 0
@@ -95,7 +95,7 @@ get_client_ip:
   ; getpeername
   mov   rax, SYS_GETPEERNAME
   mov   rdi, qword [rsp+0x8]
-  lea   rsi, [rsp+0x30]
+  lea   rsi, [rsp+0x38]
   lea   rdx, [sockaddr_addrlen]
   syscall
    
@@ -103,9 +103,11 @@ get_client_ip:
   jl    .error
 
   ; get addr_in
-  lea   rax, [rsp+0x30]
+  lea   rax, [rsp+0x38]
   add   rax, SOCKADDR_OFF_SIN_ADDR
   mov   [rsp+0x20], rax
+
+  mov   qword [rsp+0x30], 3 ; three dots for IPV4
 
 .loop:
   mov   rax, [rsp+0x20]
@@ -114,8 +116,8 @@ get_client_ip:
   inc   rax
   mov   [rsp+0x20], rax
 
-  cmp   rdi, 0
-  je    .end_loop
+  cmp   qword [rsp+0x30], 0
+  jl   .end_loop
 
   lea   rsi, [rsp+0x28]
   mov   rdx, 4  ; add one for null char
@@ -136,6 +138,8 @@ get_client_ip:
   stosb
 
   mov   [rsp+0x18], rdi
+
+  dec   qword [rsp+0x30]
 
   jmp   .loop
 
@@ -163,6 +167,6 @@ get_client_ip:
 
 .return:
   add   rsp, SOCKADDR_STRUCT_LEN
-  add   rsp, 0x30
+  add   rsp, 0x38
   ret
 

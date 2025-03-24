@@ -13,6 +13,7 @@
 %include "middleware.inc"
 %include "mmap.inc"
 %include "os.inc"
+%include "proxy.inc"
 %include "request.inc"
 %include "response.inc"
 %include "server.inc"
