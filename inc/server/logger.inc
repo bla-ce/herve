@@ -530,6 +530,15 @@ log_server_init:
   mov   rsi, rax
   call	logln
 
+  ; load server routes
+  mov   rdi, [rsp]
+  call  get_server_routes
+  cmp   rax, 0
+  jl    .error
+  je    .no_routes
+
+  mov   [rsp+0x18], rax
+
   mov   rdi, [rsp+0x8]
   mov   rsi, LINE_FEED
   call  log_char
@@ -541,18 +550,6 @@ log_server_init:
   mov   rdi, [rsp+0x8]
   lea   rsi, [log_routes_available_msg]
   call	logln
-
-  ; load server routes
-  mov   rdi, [rsp]
-  call  get_server_routes
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  cmp   rax, 0
-  je    .end_loop
 
 .loop:
   ; log debug 
@@ -592,6 +589,7 @@ log_server_init:
   jmp   .loop
 .end_loop:
 
+.no_routes:
   ; log new line
   mov   rdi, [rsp+0x8]
   mov   rsi, LINE_FEED

@@ -1,13 +1,13 @@
 section .data
 proxy_struct:
-  _proxy_url   dq 0
-  _proxy_port  dq 0 ; TODO: word is enough here
+  _proxy_ip    dq 0
+  _proxy_port  dw 0
 proxy_struct_end:
 
 PROXY_STRUCT_LEN equ proxy_struct_end - proxy_struct
 
-PROXY_OFF_URL   equ 0x0
-PROXY_OFF_PORT  equ PROXY_OFF_URL + 0x8
+PROXY_OFF_IP    equ 0x0
+PROXY_OFF_PORT  equ PROXY_OFF_IP + 0x8
 
 section .text
 ; configures a proxy middleware
@@ -37,6 +37,7 @@ proxy_middleware:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x28], 0
+  mov   qword [rsp+0x38], 0
 
   ; connect to client   
   mov   rdi, [rsp+0x8]
@@ -73,6 +74,7 @@ proxy_middleware:
   cmp   rax, 0
   jl    .error
 
+  ; malloc response string
   mov   rdi, RESPONSE_MAX_LEN
   call  malloc
   cmp   rax, 0
@@ -108,7 +110,6 @@ proxy_middleware:
   jl    .error
 
   ; send back the response to the client
-  ; TODO: in its own function
   mov   rdi, rax
   mov   rsi, [rsp+0x28]
   mov   rdx, qword [rsp+0x30]
@@ -116,7 +117,7 @@ proxy_middleware:
   cmp   rax, 0
   jl    .error
 
-  ; close connection with end server TODO: in its own func
+  ; close connection with end server
   mov   rdi, qword [rsp+0x10]
   call  close_file
 
@@ -175,11 +176,23 @@ proxy_middleware:
   cmp   rax, 0
   jl    .error
 
+  ; free status code string
+  mov   rdi, [rsp+0x38]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
   mov   rdi, [rsp+0x28]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+  
+  mov   rdi, [rsp+0x38]
   test  rdi, rdi
   jz    .no_free
 
@@ -239,7 +252,7 @@ proxy_configure_server:
 
   ; convert port to network port
   mov   rsi, [rsp]
-  mov   rdi, qword [rsi+PROXY_OFF_PORT]
+  mov   di, word [rsi+PROXY_OFF_PORT]
   call  htons
 
   lea   rdi, [rsp+0x10]
@@ -247,7 +260,26 @@ proxy_configure_server:
 
   mov   word [rdi+SOCKADDR_OFF_SIN_FAMILY], AF_INET
 
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+PROXY_OFF_IP]
+  test  rdi, rdi
+  jz    .ip_null 
+
+  call  inet_addr
+  cmp   rax, 0
+  jl    .error
+
+  lea   rdi, [rsp+0x10]
+  mov   dword [rdi+SOCKADDR_OFF_SIN_ADDR], eax
+
+  jmp   .zero
+
+.ip_null:
+  lea   rdi, [rsp+0x10]
   mov   dword [rdi+SOCKADDR_OFF_SIN_ADDR], INADDR_ANY
+
+.zero:
+  lea   rdi, [rsp+0x10]
   mov   qword [rdi+SOCKADDR_OFF_SA_ZERO], 0
 
   ; TODO: connect in its own func

@@ -12,6 +12,9 @@ section .data
 
   enable  dw 1
 
+  BYTE_MAX    equ 255
+  IPV4_COUNT  equ 4
+
   sockaddr_struct:
     sockaddr_sin_family  dw 0
     sockaddr_sin_port    dw 0
@@ -259,4 +262,102 @@ accept_connection:
   add   rsp, 0x20
   ret
 
+; converts the IP address from text to binary form
+; @param  rdi: pointer to IP address
+; @return rax: binary form of the ip address
+inet_addr:
+  sub   rsp, 0x28
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to ip address string
+  ; [rsp+0x8]   -> index to go over the digits
+  ; [rsp+0x10]  -> binary form
+  ; [rsp+0x18]  -> dynamic pointer
+  ; [rsp+0x20]  -> tmp buffer
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x10], 0
+
+  mov   [rsp+0x18], rdi
+
+.loop:
+  cmp   qword [rsp+0x8], 3
+  jge   .end_loop
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, DOT
+  call  find_next_char
+  cmp   rax, 0
+  jl    .error
+
+  lea   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x18]
+  mov   rcx, rax
+  rep   movsb
+
+  xor   rax, rax
+  stosb
+
+  inc   rsi
+  mov   [rsp+0x18], rsi
+
+  lea   rdi, [rsp+0x20]
+  call  stoi
+  cmp   rax, 0
+  jl    .error
+  
+  cmp   rax, BYTE_MAX
+  je    .error
+
+  mov   r9, qword [rsp+0x8]
+  mov   byte [rsp+0x10+r9], al
+
+  inc   qword [rsp+0x8]
+  jmp   .loop
+
+.end_loop:
+  ; copy last digit
+  mov   rdi, [rsp+0x18]
+  mov   rsi, NULL_CHAR
+  call  find_next_char
+  cmp   rax, 0
+  jl    .error
+
+  lea   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x18]
+  mov   rcx, rax
+  rep   movsb
+
+  xor   rax, rax
+  stosb
+
+  inc   rsi
+  mov   [rsp+0x18], rsi
+
+  lea   rdi, [rsp+0x20]
+  call  stoi
+  cmp   rax, 0
+  jl    .error
+  
+  cmp   rax, BYTE_MAX
+  je    .error
+
+  mov   r9, qword [rsp+0x8]
+  mov   byte [rsp+0x10+r9], al
+
+  xor   rax, rax
+  mov   eax, dword [rsp+0x10]
+
+  jmp   .return 
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x28
+  ret
 

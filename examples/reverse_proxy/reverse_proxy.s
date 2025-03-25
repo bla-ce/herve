@@ -20,10 +20,10 @@ _start:
   jl    error
 
   mov   rdi, qword [proxy_port]
-  mov   qword [rax+PROXY_OFF_PORT], rdi
+  mov   word [rax+PROXY_OFF_PORT], di
 
-  mov   rdi, qword [proxy_url]
-  mov   qword [rax+PROXY_OFF_URL], rdi
+  lea   rdi, [proxy_ip]
+  mov   [rax+PROXY_OFF_IP], rdi
 
   mov   rdi, [rsp]
   mov   rsi, proxy_middleware
@@ -50,6 +50,6 @@ error:
   syscall
 
 section .data
-  proxy_port  dq 1337
-  proxy_url   db "http://localhost", NULL_CHAR
+  proxy_port  dw 1337
+  proxy_ip    db "192.168.122.129", NULL_CHAR
 
