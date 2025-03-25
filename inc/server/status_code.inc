@@ -193,6 +193,9 @@ get_status_string:
   cmp   rdi, INTERNAL_SERVER_ERROR
   je    .internal_server_error
 
+  cmp   rdi, BAD_GATEWAY
+  je    .bad_gateway
+
   jmp   .error
 
 .no_content:
@@ -253,6 +256,10 @@ get_status_string:
 
 .internal_server_error:
   lea   rax, [STR_INTERNAL_SERVER_ERROR]
+  ret
+
+.bad_gateway:
+  lea   rax, [STR_BAD_GATEWAY]
   ret
 
 .error:

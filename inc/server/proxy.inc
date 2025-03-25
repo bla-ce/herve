@@ -9,6 +9,8 @@ PROXY_STRUCT_LEN equ proxy_struct_end - proxy_struct
 PROXY_OFF_IP    equ 0x0
 PROXY_OFF_PORT  equ PROXY_OFF_IP + 0x8
 
+bad_gateway_message db "Bad Gateway: The remote server is unreachable. Forwarding failed because the connection could not be established.", NULL_CHAR
+
 section .text
 ; configures a proxy middleware
 ; @param  rdi: pointer to the context struct
@@ -40,7 +42,8 @@ proxy_middleware:
   mov   qword [rsp+0x38], 0
 
   ; connect to client   
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
   call  proxy_configure_server
   cmp   rax, 0
   jl    .error
@@ -206,22 +209,28 @@ proxy_middleware:
   ret
 
 ; configures the socket for the end server
-; @param  rdi: pointer to the proxy struct
+; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the proxy struct
 ; @return rax: file descriptor
 proxy_configure_server:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
   sub   rsp, SOCKADDR_STRUCT_LEN
 
   cmp   rdi, 0
   jle   .error
 
+  cmp   rsi, 0
+  jle   .error
+
   ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the proxy struct
-  ; [rsp+0x8]   -> file descriptor
-  ; [rsp+0x10]  -> pointer to request string
-  ; [rsp+0x18]  -> sockaddr struct
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the proxy struct
+  ; [rsp+0x10]   -> file descriptor
+  ; [rsp+0x18]  -> pointer to request string
+  ; [rsp+0x20]  -> sockaddr struct
 
   mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
   ; create socket
   mov   rdi, AF_INET
@@ -231,10 +240,10 @@ proxy_configure_server:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x8], rax
+  mov   qword [rsp+0x10], rax
 
   ; set socket options
-  mov   rdi, qword [rsp+0x8]
+  mov   rdi, qword [rsp+0x10]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEPORT
   call  set_socket_option
@@ -242,7 +251,7 @@ proxy_configure_server:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [rsp+0x8]
+  mov   rdi, qword [rsp+0x10]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEADDR
   call  set_socket_option
@@ -251,16 +260,16 @@ proxy_configure_server:
   jl    .error
 
   ; convert port to network port
-  mov   rsi, [rsp]
+  mov   rsi, [rsp+0x8]
   mov   di, word [rsi+PROXY_OFF_PORT]
   call  htons
 
-  lea   rdi, [rsp+0x10]
+  lea   rdi, [rsp+0x18]
   mov   word [rdi+SOCKADDR_OFF_SIN_PORT], ax
 
   mov   word [rdi+SOCKADDR_OFF_SIN_FAMILY], AF_INET
 
-  mov   rsi, [rsp]
+  mov   rsi, [rsp+0x8]
   mov   rdi, [rsi+PROXY_OFF_IP]
   test  rdi, rdi
   jz    .ip_null 
@@ -269,37 +278,51 @@ proxy_configure_server:
   cmp   rax, 0
   jl    .error
 
-  lea   rdi, [rsp+0x10]
+  lea   rdi, [rsp+0x18]
   mov   dword [rdi+SOCKADDR_OFF_SIN_ADDR], eax
 
   jmp   .zero
 
 .ip_null:
-  lea   rdi, [rsp+0x10]
+  lea   rdi, [rsp+0x18]
   mov   dword [rdi+SOCKADDR_OFF_SIN_ADDR], INADDR_ANY
 
 .zero:
-  lea   rdi, [rsp+0x10]
+  lea   rdi, [rsp+0x18]
   mov   qword [rdi+SOCKADDR_OFF_SA_ZERO], 0
 
   ; TODO: connect in its own func
   mov   rax, SYS_CONNECT
-  mov   rdi, qword [rsp+0x8]
-  lea   rsi, [rsp+0x10]
+  mov   rdi, qword [rsp+0x10]
+  lea   rsi, [rsp+0x18]
   mov   rdx, SOCKADDR_STRUCT_LEN
   syscall
 
   cmp   rax, 0
+  jl    .bad_gateway
+
+  mov   rax, qword [rsp+0x10]
+  jmp   .return
+
+.bad_gateway:
+  ; send bad gateway
+  mov   rdi, [rsp]
+  mov   rsi, BAD_GATEWAY
+  lea   rdx, [bad_gateway_message]
+  call  send_string
+
+  cmp   rax, 0
   jl    .error
 
-  mov   rax, qword [rsp+0x8]
-  jmp   .return
+  ; abort request
+  mov   rdi, [rsp]
+  call  ctx_abort
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, SOCKADDR_STRUCT_LEN
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 

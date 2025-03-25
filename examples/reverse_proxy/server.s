@@ -13,7 +13,7 @@ health:
 _start:
   sub   rsp, 0x8
 
-  mov   rdi, 1337
+  mov   rdi, 1338
   call  server_init
   cmp   rax, 0
   jl    error
