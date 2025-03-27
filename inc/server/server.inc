@@ -281,9 +281,8 @@ server_init:
   jle   .skip_close_socket
 
   ; if yes close it
-  mov   rax, SYS_CLOSE
   mov   rdi, qword [rsp+0x10]
-  syscall
+  call  close_file
 
   ; free server struct
   mov   rax, [rsp+0x8]

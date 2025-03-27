@@ -2,6 +2,7 @@
 %include "base64.inc"
 %include "basic.inc"
 %include "calloc.inc"
+%include "config.inc"
 %include "constants.inc"
 %include "error.inc"
 %include "file.inc"

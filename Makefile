@@ -2,6 +2,7 @@ INC_DIR = inc
 SERVER_DIR = server
 MALLOC_DIR = malloc
 UTILS_DIR = utils
+CONFIG_DIR = config
 INCLUDES = $(shell find $(INC_DIR) -type f -name '*.inc')
 
 ifndef PROGRAM_NAME
@@ -14,7 +15,8 @@ main: $(INCLUDES) $(PROGRAM_NAME).s
 		-I$(INC_DIR)/ \
 		-I$(INC_DIR)/$(SERVER_DIR) \
 		-I$(INC_DIR)/$(UTILS_DIR) \
-		-I$(INC_DIR)/$(MALLOC_DIR)
+		-I$(INC_DIR)/$(MALLOC_DIR) \
+		-I$(INC_DIR)/$(CONFIG_DIR)
 	ld -o $(PROGRAM_NAME) $(PROGRAM_NAME).o
 
 test: main.s $(INCLUDES)
@@ -23,7 +25,8 @@ test: main.s $(INCLUDES)
 		-I$(INC_DIR)/ \
 		-I$(INC_DIR)/$(SERVER_DIR) \
 		-I$(INC_DIR)/$(UTILS_DIR) \
-		-I$(INC_DIR)/$(MALLOC_DIR)
+		-I$(INC_DIR)/$(MALLOC_DIR) \
+		-I$(INC_DIR)/$(CONFIG_DIR)
 	ld -o main main.o
 
 .PHONY: clean

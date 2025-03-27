@@ -44,7 +44,7 @@ proxy_middleware:
   ; connect to client   
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  call  proxy_configure_server
+  call  connect_proxy
   cmp   rax, 0
   jl    .error
 
@@ -212,7 +212,7 @@ proxy_middleware:
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: pointer to the proxy struct
 ; @return rax: file descriptor
-proxy_configure_server:
+connect_proxy:
   sub   rsp, 0x18
   sub   rsp, SOCKADDR_STRUCT_LEN
 
@@ -291,12 +291,9 @@ proxy_configure_server:
   lea   rdi, [rsp+0x18]
   mov   qword [rdi+SOCKADDR_OFF_SA_ZERO], 0
 
-  ; TODO: connect in its own func
-  mov   rax, SYS_CONNECT
   mov   rdi, qword [rsp+0x10]
   lea   rsi, [rsp+0x18]
-  mov   rdx, SOCKADDR_STRUCT_LEN
-  syscall
+  call  connect_fd
 
   cmp   rax, 0
   jl    .bad_gateway

@@ -291,14 +291,44 @@ test_static:
   ret
 
 _start:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
-  mov   rdi, 1337
-  call  server_init
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to cli args
+  ; [rsp+0x8]   -> pointer to server struct
+  ; [rsp+0x10]  -> argv
+  ; [rsp+0x18]  -> pointer to argc
+
+  mov   rdi, [rsp+0x10]
+  cmp   rdi, 2
+  jl    .empty_cli
+
+  lea   rsi, [rsp+0x18]
+  call  parse_cli
   cmp   rax, 0
   jl    .error
 
   mov   [rsp], rax
+
+  ; parse port
+  mov   rsi, rax
+  mov   rdi, [rsi+0x8] ; get argv[1]
+  call  stoi
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  jmp   .server_init
+
+.empty_cli:
+  mov   rdi, 0
+
+.server_init:
+  call  server_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
 
   mov   rdi, rax
   call  get_server_sockfd
@@ -308,7 +338,7 @@ _start:
 
   mov   qword [sockfd], rax
 
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [index_url]
   mov   rcx, test_static
@@ -318,7 +348,7 @@ _start:
   jl    .error
 
   ; add no content route
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [root_url]
   mov   rcx, test_no_content
@@ -328,7 +358,7 @@ _start:
   jl    .error
 
   ; add health route
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [health_url]
   mov   rcx, test_string
@@ -338,7 +368,7 @@ _start:
   jl    .error
 
   ; add template route
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [template_url]
   mov   rcx, test_template
@@ -348,7 +378,7 @@ _start:
   jl    .error
 
   ; add post route
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [POST]
   lea   rdx, [post_url]
   mov   rcx, test_post
@@ -358,7 +388,7 @@ _start:
   jl    .error
 
   ; add basic auth route
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [basic_url]
   mov   rcx, test_basic_auth
@@ -368,7 +398,7 @@ _start:
   jl    .error
 
   ; add redirect route
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [redirect_url]
   mov   rcx, test_redirect
@@ -378,7 +408,7 @@ _start:
   jl    .error
 
   ; add wildcard route
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [wildcard_url]
   mov   rcx, test_wildcard
@@ -387,7 +417,7 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   lea   rsi, [dir_path]
   mov   rdx, 1
   call  add_dir_route
@@ -395,7 +425,7 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   mov   rsi, middleware
   lea   rdx, [hello]
   call  add_middleware
@@ -403,7 +433,7 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   mov   rsi, middleware
   lea   rdx, [hello2]
   call  add_middleware
@@ -411,17 +441,17 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   call  run_server
-
-  add   rsp, 0x8
+  
+  add   rsp, 0x10
 
   mov   rax, SYS_EXIT
   mov   rdi, SUCCESS_CODE
   syscall
 
 .error:
-  add   rsp, 0x8
+  add   rsp, 0x10
 
   mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE

@@ -397,3 +397,27 @@ receive_from_file:
   
   ret
 
+; connects the socket file descriptor to the address specified in rsi
+; @param  rdi: file descriptor
+; @param  rsi: pointer to sockaddr struct
+; @return rax: return code
+connect_fd:
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   rax, SYS_CONNECT
+  ; rdi and rsi are already populated
+  mov   rdx, SOCKADDR_STRUCT_LEN
+  syscall
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+

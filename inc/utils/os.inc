@@ -37,7 +37,7 @@ getenv:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [environ], rax
+  mov   [environ], rax
 
   mov   rdi, [environ]
   mov   rsi, [rsp]
@@ -62,23 +62,32 @@ getenv:
 
   mov   [rsp], rdi
   
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
   ; close file
   mov   rdi, qword [environ_fd]
   call  close_file
 
   ; free environ
-  mov   rdi, qword [environ]
+  mov   rdi, [environ]
   call  free
 
   mov   rax, [rsp]
 
+  jmp   .return
 
+.error:
+  mov   rdi, qword [environ]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+  mov   rdi, qword [environ_fd]
+  call  close_file
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x10
   ret 
 
