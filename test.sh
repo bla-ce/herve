@@ -16,7 +16,7 @@ tests=(
   "http://192.168.122.129:1337/ HEHE 404"
   "http://192.168.122.129:1337/ HEHEHEHEHEHE 500"
   "http://192.168.122.129:1337/health GET 200"
-  "http://192.168.122.129:1337/wild/ GET 200"
+  "http://192.168.122.129:1337/wild/example GET 200"
   "http://192.168.122.129:1337/wild/ayoooooooo GET 200"
   "http://192.168.122.129:1337/redirect GET 302"
   "http://192.168.122.129:1337/template GET 200"

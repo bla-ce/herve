@@ -1,3 +1,12 @@
+section .bss
+sockaddr_struct:
+  sockaddr_sin_family  resw 1
+  sockaddr_sin_port    resw 1
+  sockaddr_sin_addr    resd 1
+  sockaddr_sa_zero     resq 1
+  sockaddr_addrlen     resq 1
+sockaddr_struct_end:
+
 section .data
   ; socket constants
   INADDR_ANY          equ 0
@@ -14,15 +23,9 @@ section .data
 
   BYTE_MAX    equ 255
 
-  sockaddr_struct:
-    sockaddr_sin_family  dw 0
-    sockaddr_sin_port    dw 0
-    sockaddr_sin_addr    dd 0
-    sockaddr_sa_zero     dq 0
-    sockaddr_addrlen     dq $ - sockaddr_sin_family
-  sockaddr_struct_end:
-
   SOCKADDR_STRUCT_LEN equ sockaddr_struct_end - sockaddr_struct
+  
+  addrlen dq sockaddr_addrlen - sockaddr_sin_family
 
   SOCKADDR_OFF_SIN_FAMILY  equ 0x0
   SOCKADDR_OFF_SIN_PORT    equ SOCKADDR_OFF_SIN_FAMILY + 0x2
@@ -160,7 +163,7 @@ bind_socket:
   mov   rax, SYS_BIND
   mov   rsi, rdi 
   mov   rdi, qword [rsp]
-  mov   rdx, qword [sockaddr_addrlen]
+  mov   rdx, qword [addrlen]
   syscall
 
   cmp   rax, 0
@@ -210,7 +213,7 @@ accept_connection:
   mov   dword [rax+SOCKADDR_OFF_SIN_ADDR], 0
   mov   qword [rax+SOCKADDR_OFF_SA_ZERO], 0
 
-  mov   rbx, qword [sockaddr_addrlen]
+  mov   rbx, qword [addrlen]
   mov   qword [rax+SOCKADDR_OFF_ADDRLEN], rbx
 
   ; get server from context
@@ -223,7 +226,7 @@ accept_connection:
   mov   rdi, rax
   mov   rax, SYS_ACCEPT
   lea   rsi, [rsp+0x18]
-  lea   rdx, [sockaddr_addrlen]
+  lea   rdx, [addrlen]
   syscall
 
   cmp   rax, 0

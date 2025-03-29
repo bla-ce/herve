@@ -1,9 +1,10 @@
-section .data
+section .bss
 proxy_struct:
-  _proxy_ip    dq 0
-  _proxy_port  dw 0
+  _proxy_ip    resq 1
+  _proxy_port  resw 1
 proxy_struct_end:
 
+section .data
 PROXY_STRUCT_LEN equ proxy_struct_end - proxy_struct
 
 PROXY_OFF_IP    equ 0x0

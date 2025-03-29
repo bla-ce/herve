@@ -1,3 +1,9 @@
+section .bss
+method_struct:
+  method_str    resq 1
+  method_next   resq 1
+method_struct_end:
+
 section .data
   ; methods
   align 8
@@ -19,10 +25,6 @@ section .data
   align 8
   CONNECT db "CONNECT", NULL_CHAR
 
-  method_struct:
-    method_str    dq 0
-    method_next   dq 0
-  method_struct_end:
 
   METHOD_STRUCT_LEN equ method_struct_end - method_struct
 

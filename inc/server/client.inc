@@ -1,8 +1,10 @@
+section .bss
+client_struct:
+  client_fd       resq 1
+  client_sockaddr resq 1
+client_struct_end:
+
 section .data
-  client_struct:
-    client_fd       dq 0  
-    client_sockaddr dq 0
-  client_struct_end:
 
   CLIENT_STRUCT_LEN equ client_struct_end - client_struct
 
@@ -96,7 +98,7 @@ get_client_ip:
   mov   rax, SYS_GETPEERNAME
   mov   rdi, qword [rsp+0x8]
   lea   rsi, [rsp+0x38]
-  lea   rdx, [sockaddr_addrlen]
+  lea   rdx, [addrlen]
   syscall
    
   cmp   rax, 0

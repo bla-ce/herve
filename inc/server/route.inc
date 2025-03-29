@@ -1,11 +1,12 @@
-section .data
-  route_struct:
-    route_method    dq 0  
-    route_url       dq 0
-    route_callback  dq 0
-    route_next      dq 0
-  route_struct_end:
+section .bss
+route_struct:
+  route_method    resq 1
+  route_url       resq 1
+  route_callback  resq 1
+  route_next      resq 1
+route_struct_end:
 
+section .data
   ROUTE_STRUCT_LEN equ route_struct_end - route_struct
 
   ROUTE_OFF_METHOD    equ 0x0

@@ -264,6 +264,13 @@ test_string:
 
   mov   [rsp], rdi
 
+  ; add cookie
+  lea   rsi, [cookie_name]
+  lea   rdx, [cookie_value]
+  call  set_cookie
+  cmp   rax, 0
+  jl    .error
+
   ; test print request headers
   mov   rdi, [rsp]
   call  get_ctx_request
@@ -501,4 +508,7 @@ section .data
   expected_auth db "test:password", NULL_CHAR
 
   custom_delimiter db " -> ", NULL_CHAR
+
+  cookie_name   db "name", NULL_CHAR
+  cookie_value  db "value", NULL_CHAR
 

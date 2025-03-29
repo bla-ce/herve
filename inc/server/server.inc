@@ -1,4 +1,12 @@
 section .bss
+server_struct:
+  server_sockfd             resq 1  ; socket file descriptor
+  server_logger             resq 1  ; pointer to the logger
+  server_routes             resq 1  ; pointer to linked list of routes
+  server_sockaddr           resq 1  ; pointer to sockaddr struct
+  server_middlewares        resq 1  ; pointer to middlewares linked list
+  server_port               resw 1  ; port
+server_struct_end:
 
 section .data
   ; server constants
@@ -9,16 +17,7 @@ section .data
   DEFAULT_PORT equ 8080
   PORT_MAX     equ 0xffff
 
-  server_struct:
-    server_sockfd             dq 0  ; socket file descriptor
-    server_logger             dq 0  ; pointer to the logger
-    server_routes             dq 0  ; pointer to linked list of routes
-    server_sockaddr           dq 0  ; pointer to sockaddr struct
-    server_middlewares        dq 0  ; pointer to middlewares linked list
-    server_port               dw 0  ; port
-  end_server_struct:
-
-  SERVER_STRUCT_LEN equ end_server_struct - server_struct
+  SERVER_STRUCT_LEN equ server_struct_end - server_struct
 
   ; offsets
   SERVER_OFF_SOCKFD              equ 0x0
@@ -221,7 +220,6 @@ server_init:
   ; malloc server struct
   mov   rdi, SERVER_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 

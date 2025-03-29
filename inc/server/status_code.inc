@@ -1,5 +1,4 @@
 section .data
-
 STATUS_CODE_LENGTH equ 3
 
 ; Status Code Constants

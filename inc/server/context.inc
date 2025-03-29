@@ -1,16 +1,17 @@
-section .data
-  ctx_struct:
-    ctx_client      dq 0
-    ctx_server      dq 0
-    ctx_proto       dq 0
-    ctx_request     dq 0
-    ctx_response    dq 0
-    ctx_start_time  dq 0
-    ctx_end_time    dq 0
-    ctx_aborted     dq 0
-    ctx_done        dq 0
-  ctx_struct_end:
+section .bss
+ctx_struct:
+  ctx_client      resq 1
+  ctx_server      resq 1
+  ctx_proto       resq 1
+  ctx_request     resq 1
+  ctx_response    resq 1
+  ctx_start_time  resq 1
+  ctx_end_time    resq 1
+  ctx_aborted     resq 1
+  ctx_done        resq 1
+ctx_struct_end:
 
+section .data
   CTX_STRUCT_LEN equ ctx_struct_end - ctx_struct
 
   CTX_OFF_CLIENT      equ 0x0

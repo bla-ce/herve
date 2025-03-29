@@ -4,6 +4,7 @@
 %include "calloc.inc"
 %include "config.inc"
 %include "constants.inc"
+%include "cookie.inc"
 %include "error.inc"
 %include "file.inc"
 %include "free.inc"
