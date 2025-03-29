@@ -590,9 +590,28 @@ add_route:
 
   mov   [rsp+0x28], rax
 
+  cmp   rax, 1
+  je    .malloc_url
+
+  ; check if the url ends with '/', if yes, trim it
+  xor   rax, rax
+  mov   rsi, [rsp+0x10]
+  cmp   byte [rsi], SLASH
+  jne   .error
+
+  add   rsi, [rsp+0x28]
+  dec   rsi
+  lodsb
+
+  cmp   rax, SLASH
+  jne   .malloc_url
+
+  dec   qword [rsp+0x28]
+
+.malloc_url:
   ; malloc url
-  inc   rax       ; increase by one to have null char
-  mov   rdi, rax
+  mov   rdi, [rsp+0x28]
+  inc   rdi       ; increase by one to have null char
   call  malloc
 
   cmp   rax, 0

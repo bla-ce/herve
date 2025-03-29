@@ -467,7 +467,7 @@ section .data
   index_url     db "/index", NULL_CHAR
   template_url  db "/template", NULL_CHAR
   redirect_url  db "/redirect", NULL_CHAR
-  basic_url     db "/basic-auth", NULL_CHAR
+  basic_url     db "/basic-auth/", NULL_CHAR
   post_url      db "/post", NULL_CHAR
   wildcard_url  db "/wild/*", NULL_CHAR
 

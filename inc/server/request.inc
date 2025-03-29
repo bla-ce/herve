@@ -744,7 +744,19 @@ parse_request:
   jg    .error
 
   mov   qword [rsp+0x18], rax
+  cmp   rax, 1
+  je    .strndup
 
+  ; check if url ends with '/', if yes, trim it
+  mov   rsi, [rsp+0x10]
+  add   rsi, qword [rsp+0x18]
+  dec   rsi
+  cmp   byte [rsi], SLASH
+  jne   .strndup
+
+  dec   qword [rsp+0x18]
+
+.strndup:
   ; add one for null char
   mov   rdi, [rsp+0x10]
   mov   rsi, qword [rsp+0x18]

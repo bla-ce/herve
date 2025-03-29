@@ -6,7 +6,12 @@ section .text
 ; @param  rsi: pointer to argv[0]
 ; @return rax: pointer to array
 parse_cli:
-  sub   rsp, 0x20
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> argc
+  ; [rsp+0x8]   -> pointer to argv[0]
+  ; [rsp+0x10]  -> array of pointers
 
   cmp   rdi, 0
   jl    .error
@@ -56,6 +61,6 @@ parse_cli:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x18
   ret
 

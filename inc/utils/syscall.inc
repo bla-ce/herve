@@ -15,6 +15,7 @@ SYS_BIND          equ 49
 SYS_LISTEN        equ 50
 SYS_GETPEERNAME   equ 52
 SYS_SETSOCKOPT    equ 54
+SYS_FORK          equ 57
 SYS_EXIT          equ 60
 SYS_GETDENTS      equ 78
 SYS_CLOCK_GETTIME equ 228
