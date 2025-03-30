@@ -260,14 +260,14 @@ test_no_content:
   ret
 
 test_string:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   mov   [rsp], rdi
 
   ; add cookie
   lea   rdi, [cookie_name]
   lea   rsi, [cookie_value]
-  mov   rdx, 20
+  mov   rdx, -1
   call  create_cookie
   cmp   rax, 0
   jl    .error
@@ -296,7 +296,7 @@ test_string:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 test_static:

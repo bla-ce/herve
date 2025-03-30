@@ -1,5 +1,6 @@
 section .data
-  LONG_LONG_MAX_STR_SIZE  equ 21
+  UNSIGNED_LONG_LONG_MAX_STR_SIZE equ 21
+  SIGNED_LONG_LONG_MAX_STR_SIZE   equ 20
 
 section .text
 ; returns if a string starts with a substring
@@ -343,6 +344,9 @@ to_string:
   cmp   rsi, 0
   jle   .error
 
+  cmp   rdx, 0
+  jl    .error
+
   ; save parameters onto the stack
   mov   qword [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -359,7 +363,11 @@ to_string:
   dec   rdi
   
   mov   rax, qword [rsp]
-  
+  cmp   rax, 0
+  jg    .loop
+
+  neg   rax
+
 .loop:
   xor   rdx, rdx
   mov   rcx, 0xA              ; divisor, dividend in rax
@@ -374,6 +382,14 @@ to_string:
   cmp   rax, 0
   jne   .loop
 
+.end_loop:
+  cmp   qword [rsp], 0
+  jg    .skip_hyphen
+
+  mov   byte [rdi], HYPHEN
+  dec   rdi
+
+.skip_hyphen:
   inc   rdi
  
   mov   rax, rdi

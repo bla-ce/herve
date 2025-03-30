@@ -203,7 +203,7 @@ create_cookie:
 ; @return rax: pointer to the serialized cookie
 serialize_cookie:
   sub   rsp, 0x50
-  sub   rsp, LONG_LONG_MAX_STR_SIZE
+  sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
   sub   rsp, COOKIE_MAX_SIZE
 
   cmp   rdi, 0
@@ -220,7 +220,7 @@ serialize_cookie:
   ; [rsp+0x38]                        -> pointer to mallocd cookie string
   ; [rsp+0x40]                        -> dynamic pointer cookie string
   ; [rsp+0x48]                        -> max age string
-  ; [rsp+0x48+LONG_LONG_MAX_STR_SIZE] -> serialized cookie
+  ; [rsp+0x48+SIGNED_LONG_LONG_MAX_STR_SIZE] -> serialized cookie
 
   mov   [rsp], rdi
 
@@ -252,7 +252,7 @@ serialize_cookie:
   mov   qword [rsp+0x28], rax
 
   ; copy name
-  lea   rdi, [rsp+0x48+LONG_LONG_MAX_STR_SIZE]
+  lea   rdi, [rsp+0x48+SIGNED_LONG_LONG_MAX_STR_SIZE]
   mov   rsi, [rsp+0x8]
   mov   rcx, qword [rsp+0x20]
   rep   movsb
@@ -288,10 +288,11 @@ serialize_cookie:
   ; save rdi position
   mov   [rsp+0x40], rdi
 
+.b1:
   ; copy max age string
   mov   rdi, qword [rsp+0x18]
   lea   rsi, [rsp+0x48]
-  mov   rdx, LONG_LONG_MAX_STR_SIZE
+  mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
   call  to_string
   cmp   rax, 0
   jl    .error
@@ -310,7 +311,7 @@ serialize_cookie:
   mov   rax, NULL_CHAR
   stosb
 
-  lea   rdi, [rsp+0x48+LONG_LONG_MAX_STR_SIZE]
+  lea   rdi, [rsp+0x48+SIGNED_LONG_LONG_MAX_STR_SIZE]
   call  strlen
   cmp   rax, 0
   jl    .error
@@ -325,7 +326,7 @@ serialize_cookie:
   mov   [rsp+0x38], rax
 
   mov   rdi, rax
-  lea   rsi, [rsp+0x48+LONG_LONG_MAX_STR_SIZE]
+  lea   rsi, [rsp+0x48+SIGNED_LONG_LONG_MAX_STR_SIZE]
   mov   rcx, qword [rsp+0x30]
   rep   movsb
 
@@ -337,7 +338,7 @@ serialize_cookie:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, LONG_LONG_MAX_STR_SIZE
+  add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
   add   rsp, COOKIE_MAX_SIZE
   add   rsp, 0x50
   ret
