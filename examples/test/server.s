@@ -265,8 +265,15 @@ test_string:
   mov   [rsp], rdi
 
   ; add cookie
-  lea   rsi, [cookie_name]
-  lea   rdx, [cookie_value]
+  lea   rdi, [cookie_name]
+  lea   rsi, [cookie_value]
+  mov   rdx, 20
+  call  create_cookie
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
   call  set_cookie
   cmp   rax, 0
   jl    .error

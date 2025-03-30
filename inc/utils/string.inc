@@ -1,3 +1,6 @@
+section .data
+  LONG_LONG_MAX_STR_SIZE  equ 21
+
 section .text
 ; returns if a string starts with a substring
 ; @param  rdi: string
