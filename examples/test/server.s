@@ -265,9 +265,11 @@ test_string:
   mov   [rsp], rdi
 
   ; add cookie
-  lea   rdi, [cookie_name]
-  lea   rsi, [cookie_value]
-  mov   rdx, -1
+  lea   rdi, [name]
+  lea   rsi, [value]
+  mov   rdx, 20
+  mov   rcx, 1
+  mov   r8, 1
   call  create_cookie
   cmp   rax, 0
   jl    .error
@@ -516,6 +518,6 @@ section .data
 
   custom_delimiter db " -> ", NULL_CHAR
 
-  cookie_name   db "name", NULL_CHAR
-  cookie_value  db "value", NULL_CHAR
+  name   db "name", NULL_CHAR
+  value  db "value", NULL_CHAR
 
