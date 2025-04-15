@@ -5,9 +5,13 @@ global _start
 section .text
 
 _start:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
-  mov   rdi, 1323
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> array of proxy struct (length of 2)
+
+  mov   rdi, 4000
   call  server_init
   cmp   rax, 0
   jl    error
@@ -25,9 +29,28 @@ _start:
   lea   rdi, [proxy_ip]
   mov   [rax+PROXY_OFF_IP], rdi
 
+  mov   [rsp+0x8], rax
+  mov   qword [proxy_array], rax
+
+  mov   rdi, PROXY_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    error
+
+  mov   rdi, qword [proxy2_port]
+  mov   word [rax+PROXY_OFF_PORT], di
+
+  lea   rdi, [proxy_ip]
+  mov   [rax+PROXY_OFF_IP], rdi
+
+  mov   [rsp+0x10], rax
+  mov   qword [proxy_array+8], rax
+
   mov   rdi, [rsp]
   mov   rsi, proxy_middleware
-  mov   rdx, rax 
+  mov   rdx, proxy_array
+  mov   rcx, ROUND_ROBIN_IP
+  mov   r8, 2
   call  add_middleware
   cmp   rax, 0
   jl    error
@@ -51,5 +74,8 @@ error:
 
 section .data
   proxy_port  dw 1337
+  proxy2_port dw 1338
   proxy_ip    db "192.168.122.129", NULL_CHAR
+
+  proxy_array times 2 dq 0
 
