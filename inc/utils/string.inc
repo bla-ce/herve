@@ -384,7 +384,7 @@ to_string:
 
 .end_loop:
   cmp   qword [rsp], 0
-  jg    .skip_hyphen
+  jge   .skip_hyphen
 
   mov   byte [rdi], HYPHEN
   dec   rdi

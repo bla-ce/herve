@@ -674,7 +674,7 @@ ht_create:
 ; @param  rdi: pointer to the hash table
 ; @return rax: return code
 ht_free:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   cmp   rdi, 0
   jle   .error
@@ -706,8 +706,15 @@ ht_free:
   ; get array of keys
   mov   rsi, [rsp+0x10]
 
+  mov   rax, r9
+  mov   rbx, 8
+  mul   rbx
+
+  add   rsi, rax
+  mov   [rsp+0x20], rsi
+
   ; get key 
-  mov   rdi, [rsi+r9*8]
+  mov   rdi, [rsi]
   mov   [rsp+0x18], rdi
 
   ; get value
@@ -729,10 +736,22 @@ ht_free:
   cmp   rax, 0
   jl    .error
 
+  ; free the entry struct
+  mov   rdi, [rsp+0x20]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   inc   r9
   jmp   .loop
 
 .end_loop:
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+HT_OFF_TABLE]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   ; free hash table
   mov   rdi, [rsp]
   call  free
@@ -751,7 +770,7 @@ ht_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 
