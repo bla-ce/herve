@@ -29,6 +29,11 @@ section .data
 
   EMPTY_CONTENT db "0", NULL_CHAR
 
+  ; delimiters 
+  space_delim       db " ", NULL_CHAR
+  CRLF_delim        db CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
+  DOUBLE_CRLF_delim db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
+
 section .text
 ; frees the response structure and all associated resources
 ; @param  rdi: pointer to the response
@@ -45,11 +50,22 @@ free_response:
   mov   rdi, [rsp]
   call  get_response_headers
   cmp   rax, 0
-  jl    .free_struct
+  jl    .free_response_boeuf
 
   ; free headers hash table
   mov   rdi, rax
   call  ht_free
+  cmp   rax, 0
+  jl    .error
+
+.free_response_boeuf:
+  mov   rdi, [rsp]
+  call  get_response_str
+  cmp   rax, 0
+  jl    .free_struct
+
+  mov   rdi, rax
+  call  boeuf_free
   cmp   rax, 0
   jl    .error
 
@@ -330,7 +346,7 @@ get_response_body:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
 stringify_response:
-  sub   rsp, 0x68
+  sub   rsp, 0x18
 
   cmp   rdi, 0
   jl    .error
@@ -339,40 +355,31 @@ stringify_response:
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the response struct
-  ; [rsp+0x8]   -> pointer to the response protocol
-  ; [rsp+0x10]  -> response protocol length
-  ; [rsp+0x18]  -> pointer to status string
-  ; [rsp+0x20]  -> response status length
-  ; [rsp+0x28]  -> pointer to the response headers (hash table)
-  ; [rsp+0x30]  -> pointer to the response body
-  ; [rsp+0x38]  -> response body length
-  ; [rsp+0x40]  -> pointer to the response string
-  ; [rsp+0x48]  -> dynamic pointer to the string
-  ; [rsp+0x50]  -> response string length
-  ; [rsp+0x58]  -> pointer to headers stringified
-  ; [rsp+0x60]  -> headers stringified length
+  ; [rsp+0x8]   -> pointer to the boeuf holding the stringified response
+  ; [rsp+0x10]  -> pointer to the response headers
 
-  mov   qword [rsp+0x30], 0
-  mov   qword [rsp+0x40], 0
-  mov   qword [rsp+0x50], 0
-  mov   qword [rsp+0x58], 0
+  mov   qword [rsp+0x8], 0
 
   ; get context protocol
   call  get_response_protocol
+  cmp   rax, 0
+  jl    .error
 
+  ; create dynamic buffer
+  mov   rdi, rax
+  call  boeuf_create
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x8], rax
 
   mov   rdi, rax
-  call  strlen
+  mov   rsi, space_delim
+  call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x10], rax
-  add   qword [rsp+0x50], rax
-  add   qword [rsp+0x50], 1   ; add space
+  mov   [rsp+0x8], rax
 
   ; get status code
   mov   rdi, [rsp]
@@ -386,16 +393,21 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
-
-  mov   rdi, rax
-  call  strlen
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  boeuf_append
   cmp   rax, 0
   jl    .error
-  
-  mov   qword [rsp+0x20], rax
-  add   qword [rsp+0x50], rax
-  add   qword [rsp+0x50], 1   ; add space
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, rax
+  mov   rsi, CRLF_delim
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
 
   ; get headers
   mov   rdi, [rsp]
@@ -404,7 +416,27 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x28], rax
+  mov   rdi, rax
+  call  stringify_headers
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; append headers
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; free headers string
+  mov   rdi, [rsp+0x10]
+  call  free
+  cmp   rax, 0
+  jl    .error
 
   ; get body
   mov   rdi, [rsp]
@@ -413,151 +445,41 @@ stringify_response:
   jl    .error
   je    .skip_body
 
-  mov   [rsp+0x30], rax
-
-  mov   rdi, rax
-  call  strlen
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x38], rax
-  add   qword [rsp+0x50], rax
-  add   qword [rsp+0x50], 2   ; add CRLF
+  mov   [rsp+0x8], rax
 
 .skip_body:
-  ; stringify headers
-  mov   rdi, [rsp+0x28]
-  call  stringify_headers
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x58], rax
-
-  mov   rdi, rax
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x60], rax
-  add   qword [rsp+0x50], rax
-  add   qword [rsp+0x50], 5   ; add CRLF x2 and NULL_CHAR
-
-  ; make sure the size of the response does not exceed RESPONSE_MAX_LEN
-  mov   rdi, qword [rsp+0x50]
-  mov   rbx, RESPONSE_MAX_LEN
-  cmp   rdi, rbx
-  cmovg rdi, rbx
-
-  ; malloc response string
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x40], rax ; origin
-  mov   [rsp+0x48], rax ; dynamic pointer
-
-  ; append protocol
-  mov   rdi, [rsp+0x48]
-  mov   rsi, [rsp+0x8]
-  mov   rcx, qword [rsp+0x10]
-  rep   movsb
-
-  ; add space -> no need to increment
-  mov   rax, SPACE
-  stosb
-
-  ; save rdi's position
-  mov   [rsp+0x48], rdi
-
-  ; append status code
-  mov   rdi, [rsp+0x48]
-  mov   rsi, [rsp+0x18]
-  mov   rcx, qword [rsp+0x20]
-  rep   movsb
-
-  ; add new line
-  mov   rax, CARRIAGE_RETURN
-  stosb
-
-  mov   rax, LINE_FEED
-  stosb
-
-  mov   [rsp+0x48], rdi
-
-  ; append headers
-  mov   rdi, [rsp+0x48]
-  mov   rsi, [rsp+0x58]
-  mov   rcx, qword [rsp+0x60]
-  rep   movsb
-
-  mov   [rsp+0x48], rdi
-
-  ; free headers string
-  mov   rdi, [rsp+0x58]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; check if body
-  mov   rdi, [rsp+0x30]
-  cmp   rdi, 0
-  je    .skip_copy_body
-
-  ; append body
-  call  strlen
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x48]
-  mov   rsi, [rsp+0x30]
-  mov   rcx, qword [rsp+0x38]
-  rep   movsb
-
-  mov   [rsp+0x48], rdi
-
-.skip_copy_body:
-  mov   rdi, [rsp+0x48]
-  ; add null_char
-  mov   rax, NULL_CHAR
-  stosb
-
   ; save response str
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x40]
+  mov   rsi, [rsp+0x8]
   call  set_response_str
-
   cmp   rax, 0
   jl    .error
 
   ; return response
-  mov   rax, [rsp+0x40]
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 
 .error:
   ; free response string
-  mov   rax, [rsp+0x40]
+  mov   rax, [rsp+0x8]
   test  rax, rax
   jz    .no_free
 
   mov   rdi, rax
-  call  free
-
-  ; free response string
-  mov   rax, [rsp+0x58]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
+  call  boeuf_free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x68
+  add   rsp, 0x18
   ret
 
 ; sends a response without content
@@ -906,13 +828,6 @@ send_response:
   cmp   rax, 0
   jl    .error
 
-  ; free response
-  mov   rdi, [rsp+0x18]
-  call  free
-
-  cmp   rax, 0
-  jl    .error
-
   jmp   .return
 
 .error:
@@ -922,7 +837,7 @@ send_response:
   jz    .no_free
 
   mov   rdi, rax
-  call  free
+  call  boeuf_free
   
 .no_free:
   mov   rax, FAILURE_CODE

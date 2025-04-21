@@ -2,7 +2,7 @@ section .data
   DELIMITER db "%%", NULL_CHAR
   DELIMITER_LENGTH equ $ - DELIMITER - 1 ; minus null char
 
-  tmp_file db "examples/views/", NULL_CHAR
+  tmp_file db "examples/test/views/", NULL_CHAR
 
 section .text
 

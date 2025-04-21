@@ -487,9 +487,9 @@ section .data
   post_url      db "/post", NULL_CHAR
   wildcard_url  db "/wild/*", NULL_CHAR
 
-  index_path    db "examples/views/index.html", NULL_CHAR
-  template_path db "examples/views/template.apl", NULL_CHAR
-  dir_path      db "examples/views", NULL_CHAR
+  index_path    db "examples/test/views/index.html", NULL_CHAR
+  template_path db "examples/test/views/template.apl", NULL_CHAR
+  dir_path      db "examples/test/views", NULL_CHAR
 
   name_query  db "name", NULL_CHAR
   form_fname  db "fname", NULL_CHAR
