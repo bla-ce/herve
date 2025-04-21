@@ -270,6 +270,7 @@ test_string:
   mov   rdx, 20
   mov   rcx, 1
   mov   r8, 1
+  lea   r9, [localhost]
   call  create_cookie
   cmp   rax, 0
   jl    .error
@@ -518,6 +519,7 @@ section .data
 
   custom_delimiter db " -> ", NULL_CHAR
 
-  name   db "name", NULL_CHAR
-  value  db "value", NULL_CHAR
+  name      db "name", NULL_CHAR
+  value     db "value", NULL_CHAR
+  localhost db "localhost", NULL_CHAR
 

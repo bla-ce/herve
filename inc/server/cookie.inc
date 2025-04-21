@@ -21,18 +21,13 @@ COOKIE_OFF_DOMAIN     equ COOKIE_OFF_SECURE + 0x8
 
 COOKIE_MAX_SIZE equ 0x1000
 
+ATTRIBUTE_DELIM db "; ", NULL_CHAR
+
 ; cookie attributes
-MAX_AGE_ATTR      db "Max-Age", NULL_CHAR
-MAX_AGE_ATTR_LEN  equ $ - MAX_AGE_ATTR - 1  ; remove null_char
-
+MAX_AGE_ATTR    db "Max-Age", NULL_CHAR
 SECURE_ATTR     db "Secure", NULL_CHAR
-SECURE_ATTR_LEN equ $ - SECURE_ATTR - 1  ; remove null_char
-
-HTTP_ONLY_ATTR      db "HttpOnly", NULL_CHAR
-HTTP_ONLY_ATTR_LEN  equ $ - HTTP_ONLY_ATTR - 1  ; remove null_char
-
+HTTP_ONLY_ATTR  db "HttpOnly", NULL_CHAR
 DOMAIN_ATTR     db "Domain", NULL_CHAR
-DOMAIN_ATTR_LEN equ $ - DOMAIN_ATTR - 1
 
 ; token_table: each byte is 0 or 1 indicating invalid or valid token char
 ;              for ASCII code = index in [0..127]
@@ -234,222 +229,189 @@ create_cookie:
 ; @param  rdi: pointer to the cookie struct
 ; @return rax: pointer to the serialized cookie
 serialize_cookie:
-  sub   rsp, 0x68
+  sub   rsp, 0x18
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
-  sub   rsp, COOKIE_MAX_SIZE
 
   cmp   rdi, 0
   jle   .error
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the cookie struct
-  ; [rsp+0x8]   -> pointer to the cookie name
-  ; [rsp+0x10]  -> pointer to the cookie value
-  ; [rsp+0x18]  -> max age atribute
-  ; [rsp+0x20]  -> http_only attribute
-  ; [rsp+0x28]  -> secure attribute
-  ; [rsp+0x30]  -> domain attribute
-  ; [rsp+0x38]  -> cookie name length
-  ; [rsp+0x40]  -> cookie value length
-  ; [rsp+0x48]  -> serialized cookie length
-  ; [rsp+0x50]  -> pointer to mallocd cookie string
-  ; [rsp+0x58]  -> dynamic pointer cookie string
-  ; [rsp+0x60]  -> max age string
-  ; [rsp+0x60+SIGNED_LONG_LONG_MAX_STR_SIZE] -> serialized cookie
+  ; [rsp+0x8]   -> pointer to the serialized cookie
+  ; [rsp+0x10]  -> '=' string to append
+  ; [rsp+0x18]  -> max age string
 
   mov   [rsp], rdi
 
   ; get cookie name
   mov   rax, [rdi+COOKIE_OFF_NAME]
+
+  ; create boeuf buffer
+  mov   rdi, rax
+  call  boeuf_create
+  cmp   rax, 0
+  jl    .error
+
   mov   [rsp+0x8], rax
 
-  ; get cookie value
-  mov   rax, [rdi+COOKIE_OFF_VALUE]
-  mov   [rsp+0x10], rax
+  ; add equal
+  mov   byte [rsp+0x10], EQUAL_SIGN
+  mov   byte [rsp+0x10+1], NULL_CHAR
 
-  ; get max age attribute
-  mov   rax, qword [rdi+COOKIE_OFF_MAX_AGE]
-  mov   qword [rsp+0x18], rax
-
-  ; get http only attribute
-  mov   rax, qword [rdi+COOKIE_OFF_HTTP_ONLY]
-  mov   qword [rsp+0x20], rax
-
-  ; get secure attribute
-  mov   rax, qword [rdi+COOKIE_OFF_SECURE]
-  mov   qword [rsp+0x28], rax
-
-  ; get domain attribute
-  mov   rax, qword [rdi+COOKIE_OFF_DOMAIN]
-  mov   qword [rsp+0x30], rax
-
-  ; get cookie name length
   mov   rdi, [rsp+0x8]
-  call  strlen
+  lea   rsi, [rsp+0x10]
+  call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x38], rax
+  mov   [rsp+0x8], rax
 
-  ; get cookie value length
-  mov   rdi, [rsp+0x10]
-  call  strlen
+  ; append cookie value
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+COOKIE_OFF_VALUE]
+  mov   rdi, rax
+  call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x40], rax
+  mov   [rsp+0x8], rax
 
-  ; copy name
-  lea   rdi, [rsp+0x60+SIGNED_LONG_LONG_MAX_STR_SIZE]
-  mov   rsi, [rsp+0x8]
-  mov   rcx, qword [rsp+0x38]
-  rep   movsb
+  ; add cookie delimiter
+  mov   rdi, rax
+  mov   rsi, ATTRIBUTE_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
 
-  ; add equal sign
-  mov   rax, EQUAL_SIGN
-  stosb
+  mov   [rsp+0x8], rax
 
-  ; copy value
-  mov   rsi, [rsp+0x10] 
-  mov   rcx, qword [rsp+0x40]
-  rep   movsb
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+COOKIE_OFF_DOMAIN]
+  cmp   rsi, 0
+  je    .skip_domain
 
-  cmp   qword [rsp+0x18], 0
+.b1:
+  ; append domain key
+  mov   rdi, [rsp+0x8]
+  mov   rsi, DOMAIN_ATTR
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; add equal
+  mov   rdi, rax
+  lea   rsi, [rsp+0x10]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; add domain value
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+COOKIE_OFF_DOMAIN]
+  mov   rdi, [rsp+0x8]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+.skip_domain:
+  ; get max age attribute
+  mov   rdi, [rsp]
+  mov   rax, qword [rdi+COOKIE_OFF_MAX_AGE]
+  cmp   rax, 0
   je    .skip_max_age
 
-  ; copy '; '
-  mov   rax, SEMI_COLON
-  stosb
+  ; append delimiter
+  mov   rdi, [rsp+0x8]
+  mov   rsi, ATTRIBUTE_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
 
-  mov   rax, SPACE
-  stosb
+  ; append max age key
+  mov   rdi, rax
+  mov   rsi, MAX_AGE_ATTR
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
 
-  ; copy attribute name
-  lea   rsi, [MAX_AGE_ATTR]
-  mov   rcx, MAX_AGE_ATTR_LEN
-  rep   movsb
+  ; append equal
+  mov   rdi, rax
+  lea   rsi, [rsp+0x10]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
 
-  ; copy EQUAL SIGN
-  mov   rax, EQUAL_SIGN
-  stosb
-
-  ; save rdi position
-  mov   [rsp+0x58], rdi
+  mov   [rsp+0x8], rax
 
   ; copy max age string
-  mov   rdi, qword [rsp+0x18]
-  lea   rsi, [rsp+0x60]
+  mov   rsi, [rsp]
+  mov   rdi, qword [rsi+COOKIE_OFF_MAX_AGE]
+  lea   rsi, [rsp+0x18]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
   call  to_string
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x58]
+  ; append max age attribute
+  mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  strcpy
+  call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-  mov   [rsp+0x58], rdi
+  mov   [rsp+0x8], rax
 
 .skip_max_age:
   ; http_only attribute
-  cmp   qword [rsp+0x20], 0
+  mov   rdi, [rsp]
+  mov   rax, qword [rdi+COOKIE_OFF_HTTP_ONLY]
+  cmp   rax, 0
   je    .skip_http_only
 
-  ; add '; '
-  mov   rax, SEMI_COLON
-  stosb
+  mov   rdi, [rsp+0x8]
+  mov   rsi, ATTRIBUTE_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
 
-  mov   rax, SPACE
-  stosb
+  ; c
+  mov   rdi, rax
+  mov   rsi, HTTP_ONLY_ATTR
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
 
-  lea   rsi, [HTTP_ONLY_ATTR]
-  mov   rcx, HTTP_ONLY_ATTR_LEN
-  rep   movsb
+  mov   [rsp+0x8], rax
 
 .skip_http_only:
   ; secure attribute
-  cmp   qword [rsp+0x28], 0
+  mov   rdi, [rsp]
+  mov   rax, qword [rdi+COOKIE_OFF_SECURE]
+  cmp   rax, 0
   je    .skip_secure
 
   ; add '; '
-  mov   rax, SEMI_COLON
-  stosb
+  mov   rdi, [rsp+0x8]
+  mov   rsi, ATTRIBUTE_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
 
-  mov   rax, SPACE
-  stosb
+  ; add secure
+  mov   rdi, rax
+  mov   rsi, SECURE_ATTR
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
 
-  lea   rsi, [SECURE_ATTR]
-  mov   rcx, SECURE_ATTR_LEN
-  rep   movsb
+  mov   [rsp+0x8], rax
 
 .skip_secure:
-  ; domain attribute
-  cmp   qword [rsp+0x30], 0
-  je    .skip_domain
-
-  ; add '; '
-  mov   rax, SEMI_COLON
-  stosb
-
-  mov   rax, SPACE
-  stosb
-
-  ; copy domain key
-  lea   rsi, [DOMAIN_ATTR]
-  mov   rcx, DOMAIN_ATTR_LEN
-  rep   movsb
-
-  mov   rax, EQUAL_SIGN
-  stosb
-
-  ; save current position
-  mov   [rsp+0x58], rdi
-
-  ; get length of domain value
-  mov   rdi, [rsp+0x30]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  mov   rcx, rax
-  mov   rdi, [rsp+0x58]
-  mov   rsi, [rsp+0x30]
-  rep   movsb
-
-.skip_domain:
-  ; add null char
-  mov   rax, NULL_CHAR
-  stosb
-
-  ; get length of serialized cookie
-  lea   rdi, [rsp+0x60+SIGNED_LONG_LONG_MAX_STR_SIZE]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x48], rax
-
-  mov   rdi, rax
-  inc   rdi       ; add one for null_char
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x50], rax
-
-  mov   rdi, rax
-  lea   rsi, [rsp+0x60+SIGNED_LONG_LONG_MAX_STR_SIZE]
-  mov   rcx, qword [rsp+0x48]
-  rep   movsb
-
-  ; add null char
-  mov   rax, NULL_CHAR
-  stosb
-
-  mov   rax, [rsp+0x50]
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 
@@ -458,7 +420,6 @@ serialize_cookie:
 
 .return:
   add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
-  add   rsp, COOKIE_MAX_SIZE
-  add   rsp, 0x68
+  add   rsp, 0x18
   ret
 
