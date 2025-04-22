@@ -873,6 +873,8 @@ log_time:
   je    .get_unix
   jl    .error
 
+  mov   rdi, rsi
+
   jmp   .print_time
 
 .get_unix:
