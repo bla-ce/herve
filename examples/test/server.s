@@ -149,7 +149,7 @@ test_basic_auth:
   ret
 
 test_template:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
   
   mov   [rsp], rdi
 
@@ -200,6 +200,9 @@ test_template:
   cmp   rax, 0
   jl    .error
 
+  ; save boeuf buffer
+  mov   [rsp+0x10], rax
+
   mov   rdi, [rsp] 
   mov   rsi, OK
   mov   rdx, rax
@@ -207,6 +210,9 @@ test_template:
 
   cmp   rax, 0
   jl    .error
+
+  mov   rdi, [rsp+0x10]
+  call  boeuf_free
 
   mov   rax, SUCCESS_CODE
 
@@ -216,7 +222,7 @@ test_template:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 test_no_content:

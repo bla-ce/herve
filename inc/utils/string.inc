@@ -442,12 +442,12 @@ find_next_char:
   add   rsp, 0x8
   ret
 
-
-; returns the position of a substring inside a string
+; returns the position of n bytes from a substring inside a string
 ; @param  rdi: string
 ; @param  rsi: substring
-; @param  rax: return
-strpos:
+; @param  rdx: n bytes of substring to find
+; @return rax: position of the string
+strnpos:
   sub   rsp, 0x28
 
   cmp   rdi, 0
@@ -456,20 +456,16 @@ strpos:
   cmp   rsi, 0
   jle   .does_not_contain
 
+  cmp   rdx, 0
+  jle   .does_not_contain
+
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], rdx
 
   ; get string length
   call  strlen
   mov   qword [rsp+0x10], rax
-
-  cmp   rax, 0
-  je    .does_not_contain
-
-  ; get substring length
-  mov   rdi, [rsp+0x8]
-  call  strlen
-  mov   qword [rsp+0x18], rax
 
   cmp   rax, 0
   je    .does_not_contain
@@ -508,6 +504,48 @@ strpos:
 
 .return:
   add   rsp, 0x28
+  ret
+
+
+; returns the position of a substring inside a string
+; @param  rdi: string
+; @param  rsi: substring
+; @return rax: position of the string
+strpos:
+  sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the string
+  ; [rsp+0x8] -> pointer to the substring
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  mov   rdi, rsi
+  call  strlen
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, rax
+  call  strnpos
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+  
+.error:
+  mov   rax, -1
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; returns the length of the given string
@@ -861,4 +899,91 @@ padding_print:
 .return:
   add   rsp, 0x18
   ret
+
+; converts value into a string of its hex value
+; @param  rdi: value
+; @param  rsi: string
+; @param  rdx: size
+to_hex_string:
+  sub   rsp, 0x18
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jl    .error
+
+  ; save parameters onto the stack
+  mov   qword [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], rdx
+
+  ; go to the end of the buf (print backward)
+  mov   rdi, [rsp+0x8]
+  add   rdi, qword [rsp+0x10]
+
+  ; go back to let an extra null char at the end
+  dec   rdi
+  mov   byte [rdi], NULL_CHAR
+
+  dec   rdi
+  
+  mov   rax, qword [rsp]
+  cmp   rax, 0
+  jg    .loop
+
+  neg   rax
+
+.loop:
+  xor   rdx, rdx
+  mov   rcx, 0x10             ; divisor, dividend in rax
+  div   rcx                   ; quotient in rax and remainder in edx
+
+  add   rdx, ZERO_CHAR
+
+  cmp   rdx, NINE_CHAR
+  jle   .no_hex
+
+  sub   rdx, 10
+  sub   rdx, ZERO_CHAR 
+  add   rdx, LOWERCASE_A
+
+.no_hex:
+  mov   byte [rdi], dl
+
+  dec   rdi
+
+  cmp   rax, 0
+  jne   .loop
+
+.end_loop:
+  std
+  mov   rax, LOWERCASE_X
+  stosb
+
+  mov   rax, ZERO_CHAR
+  stosb
+  cld
+
+  cmp   qword [rsp], 0
+  jge   .skip_hyphen
+
+  mov   byte [rdi], HYPHEN
+  dec   rdi
+
+.skip_hyphen:
+  inc   rdi
+ 
+  mov   rax, rdi
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+
+  ret
+
 

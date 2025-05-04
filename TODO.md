@@ -1,0 +1,20 @@
+- [x] Update how files are read
+- [x] Use boeuf buffers for parsing templates
+- [x] Hardcoded tmp_file?
+- [] Set error open and error read response
+- [] Add rest of the attributes for cookie struct
+- [] Error management
+- [] Implement other load balancing algorithm
+- [] File optimisation
+- [] 1kB is not freed each request
+- [] Config files
+- [] Perf optimisation
+- [] Routing with Parameters
+- [] JSON/XML Binding and Validation
+- [] Database Integration Middleware
+- [] Compression Middleware
+- [] Rate Limiting
+- [] CORS Middleware
+- [] Request Timeout and Graceful Shutdown
+- [] Session Management
+- [] Metrics and Health Checks

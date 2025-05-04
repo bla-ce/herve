@@ -925,25 +925,31 @@ send_static_file:
 
   mov   qword [rsp+0x28], rax
 
-  ; read file
-  mov   rdi, qword [rsp+0x28]
-  call  read_file
-
+  ; get length of the file
+  mov   rdi, rax
+  call  get_file_length
   cmp   rax, 0
-  jl    .error_read
+  jl    .error
+
+  ; save length of the file
+  mov   qword [rsp+0x38], rax
+
+  mov   rdi, rax
+  call  malloc
+  cmp   rax, 0
+  jl    .error
 
   mov   [rsp+0x30], rax
 
-  ; get content length   
-  mov   rdi, [rsp+0x30]
-  call  strlen
-
+  ; read file
+  mov   rdi, qword [rsp+0x28]
+  mov   rsi, rax
+  mov   rdx, qword [rsp+0x38]
+  call  read_file
   cmp   rax, 0
-  jl    .error
-  
-  mov   qword [rsp+0x38], rax
+  jl    .error_read
 
-  mov   rdi, qword [rsp+0x38]
+  mov   rdi, rax
   lea   rsi, [rsp+0x40]
   mov   rdx, LONG_SIZE
   call  to_string
@@ -975,6 +981,10 @@ send_static_file:
 
   cmp   rax, 0
   jl    .error
+
+  ; close the file
+  mov   rdi, qword [rsp+0x28]
+  call  close_file
 
   mov   rax, SUCCESS_CODE
 

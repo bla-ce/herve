@@ -31,14 +31,18 @@ section .data
   boeuf_log_error db "[ERROR] ", NULL_CHAR
 
 section .text
-; creates a growing buffer 
+; creates a growing buffer, specifying the number of bytes to copy
 ; @param  rdi: pointer to the string
+; @param  rsi: n bytes
 ; @return rax: pointer to the buffer
-boeuf_create:
+boeuf_ncreate:
   sub   rsp, 0x18
 
   mov   qword [boeuf_errno], BOEUF_INVALID_ARG
   cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
   jle   .error
 
   ; *** STACK USAGE *** ;
@@ -47,19 +51,10 @@ boeuf_create:
   ; [rsp+0x10]  -> pointer to the boeuf buffer 
 
   mov   [rsp], rdi
-
-  ; get length of the string
-  call  strlen
-
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
-  cmp   rax, 0
-  jl    .error
-
-  ; save length of the string
-  mov   qword [rsp+0x8], rax
+  mov   [rsp+0x8], rsi
 
   ; add metadata struct length
-  mov   rdi, rax
+  mov   rdi, rsi
   add   rdi, BOEUF_METADATA_LEN
   inc   rdi   ; add one for null_char
   call  malloc
@@ -103,11 +98,48 @@ boeuf_create:
   add   rsp, 0x18
   ret
 
-; appends string to a buffer
+; creates a growing buffer 
+; @param  rdi: pointer to the string
+; @return rax: pointer to the buffer
+boeuf_create:
+  sub   rsp, 0x8
+
+  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
+  cmp   rdi, 0
+  jle   .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the string
+
+  mov   [rsp], rdi
+
+  ; get length of the string
+  call  strlen
+
+  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
+  cmp   rax, 0
+  jl    .error
+
+  ; save length of the string
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  boeuf_ncreate
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; appends n bytes from string to a buffer
 ; @param  rdi: pointer to the boeuf buffer
 ; @param  rsi: pointer to the string to be appended
+; @param  rdx: n bytes to append
 ; @return rax: return code
-boeuf_append:
+boeuf_nappend:
   sub   rsp, 0x30
 
   mov   qword [boeuf_errno], BOEUF_INVALID_ARG
@@ -115,6 +147,9 @@ boeuf_append:
   jle   .error
 
   cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
   jle   .error
 
   ; *** STACK USAGE *** ;
@@ -127,6 +162,7 @@ boeuf_append:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], rdx
 
   ; make sure of the integrity of the boeuf buffer
   sub   rdi, BOEUF_METADATA_LEN 
@@ -135,16 +171,6 @@ boeuf_append:
   mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
   jne   .error
-
-  ; get length of string to be appended
-  mov   rdi, [rsp+0x8]
-  call  strlen
-  
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x18], rax
   
   ; get pointer to the boeuf struct
   mov   rdi, [rsp]
@@ -254,6 +280,50 @@ boeuf_append:
 
 .return:
   add   rsp, 0x30
+  ret
+
+
+; appends string to a buffer
+; @param  rdi: pointer to the boeuf buffer
+; @param  rsi: pointer to the string to be appended
+; @return rax: return code
+boeuf_append:
+  sub   rsp, 0x10
+
+  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the boeuf buffer
+  ; [rsp+0x8]   -> pointer to the string
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; get length of string to be appended
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  
+  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, rax
+  call  boeuf_nappend
+
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; frees the boeuf buffer

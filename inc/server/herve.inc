@@ -19,7 +19,6 @@
 %include "method.inc"
 %include "middleware.inc"
 %include "mmap.inc"
-%include "os.inc"
 %include "proxy.inc"
 %include "realloc.inc"
 %include "redirect.inc"

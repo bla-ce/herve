@@ -191,20 +191,9 @@ server_init:
   cmp   rdi, 0
   jg    .port_defined
 
-  ; check if port is in environment variables
-  lea   rdi, [PORT_ENV]
-  call  getenv
-
-  cmp   rax, 0
-  jl    .default_port
-
-  mov   rdi, rax
-  call  stoi
-
-  mov   rdi, rax
-
-  cmp   rax, 0
-  jg    .port_defined
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> port
+  ; [rsp+0x8] -> pointer to the server struct
 
 .default_port:
   mov   rbx, DEFAULT_PORT

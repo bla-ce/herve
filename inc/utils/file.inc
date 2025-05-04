@@ -100,71 +100,66 @@ send_file:
 
   ret
 
-; reads count bytes from file descriptor fd into rsi
+; reads count bytes from file descriptor fd
 ; @param  rdi: fd
-; @return rax: pointer to content
+; @param  rsi: pointer to the buffer
+; @param  rdx: count
+; @return rax: bytes read
 read_file:
-  sub   rsp, 0x18
+  cmp   rdi, 0
+  jl    .error
 
-  mov   qword [rsp], rdi
+  cmp   rsi, 0
+  jl    .error
 
-  ; get file size
+  cmp   rdx, 0
+  jl    .error
+
+  mov   rax, SYS_READ
+  syscall
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the length of a file
+; @param  rdi: file descriptor
+; @return rax: length of the file
+get_file_length:
+  sub   rsp, 0x10
+
+  cmp   rdi, 0
+  jl    .error
+
+  mov   [rsp], rdi
+
   mov   rax, SYS_LSEEK
-  mov   rdi, qword [rsp]
+  mov   rdi, [rsp]
+  mov   rsi, 0
+  mov   rdx, SEEK_SET
+  syscall
+  
+  mov   rax, SYS_LSEEK
+  mov   rdi, [rsp]
   mov   rsi, 0
   mov   rdx, SEEK_END
   syscall
 
-  cmp   rax, 0
-  jl    .error
-  jg    .file_not_empty
-
-  ; file is empty, close it
-  mov   rdi, qword [rsp]
-  call  close_file
-
-  jmp   .error
-
-.file_not_empty:
-  mov   qword [rsp+0x10], rax
-
-  mov   rdi, rax
-  inc   rdi       ; add for null char
-  call  malloc
-
-  cmp   rax, 0
-  jl    .error
-
   mov   [rsp+0x8], rax
 
-  ; move cursor back to the beginning of the file
+  ; put cursor back to the beginning of the file
   mov   rax, SYS_LSEEK
-  mov   rdi, qword [rsp]
+  mov   rdi, [rsp]
   mov   rsi, 0
   mov   rdx, SEEK_SET
   syscall
 
   cmp   rax, 0
   jl    .error
-
-  ; read file
-  mov   rax, SYS_READ
-  mov   rdi, qword [rsp]
-  mov   rsi, [rsp+0x8]
-  mov   rdx, qword [rsp+0x10]
-  syscall
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x8]
-  add   rdi, qword [rsp+0x10]
-  mov   rax, NULL_CHAR
-  stosb
-
-  ; close file
-  mov   rdi, qword [rsp]
-  call  close_file
 
   mov   rax, [rsp+0x8]
   jmp   .return
@@ -173,7 +168,7 @@ read_file:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x10
   ret
 
 ; closes file description
