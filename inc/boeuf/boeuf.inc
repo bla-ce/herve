@@ -118,7 +118,7 @@ boeuf_create:
 
   mov   qword [boeuf_errno], BOEUF_INVALID_ARG
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   ; save length of the string
   mov   rdi, [rsp]

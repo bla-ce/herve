@@ -1,7 +1,10 @@
 - [x] Update how files are read
 - [x] Use boeuf buffers for parsing templates
 - [x] Hardcoded tmp_file?
-- [] Set error open and error read response
+- [x] Try to use the library with C
+- [x] Set error open and error read response
+- [] Return a file starting with a null character fails
+- [] Testing and CI pipelines
 - [] Add rest of the attributes for cookie struct
 - [] Error management
 - [] Implement other load balancing algorithm

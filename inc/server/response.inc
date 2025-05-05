@@ -487,7 +487,7 @@ stringify_response:
 ; @param  rsi: status code
 ; @return rax: return code
 send_no_content:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   cmp   rdi, 0
   jl    .error
@@ -497,6 +497,11 @@ send_no_content:
   cmp   rsi, 0
   cmove rsi, rax
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> status code
+  ; [rsp+0x10]  -> pointer to the response
+
   mov   [rsp], rdi
   mov   qword [rsp+0x8], rsi
 
@@ -505,10 +510,11 @@ send_no_content:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x10], rax
+
   ; get response headers
   mov   rdi, rax
   call  get_response_headers
-
   cmp   rax, 0
   jl    .error
 
@@ -517,7 +523,13 @@ send_no_content:
   mov   rsi, CONTENT_LENGTH_HEADER
   lea   rdx, [EMPTY_CONTENT]
   call  set_header
+  cmp   rax, 0
+  jl    .error
 
+  ; set body to 0
+  mov   rdi, [rsp+0x10]
+  mov   rsi, 0
+  call  set_response_body
   cmp   rax, 0
   jl    .error
 
@@ -525,7 +537,6 @@ send_no_content:
   mov   rdi, [rsp]
   mov   rsi, qword [rsp+0x8]
   call  send_response
-
   cmp   rax, 0
   jl    .error
 
@@ -536,7 +547,7 @@ send_no_content:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; sends a string response as HTML
@@ -771,7 +782,6 @@ send_response:
   ; set connection close header TODO: use variable from context
   mov   rdi, [rsp+0x10]
   call  get_response_headers
-
   cmp   rax, 0
   jl    .error
 
@@ -993,11 +1003,29 @@ send_static_file:
 
 .error_open:
   ; load 404
+  mov   rdi, [rsp]
+  mov   rsi, NOT_FOUND
+  call  send_no_content
 
+  mov   rdi, [rsp]
+  call  ctx_abort
+
+  jmp   .error
+  
 .error_read:
   ; load 500
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
+  mov   rdi, [rsp]
+  call  ctx_abort
 
 .error:
+  ; can fail as we return an error anyway
+  mov   rdi, qword [rsp+0x28]
+  call  close_file
+
   mov   rax, FAILURE_CODE
 
 .return:
@@ -1034,13 +1062,18 @@ serve_dir:
   mov   rdi, [rsp]
   mov   rsi, rax
   call  send_static_file
-
   cmp   rax, 0
   jl    .error
 
   jmp   .return
 
 .error:
+  ; check if the ctx has been aborted
+  mov   rdi, [rsp]
+  call  is_ctx_aborted
+  cmp   rax, TRUE
+  je    .is_aborted
+
   ; send 500
   mov   rdi, [rsp] 
   mov   rsi, INTERNAL_SERVER_ERROR
@@ -1049,6 +1082,7 @@ serve_dir:
   mov   rdi, [rsp]
   call  ctx_abort
 
+.is_aborted:
   mov   rax, FAILURE_CODE
 
 .return:
