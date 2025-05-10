@@ -19,7 +19,7 @@ section .data
   METHOD_MAX_LEN  equ 0x8
   PROTO_MAX_LEN   equ 0x9
   HOST_MAX_LEN    equ 0xFF
-  URL_MAX_LEN     equ 0x20
+  URL_MAX_LEN     equ 0x800
   BODY_MAX_LEN    equ 0x2000
   REQUEST_MAX_LEN equ 0x2000
 

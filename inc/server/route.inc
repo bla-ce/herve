@@ -217,7 +217,6 @@ add_dir_route:
   ; map file_path and direntries
   mov   rdi, DIR_ENTRIES_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -225,7 +224,6 @@ add_dir_route:
 
   mov   rdi, FILE_PATH_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -238,7 +236,12 @@ add_dir_route:
   ; add slash before dir path
   mov   rax, SLASH
   stosb
+
   call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
 
   ; load null char
   mov   rax, NULL_CHAR
@@ -316,6 +319,10 @@ add_dir_route:
   add   rsi, 18
 
   call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
 
   ; add null char at the end
   mov   rax, NULL_CHAR
@@ -377,6 +384,10 @@ add_dir_route:
   add   rsi, 18
 
   call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
 
   ; add null char at the end
   mov   rax, NULL_CHAR
@@ -385,13 +396,13 @@ add_dir_route:
   mov   rdi, [rsp+0x30]
 
   ; add one to remove slash at the beginning
-  cmp   qword [rsp+0x38], 1
+  cmp   qword [rsp+0x38], TRUE
   jne   .no_recursion
 
   inc   rdi
   mov   rsi, rdi
   mov   rdi, [rsp+0x40]
-  mov   rdx, 1
+  mov   rdx, TRUE
   call  add_dir_route
 
 .no_recursion:

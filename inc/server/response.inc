@@ -1,13 +1,14 @@
 section .bss
 response_struct:
-  res_str         resq 1
-  res_client      resq 1    
-  res_len         resq 1
-  res_proto       resq 1
-  res_headers     resq 1
-  res_body        resq 1
-  res_content_len resq 1
-  res_status_code resq 1
+  res_str             resq 1
+  res_client          resq 1    
+  res_len             resq 1
+  res_proto           resq 1
+  res_headers         resq 1
+  res_body            resq 1
+  res_content_len     resq 1
+  res_content_len_str resq 1
+  res_status_code     resq 1
 end_response_struct:
 
 section .data
@@ -22,7 +23,8 @@ section .data
   RESPONSE_OFF_PROTO            equ RESPONSE_OFF_LEN + 0x8
   RESPONSE_OFF_HEADERS          equ RESPONSE_OFF_PROTO + 0x8
   RESPONSE_OFF_BODY             equ RESPONSE_OFF_HEADERS + 0x8
-  RESPONSE_OFF_CONTENT_LEN_STR  equ RESPONSE_OFF_BODY + 0x8
+  RESPONSE_OFF_CONTENT_LEN      equ RESPONSE_OFF_BODY + 0x8
+  RESPONSE_OFF_CONTENT_LEN_STR  equ RESPONSE_OFF_CONTENT_LEN + 0x8
   RESPONSE_OFF_STATUS_CODE      equ RESPONSE_OFF_CONTENT_LEN_STR + 0x8
 
   STR_CONTENT_LENGTH_MAX_LENGTH equ 7 ; add one for null char
@@ -85,6 +87,45 @@ free_response:
 .return:
   add   rsp, 0x8
   ret 
+
+; sets the length of the body of the response
+; @param  rdi: pointer to response struct
+; @return rax: length of the response content
+get_response_content_len:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+RESPONSE_OFF_CONTENT_LEN]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the length of the body of the response
+; @param  rdi: pointer to response struct
+; @param  rsi: content length
+; @return rax: return code
+set_response_content_len:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error    ; content length can be null
+
+  mov   [rdi+RESPONSE_OFF_CONTENT_LEN], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
 
 ; sets the string representation of the response
 ; @param  rdi: pointer to response struct
@@ -238,7 +279,13 @@ response_init:
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_response_body
+  cmp   rax, 0
+  jl    .error
 
+  ; set response content length to 0
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_response_content_len
   cmp   rax, 0
   jl    .error
 
@@ -346,7 +393,7 @@ get_response_body:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
 stringify_response:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   cmp   rdi, 0
   jl    .error
@@ -357,6 +404,7 @@ stringify_response:
   ; [rsp]       -> pointer to the response struct
   ; [rsp+0x8]   -> pointer to the boeuf holding the stringified response
   ; [rsp+0x10]  -> pointer to the response headers
+  ; [rsp+0x18]  -> pointer to the response body
 
   mov   qword [rsp+0x8], 0
 
@@ -445,9 +493,17 @@ stringify_response:
   jl    .error
   je    .skip_body
 
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp]
+  call  get_response_content_len
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call  boeuf_append
+  mov   rsi, [rsp+0x18]
+  mov   rdx, rax
+  call  boeuf_nappend
   cmp   rax, 0
   jl    .error
 
@@ -479,7 +535,7 @@ stringify_response:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; sends a response without content
@@ -562,7 +618,7 @@ send_HTML:
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to context struct
   ; [rsp+0x8]   -> status code
-  ; [rsp+0x10]  -> opinter to the html string
+  ; [rsp+0x10]  -> pointer to the html string
   ; [rsp+0x18]  -> pointer to the response struct
   ; [rsp+0x20]  -> pointer to the response headers
   ; [rsp+0x28]  -> content length
@@ -608,11 +664,16 @@ send_HTML:
   ; get string length   
   mov   rdi, [rsp+0x10]
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
   mov   qword [rsp+0x28], rax
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  set_response_content_len
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, qword [rsp+0x28]
   lea   rsi, [rsp+0x30]
@@ -719,11 +780,16 @@ send_string:
 
   mov   qword [rsp+0x28], rax
 
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  set_response_content_len
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, qword [rsp+0x28]
   lea   rsi, [rsp+0x30]
   mov   rdx, LONG_SIZE
   call  to_string
-
   cmp   rax, 0
   jl    .error
 
@@ -944,7 +1010,13 @@ send_static_file:
   ; save length of the file
   mov   qword [rsp+0x38], rax
 
-  mov   rdi, rax
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  set_response_content_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [rsp+0x38]
   call  malloc
   cmp   rax, 0
   jl    .error

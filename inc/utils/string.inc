@@ -300,7 +300,7 @@ strncmp:
 ; copy the string pointed to by src, into a string at the buffer pointed to by dst
 ; @param  rdi: dst
 ; @param  rsi: src
-; @return rdi: pointer to dst after copy
+; @return rax: pointer to dst after copy
 strcpy:
   sub   rsp, 0x10
 

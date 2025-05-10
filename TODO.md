@@ -3,7 +3,7 @@
 - [x] Hardcoded tmp_file?
 - [x] Try to use the library with C
 - [x] Set error open and error read response
-- [] Return a file starting with a null character fails
+- [x] Return a file starting with a null character fails
 - [] Testing and CI pipelines
 - [] Add rest of the attributes for cookie struct
 - [] Error management

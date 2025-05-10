@@ -436,15 +436,13 @@ _start:
   lea   rdx, [wildcard_url]
   mov   rcx, test_wildcard
   call  add_route
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x8]
   lea   rsi, [dir_path]
-  mov   rdx, 1
+  mov   rdx, TRUE
   call  add_dir_route
-
   cmp   rax, 0
   jl    .error
 
