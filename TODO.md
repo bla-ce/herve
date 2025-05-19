@@ -4,20 +4,23 @@
 - [x] Try to use the library with C
 - [x] Set error open and error read response
 - [x] Return a file starting with a null character fails
-- [] Testing and CI pipelines
-- [] Add rest of the attributes for cookie struct
-- [] Error management
-- [] Implement other load balancing algorithm
-- [] File optimisation
-- [] 1kB is not freed each request
-- [] Config files
-- [] Perf optimisation
-- [] Routing with Parameters
-- [] JSON/XML Binding and Validation
-- [] Database Integration Middleware
-- [] Compression Middleware
-- [] Rate Limiting
-- [] CORS Middleware
-- [] Request Timeout and Graceful Shutdown
-- [] Session Management
-- [] Metrics and Health Checks
+- [ ] FIX: ht_get_keys
+- [ ] FIX: ht_get_keys array is not being freed
+- [ ] Critical errors should print something
+- [ ] Error management
+- [ ] Testing and CI pipelines
+- [ ] Add rest of the attributes for cookie struct
+- [ ] Implement other load balancing algorithm
+- [ ] File optimisation
+- [ ] 1kB is not freed each request
+- [ ] Config files
+- [ ] Perf optimisation
+- [ ] Routing with Parameters
+- [ ] JSON/XML Binding and Validation
+- [ ] Database Integration Middleware
+- [ ] Compression Middleware
+- [ ] Rate Limiting
+- [ ] CORS Middleware
+- [ ] Request Timeout and Graceful Shutdown
+- [ ] Session Management
+- [ ] Metrics and Health Checks

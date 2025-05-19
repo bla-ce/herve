@@ -264,14 +264,12 @@ response_init:
   ; create hash table for headers
   mov   rdi, HEADERS_MAX_COUNT
   call  ht_create
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, rax
   call  set_response_headers
-
   cmp   rax, 0
   jl    .error
 

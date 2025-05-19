@@ -52,8 +52,7 @@ ht_get_length:
 .return:
   ret
 
-; returns an array of keys. The function also puts the number of keys in 
-; the address passed to rsi. Users have to deal with freeing the pointer 
+; returns an array of keys. Users have to deal with freeing the pointer 
 ; (might change)
 ; @param  rdi: pointer to hash table
 ; @return rax: pointer to array
@@ -262,7 +261,6 @@ ht_get:
   ; hash string key
   mov   rdi, [rsp+0x8]
   call  hash_string_key
-
   cmp   rax, 0
   jl    .error
 
@@ -307,7 +305,7 @@ ht_get:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rdi+HT_ENTRY_OFF_NEXT]
   cmp   rsi, 0
-  je    .error
+  je    .error  ; key does not exist
 
   ; go to the next node on the linked list
   mov   rdi, rsi
@@ -436,8 +434,6 @@ ht_del:
   ; free the entry
   mov   rdi, rsi
   call  free
-
-
   
   mov   rax, SUCCESS_CODE
 
@@ -499,7 +495,6 @@ ht_insert:
   ; malloc entry
   mov   rdi, HT_ENTRY_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -739,8 +734,6 @@ ht_free:
   ; free the entry struct
   mov   rdi, [rsp+0x20]
   call  free
-  cmp   rax, 0
-  jl    .error
 
   inc   r9
   jmp   .loop

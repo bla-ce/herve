@@ -209,6 +209,10 @@ free:
   ; go to the beginning of the struct
   sub   rdi, CHUNK_SIZE
 
+  mov   rbx, qword [rdi+CHUNK_OFFSET_MAGIC]
+  cmp   rbx, MAGIC_VAL_HEAP_CORRUPT
+  jne   .error
+
   mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
   add   qword [freed], rbx
 
