@@ -4,8 +4,8 @@
 - [x] Try to use the library with C
 - [x] Set error open and error read response
 - [x] Return a file starting with a null character fails
-- [ ] FIX: ht_get_keys
-- [ ] FIX: ht_get_keys array is not being freed
+- [x] FIX: ht_get_keys array is not being freed
+- [ ] FIX: entry is not being freed in ht_free
 - [ ] Critical errors should print something
 - [ ] Error management
 - [ ] Testing and CI pipelines

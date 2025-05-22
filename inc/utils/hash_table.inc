@@ -1,9 +1,3 @@
-; ******************************** WARNING ******************************* ;
-;                                                                          ;
-; This implementation of hash table only support string keys at the moment ;
-;                                                                          ;
-; ******************************** WARNING ******************************* ;
-
 section .data
 
 hash_table_struct:
@@ -57,32 +51,41 @@ ht_get_length:
 ; @param  rdi: pointer to hash table
 ; @return rax: pointer to array
 ht_get_keys:
-  sub   rsp, 0x38
+  sub   rsp, 0x30
 
   cmp   rdi, 0
   jle   .error
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the hash table
+  ; [rsp+0x8]   -> number of entries
+  ; [rsp+0x10]  -> pointer to the array of keys
+  ; [rsp+0x18]  -> pointer to the array of entries
+  ; [rsp+0x20]  -> pointer to the entry
+  ; [rsp+0x28]  -> counter
+
   mov   [rsp], rdi
 
+  ; init values to 0
   mov   qword [rsp+0x10], 0
-  mov   qword [rsp+0x18], 0 ; counter
+  mov   qword [rsp+0x28], 0 ; counter
 
-  ; save n entries
+  ; save the number of entries
   mov   rax, qword [rdi+HT_OFF_NENTRY]
-  mov   qword [rsp+0x20], rax
+  mov   qword [rsp+0x8], rax
 
   test  rax, rax
   jz    .ht_empty
 
   ; malloc an array of n_entry keys (array of pointers)
-  mov   rdi, qword [rsp+0x20]
+  mov   rdi, qword [rsp+0x8]
   mov   rsi, 8
   call  calloc
-
   cmp   rax, 0
   jl    .error
   je    .ht_empty
 
+  ; save array of keys
   mov   [rsp+0x10], rax
 
   xor   r9, r9
@@ -91,11 +94,13 @@ ht_get_keys:
   mov   rsi, [rsp]
   mov   rdi, [rsi+HT_OFF_TABLE]
 
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x18], rdi
 
 .loop:
-  ; get entry address
-  mov   rdi, [rsp+0x28]
+  ; load hash table entries
+  mov   rdi, [rsp+0x18]
+
+  ; get offset from the counter
   xor   rdx, rdx
   mov   rax, r9
   mov   rbx, 8
@@ -111,27 +116,31 @@ ht_get_keys:
   jz    .empty
 
   ; save position
-  mov   [rsp+0x30], rsi
+  mov   [rsp+0x20], rsi
 
-  ; save key into the array
+  ; get the key from the entry
   mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
 
   ; get array
   mov   rsi, [rsp+0x10]
+
+  ; get the offset
   xor   rdx, rdx
-  mov   rax, qword [rsp+0x18]
+  mov   rax, qword [rsp+0x28]
   mov   rbx, 8
   mul   rbx
 
   add   rsi, rax
+
+  ; save key into the array
   mov   [rsi], rdi
 
-  inc   qword [rsp+0x18]
+  inc   qword [rsp+0x28]
   
   ; check if the key has next populated
 .inner_loop:  ; AHHAHAHAHAHAHA O(n^2) this is not optimized
   ; save position
-  mov   rsi, [rsp+0x30]
+  mov   rsi, [rsp+0x20]
 
   cmp   qword [rsi+HT_ENTRY_OFF_NEXT], 0
   je    .inner_loop_end
@@ -140,21 +149,21 @@ ht_get_keys:
   mov   rax, [rsi+HT_ENTRY_OFF_NEXT]
 
   ; save new position
-  mov   [rsp+0x30], rax
+  mov   [rsp+0x20], rax
 
   ; save key
   mov   rdi, [rax+HT_ENTRY_OFF_KEY]
 
   mov   rsi, [rsp+0x10]
   xor   rdx, rdx
-  mov   rax, qword [rsp+0x18]
+  mov   rax, qword [rsp+0x28]
   mov   rbx, 8
   mul   rbx
 
   add   rsi, rax
   mov   [rsi], rdi
 
-  inc   qword [rsp+0x18]
+  inc   qword [rsp+0x28]
 
   jmp   .inner_loop
 
@@ -191,7 +200,7 @@ ht_get_keys:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x30
   ret
 
 ; hash function to map values to key
@@ -486,10 +495,6 @@ ht_insert:
 
   cmp   rax, HT_ENTRY_VALUE_MAX_LENGTH
   jg    .error
-  
-  ; increase the number of entry
-  mov   rdi, [rsp]
-  inc   qword [rdi+HT_OFF_NENTRY]
 
   ; create ht_entry
   ; malloc entry
@@ -589,7 +594,6 @@ ht_insert:
 
   ; now the entry we want to add is the head of the linked list and 
   ; next points to the previous head
-
   jmp   .store_key
 
 .same_key:
@@ -602,6 +606,10 @@ ht_insert:
   mov   rdi, [rsp+0x38]
   mov   rax, [rsp+0x18]
   mov   [rdi], rax
+
+  ; increase the number of entry
+  mov   rdi, [rsp]
+  inc   qword [rdi+HT_OFF_NENTRY]
   
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -731,10 +739,6 @@ ht_free:
   cmp   rax, 0
   jl    .error
 
-  ; free the entry struct
-  mov   rdi, [rsp+0x20]
-  call  free
-
   inc   r9
   jmp   .loop
 
@@ -745,15 +749,17 @@ ht_free:
   cmp   rax, 0
   jl    .error
 
-  ; free hash table
-  mov   rdi, [rsp]
+  ; free array of keys
+  mov   rdi, [rsp+0x10]
   call  free
-
   cmp   rax, 0
   jl    .error
 
-  mov   rax, SUCCESS_CODE
-  jmp   .return
+  ; free hash table
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
 
 .empty:
   mov   rax, SUCCESS_CODE
