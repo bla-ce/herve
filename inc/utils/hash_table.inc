@@ -682,75 +682,130 @@ ht_free:
   cmp   rdi, 0
   jle   .error
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the hash table
+  ; [rsp+0x8]   -> number of entries
+  ; [rsp+0x10]  -> pointer to the array of entries
+  ; [rsp+0x18]  -> pointer to the entry
+  ; [rsp+0x20]  -> counter
+
   mov   [rsp], rdi
 
-  ; get hash table length
-  call  ht_get_length
-  cmp   rax, 0
-  jl    .error
-  je    .empty
+  ; init values to 0
+  mov   qword [rsp+0x20], 0 ; counter
 
+  ; save the number of entries
+  mov   rax, qword [rdi+HT_OFF_NENTRY]
   mov   qword [rsp+0x8], rax
 
-  ; get list of keys 
-  mov   rdi, [rsp]
-  call  ht_get_keys
-  cmp   rax, 0
-  jl    .error
+  test  rax, rax
+  jz    .ht_empty
 
-  mov   [rsp+0x10], rax
-
-  ; index
   xor   r9, r9
+
+  ; load hash table entries
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+HT_OFF_TABLE]
+
+  mov   [rsp+0x10], rdi
+
 .loop:
-  cmp   r9, qword [rsp+0x8]
-  jge   .end_loop
+  ; load hash table entries
+  mov   rdi, [rsp+0x10]
 
-  ; get array of keys
-  mov   rsi, [rsp+0x10]
-
+  ; get offset from the counter
+  xor   rdx, rdx
   mov   rax, r9
   mov   rbx, 8
   mul   rbx
 
-  add   rsi, rax
-  mov   [rsp+0x20], rsi
+  ; go to entry position
+  add   rdi, rax
 
-  ; get key 
-  mov   rdi, [rsi]
-  mov   [rsp+0x18], rdi
+  ; load entry address
+  mov   rsi, [rdi]
 
-  ; get value
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x18]
-  call  ht_get
-  cmp   rax, 0
-  jl    .error
+  test  rsi, rsi
+  jz    .empty
 
-  ; free value
-  mov   rdi, rax
+  ; save position
+  mov   [rsp+0x18], rsi
+
+  ; free the key
+  mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
   call  free
   cmp   rax, 0
   jl    .error
 
-  ; free key
+  ; free the value
+  mov   rsi, [rsp+0x18]
+  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free the entry
   mov   rdi, [rsp+0x18]
   call  free
   cmp   rax, 0
   jl    .error
 
-  inc   r9
-  jmp   .loop
+  inc   qword [rsp+0x20]
+  
+  ; check if the key has next populated
+.inner_loop:  ; AHHAHAHAHAHAHA O(n^2) this is not optimized
+  ; save position
+  mov   rsi, [rsp+0x18]
 
-.end_loop:
-  mov   rsi, [rsp]
-  mov   rdi, [rsi+HT_OFF_TABLE]
+  cmp   qword [rsi+HT_ENTRY_OFF_NEXT], 0
+  je    .inner_loop_end
+
+  xor   r10, r10
+  mov   rax, [rsi+HT_ENTRY_OFF_NEXT]
+
+  ; save new position
+  mov   [rsp+0x18], rax
+
+  ; free the key
+  mov   rdi, [rax+HT_ENTRY_OFF_KEY]
   call  free
   cmp   rax, 0
   jl    .error
 
-  ; free array of keys
-  mov   rdi, [rsp+0x10]
+  ; free the value
+  mov   rsi, [rsp+0x18]
+  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free the entry
+  mov   rdi, [rsp+0x18]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  inc   qword [rsp+0x20]
+
+  jmp   .inner_loop
+
+.inner_loop_end:
+  
+.empty:
+  inc   r9
+
+  ; compare index with number of buckets
+  mov   rdi, [rsp]
+  mov   rax, qword [rdi+HT_OFF_NBUCKET]
+
+  cmp   r9, rax
+  jge   .end_loop
+
+  jmp   .loop
+    
+.end_loop:
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+HT_OFF_TABLE]
   call  free
   cmp   rax, 0
   jl    .error
@@ -761,8 +816,11 @@ ht_free:
   cmp   rax, 0
   jl    .error
 
-.empty:
   mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.ht_empty:
+  xor   rax, rax
   jmp   .return
 
 .error:
@@ -771,5 +829,4 @@ ht_free:
 .return:
   add   rsp, 0x28
   ret
-
 
