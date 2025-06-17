@@ -57,6 +57,7 @@ boeuf_ncreate:
   mov   rdi, rsi
   add   rdi, BOEUF_METADATA_LEN
   inc   rdi   ; add one for null_char
+
   call  malloc
 
   mov   qword [boeuf_errno], BOEUF_MEMORY_ERROR
@@ -68,6 +69,7 @@ boeuf_ncreate:
   mov   qword [rax+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
 
   mov   rbx, qword [rsp+0x8]
+  inc   rbx ; add the null char
   mov   qword [rax+BOEUF_METADATA_OFF_SIZE], rbx
 
   mov   qword [rax+BOEUF_METADATA_OFF_LENGTH], rbx
@@ -235,6 +237,7 @@ boeuf_nappend:
   ; go after buffer to append second string
   add   rax, BOEUF_METADATA_OFF_DATA
   add   rax, [rdi+BOEUF_METADATA_OFF_LENGTH]
+  dec   rax ; go previous null char
 
   ; move second string
   mov   rdi, rax
