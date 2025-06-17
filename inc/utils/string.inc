@@ -334,6 +334,7 @@ strcpy:
 
 ; converts int in rdi into string
 ; string pointer needs to be passed
+; make sure the size include the null character at the end of the string
 ; @param  rdi: int
 ; @param  rsi: string
 ; @param  rdx: size

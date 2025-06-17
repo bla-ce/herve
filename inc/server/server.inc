@@ -28,6 +28,127 @@ section .data
   SERVER_OFF_PORT                equ SERVER_OFF_MIDDLEWARES + 0x8
 
 section .text
+; initial log of the available routes and port the server is listening to
+; @param  rdi: pointer to server struct
+log_server_init:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to server logger
+  ; [rsp+0x10]  -> port string
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x10], 0
+
+  ; get logger output
+  mov   rdi, [rsp]
+  call  get_server_logger
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; log the logo :)
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [HERVE_LOGO]
+  call  logln
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [log_debug]
+  call  log
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [log_server_init_msg]
+  call	log 
+
+  mov   rsi, [rsp]
+  mov   rdi, qword [rsi+SERVER_OFF_PORT]
+  lea   rsi, [rsp+0x10]
+  mov   rdx, STR_PORT_MAX_LENGTH
+  call  to_string
+
+  cmp   rax, 0
+  jl    .return
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call	logln
+
+  ; load server routes
+  mov   rdi, [rsp]
+  call  get_server_routes
+  cmp   rax, 0
+  jl    .error
+  je    .no_routes
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, LINE_FEED
+  call  log_char
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [log_debug]
+  call  log
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [log_routes_available_msg]
+  call	logln
+
+.loop:
+  ; log debug 
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [log_debug]
+  call	log
+
+  ; load routes_list
+  mov   rdi, [rsp+0x18]
+
+  ; log method
+  ; go to method
+  mov   rsi, [rdi+ROUTE_OFF_METHOD]
+  mov   rdi, [rsp+0x8]
+  call  log
+
+  ; print space
+  mov   rdi, [rsp+0x8]
+  mov   rsi, SPACE
+  call  log_char
+
+  ; load url and log it
+  mov   rdi, [rsp+0x8]
+  mov   rax, [rsp+0x18]
+  mov   rsi, [rax+ROUTE_OFF_URL]
+  call  logln
+
+  mov   rsi, [rsp+0x18]
+  cmp   qword [rsi+ROUTE_OFF_NEXT], 0
+  je    .end_loop
+
+  add   rsi, ROUTE_OFF_NEXT
+  mov   rdi, [rsi]
+
+  mov   [rsp+0x18], rdi
+  
+  jmp   .loop
+.end_loop:
+
+.no_routes:
+  ; log new line
+  mov   rdi, [rsp+0x8]
+  mov   rsi, LINE_FEED
+  call	log_char
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
 ; returns the socket fd associated to the server
 ; @param  rdi: pointer to server struct 
 ; @return rax: socket fd

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-URL="http://192.168.122.129:1337/echo/"
+URL="http://localhost:1337/echo/"
 
 WORDLIST="/usr/share/wfuzz/wordlist/general/medium.txt"
 

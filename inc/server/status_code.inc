@@ -265,3 +265,119 @@ get_status_string:
   mov   rax, FAILURE_CODE
   ret
 
+; returns the foreground color of the status code
+; @param  rdi: status code (int)
+; @param  rax: pointer to the ansi sequence
+get_status_code_color:
+  cmp   rdi, 100
+  jl    .error
+
+  cmp   rdi, 599
+  jg    .error
+
+  cmp   rdi, 500
+  jge   .red
+
+  cmp   rdi, 400
+  jge   .yellow
+
+  cmp   rdi, 300
+  jge   .cyan
+
+  cmp   rdi, 200
+  jge   .green
+
+  cmp   rdi, 100
+  jge   .blue
+
+.red:
+  lea   rax, [RED_FG]
+  jmp   .return
+
+.yellow:
+  lea   rax, [YELLOW_FG]
+  jmp   .return
+
+.cyan:
+  lea   rax, [CYAN_FG]
+  jmp   .return
+
+.green:
+  lea   rax, [GREEN_FG]
+  jmp   .return
+
+.blue:
+  lea   rax, [BLUE_FG]
+  jmp   .return
+  
+.error:
+  lea   rax, [DEFAULT_FG]
+
+.return:
+  ret
+
+; logs the status code
+; @param  rdi: pointer to the logger struct
+; @param  rsi: status code (int)
+log_status_code:
+  sub   rsp, 0x18 
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to logger struct
+  ; [rsp+0x8]   -> status code
+  ; [rsp+0x10]  -> status code string
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 100
+  jl    .error
+
+  cmp   rsi, 599
+  jg    .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; can colors be outputted?
+  mov   rdi, [rsp]
+  call  can_color_be_ouputted
+  test  rax, rax
+  jz    .no_color
+
+  mov   rdi, [rsp+0x8]
+  call  get_status_code_color
+  cmp   rax, 0
+  jl    .error
+
+  ; print ansi to change color
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  log
+  
+.no_color:
+  ; print status code
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [rsp+0x10]
+  mov   rdx, 4 ; add one for null char
+  call  to_string
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  log
+
+  ; back to default color
+  mov   rdi, [rsp]
+  lea   rsi, [DEFAULT_FG]
+  call  log
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+

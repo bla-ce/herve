@@ -7,10 +7,10 @@ BOEUF_DIR = boeuf
 INCLUDES = $(shell find $(INC_DIR) -type f -name '*.inc')
 
 ifndef PROGRAM_NAME
-	$(error PROGRAM_NAME is not set. Please pass it on the command line, e.g., make PROGRAM_NAME=examples/echo/echo main)
+$(error PROGRAM_NAME is not set. Please pass it on the command line, e.g., make PROGRAM_NAME=examples/echo/echo)
 endif
 
-main: $(INCLUDES) $(PROGRAM_NAME).s
+all: $(INCLUDES) $(PROGRAM_NAME).s
 	nasm -f elf64 -o $(PROGRAM_NAME).o $(PROGRAM_NAME).s \
 		-g -w+all  \
 		-I$(INC_DIR)/ \

@@ -254,122 +254,6 @@ set_logger_output:
 .return:
   ret
 
-; returns the foreground color of the status code
-; @param  rdi: status code (int)
-; @param  rax: pointer to the ansi sequence
-get_status_code_color:
-  cmp   rdi, 100
-  jl    .error
-
-  cmp   rdi, 599
-  jg    .error
-
-  cmp   rdi, 500
-  jge   .red
-
-  cmp   rdi, 400
-  jge   .yellow
-
-  cmp   rdi, 300
-  jge   .cyan
-
-  cmp   rdi, 200
-  jge   .green
-
-  cmp   rdi, 100
-  jge   .blue
-
-.red:
-  lea   rax, [RED_FG]
-  jmp   .return
-
-.yellow:
-  lea   rax, [YELLOW_FG]
-  jmp   .return
-
-.cyan:
-  lea   rax, [CYAN_FG]
-  jmp   .return
-
-.green:
-  lea   rax, [GREEN_FG]
-  jmp   .return
-
-.blue:
-  lea   rax, [BLUE_FG]
-  jmp   .return
-  
-.error:
-  lea   rax, [DEFAULT_FG]
-
-.return:
-  ret
-
-; logs the status code
-; @param  rdi: pointer to the logger struct
-; @param  rsi: status code (int)
-log_status_code:
-  sub   rsp, 0x18 
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to logger struct
-  ; [rsp+0x8]   -> status code
-  ; [rsp+0x10]  -> status code string
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 100
-  jl    .error
-
-  cmp   rsi, 599
-  jg    .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  ; can colors be outputted?
-  mov   rdi, [rsp]
-  call  can_color_be_ouputted
-  test  rax, rax
-  jz    .no_color
-
-  mov   rdi, [rsp+0x8]
-  call  get_status_code_color
-  cmp   rax, 0
-  jl    .error
-
-  ; print ansi to change color
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
-  
-.no_color:
-  ; print status code
-  mov   rdi, [rsp+0x8]
-  lea   rsi, [rsp+0x10]
-  mov   rdx, 4 ; add one for null char
-  call  to_string
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
-
-  ; back to default color
-  mov   rdi, [rsp]
-  lea   rsi, [DEFAULT_FG]
-  call  log
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x18
-  ret
-
 ; writes a string to the log output.
 ; @param  rdi: pointer to the logger struct
 ; @param  rsi: pointer to the string
@@ -483,127 +367,6 @@ log_char:
   add   rsp, 0x10
   ret
 
-; initial log of the available routes and port the server is listening to
-; @param  rdi: pointer to server struct
-log_server_init:
-  sub   rsp, 0x20
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the server struct
-  ; [rsp+0x8]   -> pointer to server logger
-  ; [rsp+0x10]  -> port string
-
-  mov   [rsp], rdi
-  mov   qword [rsp+0x10], 0
-
-  ; get logger output
-  mov   rdi, [rsp]
-  call  get_server_logger
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  ; log the logo :)
-  mov   rdi, [rsp+0x8]
-  lea   rsi, [HERVE_LOGO]
-  call  logln
-
-  mov   rdi, [rsp+0x8]
-  lea   rsi, [log_debug]
-  call  log
-
-  mov   rdi, [rsp+0x8]
-  lea   rsi, [log_server_init_msg]
-  call	log 
-
-  mov   rsi, [rsp]
-  mov   rdi, qword [rsi+SERVER_OFF_PORT]
-  lea   rsi, [rsp+0x10]
-  mov   rdx, STR_PORT_MAX_LENGTH
-  call  to_string
-
-  cmp   rax, 0
-  jl    .return
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call	logln
-
-  ; load server routes
-  mov   rdi, [rsp]
-  call  get_server_routes
-  cmp   rax, 0
-  jl    .error
-  je    .no_routes
-
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, LINE_FEED
-  call  log_char
-
-  mov   rdi, [rsp+0x8]
-  lea   rsi, [log_debug]
-  call  log
-
-  mov   rdi, [rsp+0x8]
-  lea   rsi, [log_routes_available_msg]
-  call	logln
-
-.loop:
-  ; log debug 
-  mov   rdi, [rsp+0x8]
-  lea   rsi, [log_debug]
-  call	log
-
-  ; load routes_list
-  mov   rdi, [rsp+0x18]
-
-  ; log method
-  ; go to method
-  mov   rsi, [rdi+ROUTE_OFF_METHOD]
-  mov   rdi, [rsp+0x8]
-  call  log
-
-  ; print space
-  mov   rdi, [rsp+0x8]
-  mov   rsi, SPACE
-  call  log_char
-
-  ; load url and log it
-  mov   rdi, [rsp+0x8]
-  mov   rax, [rsp+0x18]
-  mov   rsi, [rax+ROUTE_OFF_URL]
-  call  logln
-
-  mov   rsi, [rsp+0x18]
-  cmp   qword [rsi+ROUTE_OFF_NEXT], 0
-  je    .end_loop
-
-  add   rsi, ROUTE_OFF_NEXT
-  mov   rdi, [rsi]
-
-  mov   [rsp+0x18], rdi
-  
-  jmp   .loop
-.end_loop:
-
-.no_routes:
-  ; log new line
-  mov   rdi, [rsp+0x8]
-  mov   rsi, LINE_FEED
-  call	log_char
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x20
-  ret
-
 ; @param  rdi: pointer to logger struct
 ; @return rax: return code
 log_delimiter:
@@ -628,246 +391,25 @@ log_delimiter:
   add   rsp, 0x8
   ret
 
-; log the duration of the context
-; @param  rdi: pointer to the logger struct
-; @param  rsi: pointer to the context struct
-; @return rax: return code
-log_ctx_duration:
-  sub   rsp, 0x20
-  sub   rsp, DURATION_MAX_SIZE
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the logger struct
-  ; [rsp+0x8]   -> pointer to the context struct
-  ; [rsp+0x10]  -> ctx start time
-  ; [rsp+0x18]  -> duration
-  ; [rsp+0x20]  -> string duration (size 0x10)
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  ; get end and start time
-  mov   rdi, [rsp+0x8]
-  call  get_ctx_start_time
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x10], rax
-  mov   qword [rsp+0x20], 0
-
-  mov   rdi, [rsp+0x8]
-  call  get_ctx_end_time
-
-  cmp   rax, 0
-  jl    .error
-
-  ; subtract end and start time
-  mov   rbx, qword [rsp+0x10]
-  sub   rax, rbx
-
-  cmp   rax, 0
-  jl    .error
-
-  ; save duration
-  mov   qword [rsp+0x18], rax
-
-  lea   rsi, [rsp+0x20]
-  add   rsi, DURATION_MAX_SIZE
-
-  ; add null char at the end
-  dec   rsi
-  mov   byte [rsi], NULL_CHAR
-  dec   rsi
-
-  ; print micro second backwards
-  mov   byte [rsi], LOWERCASE_S
-  dec   rsi
-  mov   byte [rsi], MICRO_SECOND
-  dec   rsi
-  mov   byte [rsi], MICRO_FIRST
-
-  mov   rax, qword [rsp+0x18]
-
-  xor   rdx, rdx
-  mov   rcx, 1000
-  div   rcx
-  
-.loop:
-  dec   rsi
-
-  xor   rdx, rdx
-  mov   rcx, 0xA  ; divisor, dividend in rax
-  div   rcx       ; quotient in rax and remainder in edx
-
-  add   rdx, ZERO_CHAR
-
-  mov   byte [rsi], dl
-
-  cmp   rax, 0
-  jne   .loop
-
-  ; print duration
-  mov   rdi, [rsp]
-  ; rsi already populated
-  call  log
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, DURATION_MAX_SIZE
-  add   rsp, 0x20
-  ret
-
-; log the current context
-; @param  rdi: pointer to context
-; @param  rsi: pointer to the server logger
-log_ctx:
-  sub   rsp, 0x18
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  ; [LOG] 
-  mov   rdi, [rsp+0x8]
-  lea   rsi, [log_pre]
-  call  log
-
-  mov   rdi, [rsp]
-  call  get_ctx_start_time
-
-  mov   rax, 0
-  jl    .error
-
-  ; log time
-  mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call  log_time
-
-  mov   rdi, [rsp+0x8]
-  call  log_delimiter
-
-  ; log client ip
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp]
-  call  log_client_ip
-
-  mov   rdi, [rsp+0x8]
-  call  log_delimiter
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp]
-  call  log_ctx_duration
-
-  mov   rdi, [rsp+0x8]
-  call  log_delimiter
-
-  ; log status code
-  ; get context response
-  mov   rdi, [rsp]
-  call  get_ctx_response
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  call  get_response_status_code
-
-  cmp   rax, 0
-  jl    .error
-
-  ; get response status code
-  mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call  log_status_code
-
-  mov   rdi, [rsp+0x8]
-  call  log_delimiter
-
-  ; log method
-  mov   rdi, [rsp]
-  call  get_ctx_request
-  
-  cmp   rax, 0
-  jl    .error
-  je    .no_request
-
-  mov   [rsp+0x10], rax
-
-  mov   rdi, rax
-  call  get_request_method
-
-  cmp   rax, 0
-  jl    .error
-  je    .no_request
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call  log
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, SPACE
-  call  log_char
-
-  ; log url
-  mov   rdi, [rsp+0x10]
-  call  get_request_url
-
-  cmp   rax, 0
-  jl    .error
-  je    .no_request
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call  log
-
-.no_request:
-  mov   rdi, [rsp+0x8]
-  mov   rsi, LINE_FEED
-  call  log_char
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x18
-  ret
-
 ; log current date and time
 ; @param  rdi: pointer to the logger struct
 ; @param  rsi: (optional) timestamp, if set to 0 get now
 ; @return rax: exit code
 log_time:
-  sub   rsp, 0x10 ; store timestamp
+  sub   rsp, 0x20
 
   ; *** STACK USAGE *** ;
-  ; [rsp]     -> pointer to logger struct
-  ; [rsp+0x8] -> log string
+  ; [rsp]       -> pointer to logger struct
+  ; [rsp+0x8]   -> timestamp
+  ; [rsp+0x10]  -> pointer to dt struct
+  ; [rsp+0x18]  -> log string
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
-
-  mov   [rsp], rdi
 
   cmp   rsi, 0
   je    .get_unix
@@ -885,202 +427,61 @@ log_time:
   mov   rdi, rax
 
 .print_time:
-  call  unix_to_date_time
+  mov   [rsp+0x8], rdi
 
-  mov   rdi, qword [dt_year]
-  lea   rsi, [rsp+0x8]
-  mov   rdx, 5
-  call  to_string
-
+  ; malloc dt struct
+  mov   rdi, DT_STRUCT_LEN
+  call  malloc
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
+  mov   [rsp+0x10], rax
 
-  mov   rdi, [rsp]
-  mov   rsi, HYPHEN
-  call  log_char
-
-  cmp   qword [dt_month], 10
-  jge   .no_zero_month
-
-  mov   rdi, [rsp]
-  mov   rsi, ZERO_CHAR
-  call  log_char
-
-.no_zero_month:
-  mov   rdi, qword [dt_month]
-  lea   rsi, [rsp+0x8]
-  mov   rdx, 3
-  call  to_string
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
-
-  mov   rdi, [rsp]
-  mov   rsi, HYPHEN
-  call  log_char
-
-  cmp   qword [dt_day], 10
-  jge   .no_zero_day
-
-  mov   rdi, [rsp]
-  mov   rsi, ZERO_CHAR
-  call  log_char
-
-.no_zero_day:
-  mov   rdi, qword [dt_day]
-  lea   rsi, [rsp+0x8]
-  mov   rdx, 3
-  call  to_string
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
-
-  mov   rdi, [rsp]
-  mov   rsi, SPACE
-  call	log_char
-
-  cmp   qword [dt_hour], 10
-  jge   .no_zero_hour
-
-  mov   rdi, [rsp]
-  mov   rsi, ZERO_CHAR
-  call	log_char
-
-.no_zero_hour:
-  mov   rdi, qword [dt_hour]
-  lea   rsi, [rsp+0x8]
-  mov   rdx, 3
-  call  to_string
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
-
-  mov   rdi, [rsp]
-  mov   rsi, COLON
-  call  log_char
-
-  cmp   qword [dt_minute], 10
-  jge   .no_zero_minute
-
-  mov   rdi, [rsp]
-  mov   rsi, ZERO_CHAR
-  call  log_char
-
-.no_zero_minute:
-  mov   rdi, qword [dt_minute]
-  lea   rsi, [rsp+0x8]
-  mov   rdx, 3
-  call  to_string
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
-
-  mov   rdi, [rsp]
-  mov   rsi, COLON
-  call  log_char
-
-  cmp   qword [dt_second], 10
-  jge   .no_zero_second
-
-  mov   rdi, [rsp]
-  mov   rsi, ZERO_CHAR
-  call  log_char
-
-.no_zero_second:
-  mov   rdi, qword [dt_second]
-  lea   rsi, [rsp+0x8]
-  mov   rdx, 3
-  call  to_string
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
-
-  mov   rdi, [rsp]
-  mov   rsi, SPACE
-  call  log_char
-
-  mov   rdi, [rsp]
-  lea   rsi, [utc_str]
-  call  log
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-  
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x10
-  ret
-
-; logs the client ipv4
-; @param  rdi: pointer to the logger struct
-; @param  rsi: pointer to the context struct
-log_client_ip:
-  sub   rsp, 0x10
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the logger struct
-  ; [rsp+0x8]   -> pointer to the context struct 
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  ; get client struct
   mov   rdi, [rsp+0x8]
-  call  get_ctx_client
+  mov   rsi, rax
+  call  unix_to_date_time
   cmp   rax, 0
-  jl    .no_free
+  jl    .error
 
-  mov   rdi, rax
-  call  get_client_ip
+  mov   rdi, [rsp+0x10]
+  call  time_to_str
   cmp   rax, 0
-  jl    .no_free
+  jl    .error
+
+  mov   [rsp+0x18], rax
 
   mov   rdi, [rsp]
   mov   rsi, rax
   call  log
+  cmp   rax, 0
+  jl    .error
+
+  ; free log string
+  mov   rdi, [rsp+0x18]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free dt struct
+  mov   rdi, [rsp+0x10]
+  call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-
-.error:
   
+.error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x20
   ret
 

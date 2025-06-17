@@ -7,17 +7,29 @@ section .bss
   end_tv_nsec resq 1
 
   ; dt struct
+_dt_struct:
   dt_year    resq 1
   dt_month   resq 1
   dt_day     resq 1
   dt_hour    resq 1
   dt_minute  resq 1
   dt_second  resq 1
+_dt_struct_end:
 
   now_tv_sec  resq 1
   now_tv_nsec resq 1
 
 section .data
+  DT_STRUCT_LEN equ _dt_struct_end - _dt_struct
+
+  ; offsets
+  DT_STRUCT_YEAR    equ 0
+  DT_STRUCT_MONTH   equ DT_STRUCT_YEAR + 0x8
+  DT_STRUCT_DAY     equ DT_STRUCT_MONTH + 0x8
+  DT_STRUCT_HOUR    equ DT_STRUCT_DAY + 0x8
+  DT_STRUCT_MINUTE  equ DT_STRUCT_HOUR + 0x8
+  DT_STRUCT_SECOND  equ DT_STRUCT_MINUTE + 0x8
+
   ; time constants
   CLOCK_REALTIME  equ 0
   HOURS_IN_DAY    equ 24
@@ -31,16 +43,30 @@ section .data
 
   utc_str db "UTC", NULL_CHAR
 
+  DEFAULT_TIME_STR_LEN equ 24 ; yyyy-mm-dd hh:mm:ss UTC\0
+
   days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 
 section .text
 ; convert unix to date
 ; @param  rdi: timestamp
-; @return rax: pointer to dt struct
+; @param  rsi: pointer to dt struct
+; @return rax: return code
 unix_to_date_time:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> timestamp
+  ; [rsp+0x8] -> pointer to the dt struct
 
   mov   qword [rsp], rdi
+  mov   qword [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jle   .error
 
   ; second = timestamp % seconds_in_minute
   xor   rdx, rdx
@@ -111,19 +137,42 @@ unix_to_date_time:
   call  days_in_month
 
   cmp   qword [rsp], rax
-  jle   .return
+  jle   .loop_end
 
   sub   qword [rsp], rax
   inc   qword [dt_month]
 
   jmp   .loop
-
-.return:
+.loop_end:
   mov   rax, qword [rsp]
   mov   qword [dt_day], rax
+  
+  ; populate the struct
+  mov   rdi, [rsp+0x8]
 
-  lea   rax, [dt_year]
-  add   rsp, 0x8
+  mov   rax, qword [dt_year]
+  mov   [rdi+DT_STRUCT_YEAR], rax
+  mov   rax, qword [dt_month]
+  mov   [rdi+DT_STRUCT_MONTH], rax
+  mov   rax, qword [dt_day]
+  mov   [rdi+DT_STRUCT_DAY], rax
+  mov   rax, qword [dt_hour]
+  mov   [rdi+DT_STRUCT_HOUR], rax
+  mov   rax, qword [dt_minute]
+  mov   [rdi+DT_STRUCT_MINUTE], rax
+  mov   rax, qword [dt_second]
+  mov   [rdi+DT_STRUCT_SECOND], rax
+
+  ; return
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; return the number if days in the month
@@ -221,7 +270,7 @@ is_leap_year:
   add   rsp, 0x8
   ret
 
-; return now's unix timestamp TODO: func desc
+; return now's unix timestamp
 ; @return rax: timestamp
 now:
   mov   rax, SYS_CLOCK_GETTIME
@@ -239,5 +288,247 @@ now:
   mov   rax, FAILURE_CODE
 
 .return:
+  ret
+
+; convert a dt struct to a string 'yyyy-mm-dd hh:mm:ss UTC'
+; the user is responsible of freeing the string
+; @param  rdi: pointer to the dt struct
+; @return rax: pointer to the string
+time_to_str:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to dt struct
+  ; [rsp+0x8]   -> pointer to the mallocd string
+  ; [rsp+0x10]  -> dynamic pointer
+  ; [rsp+0x18]  -> tmp string for int to string conversions
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rdi, DEFAULT_TIME_STR_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+  mov   [rsp+0x10], rax
+
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_YEAR]
+  lea   rsi, [rsp+0x18]
+  mov   rdx, 5
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  ; copy the year
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; add '-'
+  mov   rdi, rax
+  mov   rax, HYPHEN
+  stosb
+
+  mov   [rsp+0x10], rdi
+  
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_MONTH]
+  cmp   rdi, 10
+  jge   .no_zero_month
+
+  mov   rdi, [rsp+0x10]
+  mov   rax, ZERO_CHAR
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+.no_zero_month:
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_MONTH]
+  lea   rsi, [rsp+0x18]
+  mov   rdx, 3
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; add '-'
+  mov   rdi, rax
+  mov   rax, HYPHEN
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_DAY]
+  cmp   rdi, 10
+  jge   .no_zero_day
+
+  mov   rdi, [rsp+0x10]
+  mov   rax, ZERO_CHAR
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+.no_zero_day:
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_DAY]
+  lea   rsi, [rsp+0x18]
+  mov   rdx, 3
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; add '-'
+  mov   rdi, rax
+  mov   rax, SPACE
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_HOUR]
+  cmp   rdi, 10
+  jge   .no_zero_hour
+
+  mov   rdi, [rsp+0x10]
+  mov   rax, ZERO_CHAR
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+.no_zero_hour:
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_HOUR]
+  lea   rsi, [rsp+0x18]
+  mov   rdx, 3
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; add '-'
+  mov   rdi, rax
+  mov   rax, COLON
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_MINUTE]
+  cmp   rdi, 10
+  jge   .no_zero_minute
+
+  mov   rdi, [rsp+0x10]
+  mov   rax, ZERO_CHAR
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+.no_zero_minute:
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_MINUTE]
+  lea   rsi, [rsp+0x18]
+  mov   rdx, 3
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; add '-'
+  mov   rdi, rax
+  mov   rax, COLON
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_SECOND]
+  cmp   rdi, 10
+  jge   .no_zero_second
+
+  mov   rdi, [rsp+0x10]
+  mov   rax, ZERO_CHAR
+  stosb
+
+  mov   [rsp+0x10], rdi
+
+.no_zero_second:
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+DT_STRUCT_SECOND]
+  lea   rsi, [rsp+0x18]
+  mov   rdx, 3
+  call  to_string
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; add '-'
+  mov   rdi, rax
+  mov   rax, SPACE
+  stosb
+
+  mov   rsi, utc_str
+  mov   rcx, 3
+  rep   movsb
+
+  mov   rax, NULL_CHAR
+  stosb
+
+  mov   rax, [rsp+0x8]
+  jmp   .return
+  
+.error:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
 

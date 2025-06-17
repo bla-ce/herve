@@ -10,27 +10,27 @@ routes=0
 
 # Define the tests - format: url method status_code (response)
 tests=(
-  "http://192.168.122.129:1337/ GET 400" # missing parameter
-  "http://192.168.122.129:1337/?name=jul&coucou=cocou GET 204"
-  "http://192.168.122.129:1337/ POST 404"
-  "http://192.168.122.129:1337/ HEHE 404"
-  "http://192.168.122.129:1337/ HEHEHEHEHEHE 500"
-  "http://192.168.122.129:1337/health GET 200"
-  "http://192.168.122.129:1337/wild/example GET 200"
-  "http://192.168.122.129:1337/wild/ayoooooooo GET 200"
-  "http://192.168.122.129:1337/redirect GET 302"
-  "http://192.168.122.129:1337/template GET 200"
-  "http://192.168.122.129:1337/basic-auth GET 401"
-  "http://192.168.122.129:1337/index GET 200"
-  "http://192.168.122.129:1337/index/path GET 404"
-  "http://192.168.122.129:1337/examples/test/views/index.html GET 200"
-  "http://192.168.122.129:1337/examples/test/views/index.js GET 200"
-  "http://192.168.122.129:1337/examples/test/views/style.css GET 200"
-  "http://192.168.122.129:1337/in GET 404"
-  "http://192.168.122.129:1337/index?query=53094 GET 200"
-  "http://192.168.122.129:1337/index#anchor GET 200"
-  "http://192.168.122.129:1337/not-found GET 404"
-  "http://192.168.122.129:1337/nonot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundt-found GET 500"
+  "http://localhost:1337/ GET 400" # missing parameter
+  "http://localhost:1337/?name=jul&coucou=cocou GET 204"
+  "http://localhost:1337/ POST 404"
+  "http://localhost:1337/ HEHE 404"
+  "http://localhost:1337/ HEHEHEHEHEHE 500"
+  "http://localhost:1337/health GET 200"
+  "http://localhost:1337/wild/example GET 200"
+  "http://localhost:1337/wild/ayoooooooo GET 200"
+  "http://localhost:1337/redirect GET 302"
+  "http://localhost:1337/template GET 200"
+  "http://localhost:1337/basic-auth GET 401"
+  "http://localhost:1337/index GET 200"
+  "http://localhost:1337/index/path GET 404"
+  "http://localhost:1337/examples/test/views/index.html GET 200"
+  "http://localhost:1337/examples/test/views/index.js GET 200"
+  "http://localhost:1337/examples/test/views/style.css GET 200"
+  "http://localhost:1337/in GET 404"
+  "http://localhost:1337/index?query=53094 GET 200"
+  "http://localhost:1337/index#anchor GET 200"
+  "http://localhost:1337/not-found GET 404"
+  "http://localhost:1337/nonot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundt-found GET 500"
 )
 
 sum_time_us=0  # Accumulate total processing time in microseconds

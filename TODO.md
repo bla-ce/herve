@@ -1,18 +1,25 @@
-- [x] Update how files are read
-- [x] Use boeuf buffers for parsing templates
-- [x] Hardcoded tmp_file?
 - [x] Try to use the library with C
-- [x] Set error open and error read response
-- [x] Return a file starting with a null character fails
 - [x] FIX: ht_get_keys array is not being freed
-- [ ] FIX: entry is not being freed in ht_free
+- [x] FIX: entry is not being freed in ht_free
+- [x] create time struct
+- [x] transform log_time to time_str
+
+- [ ] Make files independent
+- [ ] if invalid argument and error should free, unexpected behavior
+- [ ] create error codes
+- [ ] should malloc not be used in functions?
+- [ ] when freeing a chunk and an error happens later, make sure its not freed twice
+- [ ] HUUUUUUGE EPIIIIIC CHANGE: not a library anymore?
+
+
+
 - [ ] Critical errors should print something
 - [ ] Error management
 - [ ] Testing and CI pipelines
 - [ ] Add rest of the attributes for cookie struct
 - [ ] Implement other load balancing algorithm
 - [ ] File optimisation
-- [ ] 1kB is not freed each request
+- [ ] ~800b is not freed each request
 - [ ] Config files
 - [ ] Perf optimisation
 - [ ] Routing with Parameters
