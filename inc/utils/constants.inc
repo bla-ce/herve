@@ -15,19 +15,5 @@ STDERR_FILENO equ 2
 
 LONG_SIZE       equ 10
 
-; extended ascii
-MICRO_FIRST   equ 0xCE
-MICRO_SECOND  equ 0xBC
-
-; logs
-LOG_PORT_LEN    equ 5 ; port + new line char
-LOG_TIME_SIZE   equ 25
-
-; error
-ERR_MAX_LEN equ 128
-
-; utils
-TO_STRING_MAX equ 7
-
 %endif
 
