@@ -36,8 +36,36 @@ jobs:
 
     - name: Run wrk benchmark
       run: |
-        echo "Running wrk for 10 seconds..."
-        wrk -t1 -c1 -d30s http://localhost:1337/index || true
+        echo "Running wrk..."
+        wrk -t1 -c1 -d30s --latency http://localhost:1337/index > wrk_output.txt
+
+        echo "wrk results:"
+        cat wrk_output.txt
+
+        # Extract avg latency
+        avg_latency=$(grep 'Latency' wrk_output.txt | awk '{print $2}')
+
+        echo "Average latency: $avg_latency"
+
+        # Convert to milliseconds
+        if [[ "$avg_latency" == *ms ]]; then
+          latency_ms=$(echo $avg_latency | sed 's/ms//')
+        elif [[ "$avg_latency" == *s ]]; then
+          latency_ms=$(echo "$avg_latency" | sed 's/s//' | awk '{print $1 * 1000}')
+        else
+          echo "Unrecognized latency format: $avg_latency"
+          exit 1
+        fi
+
+        threshold=80
+        latency_int=$(printf "%.0f" "$latency_ms")
+
+        if [ "$latency_int" -gt "$threshold" ]; then
+          echo "[ERROR] Average latency ${latency_int}ms exceeds threshold of ${threshold}ms"
+          exit 1
+        else
+          echo "[SUCCESS] Average latency ${latency_int}ms is within acceptable limits"
+        fi
 
     - name: Kill server
       run: |
