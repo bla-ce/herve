@@ -1,11 +1,11 @@
 section .bss
 server_struct:
-  server_sockfd             resq 1  ; socket file descriptor
-  server_logger             resq 1  ; pointer to the logger
-  server_routes             resq 1  ; pointer to linked list of routes
-  server_sockaddr           resq 1  ; pointer to sockaddr struct
-  server_middlewares        resq 1  ; pointer to middlewares linked list
-  server_port               resw 1  ; port
+  server_sockfd       resq 1  ; socket file descriptor
+  server_logger       resq 1  ; pointer to the logger
+  server_routes       resq 1  ; pointer to linked list of routes
+  server_sockaddr     resq 1  ; pointer to sockaddr struct
+  server_middlewares  resq 1  ; pointer to middlewares linked list
+  server_port         resw 1  ; port
 server_struct_end:
 
 section .data
@@ -20,12 +20,12 @@ section .data
   SERVER_STRUCT_LEN equ server_struct_end - server_struct
 
   ; offsets
-  SERVER_OFF_SOCKFD              equ 0x0
-  SERVER_OFF_LOGGER              equ SERVER_OFF_SOCKFD + 0x8
-  SERVER_OFF_ROUTES              equ SERVER_OFF_LOGGER + 0x8
-  SERVER_OFF_SOCKADDR            equ SERVER_OFF_ROUTES + 0x8
-  SERVER_OFF_MIDDLEWARES         equ SERVER_OFF_SOCKADDR + 0x8
-  SERVER_OFF_PORT                equ SERVER_OFF_MIDDLEWARES + 0x8
+  SERVER_OFF_SOCKFD       equ 0x0
+  SERVER_OFF_LOGGER       equ SERVER_OFF_SOCKFD + 0x8
+  SERVER_OFF_ROUTES       equ SERVER_OFF_LOGGER + 0x8
+  SERVER_OFF_SOCKADDR     equ SERVER_OFF_ROUTES + 0x8
+  SERVER_OFF_MIDDLEWARES  equ SERVER_OFF_SOCKADDR + 0x8
+  SERVER_OFF_PORT         equ SERVER_OFF_MIDDLEWARES + 0x8
 
 section .text
 ; initial log of the available routes and port the server is listening to
