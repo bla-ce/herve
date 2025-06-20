@@ -1127,10 +1127,24 @@ free_request:
 
   cmp   rax, 0
   jl    .error
-  je    .free_struct
+  je    .free_query_param
 
   mov   rdi, rax
   call  free
+
+  cmp   rax, 0
+  jl    .error
+
+.free_query_param:
+  mov   rdi, [rsp]
+  call  get_request_param
+
+  cmp   rax, 0
+  jl    .error
+  je    .free_struct
+
+  mov   rdi, rax
+  call  ht_free
 
   cmp   rax, 0
   jl    .error

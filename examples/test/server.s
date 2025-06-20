@@ -269,6 +269,7 @@ test_string:
   sub   rsp, 0x10
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
 
   ; add cookie
   lea   rdi, [name]
@@ -280,6 +281,8 @@ test_string:
   call  create_cookie
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp+0x8], rax
 
   mov   rdi, [rsp]
   mov   rsi, rax
@@ -298,10 +301,23 @@ test_string:
   mov   rsi, OK  
   lea   rdx, [ok_msg]
   call  send_string
+  cmp   rax, 0
+  jl    .error
+
+  ; free cookie struct
+  mov   rdi, [rsp+0x8]
+  call  free
 
   jmp   .return
 
 .error: 
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
