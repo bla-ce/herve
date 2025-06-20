@@ -41,42 +41,53 @@ Test Configuration:
 - **Configuration:** 1 thread, 1 connection
 
 Result:
-- **Latency:** 47.58us
+- **Latency:** 18.22us
 
 Latency Distribution:
-- **50%:** 37.00us
-- **75%:** 54.00us
-- **90%:** 75.00us
-- **99%:** 202.00us
+- **50%:** 13.00us
+- **75%:** 17.00us
+- **90%:** 22.00us
+- **99%:** 93.00us
 
 ## Example
 
 ```asm
-global  _start
+global _start
 
 %include "herve.inc"
 
 section .text
-middleware:
-  lea   rdi, [ok_msg]  
-  mov   rsi, 0
-  call  println
 
-  ret
+echo:
+  sub   rsp, 0x8
 
-test_no_content:
-  call  send_no_content
-  ret
+  mov   [rsp], rdi
 
-test_string:
-  mov   rsi, OK  
-  lea   rdx, [ok_msg]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  get_request_body
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, rax
   call  send_string
-  ret
 
-test_static:
-  lea   rsi, [index_path]
-  call  send_static_file
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp] 
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
 
 _start:
@@ -85,85 +96,32 @@ _start:
   mov   rdi, 1337
   call  server_init
   cmp   rax, 0
-  jl    .error
+  jl    error
 
-  mov   [rsp], rax
+  mov   [rsp], rax 
 
   mov   rdi, rax
-  call  get_server_sockfd
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [sockfd], rax
-
-  ; add no content route
-  mov   rdi, [rsp]
-  lea   rsi, [GET]
-  lea   rdx, [root_url]
-  mov   rcx, test_no_content
+  lea   rsi, [POST]
+  lea   rdx, [wildcard_url]
+  mov   rcx, echo
   call  add_route
-
   cmp   rax, 0
-  jl    .error
-
-  ; add health route
-  mov   rdi, [rsp]
-  lea   rsi, [GET]
-  lea   rdx, [health_url]
-  mov   rcx, test_string
-  call  add_route
-
-  ; add health route
-  mov   rdi, [rsp]
-  lea   rsi, [GET]
-  lea   rdx, [index_url]
-  mov   rcx, test_static
-  call  add_route
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, middleware
-  call  add_middleware
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, middleware
-  call  add_middleware
-
-  cmp   rax, 0
-  jl    .error
+  jl    error
 
   mov   rdi, [rsp]
   call  run_server
-
-  add   rsp, 0x8
+  cmp   rax, 0
+  jl    error
 
   mov   rax, SYS_EXIT
   mov   rdi, SUCCESS_CODE
   syscall
 
-.error:
-  add   rsp, 0x8
-
+error:
   mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
   syscall
 
-section .bss
-
 section .data
-  sockfd  dq 0
-
-  root_url    db "/", NULL_CHAR
-  health_url  db "/health", NULL_CHAR
-  index_url  db "/index", NULL_CHAR
-
-  index_path db "examples/views/index.html", NULL_CHAR
-
-  ok_msg db "middlewares ok", NULL_CHAR
+  wildcard_url  db "*", NULL_CHAR
 ```
