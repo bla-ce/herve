@@ -675,7 +675,7 @@ send_HTML:
 
   mov   rdi, qword [rsp+0x28]
   lea   rsi, [rsp+0x30]
-  mov   rdx, LONG_SIZE
+  mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  to_string
 
   cmp   rax, 0
@@ -786,7 +786,7 @@ send_string:
 
   mov   rdi, qword [rsp+0x28]
   lea   rsi, [rsp+0x30]
-  mov   rdx, LONG_SIZE
+  mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  to_string
   cmp   rax, 0
   jl    .error
@@ -1031,7 +1031,7 @@ send_static_file:
 
   mov   rdi, rax
   lea   rsi, [rsp+0x40]
-  mov   rdx, LONG_SIZE
+  mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  to_string
 
   cmp   rax, 0

@@ -1,6 +1,9 @@
 section .data
-  UNSIGNED_LONG_LONG_MAX_STR_SIZE equ 21
-  SIGNED_LONG_LONG_MAX_STR_SIZE   equ 20
+  UNSIGNED_LONG_MAX_STR_SIZE  equ 10
+  SIGNED_LONG_MAX_STR_SIZE    equ 11
+
+  UNSIGNED_LONG_LONG_MAX_STR_SIZE equ 20
+  SIGNED_LONG_LONG_MAX_STR_SIZE   equ 21
 
 section .text
 ; returns if a string starts with a substring

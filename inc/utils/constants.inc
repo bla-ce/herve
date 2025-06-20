@@ -13,7 +13,5 @@ STDIN_FILENO  equ 0
 STDOUT_FILENO equ 1
 STDERR_FILENO equ 2
 
-LONG_SIZE       equ 10
-
 %endif
 
