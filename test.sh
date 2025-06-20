@@ -67,6 +67,7 @@ do
       echo "Received 000"
       echo "$method $url"
       echo "Routes: $routes"
+      exit 1
     fi
 
     # Check if the actual status code matches the expected one
@@ -75,7 +76,7 @@ do
       passed_tests=$((passed_tests + 1))
     else
       echo -e "[${YELLOW}TEST $test_number/$total_tests${NC}] : $method $url -> ${RED}FAILED${NC} (expected: $expected_status, got: $status_code, time: ${request_time_us} µs)"
-      read -p "FAILED TEST"
+      exit 1
     fi
 
     ((routes++))
