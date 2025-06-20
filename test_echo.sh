@@ -32,6 +32,7 @@ while IFS= read -r payload || [ -n "$payload" ]; do
         echo "FAIL: Payload '$trimmed_payload'"
         echo "  Expected: '$trimmed_payload'"
         echo "  Got:      '$trimmed_response'"
+        exit 1
     fi
 
 done < "$WORDLIST"
