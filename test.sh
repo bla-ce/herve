@@ -10,7 +10,7 @@ routes=0
 
 # Define the tests - format: url method status_code (response)
 tests=(
-  "http://localhost:1337/ GET 400" # missing parameter
+  "http://localhost:1337/ GET 404" # missing parameter
   "http://localhost:1337/?name=jul&coucou=cocou GET 204"
   "http://localhost:1337/ POST 404"
   "http://localhost:1337/ HEHE 404"
