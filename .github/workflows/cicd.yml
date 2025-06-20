@@ -1,0 +1,44 @@
+name: Assembly HTTP Server CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y nasm curl wrk
+
+    - name: Build HTTP server
+      run: |
+        make PROGRAM_NAME=examples/test/server
+
+    - name: Start HTTP server
+      run: |
+        ./examples/test/server 1337 &
+        echo $! > server.pid
+        sleep 2  # Wait for server to be ready
+
+    - name: Run example tests
+      run: |
+        chmod +x test.sh
+        ./test.sh
+
+    - name: Run wrk benchmark
+      run: |
+        echo "Running wrk for 10 seconds..."
+        wrk -t1 -c1 -d30s http://localhost:1337/index || true
+
+    - name: Kill server
+      run: |
+        kill $(cat server.pid)
