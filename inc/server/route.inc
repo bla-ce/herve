@@ -85,6 +85,7 @@ compare_route:
   ; [rsp+0x10]  -> pointer to request url
   ; [rsp+0x18]  -> '?' position if query parameters
   ; [rsp+0x20]  -> pointer to request url without query parameters
+  ; [rsp+0x30]  -> result
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -102,7 +103,6 @@ compare_route:
   cmp   rax, 0
   jl    .error
   je    .not_the_same
-
 
   ; compare urls
   mov   rsi, [rsp]
@@ -172,27 +172,29 @@ compare_route:
   je    .not_the_same
 
 .equal:
-  mov   rax, TRUE
+  mov   qword [rsp+0x28], TRUE
 
   jmp   .return
 
 .not_the_same:
-  mov   rax, FALSE
+  mov   qword [rsp+0x28], FALSE
+
   jmp   .return
 
 .error:
+  mov   qword [rsp+0x28], FAILURE_CODE
+
+.return:
   ; free duplicated route without query
   mov   rdi, [rsp+0x20]
   test  rdi, rdi
   jz    .no_free
   
-  mov   rdi, rax
   call  free
 
 .no_free:
-  mov   rax, FAILURE_CODE
+  mov   rax, qword [rsp+0x28]
 
-.return:
   add   rsp, 0x30
   ret
 

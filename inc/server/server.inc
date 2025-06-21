@@ -443,6 +443,12 @@ run_server:
   mov   rdi, rax
   call  close_file
 
+  ; free client struct
+  mov   rdi, [rsp+0x8]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   jmp   .loop
 
 .close_server:

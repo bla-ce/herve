@@ -11,7 +11,7 @@ request_struct:
   req_host        resq 1
   req_str         resq 1
   req_query_param resq 1
-  req_close       resb 1
+  req_close       resq 1
 request_struct_end:
 
 section .data
@@ -350,6 +350,17 @@ parse_query_param:
   cmp   rax, 0
   jl    .error
 
+  ; free key and value
+  mov   rdi, [rsp+0x20]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x28]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   ; go to next
   jmp   .loop
 
@@ -365,11 +376,19 @@ parse_query_param:
   mov   rsi, rax
   call  strndup
 
+  mov   [rsp+0x28], rax
+
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
   mov   rdx, rax
   call  ht_insert
 
+  cmp   rax, 0
+  jl    .error
+
+  ; free last key
+  mov   rdi, [rsp+0x28]
+  call  free
   cmp   rax, 0
   jl    .error
 

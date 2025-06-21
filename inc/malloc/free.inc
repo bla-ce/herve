@@ -203,7 +203,6 @@ add_to_free_list:
 ; frees previously allocated memory
 ; @param  rdi: pointer to chunk data
 ; @return rax: return code
-
 free:
   sub   rsp, 0x8
 
@@ -223,6 +222,7 @@ free:
 
   mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
   add   qword [freed], rbx
+.b1:
 
   ; make sure the chunk needs to be freed
   mov   rax, qword [rdi+CHUNK_OFFSET_INUSE]

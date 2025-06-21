@@ -9,7 +9,7 @@ section .text
 ; @param  rsi: pointer to the hash table
 ; @return rax: pointer to the template parsed
 parse_template:
-  sub   rsp, 0x40
+  sub   rsp, 0x48
 
   cmp   rdi, 0
   jle   .error
@@ -26,9 +26,11 @@ parse_template:
   ; [rsp+0x28]  -> dynamic pointer of the file
   ; [rsp+0x30]  -> delimiter position
   ; [rsp+0x38]  -> pointer to the boeuf buffer
+  ; [rsp+0x40]  -> duplicated string
 
   mov   [rsp], rdi  
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x40], 0
 
   ; make sure the file has a .apl extension
   call  get_content_type
@@ -129,6 +131,8 @@ parse_template:
   cmp   rax, 0
   jl    .error
 
+  mov   qword [rsp+0x40], rax
+
   ; get hash table value
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
@@ -152,6 +156,12 @@ parse_template:
   
   mov   [rsp+0x28], rdi
 
+  ; free duplicated string
+  mov   rdi, [rsp+0x40]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   jmp   .loop
 
 .end_loop:
@@ -171,14 +181,29 @@ parse_template:
   ; close the file
   mov   rdi, qword [rsp+0x10]
   call  close_file
-
+  
   mov   rax, [rsp+0x38]
 
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .free_dup_string
+
+  call  free
+  
+.free_dup_string:
+  mov   rdi, [rsp+0x40]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x40
+  add   rsp, 0x48
   ret
 

@@ -371,7 +371,7 @@ stringify_headers:
   jmp   .return
 
 .error:
-  ; free headersif mallocd
+  ; free headers if mallocd
   mov   rdi, [rsp+0x28]
   test  rdi, rdi
   jz    .no_free

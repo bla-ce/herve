@@ -789,8 +789,17 @@ send_string:
 
   mov   qword [rsp+0x28], rax
 
+  ; duplicate string
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [rsp+0x28]
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
   mov   rdi, [rsp+0x18]
-  mov   rsi, rax
+  mov   rsi, qword [rsp+0x28]
   call  set_response_content_len
   cmp   rax, 0
   jl    .error
