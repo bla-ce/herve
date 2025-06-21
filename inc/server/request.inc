@@ -668,7 +668,6 @@ receive_request:
   add   rsp, 0x20
   ret
 
-
 ; parses the string representation of the request onto the request struct
 ; and saves it inside the context
 ; @param  rdi: pointer to context struct

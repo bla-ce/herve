@@ -309,6 +309,7 @@ time_to_str:
   cmp   rdi, 0
   jle   .error
 
+  ; TODO: user should provide the string
   mov   rdi, DEFAULT_TIME_STR_LEN
   call  malloc
   cmp   rax, 0

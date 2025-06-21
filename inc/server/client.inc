@@ -133,6 +133,7 @@ get_client_ip:
   mov   qword [rsp+0x8], rax
 
   ; malloc string
+  ; TODO: user should provide the string
   mov   rdi, IPV4_MAX_LENGTH ; include null char at the end
   call  malloc
   cmp   rax, 0

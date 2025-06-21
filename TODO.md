@@ -1,4 +1,6 @@
 - [ ] ~800b is not freed each request
+    - [ ] Reduce dynamic allocation in favor of stack allocation
+    - [ ] free all chunks of memory
 
 - [ ] variables should not be mallocd inside functions, user is responsible of memory allocation
 

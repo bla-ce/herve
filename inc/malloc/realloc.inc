@@ -26,7 +26,12 @@ realloc:
   mov   [rsp], rdi
   mov   qword [rsp+0x8], rsi
 
-  sub   rdi, CHUNK_SIZE
+  call  get_chunk_header
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+
   mov   rax, qword [rdi+CHUNK_OFFSET_SIZE]
   mov   qword [rsp+0x10], rax
 
