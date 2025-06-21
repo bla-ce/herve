@@ -64,12 +64,23 @@ free_response:
   mov   rdi, [rsp]
   call  get_response_str
   cmp   rax, 0
-  jl    .free_struct
+  jl    .free_response_body
 
   mov   rdi, rax
   call  boeuf_free
   cmp   rax, 0
   jl    .error
+
+.free_response_body:
+  mov   rdi, [rsp]
+  call  get_response_body
+  cmp   rax, 0
+  jle   .free_struct
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .free_struct
 
 .free_struct:
   ; free response struct
