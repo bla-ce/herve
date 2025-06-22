@@ -1,9 +1,9 @@
 - [x] send string should duplicate the string before storing response body
-- [ ] ~536b is not freed each request
+- [ ] ~200b is not freed each request
     - [ ] free all chunks of memory
+    - [ ] Reduce dynamic allocation in favor of stack allocation
 
     - [ ] Alloc one large ctx for each request? 
-    - [ ] Reduce dynamic allocation in favor of stack allocation
 - [ ] Template might have a bug, not null terminated?
 
 - [ ] variables should not be mallocd inside functions, user is responsible of memory allocation

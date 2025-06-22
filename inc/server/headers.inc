@@ -42,12 +42,14 @@ section .text
 ; @param  rdi: pointer to headers string
 ; @return rax: pointer to the hash table
 parse_headers:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
 
   cmp   rdi, 0
   jle   .error ; TODO: will have to confirm if it can be null
-
-  mov   [rsp], rdi
 
   ; get the number of headers (count ':')
   mov   rdi, [rsp]
@@ -144,12 +146,25 @@ parse_headers:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x20], rax
+
   ; insert into the hash table
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x18]
   mov   rdx, rax
   call  ht_insert
 
+  cmp   rax, 0
+  jl    .error
+
+  ; free key and value
+  mov   rdi, [rsp+0x18]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x20]
+  call  free
   cmp   rax, 0
   jl    .error
 
@@ -173,10 +188,24 @@ parse_headers:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_value
+
+  call  free
+  
+.free_value:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; load the headers into the response
