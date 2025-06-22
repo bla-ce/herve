@@ -214,9 +214,6 @@ parse_headers:
 stringify_headers:
   sub   rsp, 0x38
 
-  cmp   rdi, 0
-  jle   .error
-
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to headers hash table
   ; [rsp+0x8]   -> headers count
@@ -227,8 +224,12 @@ stringify_headers:
   ; [rsp+0x30]  -> dynamic pointer headers string
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x28], 0
+
+  cmp   rdi, 0
+  jle   .error
 
   ; get hash table length
   mov   rdi, [rsp]
@@ -394,13 +395,26 @@ stringify_headers:
 
   mov   rax, NULL_CHAR
   stosb
+
+  ; free list of keys
+  mov   rdi, [rsp+0x10]
+  call  free
+  cmp   rax, 0
+  jl    .error
   
   mov   rax, [rsp+0x28]
   
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .free_headers
+
+  call  free
+
   ; free headers if mallocd
+.free_headers:
   mov   rdi, [rsp+0x28]
   test  rdi, rdi
   jz    .no_free
