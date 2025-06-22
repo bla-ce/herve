@@ -37,7 +37,7 @@ jobs:
     - name: Run wrk benchmark
       run: |
         echo "Running wrk..."
-        wrk -t1 -c1 -d30s --latency http://localhost:1337/index > wrk_output.txt
+        wrk -t1 -c1 -d30s --latency http://localhost:1337/index
 
     - name: Kill server
       run: |

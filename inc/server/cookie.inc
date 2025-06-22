@@ -53,12 +53,6 @@ section .text
 set_cookie:
   sub   rsp, 0x18
 
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
   ; *** STACK USAGE *** ; 
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the cookie struct
@@ -66,6 +60,13 @@ set_cookie:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   rdi, rsi
   call  serialize_cookie
@@ -91,16 +92,28 @@ set_cookie:
   cmp   rax, 0
   jl    .error
 
+  ; free serialized cookie (set_header dups it)
+  mov   rdi, [rsp+0x10]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, 0x18
   ret
-
 
 ; checks whether or not the key of the cookie is valid
 ; @param  rdi: pointer to the key
@@ -164,12 +177,6 @@ is_cookie_key_valid:
 create_cookie:
   sub   rsp, 0x38
 
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the name
   ; [rsp+0x8]   -> pointer to the value
@@ -185,6 +192,12 @@ create_cookie:
   mov   [rsp+0x18], rcx
   mov   [rsp+0x20], r8
   mov   [rsp+0x28], r9
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   ; make sure cookie name is valid
   call  is_cookie_key_valid
@@ -229,19 +242,22 @@ create_cookie:
 ; @param  rdi: pointer to the cookie struct
 ; @return rax: pointer to the serialized cookie
 serialize_cookie:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
-
-  cmp   rdi, 0
-  jle   .error
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the cookie struct
-  ; [rsp+0x8]   -> pointer to the serialized cookie
-  ; [rsp+0x10]  -> '=' string to append
-  ; [rsp+0x18]  -> max age string
+  ; [rsp+0x8]   -> pointer to the serialized cookie (boeuf buffer)
+  ; [rsp+0x10]  -> pointer to the string
+  ; [rsp+0x18]  -> '=' string to append
+  ; [rsp+0x20]  -> max age string
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x10], 0
+
+  cmp   rdi, 0
+  jle   .error
 
   ; get cookie name
   mov   rax, [rdi+COOKIE_OFF_NAME]
@@ -255,11 +271,11 @@ serialize_cookie:
   mov   [rsp+0x8], rax
 
   ; add equal
-  mov   byte [rsp+0x10], EQUAL_SIGN
-  mov   byte [rsp+0x10+1], NULL_CHAR
+  mov   byte [rsp+0x18], EQUAL_SIGN
+  mov   byte [rsp+0x18+1], NULL_CHAR
 
   mov   rdi, [rsp+0x8]
-  lea   rsi, [rsp+0x10]
+  lea   rsi, [rsp+0x18]
   call  boeuf_append
   cmp   rax, 0
   jl    .error
@@ -290,7 +306,6 @@ serialize_cookie:
   cmp   rsi, 0
   je    .skip_domain
 
-.b1:
   ; append domain key
   mov   rdi, [rsp+0x8]
   mov   rsi, DOMAIN_ATTR
@@ -300,7 +315,7 @@ serialize_cookie:
 
   ; add equal
   mov   rdi, rax
-  lea   rsi, [rsp+0x10]
+  lea   rsi, [rsp+0x18]
   call  boeuf_append
   cmp   rax, 0
   jl    .error
@@ -340,7 +355,7 @@ serialize_cookie:
 
   ; append equal
   mov   rdi, rax
-  lea   rsi, [rsp+0x10]
+  lea   rsi, [rsp+0x18]
   call  boeuf_append
   cmp   rax, 0
   jl    .error
@@ -350,7 +365,7 @@ serialize_cookie:
   ; copy max age string
   mov   rsi, [rsp]
   mov   rdi, qword [rsi+COOKIE_OFF_MAX_AGE]
-  lea   rsi, [rsp+0x18]
+  lea   rsi, [rsp+0x20]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
   call  to_string
   cmp   rax, 0
@@ -411,15 +426,42 @@ serialize_cookie:
   mov   [rsp+0x8], rax
 
 .skip_secure:
-  mov   rax, [rsp+0x8]
+  ; duplicate boeuf to return a string
+  mov   rdi, [rsp+0x8]
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x8]
+  call  boeuf_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x10]
 
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .free_boeuf
+
+  call  free
+
+.free_boeuf:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  boeuf_free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 

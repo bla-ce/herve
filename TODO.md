@@ -5,6 +5,7 @@
 
     - [ ] Alloc one large ctx for each request? 
 - [ ] Template might have a bug, not null terminated?
+- [ ] query parameters not being parsed entirely?
 
 - [ ] variables should not be mallocd inside functions, user is responsible of memory allocation
 
