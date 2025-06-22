@@ -18,7 +18,7 @@ section .text
 ; @param  rdi: pointer to the logger struct
 ; @param  rsi: pointer to the context struct
 log_client_ip:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   cmp   rdi, 0
   jle   .error
@@ -29,9 +29,11 @@ log_client_ip:
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the logger struct
   ; [rsp+0x8]   -> pointer to the context struct 
+  ; [rsp+0x10]  -. pointer to the ip string
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
 
   ; get client struct
   mov   rdi, [rsp+0x8]
@@ -44,21 +46,35 @@ log_client_ip:
   cmp   rax, 0
   jl    .no_free
 
+  mov   [rsp+0x10], rax
+
   mov   rdi, [rsp]
   mov   rsi, rax
   call  log
+  cmp   rax, 0
+  jl    .error
+
+  ; free string
+  mov   rdi, [rsp+0x10]
+  call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
-  
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; sets the file descriptor of the client
