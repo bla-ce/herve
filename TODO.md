@@ -1,6 +1,6 @@
 - [x] send string should duplicate the string before storing response body
 - [x] curl -X HEHEHEHEHEHE http://localhost:1337/ seg fault after 3 req
-- [ ] Template might have a bug, not null terminated?
+- [x] Template might have a bug, not null terminated?
 - [ ] query parameters not being parsed entirely?
 
 - [ ] 56b is not freed each request

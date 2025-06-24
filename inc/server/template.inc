@@ -75,6 +75,12 @@ parse_template:
   cmp   rax, 0
   jl    .error
 
+  ; null terminate file content
+  mov   rdi, [rsp+0x20]
+  add   rdi, rax
+  mov   rax, NULL_CHAR
+  stosb
+
 .loop:
   mov   rdi, [rsp+0x28]
   mov   rsi, DELIMITER
@@ -119,7 +125,7 @@ parse_template:
   mov   rsi, DELIMITER
   call  strpos
   cmp   rax, 0
-  jl    .end_loop   ; TODO: looks like an error
+  jl    .error
 
   ; save delimiter position
   mov   qword [rsp+0x30], rax
