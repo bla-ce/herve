@@ -93,6 +93,13 @@ request_init:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_request_query_param
+
+  cmp   rax, 0
+  jl    .error
+
   jmp   .return
 
 .error:

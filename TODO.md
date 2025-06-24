@@ -1,11 +1,13 @@
 - [x] send string should duplicate the string before storing response body
-- [ ] ~200b is not freed each request
+- [x] curl -X HEHEHEHEHEHE http://localhost:1337/ seg fault after 3 req
+- [ ] Template might have a bug, not null terminated?
+- [ ] query parameters not being parsed entirely?
+
+- [ ] 56b is not freed each request
     - [ ] free all chunks of memory
     - [ ] Reduce dynamic allocation in favor of stack allocation
 
     - [ ] Alloc one large ctx for each request? 
-- [ ] Template might have a bug, not null terminated?
-- [ ] query parameters not being parsed entirely?
 
 - [ ] variables should not be mallocd inside functions, user is responsible of memory allocation
 
