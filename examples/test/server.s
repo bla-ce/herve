@@ -213,6 +213,14 @@ test_template:
 
   mov   rdi, [rsp+0x10]
   call  boeuf_free
+  cmp   rax, 0
+  jl    .error
+
+  ; free hash table
+  mov   rdi, [rsp+0x8]
+  call  ht_free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
 

@@ -1,20 +1,17 @@
 - [x] send string should duplicate the string before storing response body
 - [x] curl -X HEHEHEHEHEHE http://localhost:1337/ seg fault after 3 req
 - [x] Template might have a bug, not null terminated?
-- [ ] query parameters not being parsed entirely?
+- [x] all blocks are free
 
-- [ ] 56b is not freed each request
-    - [ ] free all chunks of memory
-    - [ ] Reduce dynamic allocation in favor of stack allocation
-
-    - [ ] Alloc one large ctx for each request? 
-
+- [ ] Reduce dynamic allocation in favor of stack allocation
+- [ ] Alloc one large ctx for each request? 
 - [ ] variables should not be mallocd inside functions, user is responsible of memory allocation
 
-- [ ] Make files independent
+- [ ] use getters and setters function with offsets
 - [ ] if invalid argument and error should free, unexpected behavior
 - [ ] create error codes
 - [ ] when freeing a chunk and an error happens later, make sure its not freed twice
+- [ ] Make files independent
 - [ ] HUUUUUUGE EPIIIIIC CHANGE: not a library anymore?
 
 

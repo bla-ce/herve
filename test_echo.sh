@@ -19,7 +19,7 @@ while IFS= read -r payload || [ -n "$payload" ]; do
     fi
 
     # curl the echo server with POST data
-    response=$(curl -s -X POST -d "${payload}" "$URL")
+    response=$(curl -s -X POST --data-raw "${payload}" "$URL")
     
     # trim payload and response
     trimmed_payload=$(echo "$payload" | sed 's/^[ \t]*//;s/[ \t]*$//')

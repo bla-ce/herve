@@ -30,6 +30,7 @@ parse_template:
 
   mov   [rsp], rdi  
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x40], 0
 
   ; make sure the file has a .apl extension

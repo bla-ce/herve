@@ -399,6 +399,12 @@ parse_query_param:
   cmp   rax, 0
   jl    .error
 
+  ; free value
+  mov   rdi, [rsp+0x20]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
 .loop_end:
   mov   rax, [rsp+0x18]
 
