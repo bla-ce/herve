@@ -291,9 +291,9 @@ now:
   ret
 
 ; convert a dt struct to a string 'yyyy-mm-dd hh:mm:ss UTC'
-; the user is responsible of freeing the string
 ; @param  rdi: pointer to the dt struct
-; @return rax: pointer to the string
+; @param  rsi: pointer to the string
+; @return rax: return code
 time_to_str:
   sub   rsp, 0x20
 
@@ -304,19 +304,14 @@ time_to_str:
   ; [rsp+0x18]  -> tmp string for int to string conversions
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rsi
 
   cmp   rdi, 0
   jle   .error
 
-  ; TODO: user should provide the string
-  mov   rdi, DEFAULT_TIME_STR_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-  mov   [rsp+0x10], rax
+  cmp   rsi, 0
+  jle   .error
 
   mov   rsi, [rsp]
   mov   rdi, [rsi+DT_STRUCT_YEAR]
@@ -516,17 +511,10 @@ time_to_str:
   mov   rax, NULL_CHAR
   stosb
 
-  mov   rax, [rsp+0x8]
+  mov   rax, SUCCESS_CODE
   jmp   .return
   
 .error:
-  mov   rdi, [rsp+0x8]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:

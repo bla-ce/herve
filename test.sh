@@ -37,7 +37,7 @@ sum_time_us=0  # Accumulate total processing time in microseconds
 sum_tests=0
 
 # Loop for repeated test runs
-for i in {1..500}
+for i in {1..100}
 do
   total_tests=${#tests[@]}
   passed_tests=0

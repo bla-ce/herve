@@ -396,17 +396,17 @@ log_delimiter:
 ; @param  rsi: (optional) timestamp, if set to 0 get now
 ; @return rax: exit code
 log_time:
-  sub   rsp, 0x20
+  sub   rsp, 0x10
+  sub   rsp, DT_STRUCT_LEN
+  sub   rsp, DEFAULT_TIME_STR_LEN
 
   ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to logger struct
-  ; [rsp+0x8]   -> timestamp
-  ; [rsp+0x10]  -> pointer to dt struct
-  ; [rsp+0x18]  -> log string
+  ; [rsp]                     -> pointer to logger struct
+  ; [rsp+0x8]                 -> timestamp
+  ; [rsp+0x10]                -> pointer to dt struct
+  ; [rsp+0x10+DT_STRUCT_LEN]  -> log string
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x10], 0
-  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -430,41 +430,21 @@ log_time:
   mov   [rsp+0x8], rdi
 
   ; malloc dt struct
-  mov   rdi, DT_STRUCT_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-
   mov   rdi, [rsp+0x8]
-  mov   rsi, rax
+  lea   rsi, [rsp+0x10]
   call  unix_to_date_time
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x10]
+  lea   rdi, [rsp+0x10]
+  lea   rsi, [rsp+0x10+DT_STRUCT_LEN]
   call  time_to_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
-
   mov   rdi, [rsp]
-  mov   rsi, rax
+  lea   rsi, [rsp+0x10+DT_STRUCT_LEN]
   call  log
-  cmp   rax, 0
-  jl    .error
-
-  ; free log string
-  mov   rdi, [rsp+0x18]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free dt struct
-  mov   rdi, [rsp+0x10]
-  call  free
   cmp   rax, 0
   jl    .error
 
@@ -472,16 +452,11 @@ log_time:
   jmp   .return
   
 .error:
-  mov   rdi, [rsp+0x10]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, DT_STRUCT_LEN
+  add   rsp, DEFAULT_TIME_STR_LEN
+  add   rsp, 0x10
   ret
 

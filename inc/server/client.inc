@@ -18,7 +18,8 @@ section .text
 ; @param  rdi: pointer to the logger struct
 ; @param  rsi: pointer to the context struct
 log_client_ip:
-  sub   rsp, 0x18
+  sub   rsp, 0x10
+  sub   rsp, IPV4_MAX_LENGTH
 
   cmp   rdi, 0
   jle   .error
@@ -39,24 +40,17 @@ log_client_ip:
   mov   rdi, [rsp+0x8]
   call  get_ctx_client
   cmp   rax, 0
-  jl    .no_free
+  jl    .error
 
   mov   rdi, rax
+  lea   rsi, [rsp+0x10]
   call  get_client_ip
-  cmp   rax, 0
-  jl    .no_free
-
-  mov   [rsp+0x10], rax
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
   cmp   rax, 0
   jl    .error
 
-  ; free string
-  mov   rdi, [rsp+0x10]
-  call  free
+  mov   rdi, [rsp]
+  lea   rsi, [rsp+0x10]
+  call  log
   cmp   rax, 0
   jl    .error
 
@@ -64,17 +58,11 @@ log_client_ip:
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x10]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, IPV4_MAX_LENGTH
+  add   rsp, 0x10
   ret
 
 ; sets the file descriptor of the client
@@ -125,9 +113,6 @@ get_client_ip:
   sub   rsp, 0x38
   sub   rsp, SOCKADDR_STRUCT_LEN
 
-  cmp   rdi, 0
-  jle   .error
-
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the client struct
   ; [rsp+0x8]   -> client fd
@@ -138,7 +123,14 @@ get_client_ip:
   ; [rsp+0x38]  -> sockaddr struct
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x10], 0
+  mov   [rsp+0x10], rsi
+  mov   [rsp+0x18], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
   
   ; get client fd
   mov   rdi, [rsp]
@@ -147,16 +139,6 @@ get_client_ip:
   jl    .error
 
   mov   qword [rsp+0x8], rax
-
-  ; malloc string
-  ; TODO: user should provide the string
-  mov   rdi, IPV4_MAX_LENGTH ; include null char at the end
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax 
-  mov   [rsp+0x18], rax 
 
   ; getpeername
   mov   rax, SYS_GETPEERNAME
@@ -221,14 +203,6 @@ get_client_ip:
   jmp   .return
 
 .error:
-  mov   rax, [rsp+0x10]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-  
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
