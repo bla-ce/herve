@@ -344,7 +344,6 @@ malloc:
 
   mov   rbx, qword [rax+CHUNK_OFFSET_SIZE]
   add   qword [mallocd], rbx
-.b1:
 
   add   rax, CHUNK_OFFSET_DATA
 

@@ -90,14 +90,14 @@ strdup:
 strndup:
   sub   rsp, 0x18
 
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], rsi
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   qword [rsp+0x8], rsi
 
   ; get length of the string
   mov   rdi, [rsp]

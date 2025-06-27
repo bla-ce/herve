@@ -42,9 +42,15 @@ realloc:
 
   mov   [rsp+0x18], rax
 
-  mov   rdi, rax
+  ; get the smallest size to not copy too much data
+  mov   rax, qword [rsp+0x8]
+  mov   rbx, qword [rsp+0x10]
+  cmp   rax, rbx
+  cmovg rax, rbx
+
+  mov   rdi, qword [rsp+0x18]
   mov   rsi, [rsp]
-  mov   rcx, qword [rsp+0x8]
+  mov   rcx, rax
   rep   movsb
 
   mov   rdi, [rsp]

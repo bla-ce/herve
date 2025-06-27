@@ -633,6 +633,10 @@ send_HTML:
   ; [rsp+0x28]  -> content length
   ; [rsp+0x30]  -> content length string
 
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
   cmp   rdi, 0
   jle   .error
 
@@ -641,10 +645,6 @@ send_HTML:
 
   cmp   rdx, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
 
   ; get response
   call  get_ctx_response
