@@ -402,20 +402,20 @@ get_response_body:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
 stringify_response:
-  sub   rsp, 0x20
-
-  cmp   rdi, 0
-  jl    .error
-
-  mov   [rsp], rdi
+  sub   rsp, 0x18
+  sub   rsp, HEADERS_MAX_LEN
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the response struct
   ; [rsp+0x8]   -> pointer to the boeuf holding the stringified response
-  ; [rsp+0x10]  -> pointer to the response headers
-  ; [rsp+0x18]  -> pointer to the response body
+  ; [rsp+0x10]  -> pointer to the response body
+  ; [rsp+0x18]  -> pointer to the response headers
 
+  mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
+
+  cmp   rdi, 0
+  jl    .error
 
   ; get context protocol
   call  get_response_protocol
@@ -474,26 +474,19 @@ stringify_response:
   jl    .error
 
   mov   rdi, rax
+  lea   rsi, [rsp+0x18]
   call  stringify_headers
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
   ; append headers
   mov   rdi, [rsp+0x8]
-  mov   rsi, rax
+  lea   rsi, [rsp+0x18]
   call  boeuf_append
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x8], rax
-
-  ; free headers string
-  mov   rdi, [rsp+0x10]
-  call  free
-  cmp   rax, 0
-  jl    .error
 
   ; get body
   mov   rdi, [rsp]
@@ -502,7 +495,7 @@ stringify_response:
   jl    .error
   je    .skip_body
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x10], rax
 
   mov   rdi, [rsp]
   call  get_response_content_len
@@ -510,7 +503,7 @@ stringify_response:
   jl    .error
 
   mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x18]
+  mov   rsi, [rsp+0x10]
   mov   rdx, rax
   call  boeuf_nappend
   cmp   rax, 0
@@ -544,7 +537,8 @@ stringify_response:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, HEADERS_MAX_LEN
+  add   rsp, 0x18
   ret
 
 ; sends a response without content
@@ -861,9 +855,22 @@ send_string:
 send_response:
   sub   rsp, 0x30
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> status code (int)
+  ; [rsp+0x10]  -> pointer to the context response
+  ; [rsp+0x18]  -> pointer to the stringified response
+  ; [rsp+0x20]  -> length of the response
+
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x18], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   ; get response
   call  get_ctx_response

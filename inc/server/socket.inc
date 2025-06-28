@@ -192,6 +192,7 @@ listen_socket:
 
 ; accepts a connection and returns the client fd
 ; @param  rdi: pointer to server struct
+; @param  rsi: pointer to client struct
 ; @return rax: pointer to the client struct
 accept_connection:
   sub   rsp, 0x20
@@ -204,8 +205,14 @@ accept_connection:
   ; [rsp+0x18]  -> sockaddr struct
 
   mov   [rsp], rdi
+  mov   [rsp+0x10], rsi
 
-  mov   qword [rsp+0x10], 0
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
   lea   rax, [rsp+0x18]
 
   mov   word [rax+SOCKADDR_OFF_SIN_FAMILY], AF_INET
@@ -234,29 +241,16 @@ accept_connection:
 
   mov   qword [rsp+0x8], rax
 
-  ; malloc client struct
-  mov   rdi, CLIENT_STRUCT_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-
+  mov   rax, [rsp+0x10]
   mov   rbx, qword [rsp+0x8]
   mov   qword [rax+CLIENT_OFF_CLIENT_FD], rbx
   mov   qword [rax+CLIENT_OFF_SOCKADDR], 0
 
+  mov   rax, SUCCESS_CODE
+
   jmp   .return
 
 .error:
-  mov   rax, [rsp+0x10]
-  test  rax, rax
-  jz    .no_free
-
-  mov   rdi, rax
-  call  free
-    
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:

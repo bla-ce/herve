@@ -3,11 +3,16 @@
 - [x] Template might have a bug, not null terminated?
 - [x] all blocks are free
 - [x] Template segfault somewhere
-- [ ] Reduce dynamic allocation in favor of stack allocation
+
+- [ ] use getters and setters function with offsets
 
 - [ ] variables should not be mallocd inside functions, user is responsible of memory allocation
-- [ ] use getters and setters function with offsets
 - [ ] if invalid argument and error should free, unexpected behavior
+
+- [ ] Routing with Parameters
+    - [ ] Would it require new algorithm for routing?
+
+- [ ] Reduce dynamic allocation in favor of stack allocation
 
 
 - [ ] Alloc one large ctx for each request? 
@@ -24,7 +29,6 @@
 - [ ] File optimisation
 - [ ] Config files
 - [ ] Perf optimisation
-- [ ] Routing with Parameters
 - [ ] JSON/XML Binding and Validation
 - [ ] Database Integration Middleware
 - [ ] Compression Middleware

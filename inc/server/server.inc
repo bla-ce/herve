@@ -41,6 +41,9 @@ log_server_init:
   mov   [rsp], rdi
   mov   qword [rsp+0x10], 0
 
+  cmp   rdi, 0
+  jle   .error
+
   ; get logger output
   mov   rdi, [rsp]
   call  get_server_logger
@@ -411,43 +414,43 @@ server_init:
 ; @param  rdi: pointer to server struct
 ; @param  rax: return value
 run_server:
-  sub   rsp, 0x10
+  sub   rsp, 0x8
+  sub   rsp, CLIENT_STRUCT_LEN
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the server struct
+  ; [rsp+0x8] -> pointer to the client struct
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
+
+  cmp   rdi, 0
+  jle   .error
 
   call  log_server_init
 
 .loop:
   ; accept connection
   mov   rdi, [rsp]
+  lea   rsi, [rsp+0x8]
   call  accept_connection
 
   cmp   rax, 0
   jl    .close_server
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
+  lea   rsi, [rsp+0x8]
   call  handle_ctx
   cmp   rax, 0
   jl    .error    ; TODO: check what to do if error
 
   ; close connection
-  mov   rdi, [rsp+0x8]
+  lea   rdi, [rsp+0x8]
   call  get_client_fd
   cmp   rax, 0
   jl    .close_server
 
   mov   rdi, rax
   call  close_file
-
-  ; free client struct
-  mov   rdi, [rsp+0x8]
-  call  free
-  cmp   rax, 0
-  jl    .error
 
   jmp   .loop
 
@@ -460,7 +463,9 @@ run_server:
 .error:
   mov   rax, FAILURE_CODE
 
-  add   rsp, 0x10
+.return:
+  add   rsp, 0x8
+  add   rsp, CLIENT_STRUCT_LEN
   ret
 
 

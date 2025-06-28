@@ -226,7 +226,7 @@ stringify_headers:
   mov   [rsp], rdi
   mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x20], 0
-  mov   qword [rsp+0x28], 0
+  mov   [rsp+0x28], rsi
 
   cmp   rdi, 0
   jle   .error
@@ -304,18 +304,7 @@ stringify_headers:
 
   jmp   .loop
 .end_loop:
-
-  mov   rdi, qword [rsp+0x20]
-  add   rdi, 3      ; CRLF and NULL_CHAR
-  mov   rbx, HEADERS_MAX_LEN
-  cmp   rdi, rbx
-  cmovg rdi, rbx
-
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
+  mov   rax, [rsp+0x28]
   mov   [rsp+0x30], rax
 
   xor   r9, r9
@@ -402,20 +391,12 @@ stringify_headers:
   cmp   rax, 0
   jl    .error
   
-  mov   rax, [rsp+0x28]
+  mov   rax, SUCCESS_CODE
   
   jmp   .return
 
 .error:
   mov   rdi, [rsp+0x10]
-  test  rdi, rdi
-  jz    .free_headers
-
-  call  free
-
-  ; free headers if mallocd
-.free_headers:
-  mov   rdi, [rsp+0x28]
   test  rdi, rdi
   jz    .no_free
 
