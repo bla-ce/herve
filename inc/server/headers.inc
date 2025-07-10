@@ -596,3 +596,200 @@ canonical_mime_header_key:
   add   rsp, 0x10
   ret
 
+; extracts extension of a file and returns content type header
+; @param  rdi: pointer to file path
+; @return rax: pointer to content type header
+get_content_type:
+  sub   rsp, 0x8
+
+  cmp   rdi, 0
+  jle   .not_supported
+
+  ; find next dot
+  mov   rsi, DOT 
+  call  find_next_char
+
+  cmp   rax, 0
+  jl    .no_ext
+
+  ; go to dot
+  add   rdi, rax
+
+  ; save '.' position
+  mov   [rsp], rdi
+
+  lea   rdi, [HTML_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_apl
+
+  lea   rax, [CONTENT_HTML]
+  jmp   .return
+
+.check_apl:
+  lea   rdi, [APL_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_js
+
+  lea   rax, [CONTENT_APL] ; template extension
+  jmp   .return
+
+.check_js:
+  lea   rdi, [JS_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_css
+
+  lea   rax, [CONTENT_JS]
+  jmp   .return
+  
+.check_css:
+  lea   rdi, [CSS_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_bin
+
+  lea   rax, [CONTENT_CSS]
+  jmp   .return
+
+.check_bin:
+  lea   rdi, [BIN_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_csv
+
+  lea   rax, [CONTENT_BIN]
+  jmp   .return
+
+.check_csv:
+  lea   rdi, [CSV_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_gif
+
+  lea   rax, [CONTENT_CSV]
+  jmp   .return
+
+.check_gif:
+  lea   rdi, [GIF_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_jpeg
+
+  lea   rax, [CONTENT_GIF]
+  jmp   .return
+
+.check_jpeg:
+  lea   rdi, [JPEG_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_jpg
+
+  lea   rax, [CONTENT_JPEG]
+  jmp   .return
+
+.check_jpg:
+  lea   rdi, [JPG_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_json
+
+  lea   rax, [CONTENT_JPEG]
+  jmp   .return
+ 
+.check_json:
+  lea   rdi, [JSON_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_mp4
+
+  lea   rax, [CONTENT_JSON]
+  jmp   .return
+ 
+.check_mp4:
+  lea   rdi, [MP4_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_png
+
+  lea   rax, [CONTENT_MP4]
+  jmp   .return
+ 
+.check_png:
+  lea   rdi, [PNG_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_svg
+
+  lea   rax, [CONTENT_PNG]
+  jmp   .return
+ 
+.check_svg:
+  lea   rdi, [SVG_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_xml
+
+  lea   rax, [CONTENT_SVG]
+  jmp   .return
+ 
+.check_xml:
+  lea   rdi, [XML_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .check_plain
+
+  lea   rax, [CONTENT_XML]
+  jmp   .return
+ 
+.check_plain:
+  lea   rdi, [TEXT_EXT]
+  mov   rsi, [rsp]
+  call  strcmp
+
+  cmp   rax, 1
+  jne   .not_supported
+
+  lea   rax, [CONTENT_PLAIN]
+  jmp   .return
+
+.no_ext:
+  mov   rax, FAILURE_CODE
+  jmp   .return
+
+.not_supported:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+

@@ -6,6 +6,7 @@ section .data
   MAP_ANONYMOUS equ 32
   MAP_SHARED    equ 1
   MAP_PRIVATE   equ 2
+  MAP_GROWSDOWN equ 0x0100
 
   SYS_MMAP    equ 9
   SYS_MUNMAP  equ 11
