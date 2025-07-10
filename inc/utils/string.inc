@@ -640,7 +640,6 @@ println:
   ret
 
 ; prints n bytes from the string to the standard output
-; it does not check buffer overflow, TODO ?
 ; @param  rdi: string
 ; @param  rsi: number of bytes to be printed
 ; @return rax: return code
