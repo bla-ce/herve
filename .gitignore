@@ -1,5 +1,8 @@
 main
 examples/test/server
+examples/reverse_proxy/server
+examples/reverse_proxy/server2
+examples/reverse_proxy/reverse_proxy
 examples/echo/echo
 git.sh
 

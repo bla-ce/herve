@@ -446,7 +446,7 @@ ctx_abort:
   cmp   rdi, 0
   jle   .error
 
-  mov   qword [rdi+CTX_OFF_ABORTED], 1
+  mov   qword [rdi+CTX_OFF_ABORTED], TRUE
   mov   rax, SUCCESS_CODE
 
   jmp   .return
