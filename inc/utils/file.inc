@@ -132,10 +132,10 @@ read_file:
 get_file_length:
   sub   rsp, 0x10
 
+  mov   [rsp], rdi
+
   cmp   rdi, 0
   jl    .error
-
-  mov   [rsp], rdi
 
   mov   rax, SYS_LSEEK
   mov   rdi, [rsp]

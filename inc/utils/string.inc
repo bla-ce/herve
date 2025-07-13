@@ -13,14 +13,18 @@ section .text
 starts_with:
   sub   rsp, 0x10
 
+  ; *** STACK USAGE ***;
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> pointer to the substring
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
 
   ; get the length of the substring
   mov   rdi, [rsp+0x8]
@@ -52,10 +56,13 @@ starts_with:
 strdup:
   sub   rsp, 0x8
 
-  cmp   rdi, 0
-  jle   .error
+  ; *** STACK USAGE *** ;
+  ; [rsp]   -> pointer to the string
 
   mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
 
   ; get length of the string
   mov   rdi, [rsp]
@@ -89,6 +96,11 @@ strdup:
 ; @return rax: pointer to the duplicated string
 strndup:
   sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> number of bytes to be copied
+  ; [rsp+0x10]  -> pointer to the duplicated string
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], rsi
@@ -146,13 +158,18 @@ strndup:
 ; @return rax: count
 count_char:
   sub   rsp, 0x18
-
-  cmp   rsi, 0
-  jle   .error
+  
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> character to find
+  ; [rsp+0x10]  -> counter
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], rsi
   mov   qword [rsp+0x10], 0
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   rdi, qword [rsp+0x8]
   call  is_ascii
@@ -216,14 +233,20 @@ is_ascii:
 strcmp:
   sub   rsp, 0x20
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> pointer to the substring
+  ; [rsp+0x10]  -> length of the string
+  ; [rsp+0x18]  -> length of the substring
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
 
   ; get length of the first string
   mov   rdi, [rsp]
@@ -307,14 +330,18 @@ strncmp:
 strcpy:
   sub   rsp, 0x10
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the destination string
+  ; [rsp+0x8] -> pointer to the source string
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
 
   mov   rdi, rsi
   call  strlen
@@ -345,16 +372,21 @@ strcpy:
 to_string:
   sub   rsp, 0x18
 
-  cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
-  jl    .error
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the number to be converted
+  ; [rsp+0x8]   -> pointer to the string
+  ; [rsp+0x10]  -> size of the string
 
   ; save parameters onto the stack
   mov   qword [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x10], rdx
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jl    .error
 
   ; go to the end of the buf (print backward)
   mov   rdi, [rsp+0x8]
@@ -414,6 +446,10 @@ to_string:
 ; @return rax: index
 find_next_char:
   sub   rsp, 0x8
+  
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> count
+
   mov   qword [rsp], 0
 
   cmp   rdi, 0
@@ -454,6 +490,17 @@ find_next_char:
 strnpos:
   sub   rsp, 0x28
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> pointer to the substring
+  ; [rsp+0x10]  -> length of the string
+  ; [rsp+0x18]  -> n bytes of substring to find
+  ; [rsp+0x20]  -> current cursor position
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], rdx
+
   cmp   rdi, 0
   jle   .does_not_contain
 
@@ -462,10 +509,6 @@ strnpos:
 
   cmp   rdx, 0
   jle   .does_not_contain
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x18], rdx
 
   ; get string length
   call  strlen
@@ -500,7 +543,7 @@ strnpos:
   jmp   .loop
 
 .does_not_contain:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
   jmp   .return
 
 .contains:
@@ -510,7 +553,6 @@ strnpos:
   add   rsp, 0x28
   ret
 
-
 ; returns the position of a substring inside a string
 ; @param  rdi: string
 ; @param  rsi: substring
@@ -518,18 +560,18 @@ strnpos:
 strpos:
   sub   rsp, 0x10
 
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
   ; *** STACK USAGE *** ;
   ; [rsp]     -> pointer to the string
   ; [rsp+0x8] -> pointer to the substring
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   rdi, rsi
   call  strlen
@@ -546,7 +588,7 @@ strpos:
   jmp   .return
   
 .error:
-  mov   rax, -1
+  mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, 0x10
@@ -590,10 +632,13 @@ strlen:
 print:
   sub   rsp, 0x8
 
-  cmp   rdi, 0
-  jle   .error
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the string to print
 
   mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   rdi, [rsp]
   call  strlen
@@ -618,8 +663,6 @@ print:
 ; @param  rdi: string
 ; @return rax: return code
 println:
-  sub   rsp, 0x8
-
   cmp   rdi, 0
   jle   .error
 
@@ -636,7 +679,6 @@ println:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
   ret
 
 ; prints n bytes from the string to the standard output
@@ -644,20 +686,15 @@ println:
 ; @param  rsi: number of bytes to be printed
 ; @return rax: return code
 nprint:
-  sub   rsp, 0x10
-
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jl    .error
 
-  mov   [rsp], rdi
-  mov   qword [rsp+0x8], rsi
-
+  mov   rdx, rsi
+  mov   rsi, rdi
   mov   rdi, STDOUT_FILENO
-  mov   rsi, [rsp]
-  mov   rdx, qword [rsp+0x8]
   call  write_file
 
   jmp   .return
@@ -666,7 +703,6 @@ nprint:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
   ret
 
 ; prints n bytes from the string followed by a new line character
@@ -718,18 +754,24 @@ print_char:
 ; @param  rdi: string
 ; @return rax: int or -1 if error
 stoi:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp+0x8]   -> number is negative 
+  ; [rsp+0x10]  -> length of the string 
+  ; [rsp+0x18]  -> int value
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
 
-  mov   qword [rsp+0x8], 0
-  mov   qword [rsp+0x10], 0
-
   cmp   byte [rdi], HYPHEN
   jne   .pos_number
 
-  mov   qword [rsp+0x10], 1
+  mov   qword [rsp+0x8], 1
   inc   rdi
 
 .pos_number:
@@ -737,7 +779,9 @@ stoi:
   cmp   rax, 0
   jle   .error
 
-  mov   qword [rsp], rax
+  mov   qword [rsp+0x10], rax
+
+  mov   rdi, [rsp]
 
 .next_char:
   xor   rax, rax
@@ -757,7 +801,7 @@ stoi:
   xor   rdx, rdx
   sub   rax, ZERO_CHAR ; get int
 
-  mov   rcx, qword [rsp]
+  mov   rcx, qword [rsp+0x10]
   dec   rcx
 
   cmp   rcx, 0
@@ -775,12 +819,12 @@ stoi:
   jmp   .get_mult
 
 .add:
-  add   qword [rsp+0x8], rax
-  mov   r9, qword [rsp+0x8]
+  add   qword [rsp+0x18], rax
+  mov   r9, qword [rsp+0x18]
   inc   rdi
 
-  dec   qword [rsp]
-  cmp   qword [rsp], 0
+  dec   qword [rsp+0x10]
+  cmp   qword [rsp+0x10], 0
   je    .return
 
   jmp   .next_char
@@ -791,15 +835,15 @@ stoi:
   ret
 
 .return:
-  mov   rax, qword [rsp+0x8]
+  mov   rax, qword [rsp+0x18]
   mov   rbx, 0
   sub   rbx, rax
 
   ; check if it's a neg number
-  cmp   qword [rsp+0x10], 1
+  cmp   qword [rsp+0x8], 1
   cmove rax, rbx
 
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; returns the int value of ascii character or -1 if invalid
@@ -822,171 +866,4 @@ ascii_to_int:
 .return:
   mov   rax, rdi
   ret
-
-; prints padded string, if strlen is bigger than padding, add '...' before
-; @param  rdi: str
-; @param  rsi: padding
-; @return rax: void
-padding_print:
-  sub   rsp, 0x18
-
-  cmp   rdi, 0
-  jle   .error
-
-  mov   [rsp], rdi
-  mov   qword [rsp+0x8], rsi
-
-  ; get string length
-  call  strlen
-  mov   qword [rsp+0x10], rax
-
-  cmp   rax, qword [rsp+0x8]
-  je    .equal
-  jl    .less
-  jg    .more
-
-; print the string without padding
-.equal:
-  mov   rdi, [rsp]
-  mov   rsi, qword [rsp+0x8]
-  call  nprint
-  jmp   .return
-
-.less:
-  ; print string
-  mov   rdi, [rsp]
-  mov   rsi, qword [rsp+0x10]
-  call  nprint
-
-  ; get difference
-  mov   r9, qword [rsp+0x8]
-  sub   r9, qword [rsp+0x10]
-
-  ; print padding
-.loop:
-  mov   rdi, SPACE
-  call  print_char
-
-  dec   r9
-  
-  cmp   r9, 0
-  jg    .loop
-
-  jmp   .return 
-
-.more:
-  ; get length and subtract 3 for the dots
-  mov   rdi, [rsp]
-  mov   rsi, qword [rsp+0x8]
-  sub   rsi, 3
-  call  nprint
-
-  ; print dots
-  mov   r9, 3
-
-.loop_dots:
-  mov   rdi, DOT
-  call  print_char
-
-  dec   r9
-
-  cmp   r9, 0
-  jg    .loop_dots
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-  jle   .error
-
-.return:
-  add   rsp, 0x18
-  ret
-
-; converts value into a string of its hex value
-; @param  rdi: value
-; @param  rsi: string
-; @param  rdx: size
-to_hex_string:
-  sub   rsp, 0x18
-
-  cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
-  jl    .error
-
-  ; save parameters onto the stack
-  mov   qword [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x10], rdx
-
-  ; go to the end of the buf (print backward)
-  mov   rdi, [rsp+0x8]
-  add   rdi, qword [rsp+0x10]
-
-  ; go back to let an extra null char at the end
-  dec   rdi
-  mov   byte [rdi], NULL_CHAR
-
-  dec   rdi
-  
-  mov   rax, qword [rsp]
-  cmp   rax, 0
-  jg    .loop
-
-  neg   rax
-
-.loop:
-  xor   rdx, rdx
-  mov   rcx, 0x10             ; divisor, dividend in rax
-  div   rcx                   ; quotient in rax and remainder in edx
-
-  add   rdx, ZERO_CHAR
-
-  cmp   rdx, NINE_CHAR
-  jle   .no_hex
-
-  sub   rdx, 10
-  sub   rdx, ZERO_CHAR 
-  add   rdx, LOWERCASE_A
-
-.no_hex:
-  mov   byte [rdi], dl
-
-  dec   rdi
-
-  cmp   rax, 0
-  jne   .loop
-
-.end_loop:
-  std
-  mov   rax, LOWERCASE_X
-  stosb
-
-  mov   rax, ZERO_CHAR
-  stosb
-  cld
-
-  cmp   qword [rsp], 0
-  jge   .skip_hyphen
-
-  mov   byte [rdi], HYPHEN
-  dec   rdi
-
-.skip_hyphen:
-  inc   rdi
- 
-  mov   rax, rdi
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x18
-
-  ret
-
 
