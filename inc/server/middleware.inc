@@ -160,7 +160,7 @@ run_middlewares:
   jl    .error
 
   ; check if the contxt has been aborted
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   call  is_ctx_aborted
   
   cmp   rax, TRUE

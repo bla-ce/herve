@@ -64,7 +64,7 @@ free_response:
   mov   rdi, [rsp]
   call  get_response_str
   cmp   rax, 0
-  jl    .free_response_body
+  jle   .free_response_body
 
   mov   rdi, rax
   call  boeuf_free
@@ -147,7 +147,7 @@ set_response_str:
   jle   .error
 
   cmp   rsi, 0
-  jle   .error
+  jl    .error
 
   mov   [rdi+RESPONSE_OFF_STR], rsi
 
@@ -295,6 +295,13 @@ response_init:
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_response_content_len
+  cmp   rax, 0
+  jl    .error
+
+  ; set response str to 0
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_response_str
   cmp   rax, 0
   jl    .error
 
