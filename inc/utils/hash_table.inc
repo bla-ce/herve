@@ -1,3 +1,5 @@
+section .bss
+
 section .data
 
 hash_table_struct:
@@ -53,9 +55,6 @@ ht_get_length:
 ht_get_keys:
   sub   rsp, 0x30
 
-  cmp   rdi, 0
-  jle   .error
-
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> number of entries
@@ -69,6 +68,9 @@ ht_get_keys:
   ; init values to 0
   mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x28], 0 ; counter
+
+  cmp   rdi, 0
+  jle   .error
 
   ; save the number of entries
   mov   rax, qword [rdi+HT_OFF_NENTRY]
@@ -190,10 +192,10 @@ ht_get_keys:
   jmp   .return
 
 .error:
-  cmp   qword [rsp+0x10], 0
-  je    .no_free
+  mov   rdi, qword [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
 
-  mov   rdi, [rsp+0x10]
   call  free
 
 .no_free:
@@ -204,15 +206,13 @@ ht_get_keys:
   ret
 
 ; hash function to map values to key
-; @param  rdi: pointer to hash
+; @param  rdi: pointer to key to hash
+; @reutrn rax: hash value
 hash_string_key:
-  sub   rsp, 0x10
-
   cmp   rdi, 0
   jle   .error
 
-  mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
+  xor   r9, r9
 
 .loop:
   xor   rax, rax
@@ -222,20 +222,19 @@ hash_string_key:
   cmp   rax, 0
   je    .end_loop
 
-  add   qword [rsp+0x8], rax
+  add   r9, rax
   inc   rdi
 
   jmp   .loop
 .end_loop:
 
-  mov   rax, qword [rsp+0x8]
+  mov   rax, r9
   jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
   ret
 
 ; returns the index of the key given the hash
@@ -257,15 +256,21 @@ get_index_from_hash:
 ; @return rax: pointer to the value
 ht_get:
   sub   rsp, 0x20
+  
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the hash table
+  ; [rsp+0x8]   -> pointer to the key
+  ; [rsp+0x10]  -> hash value of the key
+  ; [rsp+0x18]  -> pointer to the entry
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
 
   ; hash string key
   mov   rdi, [rsp+0x8]
@@ -345,15 +350,23 @@ ht_get:
 ht_del:
   sub   rsp, 0x30
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the hash table
+  ; [rsp+0x8]   -> pointer to the key
+  ; [rsp+0x10]  -> previous entry pointer
+  ; [rsp+0x18]  -> hash of the key
+  ; [rsp+0x20]  -> index value from hash
+  ; [rsp+0x28]  -> pointer to the entry
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0   ; prev pointer
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x10], 0   ; prev pointer
 
   ; get hash from key
   mov   rdi, [rsp+0x8]
@@ -380,9 +393,9 @@ ht_del:
   mov   [rsp+0x28], rsi
 
 .loop:
+  ; compare keys
   mov   rsi, [rsp+0x28]
   mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
-  ; compare keys
   mov   rsi, [rsp+0x8]
   call  strcmp
   cmp   rax, 0
@@ -461,7 +474,25 @@ ht_del:
 ; @param  rdx: pointer to the value
 ; @return rax: return value
 ht_insert:
-  sub   rsp, 0x40
+  sub   rsp, 0x48
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the hash table
+  ; [rsp+0x8]   -> pointer to the key
+  ; [rsp+0x10]  -> pointer to the value
+  ; [rsp+0x18]  -> pointer to the new entry
+  ; [rsp+0x20]  -> hash value of the key
+  ; [rsp+0x28]  -> index of the entry
+  ; [rsp+0x30]  -> pointer to the array of entry at the index
+  ; [rsp+0x38]  -> pointer to the duplicated key
+  ; [rsp+0x40]  -> pointer to the duplicated value
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x38], 0
+  mov   qword [rsp+0x40], 0
 
   cmp   rdi, 0
   jle   .error
@@ -471,10 +502,6 @@ ht_insert:
 
   cmp   rdx, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
 
   ; check key length
   mov   rdi, [rsp+0x8]
@@ -509,9 +536,10 @@ ht_insert:
   ; dup and store key
   mov   rdi, [rsp+0x8] 
   call  strdup
-
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp+0x38], rax
 
   mov   rdi, [rsp+0x18]
   mov   [rdi+HT_ENTRY_OFF_KEY], rax
@@ -519,9 +547,10 @@ ht_insert:
   ; dup and store value
   mov   rdi, [rsp+0x10] 
   call  strdup
-
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp+0x40], rax
 
   mov   rdi, [rsp+0x18]
   mov   [rdi+HT_ENTRY_OFF_VALUE], rax
@@ -563,7 +592,7 @@ ht_insert:
   add   rdi, rax
 
   ; rdi points to the position of the array
-  mov   [rsp+0x38], rdi
+  mov   [rsp+0x30], rdi
 
   ; if key is 0, go to store key
   cmp   qword [rdi], 0
@@ -581,7 +610,7 @@ ht_insert:
   jg    .same_key  ; the key is the same, we can replace
 
   ; get array position
-  mov   rdi, [rsp+0x38]
+  mov   rdi, [rsp+0x30]
 
   ; get the entry
   mov   rax, [rdi]
@@ -603,7 +632,7 @@ ht_insert:
 
 .store_key:
   ; store ht entry 
-  mov   rdi, [rsp+0x38]
+  mov   rdi, [rsp+0x30]
   mov   rax, [rsp+0x18]
   mov   [rdi], rax
 
@@ -615,10 +644,31 @@ ht_insert:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x38]
+  test  rdi, rdi
+  jz    .no_free_key
+
+  call  free
+
+.no_free_key:
+  mov   rdi, [rsp+0x40]
+  test  rdi, rdi
+  jz    .no_free_value
+
+  call  free
+
+.no_free_value:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x40
+  add   rsp, 0x48
   ret 
 
 ; returns a hash table of n buckets
@@ -627,11 +677,16 @@ ht_insert:
 ht_create:
   sub   rsp, 0x10
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> number of buckets
+  ; [rsp+0x8] -> pointer to the hash table
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
   cmp   rdi,  0
   jl    .error
   je    .ht_empty
-
-  mov   [rsp], rdi
 
   ; malloc hash table struct
   mov   rdi, HT_STRUCT_LEN
@@ -667,6 +722,13 @@ ht_create:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -679,9 +741,6 @@ ht_create:
 ht_free:
   sub   rsp, 0x28
 
-  cmp   rdi, 0
-  jle   .error
-
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> number of entries
@@ -690,9 +749,10 @@ ht_free:
   ; [rsp+0x20]  -> counter
 
   mov   [rsp], rdi
-
-  ; init values to 0
   mov   qword [rsp+0x20], 0 ; counter
+
+  cmp   rdi, 0
+  jle   .error
 
   ; save the number of entries
   mov   rax, qword [rdi+HT_OFF_NENTRY]

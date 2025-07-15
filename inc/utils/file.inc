@@ -132,6 +132,10 @@ read_file:
 get_file_length:
   sub   rsp, 0x10
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> file descriptor
+  ; [rsp+0x8] -> size of the file
+
   mov   [rsp], rdi
 
   cmp   rdi, 0
