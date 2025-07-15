@@ -1,5 +1,3 @@
-section .bss
-
 section .data
 
 hash_table_struct:
@@ -206,13 +204,16 @@ ht_get_keys:
   ret
 
 ; hash function to map values to key
-; @param  rdi: pointer to key to hash
-; @reutrn rax: hash value
+; @param  rdi: pointer to hash
+; @return rax: hash value
 hash_string_key:
+  sub   rsp, 0x10
+
   cmp   rdi, 0
   jle   .error
 
-  xor   r9, r9
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
 
 .loop:
   xor   rax, rax
@@ -222,19 +223,20 @@ hash_string_key:
   cmp   rax, 0
   je    .end_loop
 
-  add   r9, rax
+  add   qword [rsp+0x8], rax
   inc   rdi
 
   jmp   .loop
 .end_loop:
 
-  mov   rax, r9
+  mov   rax, qword [rsp+0x8]
   jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
+  add   rsp, 0x10
   ret
 
 ; returns the index of the key given the hash
