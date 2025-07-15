@@ -30,7 +30,6 @@ tests=(
   "http://localhost:1337/index?query=53094 GET 200"
   "http://localhost:1337/index#anchor GET 200"
   "http://localhost:1337/not-found GET 404"
-  "http://localhost:1337/nonot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundnot-foundt-found GET 500"
 )
 
 sum_time_us=0  # Accumulate total processing time in microseconds

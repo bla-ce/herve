@@ -7,7 +7,7 @@ section .data
   O_APPEND        equ 0x400
   O_TMPFILE       equ 0x410000
   O_DIRECTORY     equ 65536
-  FILE_PATH_LEN   equ 0x40
+  FILE_PATH_LEN   equ 0x100
   FILE_MAX_LEN    equ 0x2000
   DIR_ENTRIES_LEN equ 0x800
   DT_DIR          equ 0x4

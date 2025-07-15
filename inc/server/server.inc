@@ -435,7 +435,7 @@ run_server:
   call  accept_connection
 
   cmp   rax, 0
-  jl    .close_server
+  jl    .close_server ; TODO: is it an error?
 
   mov   rdi, [rsp]
   lea   rsi, [rsp+0x8]

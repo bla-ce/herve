@@ -4,7 +4,12 @@ examples/reverse_proxy/server
 examples/reverse_proxy/server2
 examples/reverse_proxy/reverse_proxy
 examples/echo/echo
+examples/react/react
+examples/react/dist/
+
 git.sh
+
+node_modules
 
 main.s
 
