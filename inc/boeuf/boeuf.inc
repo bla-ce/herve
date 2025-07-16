@@ -182,9 +182,9 @@ boeuf_nappend:
   ; check if boeuf needs to grow
   mov   rax, qword [rdi+BOEUF_METADATA_OFF_LENGTH]
   mov   rbx, qword [rdi+BOEUF_METADATA_OFF_SIZE]
-  mov   rcx, qword [rsp+0x18]
+  mov   rcx, qword [rsp+0x18] ; length of the string
 
-  ; add current length of the boeuf buffer and the length of the string to be appended
+  ; add to current length of the boeuf buffer, the length of the string to be appended
   add   rax, rcx
   
   ; compare it with the size of the boeuf buffer

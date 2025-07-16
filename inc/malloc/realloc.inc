@@ -48,6 +48,7 @@ realloc:
   ; get the smallest size to not copy too much data
   mov   rax, qword [rsp+0x8]    ; new size
   mov   rbx, qword [rsp+0x10]   ; size of old chunk
+  sub   rbx, CHUNK_METADATA_LEN ; remove chunk metadata length
   cmp   rax, rbx
   cmovg rax, rbx
 
