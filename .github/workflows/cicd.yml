@@ -47,7 +47,7 @@ jobs:
 
     - name: Start echo server
       run: |
-        ./examples/echo &
+        ./examples/echo/echo &
         echo $! > server.pid
         sleep 2  # Wait for server to be ready
 
