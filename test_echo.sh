@@ -2,7 +2,7 @@
 
 URL="http://localhost:1337/echo/"
 
-WORDLIST="examples/echo/megabeast.txt"
+WORDLIST="examples/echo/medium.txt"
 
 # check if the file exists
 if [ ! -f "$WORDLIST" ]; then
