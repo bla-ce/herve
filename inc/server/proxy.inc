@@ -92,7 +92,7 @@ proxy_middleware:
 
 ; handles the request, sending it to the end server and returning the response to the 
 ; client
-; @param  rdi: pointer  to the context struct
+; @param  rdi: pointer to the context struct
 ; @param  rsi: file descriptor of the upstream server
 ; @return rax: return code
 handle_proxy_request:

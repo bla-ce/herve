@@ -40,3 +40,22 @@ jobs:
     - name: Kill server
       run: |
         kill $(cat server.pid)
+
+    - name: Build echo server
+      run: |
+        make PROGRAM_NAME=examples/test/server
+
+    - name: Start echo server
+      run: |
+        ./examples/echo &
+        echo $! > server.pid
+        sleep 2  # Wait for server to be ready
+
+    - name: Run echo tests
+      run: |
+        chmod +x test_echo.sh
+        ./test_echo.sh
+
+    - name: Kill server
+      run: |
+        kill $(cat server.pid)
