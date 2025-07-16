@@ -15,7 +15,6 @@ main.s
 
 *.o
 *.c
-*.txt
 
 musl*
 gin/
