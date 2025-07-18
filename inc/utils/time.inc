@@ -1,25 +1,25 @@
 section .bss
-  ; timers
-  start_tv_sec  resq 1
-  start_tv_nsec resq 1
-
-  end_tv_sec  resq 1
-  end_tv_nsec resq 1
-
   ; dt struct
-_dt_struct:
-  dt_year    resq 1
-  dt_month   resq 1
-  dt_day     resq 1
-  dt_hour    resq 1
-  dt_minute  resq 1
-  dt_second  resq 1
-_dt_struct_end:
+  _dt_struct:
+    dt_year    resq 1
+    dt_month   resq 1
+    dt_day     resq 1
+    dt_hour    resq 1
+    dt_minute  resq 1
+    dt_second  resq 1
+  _dt_struct_end:
 
-  now_tv_sec  resq 1
-  now_tv_nsec resq 1
+  timespec_struct:
+    tv_sec    resq 1
+    tv_nsec   resq 1
+  timespec_struct_end:
 
 section .data
+  TIMESPEC_STRUCT_LEN equ timespec_struct_end - timespec_struct
+
+  TIMESPEC_OFF_TV_SEC  equ 0x0
+  TIMESPEC_OFF_TV_NSEC equ TIMESPEC_OFF_TV_SEC + 0x8
+
   DT_STRUCT_LEN equ _dt_struct_end - _dt_struct
 
   ; offsets
@@ -273,21 +273,51 @@ is_leap_year:
 ; return now's unix timestamp
 ; @return rax: timestamp
 now:
+  sub   rsp, TIMESPEC_STRUCT_LEN
+
   mov   rax, SYS_CLOCK_GETTIME
   mov   rdi, CLOCK_REALTIME
-  lea   rsi, [now_tv_sec]
+  lea   rsi, [rsp]
   syscall
 
   cmp   rax, 0
   jl    .error
 
-  mov   rax, qword [now_tv_sec] 
+  lea   rdi, [rsp]
+  mov   rax, qword [rdi+TIMESPEC_OFF_TV_SEC] 
+
   jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
+  add   rsp, TIMESPEC_STRUCT_LEN
+  ret
+
+; return the fractional part of the current second in nanoseconds
+; @return rax: ns
+get_curr_ns:
+  sub   rsp, TIMESPEC_STRUCT_LEN
+
+  mov   rax, SYS_CLOCK_GETTIME
+  mov   rdi, CLOCK_REALTIME
+  lea   rsi, [rsp]
+  syscall
+
+  cmp   rax, 0
+  jl    .error
+
+  lea   rdi, [rsp]
+  mov   rax, qword [rdi+TIMESPEC_OFF_TV_NSEC]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, TIMESPEC_STRUCT_LEN
   ret
 
 ; convert a dt struct to a string 'yyyy-mm-dd hh:mm:ss UTC'

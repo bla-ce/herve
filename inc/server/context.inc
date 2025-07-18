@@ -268,15 +268,6 @@ handle_ctx:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  ; set start timer -> TODO: not use global
-  mov   rax, SYS_CLOCK_GETTIME
-  mov   rdi, CLOCK_REALTIME
-  lea   rsi, [start_tv_sec]
-  syscall
-
-  cmp   rax, 0
-  jl   .log_request 
-
   mov   rdi, [rsp] 
   mov   rsi, [rsp+0x8]
   call  ctx_init
@@ -286,8 +277,12 @@ handle_ctx:
 
   mov   [rsp+0x10], rax
 
+  call  get_curr_ns
+  cmp   rax, 0
+  jl   .log_request 
+
   mov   rdi, [rsp+0x10]
-  mov   rsi, qword [start_tv_nsec]
+  mov   rsi, rax
   call  set_ctx_start_time
 
   cmp   rax, 0
@@ -298,7 +293,7 @@ handle_ctx:
   cmp   rax, 0
   jl    .log_request
 
-; check if ctx has been aborted
+  ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
   call  is_ctx_aborted
 
@@ -351,16 +346,14 @@ handle_ctx:
   call  send_no_content
 
 .log_request:
-  ; TODO: update to use ctx
   ; set end timer
-  mov   rax, SYS_CLOCK_GETTIME
-  mov   rdi, CLOCK_REALTIME
-  lea   rsi, [end_tv_sec]
-  syscall
+  call  get_curr_ns
+  cmp   rax, 0
+  jl   .log_request 
 
   ; if yes, compute the difference
   mov   rdi, [rsp+0x10]
-  mov   rsi, qword [end_tv_nsec]
+  mov   rsi, rax
   call  set_ctx_end_time
 
   cmp   rax, 0
