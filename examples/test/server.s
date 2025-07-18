@@ -1,6 +1,10 @@
 global  _start
 
 %include "herve.inc"
+%include "cookie.inc"
+%include "redirect.inc"
+%include "basic.inc"
+%include "template.inc"
 
 section .text
 middleware:

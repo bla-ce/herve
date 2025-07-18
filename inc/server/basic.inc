@@ -1,3 +1,5 @@
+%include "base64.inc"
+
 section .data
   BASIC_AUTH      db "Basic ", NULL_CHAR
   BASIC_AUTH_LEN  equ $ - BASIC_AUTH - 1 ; remove null char
