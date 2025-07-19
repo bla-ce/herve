@@ -6,19 +6,20 @@
     - [ ] JSON/XML Binding and Validation
     - [ ] Support HTTP2
     - [ ] Support HTTPS
-    - [ ] Fix `wrk` error
     - [ ] Add multithreading
+    - [ ] Create log library
 ## MEDIUM TODO:
+    - [ ] Implement timeout for idle connections
     - [ ] Routing with Parameters
     - [ ] Error management
     - [ ] Customise logs
-    - [ ] Extend logger functionnality to another lib
     - [ ] Define other timezones
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
 ## SMALL TODO:
+    - [ ] ht_get should return 0 if does not exist, not -1
+    - [ ] Get IP after accept
     - [ ] Add rest of the attributes for cookie struct
-    - [ ] The connection close is decided by the client?
 ## BORING TODO:
     - [ ] Documentation :)
 
@@ -27,5 +28,5 @@
 - [ ] Compression Middleware
 - [ ] Rate Limiting
 - [ ] CORS Middleware
-- [ ] Request Timeout and Graceful Shutdown
+- [ ] Graceful Shutdown
 - [ ] Session Management

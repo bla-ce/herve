@@ -255,7 +255,7 @@ get_index_from_hash:
 ; returns the value of the associated key
 ; @param  rdi: pointer to the hash table
 ; @param  rsi: pointer to the key
-; @return rax: pointer to the value
+; @return rax: pointer to the value or 0 if it does not exist
 ht_get:
   sub   rsp, 0x20
   
@@ -321,7 +321,7 @@ ht_get:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rdi+HT_ENTRY_OFF_NEXT]
   cmp   rsi, 0
-  je    .error  ; key does not exist
+  je    .does_not_exist
 
   ; go to the next node on the linked list
   mov   rdi, rsi
@@ -337,6 +337,10 @@ ht_get:
   mov   rax, [rdi+HT_ENTRY_OFF_VALUE]
 
   jmp   .return  
+
+.does_not_exist:
+  mov   rax, 0
+  jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
