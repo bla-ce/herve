@@ -20,6 +20,7 @@
 %include "request.inc"
 %include "response.inc"
 %include "route.inc"
+%include "select.inc"
 %include "server.inc"
 %include "socket.inc"
 %include "status_code.inc"

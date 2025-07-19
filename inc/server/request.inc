@@ -639,7 +639,7 @@ receive_request:
   mov   rdx, REQUEST_MAX_LEN
   call  receive_from_file
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   mov   qword [rsp+0x18], rax
 
@@ -668,29 +668,6 @@ receive_request:
   jmp   .return
 
 .error:
-  ; if client fd is defined, send 500
-  mov   rdi, [rsp]
-  call  get_ctx_client
-
-  cmp   rax, 0
-  jl    .return
-
-  mov   rdi, rax
-  call  get_client_fd
-
-  cmp   rax, 0
-  jl    .return
-
-  ; zero the request pointer
-  mov   rdi, [rsp]
-  xor   rsi, rsi
-  call  set_ctx_request
-
-  ; send 500
-  mov   rdi, [rsp] 
-  mov   rsi, INTERNAL_SERVER_ERROR
-  call  send_response
-
   mov   rdi, [rsp]
   call  ctx_abort
 
@@ -1059,7 +1036,7 @@ verify_request:
   ; send 404
   mov   rdi, [rsp] 
   mov   rsi, NOT_FOUND
-  call  send_response
+  call  send_no_content
 
   mov   rdi, [rsp]
   call  ctx_abort
@@ -1073,7 +1050,7 @@ verify_request:
   ; send bad request
   mov   rdi, [rsp] 
   mov   rsi, BAD_REQUEST
-  call  send_response
+  call  send_no_content
 
   mov   rdi, [rsp]
   call  ctx_abort

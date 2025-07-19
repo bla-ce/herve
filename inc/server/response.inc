@@ -886,7 +886,7 @@ send_response:
   
   mov   [rsp+0x10], rax
 
-  ; set connection close header TODO: use variable from context
+  ; set connection header
   mov   rdi, [rsp+0x10]
   call  get_response_headers
   cmp   rax, 0
@@ -894,7 +894,7 @@ send_response:
 
   mov   rdi, rax
   lea   rsi, [CONNECTION_HEADER]
-  lea   rdx, [CONNECTION_CLOSE]
+  lea   rdx, [CONNECTION_KEEP_ALIVE]
   call  set_header
 
   cmp   rax, 0
@@ -1190,7 +1190,7 @@ serve_dir:
   ; send 500
   mov   rdi, [rsp] 
   mov   rsi, INTERNAL_SERVER_ERROR
-  call  send_response
+  call  send_no_content
 
   mov   rdi, [rsp]
   call  ctx_abort

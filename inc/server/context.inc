@@ -271,7 +271,6 @@ handle_ctx:
   mov   rdi, [rsp] 
   mov   rsi, [rsp+0x8]
   call  ctx_init
-
   cmp   rax, 0
   jl    .error
 
@@ -284,19 +283,17 @@ handle_ctx:
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  set_ctx_start_time
-
   cmp   rax, 0
   jl   .log_request 
 
   mov   rdi,  [rsp+0x10]
   call  handle_request
   cmp   rax, 0
-  jl    .log_request
+  jl    .error
 
   ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
   call  is_ctx_aborted
-
   cmp   rax, TRUE
   je    .log_request
 
@@ -307,7 +304,6 @@ handle_ctx:
 ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
   call  is_ctx_aborted
-
   cmp   rax, TRUE
   je    .log_request
 
@@ -322,14 +318,12 @@ handle_ctx:
   ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
   call  is_ctx_aborted
-
   cmp   rax, TRUE
   je    .log_request
 
   ; check if route has a callback
   mov   rdi, [rsp+0x18]
   call  get_route_callback
-
   cmp   rax, 0
   je   .done
 
@@ -355,7 +349,6 @@ handle_ctx:
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  set_ctx_end_time
-
   cmp   rax, 0
   jl    .error
 
@@ -378,6 +371,13 @@ handle_ctx:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free_ctx
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:

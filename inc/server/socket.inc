@@ -360,3 +360,21 @@ connect_fd:
 .return:
   ret
 
+
+; wait until a file descriptor from the set is ready for I/O 
+; @param  rdi: max number of fd
+; @param  rsi: set of file descriptors to be read
+; @return rax: return code
+; @return rax: return code
+read_select:
+  mov   rax, SYS_SELECT 
+  mov   rdi, MAX_CONNECT
+  inc   rdi
+  ; rsi is already populated
+  xor   rdx, rdx
+  xor   r10, r10
+  xor   r8, r8
+  syscall
+
+  ret
+

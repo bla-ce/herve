@@ -54,8 +54,7 @@ redirect:
   ; send response
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8] 
-  call  send_response
-
+  call  send_no_content
   cmp   rax, 0
   jl    .error
 
@@ -68,3 +67,4 @@ redirect:
 .return:
   add   rsp, 0x18
   ret
+
