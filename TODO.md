@@ -17,7 +17,10 @@
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
 ## SMALL TODO:
+    - [ ] clients should not be a global
     - [ ] Add rest of the attributes for cookie struct
+    - [ ] empty request is not an error
+    - [ ] group functions to clear a client
 ## BORING TODO:
     - [ ] Documentation :)
 

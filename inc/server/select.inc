@@ -266,6 +266,60 @@ FD_ISSET:
   add   rsp, 0x28
   ret
 
+; removes the client from the clients array
+; @param  rdi: file descriptor of the client
+; @param  rsi: current number of active connections
+; @return rax: return code
+remove_client_from_array:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> file descriptor
+  ; [rsp+0x8] -> current number of active connections
+
+  mov   [rsp], rdi 
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jl    .error
+
+  xor   rax, rax        ; index
+  mov   rbx, rdi        ; store fd in rbx
+  mov   rsi, clients
+
+.loop:
+  mov   rdi, [rsi] 
+  cmp   rdi, 0
+  je    .null_struct
+
+  cmp   qword [rdi+CLIENT_OFF_CLIENT_FD], rbx
+  je    .loop_end
+
+.null_struct:
+  ; move to next struct
+  add   rsi, 8
+
+  inc   rax
+  cmp   rax, qword [rsp+0x8]
+  jg    .does_not_exist
+
+  jmp   .loop
+
+.loop_end:
+  mov   qword [rsi], 0
+
+  jmp   .return
+
+.does_not_exist:
+  mov   rax, 0
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
 
 ; returns the client struct with the file descriptor 
 ; or return 0 if does not exist

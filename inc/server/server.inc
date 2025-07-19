@@ -592,6 +592,12 @@ run_server:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, qword [rsp+0x20]
+  call  get_client_by_fd
+  cmp   rax, 0
+  jle   .clear_fd
+
   ; free client struct
   mov   rdi, [rsp+0x28]
   call  free_client

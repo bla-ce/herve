@@ -264,7 +264,6 @@ response_init:
   ; malloc response
   mov   rdi, RESPONSE_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 

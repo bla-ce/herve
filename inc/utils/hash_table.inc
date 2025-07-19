@@ -765,7 +765,7 @@ ht_free:
   mov   qword [rsp+0x8], rax
 
   test  rax, rax
-  jz    .ht_empty
+  jz    .end_loop
 
   xor   r9, r9
 
