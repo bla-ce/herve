@@ -79,8 +79,6 @@ free_response:
 
   mov   rdi, rax
   call  free
-  cmp   rax, 0
-  jl    .free_struct
 
 .free_struct:
   ; free response struct

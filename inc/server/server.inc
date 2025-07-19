@@ -594,7 +594,7 @@ run_server:
 
   ; free client struct
   mov   rdi, [rsp+0x28]
-  call  free
+  call  free_client
   cmp   rax, 0
   jl    .error
 

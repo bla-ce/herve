@@ -2,14 +2,16 @@ section .bss
 client_struct:
   client_fd       resq 1
   client_sockaddr resq 1
+  client_ip       resq 1
 client_struct_end:
 
 section .data
 
   CLIENT_STRUCT_LEN equ client_struct_end - client_struct
 
-  CLIENT_OFF_CLIENT_FD equ 0x0
-  CLIENT_OFF_SOCKADDR  equ CLIENT_OFF_CLIENT_FD + 0x8
+  CLIENT_OFF_CLIENT_FD  equ 0x0
+  CLIENT_OFF_SOCKADDR   equ CLIENT_OFF_CLIENT_FD + 0x8
+  CLIENT_OFF_IP         equ CLIENT_OFF_SOCKADDR + 0x8
 
   IPV4_MAX_LENGTH equ 0x10
 
@@ -19,7 +21,6 @@ section .text
 ; @param  rsi: pointer to the context struct
 log_client_ip:
   sub   rsp, 0x10
-  sub   rsp, IPV4_MAX_LENGTH
 
   cmp   rdi, 0
   jle   .error
@@ -30,11 +31,9 @@ log_client_ip:
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the logger struct
   ; [rsp+0x8]   -> pointer to the context struct 
-  ; [rsp+0x10]  -. pointer to the ip string
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x10], 0
 
   ; get client struct
   mov   rdi, [rsp+0x8]
@@ -43,13 +42,12 @@ log_client_ip:
   jl    .error
 
   mov   rdi, rax
-  lea   rsi, [rsp+0x10]
   call  get_client_ip
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
-  lea   rsi, [rsp+0x10]
+  mov   rsi, rax
   call  log
   cmp   rax, 0
   jl    .error
@@ -61,7 +59,6 @@ log_client_ip:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, IPV4_MAX_LENGTH
   add   rsp, 0x10
   ret
 
@@ -104,12 +101,51 @@ get_client_fd:
 .return:
   ret
 
+; sets the ip of the client struct
+; @param  rdi: pointer to the client struct
+; @param  rsi: pointer to the ip
+; @return rax: return code
+set_client_ip:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+CLIENT_OFF_IP], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the ip from the client struct
+; @param  rdi: pointer to the client struct
+; @return rax: pointer to the ip
+get_client_ip:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+CLIENT_OFF_IP]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
 
 ; returns the string representation of the client ipv4 address
-; developer is responsible of freeing the string
 ; @param  rdi: pointer to the client struct
-; @return rax: pointer to the string 
-get_client_ip:
+; @param  rsi: pointer to the string 
+; @return rax: return code
+ip_to_str:
   sub   rsp, 0x38
   sub   rsp, SOCKADDR_STRUCT_LEN
 
@@ -198,7 +234,7 @@ get_client_ip:
   mov   rax, NULL_CHAR
   stosb
 
-  mov   rax, [rsp+0x10]
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
@@ -208,5 +244,48 @@ get_client_ip:
 .return:
   add   rsp, SOCKADDR_STRUCT_LEN
   add   rsp, 0x38
+  ret
+
+; free the client struct and associated resources
+; @param  rdi: pointer to the client struct
+; @return rax: return code
+free_client:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the client struct
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; free the client ip string
+  mov   rdi, [rsp]
+  call  get_client_ip
+  cmp   rax, 0
+  jle   .free_struct
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+.free_struct:
+  ; free the client
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
 

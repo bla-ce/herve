@@ -17,8 +17,6 @@
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
 ## SMALL TODO:
-    - [ ] ht_get should return 0 if does not exist, not -1
-    - [ ] Get IP after accept
     - [ ] Add rest of the attributes for cookie struct
 ## BORING TODO:
     - [ ] Documentation :)

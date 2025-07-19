@@ -1083,7 +1083,6 @@ free_request:
 
   mov   rdi, rax
   call  free
-
   cmp   rax, 0
   jl    .error
 
