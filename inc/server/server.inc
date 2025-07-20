@@ -4,7 +4,6 @@ server_struct:
   server_logger       resq 1  ; pointer to the logger
   server_routes       resq 1  ; pointer to linked list of routes
   server_sockaddr     resq 1  ; pointer to sockaddr struct
-  server_middlewares  resq 1  ; pointer to middlewares linked list
   server_port         resw 1  ; port
 server_struct_end:
 
@@ -12,7 +11,6 @@ section .data
   clients times MAX_CONNECT dq 0
 
   ; server constants
-  DEFAULT_MAX_CONNECTIONS equ 0x1
   DEFAULT_BACKLOG         equ 10
 
   PORT_MIN     equ 0x1

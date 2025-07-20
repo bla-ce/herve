@@ -5,6 +5,7 @@ global  _start
 %include "redirect.inc"
 %include "basic.inc"
 %include "template.inc"
+%include "os.inc"
 
 section .text
 middleware:
@@ -495,16 +496,14 @@ _start:
   
   add   rsp, 0x10
 
-  mov   rax, SYS_EXIT
   mov   rdi, SUCCESS_CODE
-  syscall
+  call  exit
 
 .error:
   add   rsp, 0x10
 
-  mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
-  syscall
+  call  exit
 
 section .bss
 

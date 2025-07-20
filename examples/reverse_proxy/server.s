@@ -1,6 +1,7 @@
 global _start
 
 %include "herve.inc"
+%include "os.inc"
 
 section .text
 
@@ -31,17 +32,12 @@ _start:
   mov   rdi, [rsp]
   call  run_server
 
+  mov   rdi, SUCCESS_CODE
   call  exit
 
-exit:
-  mov   rax, SYS_EXIT
-  mov   rdi, SUCCESS_CODE
-  syscall
-
 error:
-  mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
-  syscall
+  call  exit
 
 section .data
   health_url  db "/health", NULL_CHAR

@@ -173,6 +173,7 @@ is_cookie_key_valid:
 ; @param  rcx:  http_only
 ; @param  r8:   secure
 ; @param  r9:   domain
+; @param  [rsp]
 ; @return rax: pointer to the cookie struct
 create_cookie:
   sub   rsp, 0x38

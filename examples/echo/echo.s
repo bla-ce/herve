@@ -1,6 +1,7 @@
 global _start
 
 %include "herve.inc"
+%include "os.inc"
 
 section .text
 
@@ -59,15 +60,13 @@ _start:
   cmp   rax, 0
   jl    error
 
-  mov   rax, SYS_EXIT
   mov   rdi, SUCCESS_CODE
-  syscall
+  call  exit
 
 error:
-  mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
-  syscall
-
+  call  exit
+  
 section .data
   wildcard_url  db "*", NULL_CHAR
   

@@ -1,6 +1,7 @@
 global _start
 
 %include "herve.inc"
+%include "os.inc"
 
 section .text
 _start:
@@ -25,17 +26,12 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  jmp   .exit
+  mov   rdi, SUCCESS_CODE
+  call  exit
 
 .error:
-  mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
-  syscall
-
-.exit:
-  mov   rax, SYS_EXIT
-  mov   rdi, SUCCESS_CODE
-  syscall
+  call  exit
 
 section .data
   dist_path db "examples/react/frontend/dist", NULL_CHAR

@@ -4,6 +4,8 @@ MALLOC_DIR = malloc
 UTILS_DIR = utils
 CONFIG_DIR = config
 BOEUF_DIR = boeuf
+OS_DIR = os
+LOG_DIR = log
 INCLUDES = $(shell find $(INC_DIR) -type f -name '*.inc')
 
 INCLUDE_FLAGS = \
@@ -12,6 +14,8 @@ INCLUDE_FLAGS = \
 	-I$(INC_DIR)/$(UTILS_DIR) \
 	-I$(INC_DIR)/$(MALLOC_DIR) \
 	-I$(INC_DIR)/$(BOEUF_DIR) \
+	-I$(INC_DIR)/$(OS_DIR) \
+	-I$(INC_DIR)/$(LOG_DIR) \
 	-I$(INC_DIR)/$(CONFIG_DIR)
 
 DEBUG_FLAGS = -g

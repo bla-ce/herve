@@ -61,17 +61,12 @@ _start:
   cmp   rax, 0
   jl    error
 
+  mov   rdi, SUCCESS_CODE
   call  exit
 
-exit:
-  mov   rax, SYS_EXIT
-  mov   rdi, SUCCESS_CODE
-  syscall
-
 error:
-  mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
-  syscall
+  call  exit
 
 section .data
   proxy_port  dw 1337
