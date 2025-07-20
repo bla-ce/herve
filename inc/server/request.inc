@@ -109,7 +109,6 @@ request_init:
   add   rsp, 0x8
   ret
 
-
 ; receives the request from the client and parses it
 ; @param  rdi: pointer to the context struct
 ; @return rax: return code
@@ -130,7 +129,7 @@ handle_request:
   lea   rsi, [rsp+0x8]
   call  receive_request
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   mov   rdi, [rsp]
   lea   rsi, [rsp+0x8]
@@ -597,7 +596,7 @@ get_request_length:
 ; receives the request from the client and put it into the request struct
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: pointer to the buffer that will contain the request string
-; @param  rax: return code
+; @param  rax: size of the request
 receive_request:
   sub   rsp, 0x20
 
@@ -639,7 +638,8 @@ receive_request:
   mov   rdx, REQUEST_MAX_LEN
   call  receive_from_file
   cmp   rax, 0
-  jle   .error
+  jl    .error
+  je    .empty
 
   mov   qword [rsp+0x18], rax
 
@@ -663,8 +663,15 @@ receive_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rax, SUCCESS_CODE
+  mov   rax, qword [rsp+0x18]
 
+  jmp   .return
+
+.empty:
+  mov   rdi, [rsp]
+  call  ctx_abort
+
+  mov   rax, 0
   jmp   .return
 
 .error:
@@ -1076,7 +1083,6 @@ free_request:
 .free_method:
   mov   rdi, [rsp]
   call  get_request_method
-
   cmp   rax, 0
   jl    .error
   je    .free_url
@@ -1089,42 +1095,36 @@ free_request:
 .free_url:
   mov   rdi, [rsp]
   call  get_request_url
-
   cmp   rax, 0
   jl    .error
   je    .free_proto
 
   mov   rdi, rax
   call  free
-
   cmp   rax, 0
   jl    .error
 
 .free_proto:
   mov   rdi, [rsp]
   call  get_request_proto
-
   cmp   rax, 0
   jl    .error
   je    .free_headers
 
   mov   rdi, rax
   call  free
-
   cmp   rax, 0
   jl    .error
 
 .free_headers:
   mov   rdi, [rsp]
   call  get_request_headers
-
   cmp   rax, 0
   jl    .error
   je    .free_body
 
   mov   rdi, rax
   call  ht_free
-
   cmp   rax, 0
   jl    .error
 
