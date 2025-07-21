@@ -7,7 +7,7 @@
     - [ ] Support HTTP2
     - [ ] Support HTTPS
     - [ ] Add multithreading
-    - [ ] Create log library
+    - [NEXT] Create log library
 ## MEDIUM TODO:
     - [ ] Implement timeout for idle connections
     - [ ] Routing with Parameters
