@@ -20,9 +20,9 @@ section .data
 
   log_default_delimiter db " | ", NULL_CHAR
 
-  log_pre   db SPACE, "[LOG]", SPACE, NULL_CHAR
-  log_debug db SPACE, "[DEBUG]", SPACE, NULL_CHAR
-  error_pre db SPACE, "[ERROR]", SPACE, NULL_CHAR
+  log_pre     db SPACE, "[LOG]", SPACE, NULL_CHAR
+  _log_debug  db SPACE, "[DEBUG]", SPACE, NULL_CHAR
+  error_pre   db SPACE, "[ERROR]", SPACE, NULL_CHAR
 
   ; ansi color
   RED_FG      db 0x1b, "[31m", NULL_CHAR

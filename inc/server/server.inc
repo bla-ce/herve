@@ -59,7 +59,7 @@ log_server_init:
   call  logln
 
   mov   rdi, [rsp+0x8]
-  lea   rsi, [log_debug]
+  lea   rsi, [_log_debug]
   call  log
 
   mov   rdi, [rsp+0x8]
@@ -93,7 +93,7 @@ log_server_init:
   call  log_char
 
   mov   rdi, [rsp+0x8]
-  lea   rsi, [log_debug]
+  lea   rsi, [_log_debug]
   call  log
 
   mov   rdi, [rsp+0x8]
@@ -103,7 +103,7 @@ log_server_init:
 .loop:
   ; log debug 
   mov   rdi, [rsp+0x8]
-  lea   rsi, [log_debug]
+  lea   rsi, [_log_debug]
   call	log
 
   ; load routes_list
