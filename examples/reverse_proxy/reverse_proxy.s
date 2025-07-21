@@ -2,6 +2,7 @@ global _start
 
 %include "herve.inc"
 %include "proxy.inc"
+%include "os.inc"
 
 section .text
 
