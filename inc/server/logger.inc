@@ -1,3 +1,10 @@
+; ***** IMPORTANT *****
+; This logging implementation will be replaced soon to use 
+; the generic library that is being implemented in /inc/log.
+; This file will be used to integrate the new log library with 
+; herve.
+; ***** IMPORTANT *****
+
 section .data
   logger_struct:
     output        dq STDOUT_FILENO          ; file descriptor  

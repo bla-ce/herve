@@ -1,27 +1,163 @@
+section .bss
+
+logan_fmt_struct:
+  .colors       resq 1    ; enable or disable colors
+  .timestamp    resq 1    ; enable or disable timestamp
+  .txt_max_len  resq 1    ; max length of the log message
+  .pad_txt      resq 1    ; enable or disable padding
+logan_fmt_struct_end:
+
+logan_struct:
+  logan_format  resq 1  ; pointer to the format struct
+  logan_output  resq 1  ; file descriptor of the output
+  logan_level   resq 1  ; minimum level to be printed
+logan_struct_end:
+
 section .data
 
-LOG_FATAL equ 0
-LOG_ERROR equ 1
-LOG_WARN  equ 2
+LOGAN_STRUCT_LEN      equ logan_struct_end - logan_struct
+LOGAN_FMT_STRUCT_LEN  equ logan_fmt_struct_end - logan_fmt_struct
+
+; logan offsets
+LOGAN_OFF_FMT equ 0x0
+LOGAN_OFF_OUT equ LOGAN_OFF_FMT + 0x8
+LOGAN_OFF_LVL equ LOGAN_OFF_OUT + 0x8
+
+LOGAN_FMT_OFF_COLORS      equ 0x0
+LOGAN_FMT_OFF_TIMESTAMP   equ LOGAN_FMT_OFF_COLORS + 0x8
+LOGAN_FMT_OFF_TXT_MAX_LEN equ LOGAN_FMT_OFF_TIMESTAMP + 0x8
+LOGAN_FMT_OFF_PAD_TXT     equ LOGAN_FMT_OFF_TXT_MAX_LEN + 0x8
+
+LOGAN_DEFAULT_TXT_MAX_LEN equ 0xFF
+
+; log levels constants
+LOG_TRACE equ 0
+LOG_DEBUG equ 1
+LOG_LOG   equ 2
 LOG_INFO  equ 3
-LOG_LOG   equ 4
-LOG_DEBUG equ 5
-LOG_TRACE equ 6
+LOG_WARN  equ 4
+LOG_ERROR equ 5
+LOG_FATAL equ 6
 
 ; log levels prefixes
 log_prefixes:
-  fatal_prefix  db "[FATAL] ", NULL_CHAR
-  error_prefix  db "[ERROR] ", NULL_CHAR
-  warn_prefix   db "[WARN]  ", NULL_CHAR
-  info_prefix   db "[INFO]  ", NULL_CHAR
-  log_prefix    db "[LOG]   ", NULL_CHAR
-  debug_prefix  db "[DEBUG] ", NULL_CHAR
   trace_prefix  db "[TRACE] ", NULL_CHAR
+  debug_prefix  db "[DEBUG] ", NULL_CHAR
+  log_prefix    db "[LOG]   ", NULL_CHAR
+  info_prefix   db "[INFO]  ", NULL_CHAR
+  warn_prefix   db "[WARN]  ", NULL_CHAR
+  error_prefix  db "[ERROR] ", NULL_CHAR
+  fatal_prefix  db "[FATAL] ", NULL_CHAR
 log_prefixes_end:
 
 LOG_PREFIX_SIZE equ error_prefix - fatal_prefix
 
 section .text
+; initializes a logan struct with default value
+; @return rax: pointer to the logan struct
+logan_init:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** 
+  ; [rsp]   -> pointer to the logan struct
+
+  mov   qword [rsp], 0
+
+  ; malloc logan struct
+  mov   rdi, LOGAN_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  ; malloc logan format struct
+  mov   rdi, LOGAN_FMT_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rax+LOGAN_FMT_OFF_COLORS], TRUE
+  mov   qword [rax+LOGAN_FMT_OFF_TIMESTAMP], TRUE
+  mov   qword [rax+LOGAN_FMT_OFF_TXT_MAX_LEN], LOGAN_DEFAULT_TXT_MAX_LEN
+  mov   qword [rax+LOGAN_FMT_OFF_PAD_TXT], FALSE
+
+  mov   rdi, [rsp]
+  mov   [rdi+LOGAN_OFF_FMT], rax
+  mov   qword [rdi+LOGAN_OFF_OUT], STDOUT_FILENO
+  mov   qword [rdi+LOGAN_OFF_LVL], LOG_TRACE  
+
+  mov   rax, rdi
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+  
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; frees the logan struct and associated resources
+; @param  rdi: pointer to the logan struct
+; @return rax: return code
+logan_free:
+  sub   rsp, 0x8 
+
+  ; *** STACK USAGE *** 
+  ; [rsp]   -> pointer to the logan struct
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; free logan format struct
+  mov   rdi, [rsp]
+  call  logan_get_fmt_struct
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error    ; should be fatal here
+
+  ; free struct
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; returns the format struct of the logan struct
+logan_get_fmt_struct:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+LOGAN_OFF_FMT]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
 
 ; returns the log prefix from the constant
 ; @param  rdi: log level constant
@@ -279,5 +415,4 @@ _logln:
 .return:
   add   rsp, 0x10
   ret
-
 

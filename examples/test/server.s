@@ -6,7 +6,7 @@ global  _start
 %include "basic.inc"
 %include "template.inc"
 %include "os.inc"
-%include "log.inc"
+%include "logan.inc"
 
 section .text
 middleware:
