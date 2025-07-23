@@ -1,6 +1,7 @@
 # Logan
 
 Logan is a logger for Assembly applications.
+
 It can be used outside this library by copying and pasting the `logan.inc` file.
 
 It supports the following log levels:
@@ -13,7 +14,7 @@ It supports the following log levels:
 * ERROR
 * FATAL
 
-***If you wish, you can change the logging levels by modifying the constants and prefixes in the file. Please ensure that you also update the functions linked to these levels***.
+*If you wish, you can change the logging levels by modifying the constants and prefixes in the file. Please ensure that you also update the functions linked to these levels*.
 
 ## Requirements 
 
@@ -27,11 +28,11 @@ To initialise a new Logan logger, include the file and run the `logan_init` func
 It returns a pointer to the Logan struct on success or -1 on failure. Make sure you check the return value of the function.
 
 ```assembly
-    %include "logan.inc"
+%include "logan.inc"
 
-    call    logan_init
-    cmp     rax, 0
-    jl      .error
+call    logan_init
+cmp     rax, 0
+jl      .error
 ```
 
 This will initialise the Logan logger with colors and timestamp enabled and padding disabled. The default output will be `STDOUT_FILENO` and all levels will be printed by default.
@@ -41,10 +42,10 @@ To free a Logan logger, simply run the `logan_free` function.
 It returns 0 on success and -1 on failure.
 
 ```assembly
-    mov     rdi, logan_struct   ; pointer to the logan struct
-    call    logan_free
-    cmp     rax, 0
-    jl      .error
+mov     rdi, logan_struct   ; pointer to the logan struct
+call    logan_free
+cmp     rax, 0
+jl      .error
 ```
 
 **Logs**
@@ -57,10 +58,10 @@ If you wish to log a string with a new line, you can use the same functions with
 Fatal logs will close the program with -1.
 
 ```assembly
-    mov     rdi, msg    ; pointer to the message
-    call    log_error   ; [ERROR] msg
-    cmp     rax, 0
-    jl      .error
+mov     rdi, msg    ; pointer to the message
+call    log_error   ; [ERROR] msg
+cmp     rax, 0
+jl      .error
 ```
 
 ## More to come...
