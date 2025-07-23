@@ -146,11 +146,32 @@ logan_free:
   ret
 
 ; returns the format struct of the logan struct
+; @param  rdi: pointer to the logan struct
+; @return rax: pointer to the logan format struct
 logan_get_fmt_struct:
   cmp   rdi, 0
   jle   .error
 
   mov   rax, [rdi+LOGAN_OFF_FMT]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the format struct of the logan struct
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the logan format struct
+; @return rax: return code
+logan_set_fmt_struct:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rdi+LOGAN_OFF_FMT], rsi
+
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
