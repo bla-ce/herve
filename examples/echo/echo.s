@@ -48,18 +48,6 @@ _start:
 
   mov   [rsp], rax 
 
-  call  logan_init
-  cmp   rax, 0
-  jl    error
-
-  mov   rdi, rax
-  mov   rsi, server_init_msg
-  call  log_infoln
-  cmp   rax, 0
-  jl    error
-
-  call  exit
-
   mov   rdi, [rsp]
   lea   rsi, [POST]
   lea   rdx, [wildcard_url]
