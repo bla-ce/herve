@@ -70,6 +70,4 @@ error:
   
 section .data
   wildcard_url  db "*", NULL_CHAR
-
-  server_init_msg db "Server is initialised", NULL_CHAR
   

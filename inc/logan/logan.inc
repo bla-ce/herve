@@ -1,32 +1,23 @@
 section .bss
 
-logan_fmt_struct:
-  .colors       resq 1    ; enable or disable colors
-  .timestamp    resq 1    ; enable or disable timestamp
-  .txt_max_len  resq 1    ; max length of the log message
-logan_fmt_struct_end:
-
 logan_struct:
-  logan_format  resq 1  ; pointer to the format struct
   logan_output  resq 1  ; file descriptor of the output
   logan_level   resq 1  ; minimum level to be printed
+  logan_format  resb 1  ; pointer to the format struct
 logan_struct_end:
 
 section .data
 
 LOGAN_STRUCT_LEN      equ logan_struct_end - logan_struct
-LOGAN_FMT_STRUCT_LEN  equ logan_fmt_struct_end - logan_fmt_struct
 
 ; logan offsets
-LOGAN_OFF_FMT equ 0x0
-LOGAN_OFF_OUT equ LOGAN_OFF_FMT + 0x8
+LOGAN_OFF_OUT equ 0x0
 LOGAN_OFF_LVL equ LOGAN_OFF_OUT + 0x8
+LOGAN_OFF_FMT equ LOGAN_OFF_LVL + 0x8
 
-LOGAN_FMT_OFF_COLORS      equ 0x0
-LOGAN_FMT_OFF_TIMESTAMP   equ LOGAN_FMT_OFF_COLORS + 0x8
-LOGAN_FMT_OFF_TXT_MAX_LEN equ LOGAN_FMT_OFF_TIMESTAMP + 0x8
-
-LOGAN_DEFAULT_TXT_MAX_LEN equ 0xFF
+LOGAN_FMT_COLORS    equ 0001b
+LOGAN_FMT_TIMESTAMP equ 0010b
+LOGAN_FMT_PREFIXES  equ 0100b
 
 ; log levels constants
 LOGAN_TRACE equ 0
@@ -67,20 +58,8 @@ logan_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
-  ; malloc logan format struct
-  mov   rdi, LOGAN_FMT_STRUCT_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rax+LOGAN_FMT_OFF_COLORS], TRUE
-  mov   qword [rax+LOGAN_FMT_OFF_TIMESTAMP], TRUE
-  mov   qword [rax+LOGAN_FMT_OFF_TXT_MAX_LEN], LOGAN_DEFAULT_TXT_MAX_LEN
-
-  mov   rdi, [rsp]
-  mov   [rdi+LOGAN_OFF_FMT], rax
+  mov   rdi, rax
+  mov   qword [rdi+LOGAN_OFF_FMT], 0  ; disable everything
   mov   qword [rdi+LOGAN_OFF_OUT], STDOUT_FILENO
   mov   qword [rdi+LOGAN_OFF_LVL], LOGAN_TRACE  
 
@@ -102,7 +81,7 @@ logan_init:
   add   rsp, 0x8
   ret
 
-; frees the logan struct and associated resources
+; frees the logan struct
 ; @param  rdi: pointer to the logan struct
 ; @return rax: return code
 logan_free:
@@ -115,17 +94,6 @@ logan_free:
 
   cmp   rdi, 0
   jle   .error
-
-  ; free logan format struct
-  mov   rdi, [rsp]
-  call  logan_get_fmt_struct
-  cmp   rax, 0
-  jle   .error
-
-  mov   rdi, rax
-  call  free
-  cmp   rax, 0
-  jl    .error    ; should be fatal here
 
   ; free struct
   mov   rdi, [rsp]
@@ -149,26 +117,8 @@ logan_get_fmt_struct:
   cmp   rdi, 0
   jle   .error
 
-  mov   rax, [rdi+LOGAN_OFF_FMT]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the format struct of the logan struct
-; @param  rdi: pointer to the logan struct
-; @param  rsi: pointer to the logan format struct
-; @return rax: return code
-logan_set_fmt_struct:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   [rdi+LOGAN_OFF_FMT], rsi
-
-  mov   rax, SUCCESS_CODE
+  xor   rax, rax
+  mov   al, byte [rdi+LOGAN_OFF_FMT]
   jmp   .return
 
 .error:
@@ -541,18 +491,14 @@ _logln:
   add   rsp, 0x30
   ret
 
-; enables colors when logging with Logan
+; enables prefixes when logging with Logan
 ; @param  rdi: pointer to logan struct 
 ; @return rax: return code
-logan_enable_colors:
+logan_enable_prefixes:
   cmp   rdi, 0
   jle   .error
 
-  ; get logan format
-  mov   rax, [rdi+LOGAN_OFF_FMT]
-
-  ; enable colors
-  mov   qword [rax+LOGAN_FMT_OFF_COLORS], TRUE
+  or    byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_PREFIXES
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -563,6 +509,44 @@ logan_enable_colors:
 .return:
   ret
 
+; disables prefixes when logging with Logan
+; @param  rdi: pointer to logan struct 
+; @return rax: return code
+logan_disable_prefixes:
+  cmp   rdi, 0
+  jle   .error
+  
+  or    byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_PREFIXES
+  xor   byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_PREFIXES
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; enables colors when logging with Logan
+; @param  rdi: pointer to logan struct 
+; @return rax: return code
+logan_enable_colors:
+  cmp   rdi, 0
+  jle   .error
+
+  or    byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+
 ; disables colors when logging with Logan
 ; @param  rdi: pointer to logan struct 
 ; @return rax: return code
@@ -570,11 +554,8 @@ logan_disable_colors:
   cmp   rdi, 0
   jle   .error
 
-  ; get logan format
-  mov   rax, [rdi+LOGAN_OFF_FMT]
-
-  ; disable colors
-  mov   qword [rax+LOGAN_FMT_OFF_COLORS], FALSE
+  or    byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
+  xor   byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -593,11 +574,8 @@ logan_enable_timestamp:
   cmp   rdi, 0
   jle   .error
 
-  ; get logan format
-  mov   rax, [rdi+LOGAN_OFF_FMT]
-
   ; enable timestamp
-  mov   qword [rax+LOGAN_FMT_OFF_TIMESTAMP], TRUE
+  or    byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_TIMESTAMP
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -615,11 +593,7 @@ logan_disable_timestamp:
   cmp   rdi, 0
   jle   .error
 
-  ; get logan format
-  mov   rax, [rdi+LOGAN_OFF_FMT]
-
-  ; disable timestamp
-  mov   qword [rax+LOGAN_FMT_OFF_TIMESTAMP], FALSE
+  xor   byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_TIMESTAMP
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -661,51 +635,6 @@ logan_get_output:
   jle   .error
 
   mov   rax, [rdi+LOGAN_OFF_OUT]
-
-  jmp   .return
-  
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the maximum length of the logs
-; @param  rdi: pointer to logan struct 
-; @param  rsi: max length
-; @return rax: return code
-logan_set_max_length:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  ; get logan format struct
-  mov   rax, [rdi+LOGAN_OFF_FMT]
-
-  mov   [rax+LOGAN_FMT_OFF_TXT_MAX_LEN], rsi
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-  
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the maximum length of the logs
-; @param  rdi: pointer to logan struct 
-; @return rax: max length
-logan_get_max_length:
-  cmp   rdi, 0
-  jle   .error
-
-  ; get logan format struct
-  mov   rsi, [rdi+LOGAN_OFF_FMT]
-
-  mov   rax, [rsi+LOGAN_FMT_OFF_TXT_MAX_LEN]
 
   jmp   .return
   

@@ -40,7 +40,7 @@ This will initialise the Logan logger with colors and timestamp enabled and padd
 
 **Customise Logan**
 
-In order to customise Logan's behavior, you can use the getter and setter functions to enable or disable colors, timestamp, set the minimum log level to be printed, the output or the maximum length of the logs (default to 255 bytes).
+In order to customise Logan's behavior, you can use the getter and setter functions to enable or disable colors, timestamp, set the minimum log level to be printed or the output file descriptor.
 
 ```assembly
 mov     rdi, logan_struct
@@ -71,24 +71,23 @@ jl      .error
 
 **Logs**
 
-Currently, log functions are not linked to the Logan structure, but this will change soon.
-
-For now, you can simply call the appropriate function (i.e. `log_info`) and passing a pointer to the string to be printed. **Note that the string MUST be null terminated**.
+You can log messages by passing a pointer to the Logan struct and a pointer to the log message. **Note that the string MUST be null terminated**.
 
 If you wish to log a string with a new line, you can use the same functions with the `ln` suffix.
 
 Fatal logs will close the program with -1.
 
 ```assembly
-mov     rdi, msg    ; pointer to the message
-call    log_error   ; [ERROR] msg
+mov     rdi, logan_struct   ; pointer to logan struct
+mov     rsi, msg            ; pointer to the message
+call    log_error           ; [ERROR] msg
 cmp     rax, 0
 jl      .error
 ```
 
 ## More to come...
 - [ ] Disable log prefixes
-- [ ] Add colors, timestamps and length limit
+- [ ] Add colors, timestamps
 - [ ] Pass a hash table to log functions to add more information
 ...
 
