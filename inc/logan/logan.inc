@@ -351,7 +351,14 @@ _log:
 
   mov   qword [rsp+0x20], rax
 
-  ; TODO: check max length, timestamp and color
+  ; check if prefixes are enabled
+  mov   rdi, [rsp]
+  xor   rax, rax
+  mov   al, byte [rdi+LOGAN_OFF_FMT]
+
+  and   al, LOGAN_FMT_PREFIXES
+  cmp   al, 0
+  je    .log_message
 
   mov   rdi, [rsp+0x10]
   call  log_get_prefix
@@ -365,6 +372,7 @@ _log:
   cmp   rax, 0
   jl    .error
 
+.log_message:
   mov   rdi, qword [rsp+0x18]
   mov   rsi, [rsp+0x8]
   mov   rdx, qword [rsp+0x20]
@@ -437,7 +445,14 @@ _logln:
 
   mov   qword [rsp+0x20], rax
 
-  ; TODO: check max length, timestamp and color
+  ; check if prefixes are enabled
+  mov   rdi, [rsp]
+  xor   rax, rax
+  mov   al, byte [rdi+LOGAN_OFF_FMT]
+
+  and   al, LOGAN_FMT_PREFIXES
+  cmp   al, 0
+  je    .log_message
 
   mov   rdi, [rsp+0x10]
   call  log_get_prefix
@@ -453,6 +468,7 @@ _logln:
   jl    .error
 
   ; write log message
+.log_message:
   mov   rdi, qword [rsp+0x18]
   mov   rsi, [rsp+0x8]
   mov   rdx, qword [rsp+0x20]
