@@ -31,15 +31,6 @@ section .data
   _log_debug  db SPACE, "[DEBUG]", SPACE, NULL_CHAR
   error_pre   db SPACE, "[ERROR]", SPACE, NULL_CHAR
 
-  ; ansi color
-  RED_FG      db 0x1b, "[31m", NULL_CHAR
-  GREEN_FG    db 0x1b, "[32m", NULL_CHAR
-  YELLOW_FG   db 0x1b, "[33m", NULL_CHAR
-  BLUE_FG     db 0x1b, "[34m", NULL_CHAR
-  CYAN_FG     db 0x1b, "[36m", NULL_CHAR
-  GRAY_FG     db 0x1b, "[90m", NULL_CHAR
-  DEFAULT_FG  db 0x1b, "[39m", NULL_CHAR
-
   STR_PORT_MAX_LENGTH equ 6
 
   log_server_init_msg       db "Listening and serving HTTP on :", NULL_CHAR

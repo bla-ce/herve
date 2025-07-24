@@ -39,6 +39,16 @@ logan_prefixes:
   fatal_prefix  db "[FATAL] ", NULL_CHAR
 logan_prefixes_end:
 
+logan_colors:
+  trace_color  dq WHITE_FG
+  debug_color  dq BRIGHT_BLUE_FG
+  log_color    dq BLUE_FG
+  info_color   dq CYAN_FG
+  warn_color   dq YELLOW_FG
+  error_color  dq BRIGHT_RED_FG
+  fatal_color  dq RED_FG
+logan_colors_end:
+
 LOGAN_PREFIX_SIZE equ fatal_prefix - error_prefix
 
 section .text
@@ -127,10 +137,37 @@ logan_get_fmt_struct:
 .return:
   ret
 
+; returns the color from the constant
+; @param  rdi: log level constant
+; @return rax: pointer to the ansi color escape code
+logan_get_color_from_level:
+  cmp   rdi, 0
+  jl    .default
+
+  mov   rax, rdi
+  mov   rbx, 8
+  mul   rbx
+
+  mov   rdi, logan_colors
+  add   rdi, rax
+
+  cmp   rdi, logan_colors_end
+  jge   .default
+
+  mov   rax, [rdi]
+
+  jmp   .return
+
+.default:
+  mov   rax, DEFAULT_FG
+
+.return:
+  ret
+
 ; returns the log prefix from the constant
 ; @param  rdi: log level constant
 ; @return rax: pointer to the log prefix
-log_get_prefix:
+logan_get_prefix:
   mov   rax, rdi
   mov   rbx, LOGAN_PREFIX_SIZE
   mul   rbx
@@ -360,14 +397,44 @@ _log:
   cmp   al, 0
   je    .log_message
 
+  ; check if colors are enabled
+  mov   rdi, [rsp]
+  xor   rax, rax
+  mov   al, byte [rdi+LOGAN_OFF_FMT]
+
+  and   al, LOGAN_FMT_COLORS
+  cmp   al, 0
+  je    .no_colors
+
   mov   rdi, [rsp+0x10]
-  call  log_get_prefix
+  call  logan_get_color_from_level
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, rax
+  mov   rdx, CHANGE_COLOR_LEN
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+.no_colors:
+  mov   rdi, [rsp+0x10]
+  call  logan_get_prefix
   cmp   rax, 0
   jl    .error
 
   mov   rdi, qword [rsp+0x18]
   mov   rsi, rax
   mov   rdx, LOGAN_PREFIX_SIZE
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+  ; default color
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, DEFAULT_FG
+  mov   rdx, CHANGE_COLOR_LEN
   call  write_file
   cmp   rax, 0
   jl    .error
@@ -454,8 +521,30 @@ _logln:
   cmp   al, 0
   je    .log_message
 
+  ; check if colors are enabled
+  mov   rdi, [rsp]
+  xor   rax, rax
+  mov   al, byte [rdi+LOGAN_OFF_FMT]
+
+  and   al, LOGAN_FMT_COLORS
+  cmp   al, 0
+  je    .no_colors
+
   mov   rdi, [rsp+0x10]
-  call  log_get_prefix
+  call  logan_get_color_from_level
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, rax
+  mov   rdx, CHANGE_COLOR_LEN
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+.no_colors:
+  mov   rdi, [rsp+0x10]
+  call  logan_get_prefix
   cmp   rax, 0
   jl    .error
 
@@ -463,6 +552,14 @@ _logln:
   mov   rdi, qword [rsp+0x18]
   mov   rsi, rax
   mov   rdx, LOGAN_PREFIX_SIZE
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+  ; default color
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, DEFAULT_FG
+  mov   rdx, CHANGE_COLOR_LEN
   call  write_file
   cmp   rax, 0
   jl    .error
@@ -486,6 +583,7 @@ _logln:
   call  write_file
   cmp   rax, 0
   jl    .error
+
 
   cmp   qword [rsp+0x10], LOGAN_FATAL
   je    .exit

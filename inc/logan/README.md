@@ -86,8 +86,8 @@ jl      .error
 ```
 
 ## More to come...
-- [ ] Disable log prefixes
 - [ ] Add colors, timestamps
+- [ ] Connect Logan to Herve
 - [ ] Pass a hash table to log functions to add more information
 ...
 
