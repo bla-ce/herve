@@ -8,7 +8,7 @@ logan_struct_end:
 
 section .data
 
-LOGAN_STRUCT_LEN      equ logan_struct_end - logan_struct
+LOGAN_STRUCT_LEN  equ logan_struct_end - logan_struct
 
 ; logan offsets
 LOGAN_OFF_OUT equ 0x0
@@ -348,20 +348,26 @@ log_traceln:
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the message
 ; @param  rdx: level
+; @param  rcx: print new line bool
 ; @return rax: return code
 _log:
-  sub   rsp, 0x28
+  sub   rsp, 0x38
+  sub   rsp, UNSIGNED_LONG_MAX_STR_SIZE
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the logan struct
   ; [rsp+0x8]   -> pointer to the message
   ; [rsp+0x10]  -> log level constant
-  ; [rsp+0x18]  -> file descriptor to be written to
-  ; [rsp+0x20]  -> length of the message
+  ; [rsp+0x18]  -> print new line flag
+  ; [rsp+0x20]  -> file descriptor to be written to
+  ; [rsp+0x28]  -> length of the message
+  ; [rsp+0x30]  -> characters to print
+  ; [rsp+0x38]  -> pointer to the stringified timestamp
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
 
   cmp   rdi, 0
   jle   .error
@@ -378,7 +384,7 @@ _log:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x18], rax
+  mov   qword [rsp+0x20], rax
 
   ; get message length
   mov   rdi, [rsp+0x8]
@@ -386,7 +392,7 @@ _log:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x20], rax
+  mov   qword [rsp+0x28], rax
 
   ; check if prefixes are enabled
   mov   rdi, [rsp]
@@ -395,7 +401,7 @@ _log:
 
   and   al, LOGAN_FMT_PREFIXES
   cmp   al, 0
-  je    .log_message
+  je    .log_timestamp
 
   ; check if colors are enabled
   mov   rdi, [rsp]
@@ -411,7 +417,7 @@ _log:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [rsp+0x18]
+  mov   rdi, qword [rsp+0x20]
   mov   rsi, rax
   mov   rdx, CHANGE_COLOR_LEN
   call  write_file
@@ -424,7 +430,7 @@ _log:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [rsp+0x18]
+  mov   rdi, qword [rsp+0x20]
   mov   rsi, rax
   mov   rdx, LOGAN_PREFIX_SIZE
   call  write_file
@@ -432,21 +438,79 @@ _log:
   jl    .error
 
   ; default color
-  mov   rdi, qword [rsp+0x18]
+  mov   rdi, qword [rsp+0x20]
   mov   rsi, DEFAULT_FG
   mov   rdx, CHANGE_COLOR_LEN
   call  write_file
   cmp   rax, 0
   jl    .error
 
-.log_message:
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, [rsp+0x8]
-  mov   rdx, qword [rsp+0x20]
+.log_timestamp:
+  ; check if timestamp are enabled
+  mov   rdi, [rsp]
+  xor   rax, rax
+  mov   al, byte [rdi+LOGAN_OFF_FMT]
+
+  and   al, LOGAN_FMT_TIMESTAMP
+  cmp   al, 0
+  je    .log_message
+
+  ; get timestamp
+  call  now
+  cmp   rax, 0
+  jle   .log_message
+
+  ; stringify timestamp
+  mov   rdi, rax
+  lea   rsi, [rsp+0x38]
+  mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
+  call  to_string
+  cmp   rax, 0
+  jle   .log_message
+
+  ; print timestamp
+  ; it is safe to assume that timestamp will be 32-bit wide
+  mov   rdi, qword [rsp+0x20]
+  lea   rsi, [rsp+0x38]
+  mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  write_file
   cmp   rax, 0
   jl    .error
 
+  ; write space
+  mov   qword [rsp+0x30], 0
+  mov   byte [rsp+0x30], SPACE
+
+  mov   rdi, qword [rsp+0x20]
+  lea   rsi, [rsp+0x30]
+  mov   rdx, 1
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+.log_message:
+  mov   rdi, qword [rsp+0x20]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, qword [rsp+0x28]
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+  cmp   qword [rsp+0x18], TRUE
+  jne   .no_new_line
+
+  ; write new line
+  mov   qword [rsp+0x30], 0
+  mov   byte [rsp+0x30], LINE_FEED
+
+  mov   rdi, qword [rsp+0x20]
+  lea   rsi, [rsp+0x30]
+  mov   rdx, 1
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+.no_new_line:
   cmp   qword [rsp+0x10], LOGAN_FATAL
   je    .exit
 
@@ -464,7 +528,8 @@ _log:
   call  exit
 
 .return:
-  add   rsp, 0x28
+  add   rsp, UNSIGNED_LONG_MAX_STR_SIZE
+  add   rsp, 0x38
   ret
 
 ; logs the message at the level given as parameter with a new line
@@ -474,135 +539,9 @@ _log:
 ; @param  rdx: level
 ; @return rax: return code
 _logln:
-  sub   rsp, 0x30
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the logan struct
-  ; [rsp+0x8]   -> pointer to the message
-  ; [rsp+0x10]  -> log level constant
-  ; [rsp+0x18]  -> file descriptor to be written to
-  ; [rsp+0x20]  -> length of the message
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
-  jl    .error
-
-  ; save the file descriptor
-  mov   rdi, [rsp]
-  call  logan_get_output
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x18], rax
-
-  ; get message length
-  mov   rdi, [rsp+0x8]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x20], rax
-
-  ; check if prefixes are enabled
-  mov   rdi, [rsp]
-  xor   rax, rax
-  mov   al, byte [rdi+LOGAN_OFF_FMT]
-
-  and   al, LOGAN_FMT_PREFIXES
-  cmp   al, 0
-  je    .log_message
-
-  ; check if colors are enabled
-  mov   rdi, [rsp]
-  xor   rax, rax
-  mov   al, byte [rdi+LOGAN_OFF_FMT]
-
-  and   al, LOGAN_FMT_COLORS
-  cmp   al, 0
-  je    .no_colors
-
-  mov   rdi, [rsp+0x10]
-  call  logan_get_color_from_level
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, rax
-  mov   rdx, CHANGE_COLOR_LEN
-  call  write_file
-  cmp   rax, 0
-  jl    .error
-
-.no_colors:
-  mov   rdi, [rsp+0x10]
-  call  logan_get_prefix
-  cmp   rax, 0
-  jl    .error
-
-  ; write log prefix
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, rax
-  mov   rdx, LOGAN_PREFIX_SIZE
-  call  write_file
-  cmp   rax, 0
-  jl    .error
-
-  ; default color
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, DEFAULT_FG
-  mov   rdx, CHANGE_COLOR_LEN
-  call  write_file
-  cmp   rax, 0
-  jl    .error
-
-  ; write log message
-.log_message:
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, [rsp+0x8]
-  mov   rdx, qword [rsp+0x20]
-  call  write_file
-  cmp   rax, 0
-  jl    .error
-
-  ; write new line
-  mov   qword [rsp+0x28], 0
-  mov   byte [rsp+0x28], LINE_FEED
-
-  mov   rdi, qword [rsp+0x18]
-  lea   rsi, [rsp+0x28]
-  mov   rdx, 1
-  call  write_file
-  cmp   rax, 0
-  jl    .error
-
-
-  cmp   qword [rsp+0x10], LOGAN_FATAL
-  je    .exit
-
-  jmp   .return
-  
-.error:
-  cmp   qword [rsp+0x8], LOGAN_FATAL
-  je    .exit
-
-  mov   rax, FAILURE_CODE
-  jmp   .return
-
-.exit:
-  mov   rdi, FAILURE_CODE
-  call  exit
-
-.return:
-  add   rsp, 0x30
+  ; rdi, rsi and rcx are already populated
+  mov   rcx, TRUE
+  call  _log
   ret
 
 ; enables prefixes when logging with Logan
@@ -649,7 +588,7 @@ logan_enable_colors:
   cmp   rdi, 0
   jle   .error
 
-  or    byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
+  or    byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -668,8 +607,8 @@ logan_disable_colors:
   cmp   rdi, 0
   jle   .error
 
-  or    byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
-  xor   byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
+  or    byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
+  xor   byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -689,7 +628,7 @@ logan_enable_timestamp:
   jle   .error
 
   ; enable timestamp
-  or    byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_TIMESTAMP
+  or    byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_TIMESTAMP
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -707,7 +646,7 @@ logan_disable_timestamp:
   cmp   rdi, 0
   jle   .error
 
-  xor   byte [rax+LOGAN_OFF_FMT], LOGAN_FMT_TIMESTAMP
+  xor   byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_TIMESTAMP
 
   mov   rax, SUCCESS_CODE
   jmp   .return
