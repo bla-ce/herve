@@ -4,7 +4,6 @@ logan_fmt_struct:
   .colors       resq 1    ; enable or disable colors
   .timestamp    resq 1    ; enable or disable timestamp
   .txt_max_len  resq 1    ; max length of the log message
-  .pad_txt      resq 1    ; enable or disable padding
 logan_fmt_struct_end:
 
 logan_struct:
@@ -26,7 +25,6 @@ LOGAN_OFF_LVL equ LOGAN_OFF_OUT + 0x8
 LOGAN_FMT_OFF_COLORS      equ 0x0
 LOGAN_FMT_OFF_TIMESTAMP   equ LOGAN_FMT_OFF_COLORS + 0x8
 LOGAN_FMT_OFF_TXT_MAX_LEN equ LOGAN_FMT_OFF_TIMESTAMP + 0x8
-LOGAN_FMT_OFF_PAD_TXT     equ LOGAN_FMT_OFF_TXT_MAX_LEN + 0x8
 
 LOGAN_DEFAULT_TXT_MAX_LEN equ 0xFF
 
@@ -80,7 +78,6 @@ logan_init:
   mov   qword [rax+LOGAN_FMT_OFF_COLORS], TRUE
   mov   qword [rax+LOGAN_FMT_OFF_TIMESTAMP], TRUE
   mov   qword [rax+LOGAN_FMT_OFF_TXT_MAX_LEN], LOGAN_DEFAULT_TXT_MAX_LEN
-  mov   qword [rax+LOGAN_FMT_OFF_PAD_TXT], FALSE
 
   mov   rdi, [rsp]
   mov   [rdi+LOGAN_OFF_FMT], rax
@@ -435,5 +432,179 @@ _logln:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; enables colors when logging with Logan
+; @param  rdi: pointer to logan struct 
+; @return rax: return code
+logan_enable_colors:
+  cmp   rdi, 0
+  jle   .error
+
+  ; get logan format
+  mov   rax, [rdi+LOGAN_OFF_FMT]
+
+  ; enable colors
+  mov   [rax+LOGAN_FMT_OFF_COLORS], TRUE
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; disables colors when logging with Logan
+; @param  rdi: pointer to logan struct 
+; @return rax: return code
+logan_disable_colors:
+  cmp   rdi, 0
+  jle   .error
+
+  ; get logan format
+  mov   rax, [rdi+LOGAN_OFF_FMT]
+
+  ; disable colors
+  mov   [rax+LOGAN_FMT_OFF_COLORS], FALSE
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; enables logging timestamp 
+; timestamp are logged in UTC
+; @param  rdi: pointer to logan struct 
+; @return rax: return code
+logan_enable_timestamp:
+  cmp   rdi, 0
+  jle   .error
+
+  ; get logan format
+  mov   rax, [rdi+LOGAN_OFF_FMT]
+
+  ; enable timestamp
+  mov   [rax+LOGAN_FMT_OFF_TIMESTAMP], TRUE
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; disables logging timestamp 
+; @param  rdi: pointer to logan struct 
+; @return rax: return code
+logan_disable_timestamp:
+  cmp   rdi, 0
+  jle   .error
+
+  ; get logan format
+  mov   rax, [rdi+LOGAN_OFF_FMT]
+
+  ; disable timestamp
+  mov   [rax+LOGAN_FMT_OFF_TIMESTAMP], FALSE
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the output of the logs
+; @param  rdi: pointer to logan struct 
+; @param  rsi: file descriptor
+; @return rax: return code
+logan_set_output:
+  cmp   rdi, 0
+  jle   .error
+
+  ; I think it is safe to assume that negative fd is an error
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+LOGAN_OFF_OUT], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the output file descriptor of the logs
+; @param  rdi: pointer to logan struct 
+; @return rax: file descriptor
+logan_get_output:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+LOGAN_OFF_OUT]
+
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the maximum length of the logs
+; @param  rdi: pointer to logan struct 
+; @param  rsi: max length
+; @return rax: return code
+logan_set_max_length:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; get logan format struct
+  mov   rax, [rdi+LOGAN_OFF_FMT]
+
+  mov   [rax+LOGAN_FMT_OFF_TXT_MAX_LEN], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the maximum length of the logs
+; @param  rdi: pointer to logan struct 
+; @return rax: max length
+logan_set_max_length:
+  cmp   rdi, 0
+  jle   .error
+
+  ; get logan format struct
+  mov   rsi, [rdi+LOGAN_OFF_FMT]
+
+  mov   rax, [rsi+LOGAN_FMT_OFF_TXT_MAX_LEN]
+
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 

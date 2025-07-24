@@ -23,6 +23,7 @@ To use Logan logger, you will need [malloc](https://github.com/bla-ce/unstack).
 ## Usage
 
 **Initialise Logan**
+
 To initialise a new Logan logger, include the file and run the `logan_init` function.
 
 It returns a pointer to the Logan struct on success or -1 on failure. Make sure you check the return value of the function.
@@ -38,6 +39,7 @@ jl      .error
 This will initialise the Logan logger with colors and timestamp enabled and padding disabled. The default output will be `STDOUT_FILENO` and all levels will be printed by default.
 
 **Free Logan**
+
 To free a Logan logger, simply run the `logan_free` function. 
 It returns 0 on success and -1 on failure.
 
@@ -49,6 +51,7 @@ jl      .error
 ```
 
 **Logs**
+
 Currently, log functions are not linked to the Logan structure, but this will change soon.
 
 For now, you can simply call the appropriate function (i.e. `log_info`) and passing a pointer to the string to be printed. **Note that the string MUST be null terminated**.
