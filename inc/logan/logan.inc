@@ -591,7 +591,7 @@ logan_set_max_length:
 ; returns the maximum length of the logs
 ; @param  rdi: pointer to logan struct 
 ; @return rax: max length
-logan_set_max_length:
+logan_get_max_length:
   cmp   rdi, 0
   jle   .error
 
