@@ -2,6 +2,7 @@ global _start
 
 %include "herve.inc"
 %include "os.inc"
+%include "logan.inc"
 
 section .text
 
@@ -47,7 +48,19 @@ _start:
 
   mov   [rsp], rax 
 
+  call  logan_init
+  cmp   rax, 0
+  jl    error
+
   mov   rdi, rax
+  mov   rsi, server_init_msg
+  call  log_infoln
+  cmp   rax, 0
+  jl    error
+
+  call  exit
+
+  mov   rdi, [rsp]
   lea   rsi, [POST]
   lea   rdx, [wildcard_url]
   mov   rcx, echo
@@ -69,4 +82,6 @@ error:
   
 section .data
   wildcard_url  db "*", NULL_CHAR
+
+  server_init_msg db "Server is initialised", NULL_CHAR
   

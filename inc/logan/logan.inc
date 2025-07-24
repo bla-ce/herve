@@ -29,16 +29,16 @@ LOGAN_FMT_OFF_TXT_MAX_LEN equ LOGAN_FMT_OFF_TIMESTAMP + 0x8
 LOGAN_DEFAULT_TXT_MAX_LEN equ 0xFF
 
 ; log levels constants
-LOG_TRACE equ 0
-LOG_DEBUG equ 1
-LOG_LOG   equ 2
-LOG_INFO  equ 3
-LOG_WARN  equ 4
-LOG_ERROR equ 5
-LOG_FATAL equ 6
+LOGAN_TRACE equ 0
+LOGAN_DEBUG equ 1
+LOGAN_LOG   equ 2
+LOGAN_INFO  equ 3
+LOGAN_WARN  equ 4
+LOGAN_ERROR equ 5
+LOGAN_FATAL equ 6
 
 ; log levels prefixes
-log_prefixes:
+logan_prefixes:
   trace_prefix  db "[TRACE] ", NULL_CHAR
   debug_prefix  db "[DEBUG] ", NULL_CHAR
   log_prefix    db "[LOG]   ", NULL_CHAR
@@ -46,9 +46,9 @@ log_prefixes:
   warn_prefix   db "[WARN]  ", NULL_CHAR
   error_prefix  db "[ERROR] ", NULL_CHAR
   fatal_prefix  db "[FATAL] ", NULL_CHAR
-log_prefixes_end:
+logan_prefixes_end:
 
-LOG_PREFIX_SIZE equ error_prefix - fatal_prefix
+LOGAN_PREFIX_SIZE equ fatal_prefix - error_prefix
 
 section .text
 ; initializes a logan struct with default value
@@ -82,7 +82,7 @@ logan_init:
   mov   rdi, [rsp]
   mov   [rdi+LOGAN_OFF_FMT], rax
   mov   qword [rdi+LOGAN_OFF_OUT], STDOUT_FILENO
-  mov   qword [rdi+LOGAN_OFF_LVL], LOG_TRACE  
+  mov   qword [rdi+LOGAN_OFF_LVL], LOGAN_TRACE  
 
   mov   rax, rdi
 
@@ -182,13 +182,13 @@ logan_set_fmt_struct:
 ; @return rax: pointer to the log prefix
 log_get_prefix:
   mov   rax, rdi
-  mov   rbx, LOG_PREFIX_SIZE
+  mov   rbx, LOGAN_PREFIX_SIZE
   mul   rbx
 
-  mov   rdi, log_prefixes
+  mov   rdi, logan_prefixes
   add   rdi, rax
 
-  cmp   rdi, log_prefixes_end
+  cmp   rdi, logan_prefixes_end
   jge   .error
 
   mov   rax, rdi
@@ -202,179 +202,233 @@ log_get_prefix:
   ret
 
 ; prints the error message and exits the programme with -1
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
 ; @return rax: return code
 log_fatal:
-  ; rdi is already populated
-  mov   rsi, LOG_FATAL
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_FATAL
   call  _log
 
   ret
 
 ; prints the error message with a new line and exits the 
 ; programme with -1
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the string
 ; @return rax: return code
 log_fatalln:
-  ; rdi is already populated
-  mov   rsi, LOG_FATAL
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_FATAL
   call  _logln
 
   ret
 
 ; prints the error message at the ERROR level
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
 ; @return rax: return code
 log_error:
-  ; rdi is already populated
-  mov   rsi, LOG_ERROR
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_ERROR
   call  _log
 
   ret
 
 ; prints the error message at the ERROR level with a new line
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the struct
 ; @return rax: return code
 log_errorln:
-  ; rdi is already populated
-  mov   rsi, LOG_ERROR
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_ERROR
   call  _logln
 
   ret
 
 ; prints the error message at the WARN level
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
 ; @return rax: return code
 log_warn:
-  ; rdi is already populated
-  mov   rsi, LOG_WARN
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_WARN
   call  _log
 
   ret
 
 ; prints the error message at the WARN level with a new line
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the struct
 ; @return rax: return code
 log_warnln:
-  ; rdi is already populated
-  mov   rsi, LOG_WARN
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_WARN
   call  _logln
 
   ret
 
 ; prints the error message at the INFO level
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
 ; @return rax: return code
 log_info:
-  ; rdi is already populated
-  mov   rsi, LOG_INFO
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_INFO
   call  _log
 
   ret
 
 ; prints the error message at the INFO level with a new line
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the struct
 ; @return rax: return code
 log_infoln:
-  ; rdi is already populated
-  mov   rsi, LOG_INFO
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_INFO
   call  _logln
 
   ret
 
 ; prints the error message at the LOG level
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
 ; @return rax: return code
 log_log:
-  ; rdi is already populated
-  mov   rsi, LOG_LOG
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_LOG
   call  _log
 
   ret
 
 ; prints the error message at the LOG level with a new line
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the struct
 ; @return rax: return code
 log_logln:
-  ; rdi is already populated
-  mov   rsi, LOG_LOG
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_LOG
   call  _logln
 
   ret
 
 ; prints the error message at the DEBUG level
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
 ; @return rax: return code
 log_debug:
-  ; rdi is already populated
-  mov   rsi, LOG_DEBUG
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_DEBUG
   call  _log
 
   ret
 
 ; prints the error message at the DEBUG level with a new line
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the struct
 ; @return rax: return code
 log_debugln:
-  ; rdi is already populated
-  mov   rsi, LOG_DEBUG
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_DEBUG
   call  _logln
 
   ret
 
 ; prints the error message at the TRACE level
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
 ; @return rax: return code
 log_trace:
-  ; rdi is already populated
-  mov   rsi, LOG_TRACE
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_TRACE
   call  _log
 
   ret
 
 ; prints the error message at the TRACE level with a new line
-; @param  rdi: pointer to the string
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the struct
 ; @return rax: return code
 log_traceln:
-  ; rdi is already populated
-  mov   rsi, LOG_TRACE
+  ; rdi and rsi are already populated
+  mov   rdx, LOGAN_TRACE
   call  _logln
 
   ret
 
 ; logs the message at the level given as parameter
 ; fatal error also closes the programme with -1
-; @param  rdi: pointer to the message
-; @param  rsi: level
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
+; @param  rdx: level
 ; @return rax: return code
 _log:
-  sub   rsp, 0x10
+  sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
-  ; [rsp]     -> pointer to the message
-  ; [rsp+0x8] -> log level constant
+  ; [rsp]       -> pointer to the logan struct
+  ; [rsp+0x8]   -> pointer to the message
+  ; [rsp+0x10]  -> log level constant
+  ; [rsp+0x18]  -> file descriptor to be written to
+  ; [rsp+0x20]  -> length of the message
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
 
   cmp   rdi, 0
   jle   .error
 
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jl    .error
+
+  ; save the file descriptor
+  mov   rdi, [rsp]
+  call  logan_get_output
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x18], rax
+
+  ; get message length
   mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x20], rax
+
+  ; TODO: check max length, timestamp and color
+
+  mov   rdi, [rsp+0x10]
   call  log_get_prefix
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-  call  print
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, rax
+  mov   rdx, LOGAN_PREFIX_SIZE
+  call  write_file
   cmp   rax, 0
   jl    .error
-  
-  mov   rdi, [rsp]
-  call  print
+
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, qword [rsp+0x20]
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+  cmp   qword [rsp+0x10], LOGAN_FATAL
+  je    .exit
+
+  jmp   .return
   
 .error:
-  cmp   qword [rsp+0x8], LOG_FATAL
+  cmp   qword [rsp+0x10], LOGAN_FATAL
   je    .exit
 
   mov   rax, FAILURE_CODE
@@ -385,42 +439,95 @@ _log:
   call  exit
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x28
   ret
 
 ; logs the message at the level given as parameter with a new line
 ; fatal error also closes the programme with -1
-; @param  rdi: pointer to the message
-; @param  rsi: level
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
+; @param  rdx: level
 ; @return rax: return code
 _logln:
-  sub   rsp, 0x10
+  sub   rsp, 0x30
 
   ; *** STACK USAGE *** ;
-  ; [rsp]     -> pointer to the message
-  ; [rsp+0x8] -> log level constant
+  ; [rsp]       -> pointer to the logan struct
+  ; [rsp+0x8]   -> pointer to the message
+  ; [rsp+0x10]  -> log level constant
+  ; [rsp+0x18]  -> file descriptor to be written to
+  ; [rsp+0x20]  -> length of the message
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
 
   cmp   rdi, 0
   jle   .error
 
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jl    .error
+
+  ; save the file descriptor
+  mov   rdi, [rsp]
+  call  logan_get_output
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x18], rax
+
+  ; get message length
   mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x20], rax
+
+  ; TODO: check max length, timestamp and color
+
+  mov   rdi, [rsp+0x10]
   call  log_get_prefix
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-  call  print
+  ; write log prefix
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, rax
+  mov   rdx, LOGAN_PREFIX_SIZE
+  call  write_file
   cmp   rax, 0
   jl    .error
-  
-  mov   rdi, [rsp]
-  call  println
+
+  ; write log message
+  mov   rdi, qword [rsp+0x18]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, qword [rsp+0x20]
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+  ; write new line
+  mov   qword [rsp+0x28], 0
+  mov   byte [rsp+0x28], LINE_FEED
+
+  mov   rdi, qword [rsp+0x18]
+  lea   rsi, [rsp+0x28]
+  mov   rdx, 1
+  call  write_file
+  cmp   rax, 0
+  jl    .error
+
+  cmp   qword [rsp+0x10], LOGAN_FATAL
+  je    .exit
+
+  jmp   .return
   
 .error:
-  cmp   qword [rsp+0x8], LOG_FATAL
+  cmp   qword [rsp+0x8], LOGAN_FATAL
   je    .exit
 
   mov   rax, FAILURE_CODE
@@ -431,7 +538,7 @@ _logln:
   call  exit
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x30
   ret
 
 ; enables colors when logging with Logan

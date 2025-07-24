@@ -87,7 +87,8 @@ jl      .error
 ```
 
 ## More to come...
-- [ ] Link log functions to the Logan struct
+- [ ] Disable log prefixes
+- [ ] Add colors, timestamps and length limit
 - [ ] Pass a hash table to log functions to add more information
 ...
 
