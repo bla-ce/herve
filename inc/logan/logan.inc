@@ -445,7 +445,7 @@ logan_enable_colors:
   mov   rax, [rdi+LOGAN_OFF_FMT]
 
   ; enable colors
-  mov   [rax+LOGAN_FMT_OFF_COLORS], TRUE
+  mov   qword [rax+LOGAN_FMT_OFF_COLORS], TRUE
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -467,7 +467,7 @@ logan_disable_colors:
   mov   rax, [rdi+LOGAN_OFF_FMT]
 
   ; disable colors
-  mov   [rax+LOGAN_FMT_OFF_COLORS], FALSE
+  mov   qword [rax+LOGAN_FMT_OFF_COLORS], FALSE
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -490,7 +490,7 @@ logan_enable_timestamp:
   mov   rax, [rdi+LOGAN_OFF_FMT]
 
   ; enable timestamp
-  mov   [rax+LOGAN_FMT_OFF_TIMESTAMP], TRUE
+  mov   qword [rax+LOGAN_FMT_OFF_TIMESTAMP], TRUE
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -512,7 +512,7 @@ logan_disable_timestamp:
   mov   rax, [rdi+LOGAN_OFF_FMT]
 
   ; disable timestamp
-  mov   [rax+LOGAN_FMT_OFF_TIMESTAMP], FALSE
+  mov   qword [rax+LOGAN_FMT_OFF_TIMESTAMP], FALSE
 
   mov   rax, SUCCESS_CODE
   jmp   .return
