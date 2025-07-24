@@ -44,8 +44,12 @@ In order to customise Logan's behavior, you can use the getter and setter functi
 
 ```assembly
 mov     rdi, logan_struct
-mov     rsi, TRUE               ; 1
 call    logan_enable_colors
+cmp     rax, 0
+jl      .error
+
+mov     rdi, logan_struct
+call    logan_disable_prefixes
 cmp     rax, 0
 jl      .error
 
@@ -86,7 +90,10 @@ jl      .error
 ```
 
 ## More to come...
+- [ ] Minimum level to be printed
+- [ ] Get size of timestamp before printing it
 - [ ] Connect Logan to Herve
+- [ ] Enable print full date
 - [ ] Pass a hash table to log functions to add more information
 ...
 

@@ -195,6 +195,7 @@ logan_get_prefix:
 log_fatal:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_FATAL
+  mov   rcx, FALSE
   call  _log
 
   ret
@@ -207,6 +208,7 @@ log_fatal:
 log_fatalln:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_FATAL
+  mov   rcx, TRUE
   call  _logln
 
   ret
@@ -218,6 +220,7 @@ log_fatalln:
 log_error:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_ERROR
+  mov   rcx, FALSE
   call  _log
 
   ret
@@ -229,6 +232,7 @@ log_error:
 log_errorln:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_ERROR
+  mov   rcx, TRUE
   call  _logln
 
   ret
@@ -240,6 +244,7 @@ log_errorln:
 log_warn:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_WARN
+  mov   rcx, FALSE
   call  _log
 
   ret
@@ -251,6 +256,7 @@ log_warn:
 log_warnln:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_WARN
+  mov   rcx, TRUE
   call  _logln
 
   ret
@@ -262,6 +268,7 @@ log_warnln:
 log_info:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_INFO
+  mov   rcx, FALSE
   call  _log
 
   ret
@@ -273,6 +280,7 @@ log_info:
 log_infoln:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_INFO
+  mov   rcx, TRUE
   call  _logln
 
   ret
@@ -284,6 +292,7 @@ log_infoln:
 log_log:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_LOG
+  mov   rcx, FALSE
   call  _log
 
   ret
@@ -295,6 +304,7 @@ log_log:
 log_logln:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_LOG
+  mov   rcx, TRUE
   call  _logln
 
   ret
@@ -306,6 +316,7 @@ log_logln:
 log_debug:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_DEBUG
+  mov   rcx, FALSE
   call  _log
 
   ret
@@ -317,6 +328,7 @@ log_debug:
 log_debugln:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_DEBUG
+  mov   rcx, TRUE
   call  _logln
 
   ret
@@ -328,6 +340,7 @@ log_debugln:
 log_trace:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_TRACE
+  mov   rcx, FALSE
   call  _log
 
   ret
@@ -339,6 +352,7 @@ log_trace:
 log_traceln:
   ; rdi and rsi are already populated
   mov   rdx, LOGAN_TRACE
+  mov   rcx, TRUE
   call  _logln
 
   ret
