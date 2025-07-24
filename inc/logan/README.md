@@ -38,6 +38,25 @@ jl      .error
 
 This will initialise the Logan logger with colors and timestamp enabled and padding disabled. The default output will be `STDOUT_FILENO` and all levels will be printed by default.
 
+**Customise Logan**
+
+In order to customise Logan's behavior, you can use the getter and setter functions to enable or disable colors, timestamp, set the minimum log level to be printed, the output or the maximum length of the logs (default to 255 bytes).
+
+```assembly
+mov     rdi, logan_struct
+mov     rsi, TRUE               ; 1
+call    logan_enable_colors
+cmp     rax, 0
+jl      .error
+
+mov     rdi, logan_struct
+call    logan_get_output
+cmp     rax, 0
+jl      .error
+
+; rax contains the output file descriptor
+```
+
 **Free Logan**
 
 To free a Logan logger, simply run the `logan_free` function. 
@@ -68,8 +87,6 @@ jl      .error
 ```
 
 ## More to come...
-
-- [ ] Update logs format and style
 - [ ] Link log functions to the Logan struct
 - [ ] Pass a hash table to log functions to add more information
 ...
