@@ -90,10 +90,8 @@ jl      .error
 ```
 
 ## More to come...
-- [ ] Minimum level to be printed
-- [ ] Get size of timestamp before printing it
 - [ ] Connect Logan to Herve
 - [ ] Enable print full date
 - [ ] Pass a hash table to log functions to add more information
-...
+- [ ] ...
 

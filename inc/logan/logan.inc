@@ -69,9 +69,15 @@ logan_init:
   jl    .error
 
   mov   rdi, rax
-  mov   qword [rdi+LOGAN_OFF_FMT], 0  ; disable everything
   mov   qword [rdi+LOGAN_OFF_OUT], STDOUT_FILENO
   mov   qword [rdi+LOGAN_OFF_LVL], LOGAN_TRACE  
+  mov   qword [rdi+LOGAN_OFF_FMT], 0  ; disable everything
+
+  ; enable colors
+  or    qword [rdi+LOGAN_OFF_FMT], LOGAN_FMT_COLORS
+
+  ; enable prefixes
+  or    qword [rdi+LOGAN_OFF_FMT], LOGAN_FMT_PREFIXES
 
   mov   rax, rdi
 
@@ -365,7 +371,7 @@ log_traceln:
 ; @param  rcx: print new line bool
 ; @return rax: return code
 _log:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
   sub   rsp, UNSIGNED_LONG_MAX_STR_SIZE
 
   ; *** STACK USAGE *** ;
@@ -376,7 +382,8 @@ _log:
   ; [rsp+0x20]  -> file descriptor to be written to
   ; [rsp+0x28]  -> length of the message
   ; [rsp+0x30]  -> characters to print
-  ; [rsp+0x38]  -> pointer to the stringified timestamp
+  ; [rsp+0x38]  -> size of the timestamp string
+  ; [rsp+0x40]  -> pointer to the stringified timestamp
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -484,17 +491,21 @@ _log:
 
   ; stringify timestamp
   mov   rdi, rax
-  lea   rsi, [rsp+0x38]
+  lea   rsi, [rsp+0x40]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  to_string
   cmp   rax, 0
   jle   .log_message
 
+  lea   rdi, [rsp+0x40] 
+  call  strlen
+  cmp   rax, 0
+  jle   .log_message
+
   ; print timestamp
-  ; it is safe to assume that timestamp will be 32-bit wide
   mov   rdi, qword [rsp+0x20]
-  lea   rsi, [rsp+0x38]
-  mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
+  lea   rsi, [rsp+0x40]
+  mov   rdx, rax
   call  write_file
   cmp   rax, 0
   jl    .error
@@ -551,7 +562,7 @@ _log:
 
 .return:
   add   rsp, UNSIGNED_LONG_MAX_STR_SIZE
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 ; logs the message at the level given as parameter with a new line

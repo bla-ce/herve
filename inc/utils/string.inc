@@ -5,6 +5,8 @@ section .data
   UNSIGNED_LONG_LONG_MAX_STR_SIZE equ 21
   SIGNED_LONG_LONG_MAX_STR_SIZE   equ 22
 
+  TO_STRING_MAX_STR_SIZE equ 22
+
 section .text
 ; returns if a string starts with a substring
 ; @param  rdi: string
@@ -371,11 +373,13 @@ strcpy:
 ; @return rax: pointer to str(int)
 to_string:
   sub   rsp, 0x18
+  sub   rsp, TO_STRING_MAX_STR_SIZE
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the number to be converted
-  ; [rsp+0x8]   -> pointer to the string
+  ; [rsp+0x8]   -> pointer to the final string
   ; [rsp+0x10]  -> size of the string
+  ; [rsp+0x18]  -> pointer to the temp string
 
   ; save parameters onto the stack
   mov   qword [rsp], rdi
@@ -389,7 +393,7 @@ to_string:
   jl    .error
 
   ; go to the end of the buf (print backward)
-  mov   rdi, [rsp+0x8]
+  lea   rdi, [rsp+0x18]
   add   rdi, qword [rsp+0x10]
 
   ; go back to let an extra null char at the end
@@ -427,15 +431,28 @@ to_string:
 
 .skip_hyphen:
   inc   rdi
- 
-  mov   rax, rdi
 
+  ; copy temp to final string
+  mov   rsi, rdi
+  mov   rdi, [rsp+0x8]
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; add null char
+  mov   rdi, rax
+  mov   rax, NULL_CHAR
+  stosb
+
+  mov   rax, [rsp+0x8]
+ 
   jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
+  add   rsp, TO_STRING_MAX_STR_SIZE
   add   rsp, 0x18
   ret
 
