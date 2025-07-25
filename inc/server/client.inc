@@ -16,52 +16,6 @@ section .data
   IPV4_MAX_LENGTH equ 0x10
 
 section .text
-; logs the client ipv4
-; @param  rdi: pointer to the logger struct
-; @param  rsi: pointer to the context struct
-log_client_ip:
-  sub   rsp, 0x10
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the logger struct
-  ; [rsp+0x8]   -> pointer to the context struct 
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  ; get client struct
-  mov   rdi, [rsp+0x8]
-  call  get_ctx_client
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  call  get_client_ip
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  log
-  cmp   rax, 0
-  jl    .error
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x10
-  ret
-
 ; sets the file descriptor of the client
 ; @param  rdi: pointer to the client
 ; @param  rsi: file descriptor

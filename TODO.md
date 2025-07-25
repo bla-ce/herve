@@ -7,7 +7,6 @@
     - [ ] Support HTTP2
     - [ ] Support HTTPS
     - [ ] Add multithreading
-    - [NEXT] Create log library
 ## MEDIUM TODO:
     - [ ] Implement timeout for idle connections
     - [ ] Routing with Parameters
@@ -17,6 +16,7 @@
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
     - [ ] Improve clearing client process
+    - [ ] Allow post request processing middlewares
 ## SMALL TODO:
     - [ ] Add rest of the attributes for cookie struct
     - [ ] group functions to clear a client
