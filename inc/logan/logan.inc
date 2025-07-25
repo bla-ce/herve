@@ -392,6 +392,14 @@ _log:
   cmp   rdx, 0
   jl    .error
 
+  mov   rdi, [rsp]
+  call  logan_get_minimum_level
+  cmp   rax, 0
+  jl    .error
+
+  cmp   [rsp+0x10], rax
+  jl    .return    
+
   ; save the file descriptor
   mov   rdi, [rsp]
   call  logan_get_output
@@ -702,6 +710,46 @@ logan_get_output:
   jle   .error
 
   mov   rax, [rdi+LOGAN_OFF_OUT]
+
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+
+; sets the minimum level of the logs
+; @param  rdi: pointer to logan struct 
+; @param  rsi: minimum level (included)
+; @return rax: return code
+logan_set_minimum_level:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+LOGAN_OFF_LVL], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the minimum level of the logs
+; @param  rdi: pointer to logan struct 
+; @return rax: minimum level
+logan_get_minimum_level:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+LOGAN_OFF_LVL]
 
   jmp   .return
   
