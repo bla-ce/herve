@@ -480,7 +480,6 @@ _start:
   mov   rsi, middleware
   lea   rdx, [hello]
   call  add_middleware
-
   cmp   rax, 0
   jl    .error
 
@@ -488,7 +487,6 @@ _start:
   mov   rsi, middleware
   lea   rdx, [hello2]
   call  add_middleware
-
   cmp   rax, 0
   jl    .error
 
