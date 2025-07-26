@@ -7,6 +7,7 @@
     - [ ] Support HTTP2
     - [ ] Support HTTPS
     - [ ] Add multithreading
+    - [ ] Be able to make requests to the outside world
 ## MEDIUM TODO:
     - [ ] Implement timeout for idle connections
     - [ ] Routing with Parameters
@@ -17,6 +18,7 @@
         - Might be better to create a proxy repo using the lib
     - [ ] Improve clearing client process
     - [ ] Allow post request processing middlewares
+    - [NEXT] Connect logan to herve
 ## SMALL TODO:
     - [ ] Add rest of the attributes for cookie struct
     - [ ] group functions to clear a client
@@ -33,3 +35,9 @@
 - [ ] CORS Middleware
 - [ ] Graceful Shutdown
 - [ ] Session Management
+
+### Connect Logan to herve
+
+- [ ] Init logan
+- [ ] Log server initialisation
+    - [ ] Logo + server initialised on port

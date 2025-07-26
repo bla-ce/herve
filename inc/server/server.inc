@@ -28,7 +28,68 @@ section .data
   SERVER_OFF_MIDDLEWARES  equ SERVER_OFF_SOCKADDR + 0x8
   SERVER_OFF_PORT         equ SERVER_OFF_MIDDLEWARES + 0x8
 
+  server_init_msg db "Herve started listening on port ", NULL_CHAR
+
+  STR_PORT_MAX_LENGTH equ 6
+
 section .text
+; once the server is initialised, prints the logo, server init
+; message and listening port
+; @param  rdi: pointer to the server struct
+; @return rax: return code
+log_server_init:
+  sub   rsp, 0x8
+  sub   rsp, STR_PORT_MAX_LENGTH
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]   -> pointer to the server struct
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; print ln logo
+  mov   rdi, HERVE_LOGO
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  ; print server init message
+  mov   rdi, server_init_msg
+  call  print
+  cmp   rax, 0
+  jl    .error
+
+  ; get port
+  mov   rdi, [rsp]
+  call  get_server_port
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, rax
+  lea   rsi, [rsp+0x8]
+  mov   rdx, STR_PORT_MAX_LENGTH
+  call  to_string
+  cmp   rax, 0
+  jl    .return
+
+  lea   rdi, [rsp+0x8]
+  call	println
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, STR_PORT_MAX_LENGTH
+  add   rsp, 0x8
+  ret
+
 ; returns the socket fd associated to the server
 ; @param  rdi: pointer to server struct 
 ; @return rax: socket fd
@@ -230,7 +291,6 @@ server_init:
   mov   rdi, [rsp+0x8]
   mov   rsi, qword [rsp]
   call  set_server_port
-
   cmp   rax, 0
   jl    .error
 
@@ -244,9 +304,13 @@ server_init:
   mov   rdi, [rsp+0x8]
   mov   rsi, qword [rsp+0x10]
   call  set_server_sockfd
-
   cmp   rax, 0
   jl    .error  
+
+  mov   rdi, [rsp+0x8]
+  call  log_server_init
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [rsp+0x8]
 
