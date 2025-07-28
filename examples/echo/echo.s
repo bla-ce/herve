@@ -31,7 +31,7 @@ echo:
   mov   rsi, INTERNAL_SERVER_ERROR
   call  send_no_content
 
-  mov   rax, FAILURE_CODE
+  mov   rax, SUCCESS_CODE
 
 .return:
   add   rsp, 0x8

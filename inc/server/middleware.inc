@@ -17,6 +17,67 @@ section .data
   MIDDLEWARE_OFF_NEXT equ MIDDLEWARE_OFF_ARG3 + 0x8
 
 section .text
+; pops the last middleware from the end of the chain
+; this function will mostly be used to pop current handler
+; @param  rdi: pointer to the server
+; @return rax: return code
+pop_middleware:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the server
+  ; [rsp+0x8] -> pointer to the middleware chain
+  
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rdi, [rsp]
+  call  get_server_middlewares
+  cmp   rax, 0
+  jle   .error
+
+  ; save middleware chain
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+
+  ; save pointer to the chain
+  mov   rsi, [rsp]
+  add   rsi, SERVER_OFF_MIDDLEWARES
+
+.loop:
+  ; get the middleware
+  mov   rdx, rsi
+  mov   rsi, rdi
+
+  ; check if next is populated
+  add   rsi, MIDDLEWARE_OFF_NEXT
+  cmp   qword [rsi], 0
+  je    .pop
+
+  ; jump to the next middleware
+  mov   rdi, [rsi]
+
+  jmp   .loop
+
+.pop:
+  ; rdi contains a pointer to the middleware we are checking
+  ; rsi is a pointer pointing to the address of the next middleware
+  mov   qword [rdx], 0
+.loop_end:
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; TODO: add middleware to route
 ; adds a middleware to the end of the chain
 ; @param  rdi: pointer to server
@@ -151,13 +212,10 @@ run_middlewares:
 
   mov   [rsp+0x10], rdi
   mov   rsi, [rdi+MIDDLEWARE_OFF_ARG1]  ; load first argument
-  mov   rdx, [rdi+MIDDLEWARE_OFF_ARG2]  ; load first argument
-  mov   rcx, [rdi+MIDDLEWARE_OFF_ARG3]  ; load first argument
+  mov   rdx, [rdi+MIDDLEWARE_OFF_ARG2]  ; load second argument
+  mov   rcx, [rdi+MIDDLEWARE_OFF_ARG3]  ; load third argument
   mov   rdi, [rsp+0x8]
   call  rax
-
-  cmp   rax, 0
-  jl    .error
 
   ; check if the contxt has been aborted
   mov   rdi, [rsp+0x8]

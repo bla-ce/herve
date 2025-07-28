@@ -51,16 +51,6 @@ handle_ctx:
 
   mov   [rsp+0x10], rax
 
-  call  get_curr_ns
-  cmp   rax, 0
-  jl   .log_request 
-
-  mov   rdi, [rsp+0x10]
-  mov   rsi, rax
-  call  set_ctx_start_time
-  cmp   rax, 0
-  jl   .log_request 
-
   mov   rdi,  [rsp+0x10]
   call  handle_request
   cmp   rax, 0
@@ -72,15 +62,6 @@ handle_ctx:
   cmp   rax, TRUE
   je    .log_request
 
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x10]
-  call  run_middlewares
-
-; check if ctx has been aborted
-  mov   rdi, [rsp+0x10]
-  call  is_ctx_aborted
-  cmp   rax, TRUE
-  je    .log_request
 
   ; verify request
   mov   rdi, [rsp+0x10]
@@ -102,8 +83,44 @@ handle_ctx:
   cmp   rax, 0
   je   .done
 
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  mov   rdx, [rsp+0x10]
+  xor   rcx, rcx
+  xor   r8, r8
+  ; add the route callback to the middlewares
+  call  add_middleware
+  cmp   rax, 0
+  jl    .error
+
+  call  get_curr_ns
+  cmp   rax, 0
+  jl   .log_request 
+
   mov   rdi, [rsp+0x10]
-  call  rax
+  mov   rsi, rax
+  call  set_ctx_start_time
+  cmp   rax, 0
+  jl   .log_request 
+
+  ; run the middlewares
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  call  run_middlewares
+  cmp   rax, 0
+  jl    .error
+
+  ; pop the route callback from the middleware chain
+  mov   rdi, [rsp]
+  call  pop_middleware
+  cmp   rax, 0
+  jl    .error
+
+  ; check if ctx has been aborted
+  mov   rdi, [rsp+0x10]
+  call  is_ctx_aborted
+  cmp   rax, TRUE
+  je    .log_request
 
   mov   rdi, [rsp+0x10]
   cmp   qword [rdi+CTX_OFF_DONE], 1
