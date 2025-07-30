@@ -307,11 +307,6 @@ server_init:
   cmp   rax, 0
   jl    .error  
 
-  mov   rdi, [rsp+0x8]
-  call  log_server_init
-  cmp   rax, 0
-  jl    .error
-
   mov   rax, [rsp+0x8]
 
   jmp   .return
@@ -395,6 +390,11 @@ run_server:
   mov   rdi, rax
   mov   rsi, [rsp+0x8]
   call  FD_SET
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  call  log_server_init
   cmp   rax, 0
   jl    .error
 
