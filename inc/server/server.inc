@@ -567,28 +567,12 @@ run_server:
   jmp   .inner_loop
 
 .clear_fd:
-  ; close connection
   mov   rdi, qword [rsp+0x18]
-  call  close_file
-
-  ; clear the file descriptor from the set
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, qword [rsp+0x8]
-  call  FD_CLR
+  mov   rsi, [rsp+0x8]
+  mov   rdx, qword [rsp+0x20]
+  call  clear_client_connection
   cmp   rax, 0
-  jl    .error
-
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, qword [rsp+0x20]
-  call  get_client_by_fd
-  cmp   rax, 0
-  jle   .clear_fd
-
-  ; free client struct
-  mov   rdi, [rsp+0x28]
-  call  free_client
-  cmp   rax, 0
-  jl    .error
+  jl    .error ; TODO: error?
 
   ; decrease the number of active connections
   dec   qword [rsp+0x20]

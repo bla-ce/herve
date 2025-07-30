@@ -21,7 +21,6 @@
     - [ ] Connect logan to herve
 ## SMALL TODO:
     - [ ] Add rest of the attributes for cookie struct
-    - [ ] group functions to clear a client
 ## BORING TODO:
     - [ ] Calling conventions
     - [ ] prevent double free

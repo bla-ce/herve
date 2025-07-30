@@ -243,3 +243,62 @@ free_client:
   add   rsp, 0x8
   ret
 
+; close the connection and clear fd from the set
+; @param  rdi: pointer to the file descriptor of the client
+; @param  rsi: pointer to the main FD_SET
+; @param  rdx: current number of connections
+; @return rax: return code
+clear_client_connection:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the fd of the client
+  ; [rsp+0x8]   -> pointer to the main FD_SET
+  ; [rsp+0x10]  -> current number of connections
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; close connection
+  mov   rdi, qword [rsp]
+  call  close_file
+
+  ; clear the file descriptor from the set
+  mov   rdi, qword [rsp]
+  mov   rsi, [rsp+0x8]
+  call  FD_CLR
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [rsp]
+  mov   rsi, qword [rsp+0x10]
+  call  get_client_by_fd
+  cmp   rax, 0
+  jle   .error
+
+  ; free client struct
+  mov   rdi, rax
+  call  free_client
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
