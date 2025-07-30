@@ -89,9 +89,3 @@ cmp     rax, 0
 jl      .error
 ```
 
-## More to come...
-- [ ] Pass a hash table to log functions to add more information
-- [ ] Enable print full date
-- [ ] Connect Logan to Herve
-- [ ] ...
-
