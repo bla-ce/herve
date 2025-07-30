@@ -17,8 +17,7 @@
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
     - [ ] Improve clearing client process
-    - [NEXT] Allow post request processing middlewares
-        - [ ] Make sure max counts is respected
+    - [ ] Allow post request processing middlewares
     - [NEXT] Connect logan to herve
 ## SMALL TODO:
     - [ ] Add rest of the attributes for cookie struct
@@ -36,3 +35,9 @@
 - [ ] CORS Middleware
 - [ ] Graceful Shutdown
 - [ ] Session Management
+
+### Connect Logan to herve
+
+- [ ] Init logan
+- [ ] Log server initialisation
+    - [ ] Logo + server initialised on port
