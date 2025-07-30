@@ -4,7 +4,6 @@ middleware_struct:
   middleware_arg1 resq 1
   middleware_arg2 resq 1
   middleware_arg3 resq 1
-  middleware_next resq 1
 middleware_struct_end:
 
 section .data
@@ -14,7 +13,8 @@ section .data
   MIDDLEWARE_OFF_ARG1 equ MIDDLEWARE_OFF_ADDR + 0x8
   MIDDLEWARE_OFF_ARG2 equ MIDDLEWARE_OFF_ARG1 + 0x8
   MIDDLEWARE_OFF_ARG3 equ MIDDLEWARE_OFF_ARG2 + 0x8
-  MIDDLEWARE_OFF_NEXT equ MIDDLEWARE_OFF_ARG3 + 0x8
+
+  MIDDLEWARE_MAX_COUNT equ 15
 
 section .text
 ; pops the last middleware from the end of the chain
@@ -38,34 +38,34 @@ pop_middleware:
   cmp   rax, 0
   jle   .error
 
-  ; save middleware chain
+  ; save middlewares array
   mov   [rsp+0x8], rax
 
-  mov   rdi, [rsp+0x8]
+  mov   rdi, rax
+  cmp   qword [rdi], 0
+  je    .loop_end
 
-  ; save pointer to the chain
-  mov   rsi, [rsp]
-  add   rsi, SERVER_OFF_MIDDLEWARES
+  xor   rbx, rbx
 
 .loop:
-  ; get the middleware
-  mov   rdx, rsi
-  mov   rsi, rdi
+  cmp   rbx, MIDDLEWARE_MAX_COUNT-1
+  je    .pop
+  jg    .loop_end
 
-  ; check if next is populated
-  add   rsi, MIDDLEWARE_OFF_NEXT
-  cmp   qword [rsi], 0
+  mov   rcx, rbx
+  inc   rcx
+
+  ; check if next is null
+  cmp   qword [rdi+8*rcx], 0
   je    .pop
 
-  ; jump to the next middleware
-  mov   rdi, [rsi]
-
+  inc   rbx
   jmp   .loop
 
 .pop:
   ; rdi contains a pointer to the middleware we are checking
   ; rsi is a pointer pointing to the address of the next middleware
-  mov   qword [rdx], 0
+  mov   qword [rdi+8*rbx], 0
 .loop_end:
 
   mov   rax, SUCCESS_CODE
@@ -101,7 +101,7 @@ add_middleware:
   ; [rsp+0x10]  -> arg 1 to be passed when calling the function
   ; [rsp+0x18]  -> arg 2 to be passed when calling the function
   ; [rsp+0x20]  -> arg 3 to be passed when calling the function
-  ; [rsp+0x28]  -> pointer to go through the list of middlewares
+  ; [rsp+0x28]  -> pointer to the middlewares array
   ; [rsp+0x30]  -> pointer to middleware struct
 
   mov   [rsp], rdi
@@ -112,37 +112,37 @@ add_middleware:
 
   mov   qword [rsp+0x30], 0
 
-  add   rdi, SERVER_OFF_MIDDLEWARES
+  mov   rdi, [rsp]
+  call  get_server_middlewares
+  cmp   rax, 0
+  jl    .error
 
-  cmp   qword [rdi], 0
-  je    .add
+  mov   rdi, rax
 
   ; check if first middleware is null
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
-.loop:
-  ; go to *next
-  add   rdi, MIDDLEWARE_OFF_NEXT
-
-  ; check if the address in rdi is null
-  cmp   qword [rdi], 0
+  cmp   qword [rax], 0
   je    .add
 
-  ; rdi contains the address of next
-  ; needs to contain the address pointed by next
-  mov   rsi, rdi
-  mov   rdi, [rsi]
+  xor   rbx, rbx
+.loop:
+  ; get middleware
+  mov   rax, [rdi+8*rbx]
+  cmp   rax, 0
+  je    .add
+
+  inc   rbx
+  cmp   rbx, MIDDLEWARE_MAX_COUNT
+  jge   .error
 
   jmp   .loop
 
 .add:
+  lea   rax, [rdi+8*rbx]
   ; save next pos onto the stack
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x28], rax
 
   mov   rdi, MIDDLEWARE_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -158,7 +158,6 @@ add_middleware:
   mov   [rax+MIDDLEWARE_OFF_ARG1], rdx  ; load first argument
   mov   [rax+MIDDLEWARE_OFF_ARG2], rcx  ; load second argument
   mov   [rax+MIDDLEWARE_OFF_ARG3], r8  ; load third argument
-  mov   qword [rax+MIDDLEWARE_OFF_NEXT], 0
 
   ; mov middleware struct inside rdi
   mov   rdi, [rsp+0x28]
@@ -189,28 +188,42 @@ add_middleware:
 run_middlewares:
   sub   rsp, 0x18
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to the context struct
+  ; [rsp+0x10]  -> pointer to the middlewares array
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
 
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
   call  get_server_middlewares
-
   cmp   rax, 0
   jl    .error
   je    .end
 
-  mov   rdi, rax
+  mov   [rsp+0x10], rax
 
 .loop:
+  mov   rax, [rsp+0x8]
+  mov   rbx, qword [rax+CTX_OFF_INDEX]
+  cmp   rbx, MIDDLEWARE_MAX_COUNT
+  jge   .end
+  
+  mov   rax, [rsp+0x10]
+  mov   rdi, [rax+8*rbx]
+
+  cmp   rdi, 0
+  je    .end
+
   ; rdi contains the address of middleware_struct
   mov   rax, [rdi+MIDDLEWARE_OFF_ADDR]
 
-  mov   [rsp+0x10], rdi
   mov   rsi, [rdi+MIDDLEWARE_OFF_ARG1]  ; load first argument
   mov   rdx, [rdi+MIDDLEWARE_OFF_ARG2]  ; load second argument
   mov   rcx, [rdi+MIDDLEWARE_OFF_ARG3]  ; load third argument
@@ -224,16 +237,8 @@ run_middlewares:
   cmp   rax, TRUE
   je    .return
 
-  mov   rdi, [rsp+0x10]  ; load address of middleware struct
-
-  add   rdi, MIDDLEWARE_OFF_NEXT
-  cmp   qword [rdi], 0
-  je    .end
-
-  ; rdi contains the address of next
-  ; needs to contains the address pointer by next
-  mov   rsi, [rdi]
-  mov   rdi, rsi
+  mov   rax, [rsp+0x8]
+  inc   qword [rax+CTX_OFF_INDEX]
 
   jmp   .loop
 

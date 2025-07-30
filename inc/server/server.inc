@@ -220,6 +220,28 @@ get_server_routes:
 .return:
   ret
 
+; sets the middlewares array associated to the server
+; @param  rdi: pointer to server struct 
+; @param  rsi: pointer to the middlewares array
+; @return rax: return code
+set_server_middlewares:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   qword [rdi+SERVER_OFF_MIDDLEWARES], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the first route struct associated to the server
 ; @param  rdi: pointer to server struct 
 ; @return rax: pointer to the first middleware struct
@@ -278,7 +300,6 @@ server_init:
 
   ; set default values
   mov   qword [rax+SERVER_OFF_ROUTES], 0
-  mov   qword [rax+SERVER_OFF_MIDDLEWARES], 0
 
   ; check if port is in bounds
   cmp   qword [rsp], PORT_MIN
@@ -301,16 +322,25 @@ server_init:
 
   mov   qword [rsp+0x10], rax
 
+  ; calloc middlewares (array of pointers)
+  mov   rdi, MIDDLEWARE_MAX_COUNT
+  mov   rsi, 8
+  call  calloc
+  cmp   rax, 0
+  jl    .error
+
+  ; set middlewares
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  set_server_middlewares
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x8]
   mov   rsi, qword [rsp+0x10]
   call  set_server_sockfd
   cmp   rax, 0
   jl    .error  
-
-  mov   rdi, [rsp+0x8]
-  call  log_server_init
-  cmp   rax, 0
-  jl    .error
 
   mov   rax, [rsp+0x8]
 
@@ -395,6 +425,11 @@ run_server:
   mov   rdi, rax
   mov   rsi, [rsp+0x8]
   call  FD_SET
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  call  log_server_init
   cmp   rax, 0
   jl    .error
 

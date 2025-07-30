@@ -9,6 +9,7 @@ ctx_struct:
   ctx_end_time    resq 1
   ctx_aborted     resq 1
   ctx_done        resq 1
+  ctx_index       resq 1
 ctx_struct_end:
 
 section .data
@@ -23,6 +24,7 @@ section .data
   CTX_OFF_END_TIME    equ CTX_OFF_START_TIME + 0x8
   CTX_OFF_ABORTED     equ CTX_OFF_END_TIME + 0x8
   CTX_OFF_DONE        equ CTX_OFF_ABORTED + 0x8
+  CTX_OFF_INDEX       equ CTX_OFF_DONE + 0x8
 
   HTTP_1_1 db "HTTP/1.1", NULL_CHAR
 
@@ -265,7 +267,6 @@ ctx_init:
   ; malloc ctx
   mov   rdi, CTX_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -274,7 +275,6 @@ ctx_init:
   ; malloc request
   mov   rdi, REQ_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -288,7 +288,6 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x18]
   call  set_ctx_request
-
   cmp   rax, 0
   jl    .error
    
@@ -296,7 +295,6 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
   call  set_ctx_client
-
   cmp   rax, 0
   jl    .error
 
@@ -310,7 +308,6 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x20]
   call  set_ctx_response
-
   cmp   rax, 0
   jl    .error
 
@@ -318,7 +315,6 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp]
   call  set_ctx_server
-
   cmp   rax, 0
   jl    .error
 
@@ -326,6 +322,7 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   qword [rdi+CTX_OFF_ABORTED], 0
   mov   qword [rdi+CTX_OFF_DONE], 0
+  mov   qword [rdi+CTX_OFF_INDEX], 0
 
   ; return context
   mov   rax, [rsp+0x10]
