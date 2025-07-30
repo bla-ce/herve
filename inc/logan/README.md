@@ -90,8 +90,8 @@ jl      .error
 ```
 
 ## More to come...
-- [ ] Connect Logan to Herve
-- [ ] Enable print full date
 - [ ] Pass a hash table to log functions to add more information
+- [ ] Enable print full date
+- [ ] Connect Logan to Herve
 - [ ] ...
 

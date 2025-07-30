@@ -75,6 +75,46 @@ write_file:
 .return:
   ret
 
+; writes a null terminated cstring to a file
+; @param  rdi: file descriptor
+; @param  rsi: pointer to the string
+; @return rax: return value
+write_cstring_file:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> file descriptor
+  ; [rsp+0x8] -> pointer to the string
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   rsi, rdi
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdx, rax
+  mov   rax, SYS_WRITE
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  syscall
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; opens a file and return the file descriptor
 ; @param  rdi: pointer to file_path
 ; @param  rsi: flags

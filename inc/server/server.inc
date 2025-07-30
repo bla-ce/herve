@@ -29,6 +29,7 @@ section .data
   SERVER_OFF_PORT         equ SERVER_OFF_MIDDLEWARES + 0x8
 
   server_init_msg db "Herve started listening on port ", NULL_CHAR
+  routes_msg      db LINE_FEED, "Routes available:", NULL_CHAR
 
   STR_PORT_MAX_LENGTH equ 6
 
@@ -38,11 +39,13 @@ section .text
 ; @param  rdi: pointer to the server struct
 ; @return rax: return code
 log_server_init:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
   sub   rsp, STR_PORT_MAX_LENGTH
 
   ; *** STACK USAGE *** ;
-  ; [rsp]   -> pointer to the server struct
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to route linked list
+  ; [rsp+0x10]  -> temporary buffer for listening port
 
   mov   [rsp], rdi
 
@@ -51,7 +54,64 @@ log_server_init:
 
   ; print ln logo
   mov   rdi, HERVE_LOGO
+  call  print
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, routes_msg
   call  println
+  cmp   rax, 0
+  jl    .error
+
+  ; print available routes
+  mov   rdi, [rsp]
+  call  get_server_routes
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax 
+
+  test  rax, rax
+  jz    .loop_end
+
+.loop:
+  ; print tab
+  mov   rdi, SPACE
+  call  print_char
+  cmp   rax, 0
+  jl    .error
+
+  ; print method
+  mov   rsi, [rsp+0x8]
+  mov   rdi, [rsi+ROUTE_OFF_METHOD]
+  call  print
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, SPACE
+  call  print_char
+  cmp   rax, 0
+  jl    .error
+
+  ; print url
+  mov   rsi, [rsp+0x8]
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x8]
+  mov   rdi, [rax+ROUTE_OFF_NEXT]
+  test  rdi, rdi
+  jz    .loop_end
+
+  mov   [rsp+0x8], rdi
+
+  jmp   .loop
+.loop_end:
+  
+  mov   rdi, LINE_FEED
+  call  print_char
   cmp   rax, 0
   jl    .error
 
@@ -68,13 +128,14 @@ log_server_init:
   jle   .error
 
   mov   rdi, rax
-  lea   rsi, [rsp+0x8]
+  lea   rsi, [rsp+0x10]
   mov   rdx, STR_PORT_MAX_LENGTH
   call  to_string
   cmp   rax, 0
   jl    .return
 
-  lea   rdi, [rsp+0x8]
+  ; print port
+  lea   rdi, [rsp+0x10]
   call	println
   cmp   rax, 0
   jl    .error
@@ -87,7 +148,7 @@ log_server_init:
 
 .return:
   add   rsp, STR_PORT_MAX_LENGTH
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; returns the socket fd associated to the server
