@@ -14,7 +14,58 @@ section .data
   ROUTE_OFF_CALLBACK  equ ROUTE_OFF_URL + 0x8
   ROUTE_OFF_NEXT      equ ROUTE_OFF_CALLBACK + 0x8
 
+  log_pre_routes  db SPACE, SPACE, NULL_CHAR
+
 section .text
+; logs the route "METHOD  URL"
+; @param  rdi: pointer to the route
+; @return rax: return code
+log_route:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the route
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; print tab
+  mov   rdi, log_pre_routes
+  call  print
+  cmp   rax, 0
+  jl    .error
+
+  ; print method
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+ROUTE_OFF_METHOD]
+  call  print
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, HORIZONTAL_TAB
+  call  print_char
+  cmp   rax, 0
+  jl    .error
+
+  ; print url
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
 ; returns the url associated to the route struct
 ; @param  rdi: pointer to route struct
 ; @return rax: url address

@@ -75,28 +75,8 @@ log_server_init:
   jz    .loop_end
 
 .loop:
-  ; print tab
-  mov   rdi, SPACE
-  call  print_char
-  cmp   rax, 0
-  jl    .error
-
-  ; print method
-  mov   rsi, [rsp+0x8]
-  mov   rdi, [rsi+ROUTE_OFF_METHOD]
-  call  print
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, SPACE
-  call  print_char
-  cmp   rax, 0
-  jl    .error
-
-  ; print url
-  mov   rsi, [rsp+0x8]
-  mov   rdi, [rsi+ROUTE_OFF_URL]
-  call  println
+  mov   rdi, [rsp+0x8]
+  call  log_route
   cmp   rax, 0
   jl    .error
 
@@ -367,6 +347,14 @@ server_init:
   call  set_server_sockfd
   cmp   rax, 0
   jl    .error  
+
+  ; initialise default logger
+  call  logan_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   [rdi+SERVER_OFF_LOGGER], rax
 
   mov   rax, [rsp+0x8]
 

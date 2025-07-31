@@ -194,6 +194,30 @@ logan_get_prefix:
 .return:
   ret
 
+; prints the message without prefixes
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
+; @return rax: return code
+log:
+  ; rdi and rsi are already populated
+  mov   rdx, -1 ; disable prefix
+  mov   rcx, FALSE
+  call  _log
+
+  ret
+
+; prints the message without prefixes with a new line
+; @param  rdi: pointer to the logan struct
+; @param  rsi: pointer to the message
+; @return rax: return code
+logln:
+  ; rdi and rsi are already populated
+  mov   rdx, -1 ; disable prefix
+  mov   rcx, TRUE
+  call  _log
+
+  ret
+
 ; prints the error message and exits the programme with -1
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the message
@@ -267,7 +291,7 @@ log_warnln:
 
   ret
 
-; prints the error message at the INFO level
+; prints the message at the INFO level
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the message
 ; @return rax: return code
@@ -279,7 +303,7 @@ log_info:
 
   ret
 
-; prints the error message at the INFO level with a new line
+; prints the message at the INFO level with a new line
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the struct
 ; @return rax: return code
@@ -291,7 +315,7 @@ log_infoln:
 
   ret
 
-; prints the error message at the LOG level
+; prints the message at the LOG level
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the message
 ; @return rax: return code
@@ -303,7 +327,7 @@ log_log:
 
   ret
 
-; prints the error message at the LOG level with a new line
+; prints the message at the LOG level with a new line
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the struct
 ; @return rax: return code
@@ -315,7 +339,7 @@ log_logln:
 
   ret
 
-; prints the error message at the DEBUG level
+; prints the message at the DEBUG level
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the message
 ; @return rax: return code
@@ -327,7 +351,7 @@ log_debug:
 
   ret
 
-; prints the error message at the DEBUG level with a new line
+; prints the message at the DEBUG level with a new line
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the struct
 ; @return rax: return code
@@ -339,7 +363,7 @@ log_debugln:
 
   ret
 
-; prints the error message at the TRACE level
+; prints the message at the TRACE level
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the message
 ; @return rax: return code
@@ -351,7 +375,7 @@ log_trace:
 
   ret
 
-; prints the error message at the TRACE level with a new line
+; prints the message at the TRACE level with a new line
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the struct
 ; @return rax: return code
@@ -396,17 +420,6 @@ _log:
   cmp   rsi, 0
   jle   .error
 
-  cmp   rdx, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  call  logan_get_minimum_level
-  cmp   rax, 0
-  jl    .error
-
-  cmp   [rsp+0x10], rax
-  jl    .return    
-
   ; save the file descriptor
   mov   rdi, [rsp]
   call  logan_get_output
@@ -415,13 +428,16 @@ _log:
 
   mov   qword [rsp+0x20], rax
 
-  ; get message length
-  mov   rdi, [rsp+0x8]
-  call  strlen
+  cmp   qword [rsp+0x10], 0
+  jl    .log_message  ; log without prefix
+
+  mov   rdi, [rsp]
+  call  logan_get_minimum_level
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x28], rax
+  cmp   [rsp+0x10], rax
+  jl    .return    
 
   ; check if prefixes are enabled
   mov   rdi, [rsp]
@@ -522,6 +538,13 @@ _log:
   jl    .error
 
 .log_message:
+  ; get message length
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x28], rax
   mov   rdi, qword [rsp+0x20]
   mov   rsi, [rsp+0x8]
   mov   rdx, qword [rsp+0x28]
