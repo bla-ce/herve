@@ -35,10 +35,10 @@ jobs:
     - name: Run wrk benchmark
       run: |
         echo "Running wrk on /index..."
-        wrk -t1 -c1 -d10s --latency http://localhost:1337/index
+        wrk -t1 -c1 -d30s --latency http://localhost:1337/index
 
         echo "Running wrk on /not-found..."
-        wrk -t1 -c1 -d10s --latency http://localhost:1337/not-found
+        wrk -t1 -c1 -d30s --latency http://localhost:1337/not-found
 
     - name: Kill server
       run: |
@@ -58,6 +58,11 @@ jobs:
       run: |
         chmod +x test_echo.sh
         ./test_echo.sh
+
+    - name: Run malloc tests
+      run: |
+        cd inc/malloc/tests
+        make
 
     - name: Kill server
       run: |
