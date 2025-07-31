@@ -74,6 +74,7 @@ handle_ctx:
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
+  mov   rdx, FALSE      ; run pre request middlewares
   call  run_middlewares
 
 ; check if ctx has been aborted
@@ -128,6 +129,12 @@ handle_ctx:
   jl    .error
 
   ; TODO: log with Logan
+
+  ; run post request middlewares
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, TRUE
+  call  run_middlewares
 
 .free_ctx:
   mov   rdi, [rsp+0x10]

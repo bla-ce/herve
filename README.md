@@ -1,25 +1,23 @@
-# Implementation of a HTTP Server Library in Netwide Assembly
+# Herve
+
+## What is Herve?
+
+Herve is a high-performance HTTP Server Library written entirely in Assembly for x86 systems. 
+
+Herve makes it quick and easy for developers to build web applications in Assembly without worrying about the underlying server logic and network operations.
 
 > [!WARNING]
 > This library is for educational or experimental purposes only.
 > It is NOT suitable yet for production use
 
-## Documentation (Work In Progress)
-
-https://herve-asm.gitbook.io/herve-docs
-
-## Overview
-
-Herve is a lightweight, high-performance HTTP server library written entirely in Netwide Assembly (NASM) for x86 systems. It provides a simple API for handling HTTP requests and responses, making it easier for developers to build web applications in pure Assembly without worrying about low-level network operations.
-
 ## Features
 
 - **Linux x86 Only**: Designed exclusively for Linux on x86 architecture.
-- **Zero external dependencies**: No libc required
+- **Zero external dependencies**: No libc or external dependencies required.
 - **High Performance**: Optimized for speed with custom memory management.
-- **Custom Malloc Implementation**: Efficient memory allocation using custom malloc.
+- **Custom Malloc Implementation**: Efficient memory allocation using custom malloc and free.
 - **HTTP/1.1 Support**: Support for HTTP/1.1 requests and responses.
-- **Ultra-fast**: ~20µs per request
+- **Ultra-fast**: ~15µs per request
 - **Configurable Port Number**: Users can specify the listening port.
 - **Custom Request Handlers**: Users can define custom handlers for different request routes.
 - **Middleware Support**: Users can add middlewares to extend request processing.
@@ -28,7 +26,7 @@ Herve is a lightweight, high-performance HTTP server library written entirely in
 - **Support Query Parameters**: Is able to read and parse query parameters
 - **Basic Authorization**: Supports Basic Auth
 
-## Performance
+## Benchmark
 
 Test Configuration:
 - **Test Duration:** 30 seconds
@@ -121,3 +119,4 @@ error:
 section .data
   wildcard_url  db "*", NULL_CHAR
 ```
+

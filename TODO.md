@@ -9,6 +9,8 @@
     - [ ] Add multithreading
     - [ ] Be able to make requests to the outside world
 ## MEDIUM TODO:
+    - [NEXT] Allow post request processing middlewares
+    - [NEXT] Connect logan to herve
     - [ ] Implement timeout for idle connections
     - [ ] Routing with Parameters
     - [ ] Error management
@@ -16,9 +18,6 @@
     - [ ] Define other timezones
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
-    - [ ] Improve clearing client process
-    - [ ] Allow post request processing middlewares
-    - [ ] Connect logan to herve
 ## SMALL TODO:
     - [ ] Add rest of the attributes for cookie struct
 ## BORING TODO:
