@@ -9,8 +9,7 @@
     - [ ] Add multithreading
     - [ ] Be able to make requests to the outside world
 ## MEDIUM TODO:
-    - [NEXT] Allow post request processing middlewares
-    - [NEXT] Connect logan to herve
+    - [ ] Get IP from header if it exists
     - [ ] Implement timeout for idle connections
     - [ ] Routing with Parameters
     - [ ] Error management

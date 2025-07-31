@@ -12,6 +12,7 @@
 %include "hash_table.inc"
 %include "headers.inc"
 %include "logan.inc"
+%include "logger.inc"
 %include "malloc.inc"
 %include "memset.inc"
 %include "method.inc"

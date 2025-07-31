@@ -35,13 +35,13 @@ Test Configuration:
 - **Configuration:** 1 thread, 1 connection
 
 Result:
-- **Latency:** 15.00us
+- **Latency:** 13.50us
 
 Latency Distribution:
-- **50%:** 13.00us
-- **75%:** 14.00us
-- **90%:** 17.00us
-- **99%:** 33.00us
+- **50%:** 12.00us
+- **75%:** 13.00us
+- **90%:** 15.00us
+- **99%:** 31.00us
 
 ## Example
 

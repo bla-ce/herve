@@ -289,14 +289,16 @@ htons:
 ; @param  rdi: port
 ; @return rax: pointer to server struct | error
 server_init:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   cmp   rdi, 0
   jg    .port_defined
 
   ; *** STACK USAGE *** ;
-  ; [rsp]     -> port
-  ; [rsp+0x8] -> pointer to the server struct
+  ; [rsp]       -> port
+  ; [rsp+0x8]   -> pointer to the server struct
+  ; [rsp+0x10]  -> file descriptor of the server
+  ; [rsp+0x18]  -> pointer to the logger struct
 
 .default_port:
   mov   rbx, DEFAULT_PORT
@@ -353,8 +355,27 @@ server_init:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x18], rax
+
   mov   rdi, [rsp+0x8]
   mov   [rdi+SERVER_OFF_LOGGER], rax
+
+  ; enable timestamp
+  mov   rdi, [rsp+0x18]
+  call  logan_enable_timestamp
+  cmp   rax, 0
+  jl    .error
+
+  ; add post request middleware to log request info
+  mov   rdi, [rsp+0x8]
+  mov   rsi, log_ctx
+  mov   rdx, [rsp+0x18]
+  mov   rcx, 0
+  mov   r8, 0
+  mov   r9, TRUE
+  call  add_middleware
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [rsp+0x8]
 
@@ -381,7 +402,7 @@ server_init:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; runs the server

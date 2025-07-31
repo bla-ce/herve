@@ -6,6 +6,7 @@ CONFIG_DIR = config
 BOEUF_DIR = boeuf
 OS_DIR = os
 LOGAN_DIR = logan
+MIDDLEWARES_DIR = middlewares
 INCLUDES = $(shell find $(INC_DIR) -type f -name '*.inc')
 
 INCLUDE_FLAGS = \
@@ -16,7 +17,8 @@ INCLUDE_FLAGS = \
 	-I$(INC_DIR)/$(BOEUF_DIR) \
 	-I$(INC_DIR)/$(OS_DIR) \
 	-I$(INC_DIR)/$(LOGAN_DIR) \
-	-I$(INC_DIR)/$(CONFIG_DIR)
+	-I$(INC_DIR)/$(CONFIG_DIR) \
+	-I$(INC_DIR)/$(MIDDLEWARES_DIR)
 
 DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
