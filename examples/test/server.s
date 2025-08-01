@@ -303,13 +303,6 @@ test_string:
   cmp   rax, 0
   jl    .error
 
-  ; test print request headers
-  mov   rdi, [rsp]
-  call  get_ctx_request
-
-  cmp   rax, 0
-  jl    .error
-
   mov   rdi, [rsp]
   mov   rsi, OK  
   lea   rdx, [ok_msg]

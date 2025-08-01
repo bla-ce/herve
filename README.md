@@ -16,8 +16,9 @@ Herve makes it quick and easy for developers to build web applications in Assemb
 - **Zero external dependencies**: No libc or external dependencies required.
 - **High Performance**: Optimized for speed with custom memory management.
 - **Custom Malloc Implementation**: Efficient memory allocation using custom malloc and free.
+- **Custom Logger Implementation**: Herve is implemented with [Logan](https://github.com/bla-ce/logan) to log information about each request.
 - **HTTP/1.1 Support**: Support for HTTP/1.1 requests and responses.
-- **Ultra-fast**: ~15µs per request
+- **Ultra-fast**: ~13.50µs per request
 - **Configurable Port Number**: Users can specify the listening port.
 - **Custom Request Handlers**: Users can define custom handlers for different request routes.
 - **Middleware Support**: Users can add middlewares to extend request processing.
@@ -38,10 +39,10 @@ Result:
 - **Latency:** 13.50us
 
 Latency Distribution:
-- **50%:** 12.00us
-- **75%:** 13.00us
-- **90%:** 15.00us
-- **99%:** 31.00us
+- **50%:** 12.00µs
+- **75%:** 13.00µs
+- **90%:** 15.00µs
+- **99%:** 31.00µs
 
 ## Example
 

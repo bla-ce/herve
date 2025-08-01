@@ -322,6 +322,7 @@ server_init:
   ; set default values
   mov   qword [rax+SERVER_OFF_ROUTES], 0
   mov   qword [rax+SERVER_OFF_MIDDLEWARES], 0
+  mov   qword [rax+SERVER_OFF_LOGGER], 0
 
   ; check if port is in bounds
   cmp   qword [rsp], PORT_MIN
@@ -349,33 +350,6 @@ server_init:
   call  set_server_sockfd
   cmp   rax, 0
   jl    .error  
-
-  ; initialise default logger
-  call  logan_init
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x8]
-  mov   [rdi+SERVER_OFF_LOGGER], rax
-
-  ; enable timestamp
-  mov   rdi, [rsp+0x18]
-  call  logan_enable_timestamp
-  cmp   rax, 0
-  jl    .error
-
-  ; add post request middleware to log request info
-  mov   rdi, [rsp+0x8]
-  mov   rsi, log_ctx
-  mov   rdx, [rsp+0x18]
-  mov   rcx, 0
-  mov   r8, 0
-  mov   r9, TRUE
-  call  add_middleware
-  cmp   rax, 0
-  jl    .error
 
   mov   rax, [rsp+0x8]
 

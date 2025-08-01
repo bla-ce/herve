@@ -17,6 +17,7 @@
     - [ ] Define other timezones
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
+    - [ ] Add log configurations
 ## SMALL TODO:
     - [ ] Add rest of the attributes for cookie struct
 ## BORING TODO:
