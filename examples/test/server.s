@@ -488,6 +488,21 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; get default logger
+  call  logan_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, log_ctx
+  mov   rdx, rax
+  mov   rcx, 0xFF ; enable all info
+  mov   r8, 0
+  mov   r9, TRUE
+  call  add_middleware
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x8]
   call  run_server
   

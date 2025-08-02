@@ -1,5 +1,13 @@
-section .data
+section .data 
   logger_delim db " | ", NULL_CHAR
+
+  ; offsets
+  LOGGER_STATUS_CODE_OFF  equ 00010000b
+  LOGGER_URL_OFF          equ 00001000b
+  LOGGER_METHOD_OFF       equ 00000100b
+  LOGGER_IP_OFF           equ 00000010b
+  LOGGER_LATENCY_OFF      equ 00000001b ; unused yet
+  ; | PAD | S | U | M | I | L |
 
 section .text
 
@@ -7,17 +15,21 @@ section .text
 ; format: [INFO] timestamp | ip | status_code | method | url
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: pointer to the logan struct
+; @param  rdx: flags
 ; @return rax: return code
 log_ctx:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   ; *** STACK USAGE *** ;
-  ; [rsp]     -> pointer to the context struct
-  ; [rsp+0x8] -> pointer to the logan struct
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the logan struct
+  ; [rsp+0x10]  -> flags 
+  ; [rsp+0x18]  -> pointer to the boeuf buffer
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x10], 0
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -25,12 +37,20 @@ log_ctx:
   cmp   rsi, 0
   jle   .error
 
+  cmp   rdx, 0
+  jle   .return
+
+  ; create boeuf buffer
   mov   rdi, logger_delim
   call  boeuf_create
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x10]
+  test  rdi, LOGGER_IP_OFF
+  jz    .skip_ip
 
   ; get the client
   mov   rdi, [rsp]
@@ -44,22 +64,26 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  ; create boeuf buffer
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   mov   rsi, rax
   call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   mov   rsi, logger_delim
   call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
+
+.skip_ip:
+  mov   rdi, [rsp+0x10]
+  test  rdi, LOGGER_STATUS_CODE_OFF
+  jz    .skip_status_code
 
   ; get status code
   mov   rdi, [rsp]
@@ -78,21 +102,26 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   mov   rsi, rax
   call  boeuf_append
   cmp   rax, 0
   jl    .error
   
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   mov   rsi, logger_delim
   call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
+
+.skip_status_code:
+  mov   rdi, [rsp+0x10]
+  test  rdi, LOGGER_METHOD_OFF
+  jz    .skip_method
 
   ; get method
   mov   rdi, [rsp]
@@ -105,21 +134,26 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   mov   rsi, rax
   call  boeuf_append
   cmp   rax, 0
   jl    .error
   
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   mov   rsi, logger_delim
   call  boeuf_append
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
+
+.skip_method:
+  mov   rdi, [rsp+0x10]
+  test  rdi, LOGGER_URL_OFF
+  jz    .skip_url
 
   ; get url
   mov   rdi, [rsp]
@@ -132,22 +166,23 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   mov   rsi, rax
   call  boeuf_append
   cmp   rax, 0
   jl    .error
   
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
+.skip_url:
   mov   rdi, [rsp+0x8]
-  mov   rsi, rax
+  mov   rsi, [rsp+0x18]
   call  log_infoln
   cmp   rax, 0
   jl    .error
 
   ; free boeuf buffer
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   call  boeuf_free
   cmp   rax, 0
   jl    .error
@@ -156,7 +191,7 @@ log_ctx:
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   test  rdi, rdi
   jz    .no_free
 
@@ -168,6 +203,6 @@ log_ctx:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
