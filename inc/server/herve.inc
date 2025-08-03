@@ -9,6 +9,7 @@
 %include "error.inc"
 %include "file.inc"
 %include "free.inc"
+%include "group.inc"
 %include "hash_table.inc"
 %include "headers.inc"
 %include "logan.inc"
