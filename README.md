@@ -10,9 +10,9 @@ To gain a deeper knowledge of computer architecture and how the CPU works at the
 
 But let's be real, spending hours to just write basic functions like `to_string` or `strlen` is not the most exciting or rewarding thing.
 
-The goal of this library is to provide a thorough yet simple API to allow developers to write exciting Assembly projects with a webserver without spending months the underlying webserver and network operations.
+The goal of this library is to provide a thorough yet simple API to allow developers to write exciting Assembly projects with a webserver without spending months building the underlying webserver and network operations.
 
-No, I want developers to be able to spin up a webserver with 70 lines of Assembly.
+No, I want developers to be able to spin up a webserver with 70 lines of Assembly and focus on the rest of the project.
 
 After one year and ~15,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
 
