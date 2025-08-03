@@ -1,55 +1,86 @@
 # Herve
 
+ _____________________________________________ 
+|    _____   _____   _____   _____   _____    |
+|   |  |  | |   __| | __  | |  |  | |   __|   |
+|   |     | |   __| |    -| |  |  | |   __|   |
+|   |__|__| |_____| |__|__|  \___/  |_____|   |
+|_____________________________________________|
+
+
 ## What is Herve?
 
-Herve is a high-performance HTTP Server Library written entirely in Assembly for x86 systems. 
+Herve is a high-performance HTTP Server Library written entirely in Assembly for x86 systems.
 
-Herve makes it quick and easy for developers to build web applications in Assembly without worrying about the underlying server logic and network operations.
+## Why Herve has been built and why would use it?
 
-> [!WARNING]
-> This library is for educational or experimental purposes only.
-> It is NOT suitable yet for production use
+To gain a deeper knowledge of computer architecture and how the CPU works at the instruction level, I wanted to build projects in Assembly.
+
+But let's be real, spending hours to just write basic functions like `to_string` or `strlen` is not the most exciting or rewarding thing.
+
+The goal of this library is to provide a thorough yet simple API to allow developers to write exciting Assembly projects with a webserver without spending months the underlying webserver and network operations.
+
+No, I want developers to be able to spin up a webserver with 70 lines of Assembly.
+
+After one year and ~15,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
+
+(of course, this library is also intended to show off).
 
 ## Features
 
-- **Linux x86 Only**: Designed exclusively for Linux on x86 architecture.
-- **Zero external dependencies**: No libc or external dependencies required.
-- **High Performance**: Optimized for speed with custom memory management.
-- **Custom Malloc Implementation**: Efficient memory allocation using custom malloc and free.
-- **Custom Logger Implementation**: Herve is implemented with [Logan](https://github.com/bla-ce/logan) to log information about each request.
-- **HTTP/1.1 Support**: Support for HTTP/1.1 requests and responses.
-- **Ultra-fast**: ~13.50µs per request
-- **Configurable Port Number**: Users can specify the listening port.
-- **Custom Request Handlers**: Users can define custom handlers for different request routes.
-- **Middleware Support**: Users can add middlewares to extend request processing.
-- **Static File Serving**: Supports serving static files and entire directories.
-- **Basic Template Engine**: Built-in basic template engine
-- **Support Query Parameters**: Is able to read and parse query parameters
-- **Basic Authorization**: Supports Basic Auth
+### Performance
 
-## Benchmark
+Because of its implementation in Assembly, `Herve` is incredibly fast but it is not yet written or optimized for performance.
 
-Test Configuration:
-- **Test Duration:** 30 seconds
-- **Test URL:** /index
-- **Benchmark Tool:** wrk
-- **Configuration:** 1 thread, 1 connection
+`Herve` is currently written to be as readable and understainable  as possible compromising performance.
 
-Result:
-- **Latency:** 13.50us
+### Custom Request Handler
 
-Latency Distribution:
-- **50%:** 12.00µs
-- **75%:** 13.00µs
-- **90%:** 15.00µs
-- **99%:** 31.00µs
+You can write custom request handlers for each route you define.
 
-## Example
+Each handler will receive the context structure as an argument so that you have all the necessary information about the request.
 
-```asm
+### Middlewares
+
+When writing a webserver, you might want to add custom middlewares at the root level like authentication, reverse-proxy, request logs etc...
+
+To avoid writing these functions for every route, you can add middlewares that can be executed before or after the request handler. These middlewares are stored as a linked list.
+
+In the future, `Herve` will allow middlewares for specific groups of routes and not just at the root level.
+
+`Herve` provides some middlewares, including a custom request logger and a proxy middleware.
+
+### Custom malloc
+
+To make my life easier and reduce variables scope, I have implemented my own malloc and free functions. More info can be found [here](https://github.com/bla-ce/unstack).
+
+You can access the globals `mallocd`, `freed` or `mmapd` to make sure you don't have memory leaks.
+
+### Send static files
+
+`Herve` supports various `send_` functions. Devs can send responses without content, with a string or send static files. The `add_dir_route` function allows devs to define a route for each file in the directory as long as the format is supported.
+
+### Template Engine
+
+A basic template engine has been implemented so that devs can return dynamic content, passing a hash table as an argument. The library also contains a custom hash table implementation to make things easier. 
+
+At the moment, only string keys and values are supported which should be enough for most use cases.
+
+### Basic Auth
+
+Basic auth can be used with `Herve`, this is the simplest and of course one of the least robust way to provide authentication but I hoping to implement other authentication methods in the future as middlewares.
+
+## Quick Start
+
+To use `Herve`, you can copy the content of the `inc/` directory and include the required files in your projects. 
+
+Here is an example of an echo server built with `Herve`:
+
+```assembly
 global _start
 
 %include "herve.inc"
+%include "os.inc"
 
 section .text
 
@@ -88,6 +119,7 @@ echo:
 _start:
   sub   rsp, 0x8
 
+  ; initialise server with port 1337
   mov   rdi, 1337
   call  server_init
   cmp   rax, 0
@@ -95,7 +127,8 @@ _start:
 
   mov   [rsp], rax 
 
-  mov   rdi, rax
+  ; add a new POST route
+  mov   rdi, [rsp]
   lea   rsi, [POST]
   lea   rdx, [wildcard_url]
   mov   rcx, echo
@@ -103,21 +136,31 @@ _start:
   cmp   rax, 0
   jl    error
 
+  ; run the server
   mov   rdi, [rsp]
   call  run_server
   cmp   rax, 0
   jl    error
 
-  mov   rax, SYS_EXIT
   mov   rdi, SUCCESS_CODE
-  syscall
+  call  exit
 
 error:
-  mov   rax, SYS_EXIT
   mov   rdi, FAILURE_CODE
-  syscall
-
+  call  exit
+  
 section .data
   wildcard_url  db "*", NULL_CHAR
 ```
+
+## Benchmark
+
+TODO
+
+## Documentation
+
+TODO
+
+## More to come
+
 
