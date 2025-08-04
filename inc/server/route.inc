@@ -3,6 +3,7 @@ route_struct:
   route_method    resq 1
   route_url       resq 1
   route_callback  resq 1
+  route_group     resq 1
   route_next      resq 1
 route_struct_end:
 
@@ -12,7 +13,8 @@ section .data
   ROUTE_OFF_METHOD    equ 0x0
   ROUTE_OFF_URL       equ ROUTE_OFF_METHOD + 0x8
   ROUTE_OFF_CALLBACK  equ ROUTE_OFF_URL + 0x8
-  ROUTE_OFF_NEXT      equ ROUTE_OFF_CALLBACK + 0x8
+  ROUTE_OFF_GROUP     equ ROUTE_OFF_CALLBACK + 0x8
+  ROUTE_OFF_NEXT      equ ROUTE_OFF_GROUP + 0x8
 
   log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
@@ -641,6 +643,9 @@ add_route:
   ; add callback
   mov   rdi, [rsp+0x18]
   mov   [rax+ROUTE_OFF_CALLBACK], rdi
+
+  ; set the group to 0 -> root
+  mov   qword [rax+ROUTE_OFF_GROUP], 0
 
   ; set next to 0
   mov   qword [rax+ROUTE_OFF_NEXT], 0
