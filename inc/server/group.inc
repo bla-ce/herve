@@ -1,10 +1,11 @@
 section .bss
 
 group_struct:
-  routes        resq 1
-  middlewares   resq 1
-  prefix        resq 1
-  is_root       resq 1
+  group_routes      resq 1
+  group_middlewares resq 1
+  group_prefix      resq 1
+  group_is_root     resq 1
+  group_next        resq 1
 group_struct_end:
 
 section .data
@@ -16,6 +17,7 @@ GRP_STRUCT_OFF_ROUTES       equ 0x0
 GRP_STRUCT_OFF_MIDDLEWARES  equ GRP_STRUCT_OFF_ROUTES + 0x8
 GRP_STRUCT_OFF_PREFIX       equ GRP_STRUCT_OFF_MIDDLEWARES + 0x8
 GRP_STRUCT_OFF_IS_ROOT      equ GRP_STRUCT_OFF_PREFIX + 0x8
+GRP_STRUCT_OFF_NEXT         equ GRP_STRUCT_OFF_IS_ROOT + 0x8
 
 section .text
 
@@ -58,8 +60,9 @@ add_group:
   mov   qword [rax+GRP_STRUCT_OFF_MIDDLEWARES], 0
   mov   [rax+GRP_STRUCT_OFF_PREFIX], rsi
   mov   [rax+GRP_STRUCT_OFF_IS_ROOT], rdx
+  mov   qword [rax+GRP_STRUCT_OFF_NEXT], 0
 
-  ; add the group to the server
+  ; TODO: add the group to the server
 
   jmp   .return
 
