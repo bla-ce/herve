@@ -503,6 +503,16 @@ add_dir_route:
 route_exist:
   sub   rsp, 0x20
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to the method
+  ; [rsp+0x10]  -> pointer to the url
+  ; [rsp+0x18]  -> pointer to routes linked list
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
   cmp   rdi, 0
   jle   .error
 
@@ -512,14 +522,9 @@ route_exist:
   cmp   rdx, 0
   jle   .error
 
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
-
   ; load server routes
   mov   rdi, [rsp]
   call  get_server_routes
-
   cmp   rax, 0
   jl    .error
   je    .loop_end
@@ -613,7 +618,6 @@ add_route:
   mov   rsi, [rsp+0x8]
   mov   rdx, [rsp+0x10]
   call  route_exist
-
   cmp   rax, 0
   jl    .error 
 
@@ -623,14 +627,12 @@ add_route:
   ; make sure method is valid
   mov   rdi, [rsp+0x8]
   call  is_valid_method
-
   cmp   rax, 0
   je    .error
 
   ; malloc route struct
   mov   rdi, ROUTE_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -653,6 +655,8 @@ add_route:
   ; get url length
   mov   rdi, [rsp+0x10]
   call  strlen
+  cmp   rax, 0
+  jl    .error
 
   ; make sure is less than MAX_LEN
   cmp   rax, URL_MAX_LEN
@@ -683,7 +687,6 @@ add_route:
   mov   rdi, [rsp+0x28]
   inc   rdi       ; increase by one to have null char
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -707,7 +710,6 @@ add_route:
   mov   rdi, [rsp]
   mov   rsi, rax
   call  add_route_struct_to_server
-
   cmp   rax, 0
   jl    .error
 

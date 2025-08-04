@@ -46,6 +46,24 @@ add_group:
   cmp   rsi, 0
   jl    .error
 
+  ; make sure prefix starts with a slash
+  mov   rdi, [rsp+0x8]
+  xor   rax, rax
+  lodsb
+
+  cmp   rax, SLASH
+  jne   .error  ; handling errors as a professional herve :)
+
+  ; make sure a group with the same prefix does not already exist
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  group_exist
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .error
+
   mov   rdi, GRP_STRUCT_LEN
   call  malloc
   cmp   rax, 0
@@ -62,7 +80,14 @@ add_group:
   mov   [rax+GRP_STRUCT_OFF_IS_ROOT], rdx
   mov   qword [rax+GRP_STRUCT_OFF_NEXT], 0
 
-  ; TODO: add the group to the server
+  ; add the group to the server
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  add_group_struct_to_server
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x18]
 
   jmp   .return
 
@@ -80,3 +105,152 @@ add_group:
   add   rsp, 0x20
   ret
 
+; adds the group to the group linked list of the server
+; @param  rdi: pointer to the server struct
+; @param  rsi: pointer to the group struct
+; @return rax: return code
+add_group_struct_to_server:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the server struct
+  ; [rsp+0x8] -> pointer to the group struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; get route offset to check if groups are init
+  add   rdi, SERVER_OFF_GROUPS
+
+  cmp   qword [rdi], 0
+  je    .add
+
+  ; load first route
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+  
+.loop:
+  ; rdi points to the address of current route
+  ; go to next offset
+  add   rdi, GRP_STRUCT_OFF_NEXT
+  cmp   qword [rdi], 0
+  je    .add
+ 
+  ; rdi contains the address of the route
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+
+  jmp   .loop
+.loop_end:
+
+.add:
+  mov   rsi, [rsp+0x8]
+  mov   [rdi], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; checks that a group with the same prefix or sub prefix does not
+; already exist.
+; @param  rdi: pointer to the server struct
+; @param  rsi: pointer to the group struct
+; @return rax: group does exist (bool)
+group_exist:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to the group prefix
+  ; [rsp+0x10]  -> pointer to groups linked list
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; load server routes
+  mov   rdi, [rsp]
+  call  get_server_groups
+  cmp   rax, 0
+  jl    .error
+  je    .loop_end
+
+  ; save group address
+  mov   [rsp+0x10], rax
+
+.loop:
+  ; check that the prefix does not already exist
+  mov   rdi, [rsp+0x10]
+  call  get_group_prefix
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .equal
+
+  ; go to next
+.not_equal:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rdi+GRP_STRUCT_OFF_NEXT]
+
+  test  rsi, rsi
+  jz    .loop_end
+
+  mov   [rsp+0x10], rsi
+
+  jmp   .loop
+
+.loop_end:
+  mov   rax, FALSE
+  jmp   .return
+
+.equal:
+  mov   rax, TRUE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; returns the prefix of the group
+; @param  rdi: pointer to the group struct
+; @return rax: pointer to the prefix
+get_group_prefix:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+GRP_STRUCT_OFF_PREFIX]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret

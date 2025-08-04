@@ -27,7 +27,8 @@ section .data
   SERVER_OFF_ROUTES       equ SERVER_OFF_LOGGER + 0x8
   SERVER_OFF_SOCKADDR     equ SERVER_OFF_ROUTES + 0x8
   SERVER_OFF_MIDDLEWARES  equ SERVER_OFF_SOCKADDR + 0x8
-  SERVER_OFF_PORT         equ SERVER_OFF_MIDDLEWARES + 0x8
+  SERVER_OFF_GROUPS       equ SERVER_OFF_MIDDLEWARES + 0x8
+  SERVER_OFF_PORT         equ SERVER_OFF_GROUPS + 0x8
 
   server_init_msg db "Herve started listening on port ", NULL_CHAR
   routes_msg      db LINE_FEED, "Routes available:", NULL_CHAR
@@ -246,6 +247,22 @@ set_server_port:
 .return:
   ret
 
+; returns the first group struct associated to the server
+; @param  rdi: pointer to server struct 
+; @return rax: pointer to the first group struct
+get_server_groups:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVER_OFF_GROUPS]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the first route struct associated to the server
 ; @param  rdi: pointer to server struct 
 ; @return rax: pointer to the first route struct
@@ -324,6 +341,7 @@ server_init:
   mov   qword [rax+SERVER_OFF_ROUTES], 0
   mov   qword [rax+SERVER_OFF_MIDDLEWARES], 0
   mov   qword [rax+SERVER_OFF_LOGGER], 0
+  mov   qword [rax+SERVER_OFF_GROUPS], 0
 
   ; check if port is in bounds
   cmp   qword [rsp], PORT_MIN
