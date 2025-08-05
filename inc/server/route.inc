@@ -595,9 +595,28 @@ route_exist:
 ; @param  rsi: pointer to method
 ; @param  rdx: pointer to url
 ; @param  rcx: pointer to callback
+; @param  r8: pointer to the group struct or 0 if root
 ; @return rax: pointer to route struct
 add_route:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to the method of the route
+  ; [rsp+0x10]  -> pointer to the url of the route
+  ; [rsp+0x18]  -> pointer to the callback function
+  ; [rsp+0x20]  -> pointer to the group struct
+  ; [rsp+0x28]  -> pointer to the malloc'd route struct
+  ; [rsp+0x30]  -> size of the url
+  ; [rsp+0x38]  -> pointer to the malloc'd url
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
+  mov   [rsp+0x20], r8
+  mov   qword [rsp+0x28], 0
+  mov   qword [rsp+0x38], 0
 
   cmp   rdi, 0
   jle   .error
@@ -607,11 +626,6 @@ add_route:
 
   cmp   rdx, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
-  mov   [rsp+0x18], rcx
 
   ; make sure the route does not already exist
   mov   rdi, [rsp]
@@ -636,7 +650,7 @@ add_route:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax 
+  mov   [rsp+0x28], rax 
 
   ; add method to struct
   mov   rdi, [rsp+0x8]
@@ -646,11 +660,24 @@ add_route:
   mov   rdi, [rsp+0x18]
   mov   [rax+ROUTE_OFF_CALLBACK], rdi
 
-  ; set the group to 0 -> root
-  mov   qword [rax+ROUTE_OFF_GROUP], 0
-
   ; set next to 0
   mov   qword [rax+ROUTE_OFF_NEXT], 0
+
+  ; set the group
+  mov   rdi, [rsp+0x20]
+  cmp   rdi, 0
+  jg    .no_root_group
+
+  mov   rdi, [rsp]
+  call  get_server_root_group
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+
+.no_root_group:
+  mov   rax, [rsp+0x28]
+  mov   qword [rax+ROUTE_OFF_GROUP], rdi
 
   ; get url length
   mov   rdi, [rsp+0x10]
@@ -662,7 +689,7 @@ add_route:
   cmp   rax, URL_MAX_LEN
   jg    .error
 
-  mov   [rsp+0x28], rax
+  mov   [rsp+0x30], rax
 
   cmp   rax, 1
   je    .malloc_url
@@ -673,37 +700,37 @@ add_route:
   cmp   byte [rsi], SLASH
   jne   .error
 
-  add   rsi, [rsp+0x28]
+  add   rsi, [rsp+0x30]
   dec   rsi
   lodsb
 
   cmp   rax, SLASH
   jne   .malloc_url
 
-  dec   qword [rsp+0x28]
+  dec   qword [rsp+0x30]
 
 .malloc_url:
   ; malloc url
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x30]
   inc   rdi       ; increase by one to have null char
   call  malloc
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x30], rax
+  mov   [rsp+0x38], rax
 
   ; copy url
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
-  mov   rcx, [rsp+0x28]
+  mov   rcx, [rsp+0x30]
   rep   movsb
 
   xor   rax, rax
   stosb
 
   ; add to url struct
-  mov   rdi, [rsp+0x30]
-  mov   rax, [rsp+0x20]
+  mov   rdi, [rsp+0x38]
+  mov   rax, [rsp+0x28]
   mov   [rax+ROUTE_OFF_URL], rdi
 
   ; add route to server routes
@@ -713,15 +740,29 @@ add_route:
   cmp   rax, 0
   jl    .error
 
-  mov   rax, [rsp+0x20]
+  mov   rax, [rsp+0x28]
 
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x28]
+  test  rdi, rdi
+  jz    .no_free_struct
+
+  call  free
+
+.no_free_struct:
+  mov   rdi, [rsp+0x38] 
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 ; adds a structure of route to the list of routes available

@@ -19,6 +19,8 @@ GRP_STRUCT_OFF_PREFIX       equ GRP_STRUCT_OFF_MIDDLEWARES + 0x8
 GRP_STRUCT_OFF_IS_ROOT      equ GRP_STRUCT_OFF_PREFIX + 0x8
 GRP_STRUCT_OFF_NEXT         equ GRP_STRUCT_OFF_IS_ROOT + 0x8
 
+ROOT_GRP_PREFIX db "/", NULL_CHAR
+
 section .text
 
 ; creates a group and adds it to the server struct
@@ -125,24 +127,24 @@ add_group_struct_to_server:
   cmp   rsi, 0
   jl    .error
 
-  ; get route offset to check if groups are init
+  ; get group offset to check if groups are init
   add   rdi, SERVER_OFF_GROUPS
 
   cmp   qword [rdi], 0
   je    .add
 
-  ; load first route
+  ; load first group
   mov   rsi, [rdi]
   mov   rdi, rsi
   
 .loop:
-  ; rdi points to the address of current route
+  ; rdi points to the address of current group
   ; go to next offset
   add   rdi, GRP_STRUCT_OFF_NEXT
   cmp   qword [rdi], 0
   je    .add
  
-  ; rdi contains the address of the route
+  ; rdi contains the address of the group
   mov   rsi, [rdi]
   mov   rdi, rsi
 
@@ -254,3 +256,56 @@ get_group_prefix:
 
 .return:
   ret
+
+; returns the root group of the server
+; @param  rdi: pointer to the server
+; @return rax: pointer to the root group
+get_server_root_group:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the server struct
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get group offset to check if groups are init
+  add   rdi, SERVER_OFF_GROUPS
+
+  cmp   qword [rdi], 0
+  je    .error
+
+  ; load first group
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+  
+.loop:
+  ; rdi points to the address of current group
+  ; go to next offset
+  add   rdi, GRP_STRUCT_OFF_NEXT
+  cmp   qword [rdi], 0
+  je    .error
+
+  cmp   qword [rsi+GRP_STRUCT_OFF_IS_ROOT], TRUE
+  je    .loop_end
+ 
+  ; rdi contains the address of the group
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+
+  jmp   .loop
+.loop_end:
+
+  mov   rax, rsi
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+

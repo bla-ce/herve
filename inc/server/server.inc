@@ -357,6 +357,7 @@ server_init:
   cmp   rax, 0
   jl    .error
 
+  ; create, bind and listen to the socket
   mov   rdi, qword [rsp]
   call  socket_init
   cmp   rax, 0
@@ -369,6 +370,14 @@ server_init:
   call  set_server_sockfd
   cmp   rax, 0
   jl    .error  
+
+  ; create root group 
+  mov   rdi, [rsp+0x8]
+  mov   rsi, ROOT_GRP_PREFIX
+  mov   rdx, TRUE
+  call  add_group
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [rsp+0x8]
 
