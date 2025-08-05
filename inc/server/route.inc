@@ -665,8 +665,8 @@ add_route:
 
   ; set the group
   mov   rdi, [rsp+0x20]
-  cmp   rdi, 0
-  jg    .no_root_group
+  test  rdi, rdi
+  jnz   .no_root_group
 
   mov   rdi, [rsp]
   call  get_server_root_group

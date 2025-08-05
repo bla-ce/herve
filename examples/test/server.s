@@ -470,8 +470,8 @@ _start:
 
   mov   rdi, [rsp+0x8]
   mov   rsi, middleware
-  lea   rdx, [hello]
-  mov   rcx, 0
+  mov   rdx, 0
+  mov   rcx, hello
   mov   r8, 0
   mov   r9, FALSE
   call  add_middleware
@@ -480,8 +480,8 @@ _start:
 
   mov   rdi, [rsp+0x8]
   mov   rsi, middleware
-  lea   rdx, [hello2]
-  mov   rcx, 0
+  mov   rdx, 0
+  mov   rcx, hello2
   mov   r8, 0
   mov   r9, FALSE
   call  add_middleware

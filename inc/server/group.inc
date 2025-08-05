@@ -282,14 +282,14 @@ get_server_root_group:
   mov   rdi, rsi
   
 .loop:
-  ; rdi points to the address of current group
+  ; rsi points to the address of current group
+  cmp   qword [rsi+GRP_STRUCT_OFF_IS_ROOT], TRUE
+  je    .loop_end
+
   ; go to next offset
   add   rdi, GRP_STRUCT_OFF_NEXT
   cmp   qword [rdi], 0
   je    .error
-
-  cmp   qword [rsi+GRP_STRUCT_OFF_IS_ROOT], TRUE
-  je    .loop_end
  
   ; rdi contains the address of the group
   mov   rsi, [rdi]

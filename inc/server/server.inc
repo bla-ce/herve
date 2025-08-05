@@ -4,7 +4,6 @@ server_struct:
   server_logger       resq 1  ; pointer to the logger
   server_routes       resq 1  ; pointer to linked list of routes
   server_sockaddr     resq 1  ; pointer to sockaddr struct
-  server_middlewares  resq 1  ; pointer to middlewares linked list
   server_groups       resq 1  ; pointer to groups linked list
   server_port         resw 1  ; port
 server_struct_end:
@@ -26,8 +25,7 @@ section .data
   SERVER_OFF_LOGGER       equ SERVER_OFF_SOCKFD + 0x8
   SERVER_OFF_ROUTES       equ SERVER_OFF_LOGGER + 0x8
   SERVER_OFF_SOCKADDR     equ SERVER_OFF_ROUTES + 0x8
-  SERVER_OFF_MIDDLEWARES  equ SERVER_OFF_SOCKADDR + 0x8
-  SERVER_OFF_GROUPS       equ SERVER_OFF_MIDDLEWARES + 0x8
+  SERVER_OFF_GROUPS       equ SERVER_OFF_SOCKADDR + 0x8
   SERVER_OFF_PORT         equ SERVER_OFF_GROUPS + 0x8
 
   server_init_msg db "Herve started listening on port ", NULL_CHAR
@@ -279,22 +277,6 @@ get_server_routes:
 .return:
   ret
 
-; returns the first route struct associated to the server
-; @param  rdi: pointer to server struct 
-; @return rax: pointer to the first middleware struct
-get_server_middlewares:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVER_OFF_MIDDLEWARES]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
 ; converts a integer from host byte order to network byte order (big-endian).
 ; @param  rdi: integer
 ; @return rax: integer to network byte order
@@ -339,7 +321,6 @@ server_init:
 
   ; set default values
   mov   qword [rax+SERVER_OFF_ROUTES], 0
-  mov   qword [rax+SERVER_OFF_MIDDLEWARES], 0
   mov   qword [rax+SERVER_OFF_LOGGER], 0
   mov   qword [rax+SERVER_OFF_GROUPS], 0
 
