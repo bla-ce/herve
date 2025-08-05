@@ -72,9 +72,16 @@ handle_ctx:
   cmp   rax, TRUE
   je    .log_request
 
+  ; get root group
   mov   rdi, [rsp]
+  call  get_server_root_group
+  cmp   rax, 0
+  jl    .log_request
+
+  ; run root pre request middlewares
+  mov   rdi, rax
   mov   rsi, [rsp+0x10]
-  mov   rdx, FALSE      ; run pre request middlewares
+  mov   rdx, FALSE      ; pre request middlewares
   call  run_middlewares
 
 ; check if ctx has been aborted
@@ -130,8 +137,14 @@ handle_ctx:
 
   ; TODO: log with Logan
 
-  ; run post request middlewares
+  ; get root group
   mov   rdi, [rsp]
+  call  get_server_root_group
+  cmp   rax, 0
+  jl    .error
+
+  ; run post request middlewares
+  mov   rdi, rax
   mov   rsi, [rsp+0x10]
   mov   rdx, TRUE
   call  run_middlewares

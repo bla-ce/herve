@@ -138,7 +138,7 @@ add_middleware:
   ret
 
 ; run the chain of middlewares
-; @param  rdi: pointer to server struct
+; @param  rdi: pointer to group struct
 ; @param  rsi: pointer to context struct
 ; @param  rdx: run post middlewares (bool)
 ; @return rax: return code
@@ -146,7 +146,7 @@ run_middlewares:
   sub   rsp, 0x20
 
   ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the server struct
+  ; [rsp]       -> pointer to the group struct
   ; [rsp+0x8]   -> pointer to the context struct
   ; [rsp+0x10]  -> run post middlewares (bool)
   ; [rsp+0x18]  -> pointer to middleware address
@@ -161,12 +161,10 @@ run_middlewares:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  ; TODO: use group
-
-  ; call  get_server_middlewares
-  ; cmp   rax, 0
-  ; jl    .error
-  ; je    .end
+  call  get_group_middlewares
+  cmp   rax, 0
+  jl    .error
+  je    .end
 
   mov   rdi, rax
 

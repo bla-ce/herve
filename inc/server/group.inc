@@ -240,6 +240,23 @@ group_exist:
   add   rsp, 0x18
   ret
 
+; returns the middlewares of the group
+; @param  rdi: pointer to the group struct
+; @return rax: pointer to the middlewares linked list
+get_group_middlewares:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+GRP_STRUCT_OFF_MIDDLEWARES]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the prefix of the group
 ; @param  rdi: pointer to the group struct
 ; @return rax: pointer to the prefix
