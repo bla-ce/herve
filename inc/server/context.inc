@@ -32,16 +32,23 @@ section .text
 ; @param  rsi: pointer to client struct
 ; @return rax: return code
 handle_ctx:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to the client struct
+  ; [rsp+0x10]  -> pointer to the context struct
+  ; [rsp+0x18]  -> pointer to the route struct
+  ; [rsp+0x20]  -> pointer to the group struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
 
   mov   rdi, [rsp] 
   mov   rsi, [rsp+0x8]
@@ -84,7 +91,22 @@ handle_ctx:
   mov   rdx, FALSE      ; pre request middlewares
   call  run_middlewares
 
-; check if ctx has been aborted
+  ; get the corresponding group from the url
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  call  get_group_from_ctx
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  mov   rdi, rax
+  mov   rsi, [rsp+0x10]
+  mov   rdx, FALSE
+  call  run_middlewares
+
+.no_group_pre_middlewares:
+  ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
   call  is_ctx_aborted
   cmp   rax, TRUE
@@ -96,7 +118,7 @@ handle_ctx:
   cmp   rax, 0
   jl   .log_request
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x18], rax ; returns a pointer to the route
 
   ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
@@ -143,8 +165,14 @@ handle_ctx:
   cmp   rax, 0
   jl    .error
 
-  ; run post request middlewares
+  ; run root post request middlewares
   mov   rdi, rax
+  mov   rsi, [rsp+0x10]
+  mov   rdx, TRUE
+  call  run_middlewares
+
+  ; run group post request middlewares
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x10]
   mov   rdx, TRUE
   call  run_middlewares
@@ -168,7 +196,7 @@ handle_ctx:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; frees the resources associated to the context

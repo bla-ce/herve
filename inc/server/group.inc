@@ -326,3 +326,91 @@ get_server_root_group:
   add   rsp, 0x8
   ret
 
+; returns the group struct corresponsing to the url of the ctx
+; if two or more groups match, the first one will be chosen.
+; @param  rdi: pointer to the server struct
+; @param  rsi: pointer to the context struct
+; @return rax: pointer to the group struct or 0 if no match
+get_group_from_ctx:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to the context struct
+  ; [rsp+0x10]  -> pointer to the groups linked list
+  ; [rsp+0x18]  -> pointer to the url
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get the groups from the server
+  mov   rdi, [rsp]
+  call  get_server_groups
+  cmp   rax, 0
+  jle   .error
+
+  mov   [rsp+0x10], rax
+
+  ; get the url from the context request
+  mov   rdi, [rsp+0x8]
+  call  get_ctx_request
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, rax
+  call  get_request_url
+  cmp   rax, 0
+  jle   .error
+
+  mov   [rsp+0x18], rax
+
+.loop:
+  mov   rdi, [rsp+0x10] 
+  cmp   qword [rdi+GRP_STRUCT_OFF_IS_ROOT], TRUE
+  je    .skip_root
+
+  ; get the prefix of the group
+  mov   rdi, [rsp+0x10]
+  call  get_group_prefix
+  cmp   rax, 0
+  jl    .error
+
+  ; check if the url starts with the prefix of the group
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  starts_with
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .loop_end
+
+.skip_root:
+  mov   rdi, [rsp+0x10]
+
+  ; go to next offset
+  add   rdi, GRP_STRUCT_OFF_NEXT
+  cmp   qword [rdi], 0
+  je    .error
+ 
+  ; rdi contains the address of the group
+  mov   rsi, [rdi]
+
+  mov   [rsp+0x10], rsi
+
+  jmp   .loop
+
+.loop_end:
+  mov   rax, [rsp+0x10]
+
+  jmp   .return
+
+.error:
+  xor   rax, rax   ; no need to return -1
+
+.return:
+  add   rsp, 0x20
+  ret
+

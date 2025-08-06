@@ -152,7 +152,8 @@ run_middlewares:
   ; [rsp+0x18]  -> pointer to middleware address
 
   cmp   rdi, 0
-  jle   .error
+  jl    .error
+  je    .end
 
   cmp   rsi, 0
   jle   .error

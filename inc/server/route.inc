@@ -68,6 +68,23 @@ log_route:
   add   rsp, 0x8
   ret
 
+; returns the group associated to the route struct
+; @param  rdi: pointer to route struct
+; @return rax: group address
+get_route_group:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_GROUP]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the url associated to the route struct
 ; @param  rdi: pointer to route struct
 ; @return rax: url address
