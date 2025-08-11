@@ -387,8 +387,8 @@ _start:
   lea   rsi, [GET]
   lea   rdx, [index_url]
   mov   rcx, test_static
+  xor   r8, r8
   call  add_route
-
   cmp   rax, 0
   jl    .error
 
@@ -397,8 +397,8 @@ _start:
   lea   rsi, [GET]
   lea   rdx, [root_url]
   mov   rcx, test_no_content
+  xor   r8, r8
   call  add_route
-
   cmp   rax, 0
   jl    .error
 
@@ -407,8 +407,8 @@ _start:
   lea   rsi, [GET]
   lea   rdx, [health_url]
   mov   rcx, test_string
+  xor   r8, r8
   call  add_route
-
   cmp   rax, 0
   jl    .error
 
@@ -417,8 +417,8 @@ _start:
   lea   rsi, [GET]
   lea   rdx, [template_url]
   mov   rcx, test_template
+  xor   r8, r8
   call  add_route
-
   cmp   rax, 0
   jl    .error
 
@@ -427,8 +427,8 @@ _start:
   lea   rsi, [POST]
   lea   rdx, [post_url]
   mov   rcx, test_post
+  xor   r8, r8
   call  add_route
-
   cmp   rax, 0
   jl    .error
 
@@ -437,8 +437,8 @@ _start:
   lea   rsi, [GET]
   lea   rdx, [basic_url]
   mov   rcx, test_basic_auth
+  xor   r8, r8
   call  add_route
-
   cmp   rax, 0
   jl    .error
 
@@ -447,8 +447,8 @@ _start:
   lea   rsi, [GET]
   lea   rdx, [redirect_url]
   mov   rcx, test_redirect
+  xor   r8, r8
   call  add_route
-
   cmp   rax, 0
   jl    .error
 
@@ -457,6 +457,7 @@ _start:
   lea   rsi, [GET]
   lea   rdx, [wildcard_url]
   mov   rcx, test_wildcard
+  xor   r8, r8
   call  add_route
   cmp   rax, 0
   jl    .error

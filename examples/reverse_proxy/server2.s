@@ -25,6 +25,7 @@ _start:
   mov   rsi, GET
   lea   rdx, [health_url]
   mov   rcx, health
+  xor   r8, r8
   call  add_route
   cmp   rax, 0
   jl    error

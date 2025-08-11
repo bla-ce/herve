@@ -51,6 +51,7 @@ _start:
   lea   rsi, [POST]
   lea   rdx, [wildcard_url]
   mov   rcx, echo
+  xor   r8, r8
   call  add_route
   cmp   rax, 0
   jl    error

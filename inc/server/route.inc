@@ -413,6 +413,7 @@ add_dir_route:
   lea   rsi, [GET]
   mov   rdx, [rsp+0x30] 
   mov   rcx, serve_dir
+  xor   r8, r8
   call  add_route
 
 .next:
@@ -475,6 +476,7 @@ add_dir_route:
   mov   rsi, rdi
   mov   rdi, [rsp+0x40]
   mov   rdx, TRUE
+  xor   r8, r8
   call  add_dir_route
 
 .no_recursion:
@@ -615,7 +617,7 @@ route_exist:
 ; @param  r8: pointer to the group struct or 0 if root
 ; @return rax: pointer to route struct
 add_route:
-  sub   rsp, 0x40
+  sub   rsp, 0x48
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
@@ -626,6 +628,7 @@ add_route:
   ; [rsp+0x28]  -> pointer to the malloc'd route struct
   ; [rsp+0x30]  -> size of the url
   ; [rsp+0x38]  -> pointer to the malloc'd url
+  ; [rsp+0x40]  -> pointer to the concatenated prefix and url
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -634,6 +637,7 @@ add_route:
   mov   [rsp+0x20], r8
   mov   qword [rsp+0x28], 0
   mov   qword [rsp+0x38], 0
+  mov   qword [rsp+0x40], 0
 
   cmp   rdi, 0
   jle   .error
@@ -644,6 +648,26 @@ add_route:
   cmp   rdx, 0
   jle   .error
 
+  ; if group is not null, concatenate group prefix and route url
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_group
+
+  ; get the group prefix
+  call  get_group_prefix
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax 
+  mov   rsi, [rsp+0x10]
+  call  strcat
+  cmp   rax, 0
+  jl    .error
+  
+  mov   [rsp+0x40], rax
+  mov   [rsp+0x10], rax
+
+.no_group:
   ; make sure the route does not already exist
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
@@ -762,6 +786,13 @@ add_route:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x40]
+  test  rdi, rdi
+  jz    .no_free_url
+
+  call  free
+
+.no_free_url:
   mov   rdi, [rsp+0x28]
   test  rdi, rdi
   jz    .no_free_struct
@@ -779,7 +810,7 @@ add_route:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x40
+  add   rsp, 0x48
   ret
 
 ; adds a structure of route to the list of routes available

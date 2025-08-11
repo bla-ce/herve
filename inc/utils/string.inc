@@ -884,3 +884,79 @@ ascii_to_int:
   mov   rax, rdi
   ret
 
+; concatenates two strings
+; the user is responsibl of freeing the string
+; @param  rdi: pointer to the string1
+; @param  rsi: pointer to the string2
+; @return rax: pointer to the string concatenated
+strcat:
+  sub   rsp, 0x28
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the first string
+  ; [rsp+0x8]   -> pointer to the second string
+  ; [rsp+0x10]  -> length of the first string
+  ; [rsp+0x18]  -> length of the second string
+  ; [rsp+0x20]  -> pointer to the final string
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x20], 0
+
+  ; get length of the strings
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jle   .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jle   .error
+
+  mov   [rsp+0x18], rax
+  add   rax, [rsp+0x10]
+  inc   rax ; add one for null char
+
+  ; malloc full string
+  mov   rdi, rax
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; copy first string
+  mov   rdi, rax
+  mov   rsi, [rsp]
+  mov   rcx, [rsp+0x10]
+  rep   movsb
+
+  ; copy second string
+  mov   rsi, [rsp+0x8]
+  mov   rcx, [rsp+0x18]
+  rep   movsb
+
+  mov   rax, NULL_CHAR
+  stosb
+
+  mov   rax, [rsp+0x20]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x28
+  ret
+
