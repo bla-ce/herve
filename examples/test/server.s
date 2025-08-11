@@ -481,7 +481,7 @@ _start:
 
   mov   rdi, [rsp+0x8]
   mov   rsi, middleware
-  mov   rdx, 0
+  xor   rdx, rdx
   mov   rcx, hello2
   mov   r8, 0
   mov   r9, FALSE
@@ -496,9 +496,9 @@ _start:
 
   mov   rdi, [rsp+0x8]
   mov   rsi, log_ctx
-  mov   rdx, rax
-  mov   rcx, 0xFF ; enable all info
-  mov   r8, 0
+  xor   rdx, rdx
+  mov   rcx, rax
+  mov   r8, 0xFF ; enable all info
   mov   r9, TRUE
   call  add_middleware
   cmp   rax, 0

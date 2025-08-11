@@ -100,6 +100,9 @@ handle_ctx:
 
   mov   [rsp+0x20], rax
 
+  test  rax, rax
+  jz    .no_group_pre_middlewares
+
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
   mov   rdx, FALSE
@@ -171,8 +174,11 @@ handle_ctx:
   mov   rdx, TRUE
   call  run_middlewares
 
-  ; run group post request middlewares
   mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .free_ctx
+
+  ; run group post request middlewares
   mov   rsi, [rsp+0x10]
   mov   rdx, TRUE
   call  run_middlewares
