@@ -903,6 +903,12 @@ strcat:
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x20], 0
 
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
   ; get length of the strings
   mov   rdi, [rsp]
   call  strlen
