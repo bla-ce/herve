@@ -62,6 +62,10 @@ At the moment, only string keys and values are supported which should be enough 
 
 Basic auth can be used with `Herve`, this is the simplest and of course one of the least robust way to provide authentication but I hoping to implement other authentication methods in the future as middlewares.
 
+### Grouping
+
+Routes with a common prefix can be grouped inside a `group` structure with specific middlewares.
+
 ## Quick Start
 
 To use `Herve`, you can copy the content of the `inc/` directory and include the required files in your projects. 
@@ -124,6 +128,7 @@ _start:
   lea   rsi, [POST]
   lea   rdx, [wildcard_url]
   mov   rcx, echo
+  xor   r8, r8
   call  add_route
   cmp   rax, 0
   jl    error
