@@ -17,7 +17,8 @@ IP_HASH                 equ 2
 ; keep track of the proxy index
 proxy_idx dq 0
 
-bad_gateway_message db "Bad Gateway: The remote server is unreachable. Forwarding failed because the connection could not be established.", NULL_CHAR
+bad_gateway_message db "Bad Gateway: The remote server is unreachable. "
+                    db "Forwarding failed because the connection could not be established.", NULL_CHAR
 
 section .text
 ; configures a proxy middleware

@@ -462,6 +462,16 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; add dynamic route
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [GET]
+  lea   rdx, [dynamic_url]
+  mov   rcx, test_string
+  xor   r8, r8
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x8]
   lea   rsi, [dir_path]
   mov   rdx, TRUE
@@ -530,6 +540,7 @@ section .data
   redirect_url  db "/redirect", NULL_CHAR
   basic_url     db "/basic-auth/", NULL_CHAR
   post_url      db "/post", NULL_CHAR
+  dynamic_url   db "/api/events/<id", NULL_CHAR
   wildcard_url  db "/wild/*", NULL_CHAR
 
   index_path    db "examples/test/views/index.html", NULL_CHAR

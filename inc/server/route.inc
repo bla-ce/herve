@@ -213,6 +213,13 @@ compare_route:
   cmp   rax, TRUE
   je    .cmp_wildcard
 
+  ; check if compared route is a dynamic route
+  mov   rsi, [rsp+0x8]
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  call  is_dynamic_route
+  cmp   rax, TRUE
+  je    .cmp_dynamic
+
   mov   rdi, [rsp+0x10]
   mov   rdx, [rsp+0x8]
   mov   rsi, [rdx+ROUTE_OFF_URL]
@@ -222,6 +229,24 @@ compare_route:
   jl    .error
   je    .not_the_same
 
+  jmp   .equal
+
+.cmp_dynamic:
+  mov   rsi, [rsp+0x8] 
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  mov   rsi, LESS_THAN
+  call  find_next_char
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rdx, [rsp+0x8]
+  mov   rsi, [rdx+ROUTE_OFF_URL]
+  mov   rdx, rax
+  call  strncmp
+  cmp   rax, 0
+  jl    .error
+  je    .not_the_same
   jmp   .equal
 
 .cmp_wildcard:
@@ -858,6 +883,33 @@ add_route_struct_to_server:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; returns if the url is a dynamic route
+; @param  rdi: pointer to the route
+; @return rax: (bool) is a dynamic route
+is_dynamic_route:
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rsi, LESS_THAN
+  call  find_next_char
+  cmp   rax, 0
+  jl    .not_dynamic
+  je    .error
+
+  mov   rax, TRUE
+  jmp   .return
+
+.not_dynamic:
+  mov   rax, FALSE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 
 ; returns if the url is a wildcard (ends with '*')
