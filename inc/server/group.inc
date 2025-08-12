@@ -414,3 +414,63 @@ get_group_from_ctx:
   add   rsp, 0x20
   ret
 
+; frees the group struct and all associated resources
+; @param  rdi: pointer to the group struct
+; @return rax: return code
+free_group:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the group struct
+  ; [rsp+0x8] -> next pointer
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; free the middlewares
+  mov   rsi, [rsp]
+  add   rsi, GRP_STRUCT_OFF_MIDDLEWARES
+
+  cmp   qword [rsi], 0
+  je    .loop_end
+
+.loop:
+  mov   rdi, [rsi]    ; rdi points to the middleware struct
+
+  ; save next
+  lea   rsi, [rdi+MIDDLEWARE_OFF_NEXT]
+  mov   [rsp+0x8], rsi
+
+  ; free the group
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; go to next
+  mov   rsi, [rsp+0x8]
+  
+  cmp   qword [rsi], 0
+  je    .loop_end
+
+  jmp   .loop
+.loop_end:
+
+  ; free the struct
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+

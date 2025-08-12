@@ -160,8 +160,6 @@ handle_ctx:
   cmp   rax, 0
   jl    .error
 
-  ; TODO: log with Logan
-
   ; get root group
   mov   rdi, [rsp]
   call  get_server_root_group
