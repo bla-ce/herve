@@ -1,9 +1,8 @@
 ## BIG TODO:
     - [ ] Add middleware to a specific route
-    - [x] Implement route grouping
     - [ ] Implement Dynamic Routes Parameter
     - [ ] Database Integration Middleware
-    - [ ] JSON/XML Binding and Validation
+    - [ ] JSON Parser
     - [ ] Support HTTP2
     - [ ] Support HTTPS
     - [ ] Add multithreading
