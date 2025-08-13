@@ -232,36 +232,19 @@ compare_route:
   jmp   .equal
 
 .cmp_dynamic:
-  mov   rsi, [rsp+0x8] 
-  mov   rdi, [rsi+ROUTE_OFF_URL]
-  mov   rsi, LESS_THAN
-  call  find_next_char
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x10]
-  mov   rdx, [rsp+0x8]
-  mov   rsi, [rdx+ROUTE_OFF_URL]
-  mov   rdx, rax
-  call  strncmp
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  call  cmp_dynamic
   cmp   rax, 0
   jl    .error
   je    .not_the_same
+
   jmp   .equal
 
 .cmp_wildcard:
-  mov   rsi, [rsp+0x8] 
-  mov   rdi, [rsi+ROUTE_OFF_URL]
-  mov   rsi, ASTERISK
-  call  find_next_char
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x10]
-  mov   rdx, [rsp+0x8]
-  mov   rsi, [rdx+ROUTE_OFF_URL]
-  mov   rdx, rax
-  call  strncmp
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  call  cmp_wildcard
   cmp   rax, 0
   jl    .error
   je    .not_the_same
@@ -950,5 +933,153 @@ is_wildcard_route:
 
 .return:
   add   rsp, 0x8
+  ret
+
+; compares the current route with a wildcard route
+; @param  rdi: pointer to the wildcard route struct
+; @param  rsi: pointer to the current url
+; @return rax: same route (bool)
+cmp_wildcard:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the route struct
+  ; [rsp+0x8] -> pointer to the current url
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  mov   rsi, ASTERISK
+  call  find_next_char
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rdx, [rsp]
+  mov   rsi, [rdx+ROUTE_OFF_URL]
+  mov   rdx, rax
+  call  strncmp
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; compares the current route with a dynamic route
+; @param  rdi: pointer to the dynamic route struct
+; @param  rsi: pointer to the current url
+; @return rax: same route (bool)
+cmp_dynamic:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the route struct
+  ; [rsp+0x8]   -> pointer to the current url
+  ; [rsp+0x10]  -> pointer to the url of the route struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  mov   [rsp+0x10], rdi
+
+.loop:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, LESS_THAN
+  call  find_next_char
+  cmp   rax, 0
+  jge   .compare
+
+  ; get the remaining length to compare
+  mov   rdi, [rsp+0x10]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+.compare:
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rcx, rax
+  rep   cmpsb
+  jne    .not_equal
+
+  mov   [rsp+0x8], rdi
+  mov   [rsp+0x10], rsi
+
+  ; check if we are at the end
+  xor   rax, rax
+  inc   rdi
+  add   al, byte [rdi]
+
+  inc   rsi
+  add   al, byte [rsi]
+  test  rax, rax
+  jz    .loop_end
+
+  ; go after the parameter and compare the rest of the url
+  mov   rdi, [rsp+0x8]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  jle   .loop_end
+
+  mov   rdi, [rsp+0x8]
+  add   rdi, rax
+  mov   [rsp+0x8], rdi
+
+.skip_move:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  jle   .loop_end
+
+  mov   rdi, [rsp+0x10]
+  add   rdi, rax
+  mov   [rsp+0x10], rdi
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  call  strcmp
+  cmp   rax, TRUE
+  jne   .not_equal
+
+.equal:
+  mov   rax, TRUE
+
+  jmp   .return
+
+.not_equal:
+  mov   rax, FALSE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
   ret
 
