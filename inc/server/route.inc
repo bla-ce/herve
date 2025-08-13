@@ -1004,13 +1004,14 @@ cmp_dynamic:
   mov   [rsp+0x10], rdi
 
 .loop:
+  ; check if there is another parameter to get
   mov   rdi, [rsp+0x10]
   mov   rsi, LESS_THAN
   call  find_next_char
   cmp   rax, 0
-  jge   .compare
+  jge   .compare  ; if yes, compare until the parameter
 
-  ; get the remaining length to compare
+  ; if not, get the remaining length to compare
   mov   rdi, [rsp+0x10]
   call  strlen
   cmp   rax, 0
@@ -1026,7 +1027,7 @@ cmp_dynamic:
   mov   [rsp+0x8], rdi
   mov   [rsp+0x10], rsi
 
-  ; check if we are at the end
+  ; check if we are at the end (null char)
   xor   rax, rax
   inc   rdi
   add   al, byte [rdi]
