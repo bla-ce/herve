@@ -1002,6 +1002,8 @@ cmp_dynamic:
   mov   rsi, [rsp]
   mov   rdi, [rsi+ROUTE_OFF_URL]
   mov   [rsp+0x10], rdi
+  
+  ; TODO: end parameter not working
 
 .loop:
   ; check if there is another parameter to get
@@ -1029,35 +1031,41 @@ cmp_dynamic:
 
   ; check if we are at the end (null char)
   xor   rax, rax
-  inc   rdi
   add   al, byte [rdi]
-
-  inc   rsi
   add   al, byte [rsi]
   test  rax, rax
-  jz    .loop_end
+  jz    .equal
 
   ; go after the parameter and compare the rest of the url
+  mov   rdi, [rsp+0x10]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  jg    .move_after_param
+
   mov   rdi, [rsp+0x8]
   mov   rsi, SLASH
   call  find_next_char
   cmp   rax, 0
-  jle   .loop_end
+  je    .loop_end
+  jl    .equal
+
+  jmp   .not_equal
+
+.move_after_param:
+  mov   rdi, [rsp+0x10]
+  add   rdi, rax
+  mov   [rsp+0x10], rdi
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  jle   .not_equal
 
   mov   rdi, [rsp+0x8]
   add   rdi, rax
   mov   [rsp+0x8], rdi
-
-.skip_move:
-  mov   rdi, [rsp+0x10]
-  mov   rsi, SLASH
-  call  find_next_char
-  cmp   rax, 0
-  jle   .loop_end
-
-  mov   rdi, [rsp+0x10]
-  add   rdi, rax
-  mov   [rsp+0x10], rdi
 
   jmp   .loop
 

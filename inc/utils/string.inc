@@ -253,7 +253,6 @@ strcmp:
   ; get length of the first string
   mov   rdi, [rsp]
   call  strlen
-
   cmp   rax ,0
   jl    .error
 
@@ -262,7 +261,6 @@ strcmp:
   ; get length of the second string
   mov   rdi, [rsp+0x8]
   call  strlen
-
   cmp   rax ,0
   jl    .error
 

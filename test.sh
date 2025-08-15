@@ -16,7 +16,6 @@ tests=(
   "http://localhost:1337/ HEHE 404"
   "http://localhost:1337/ HEHEHEHEHEHE 500"
   "http://localhost:1337/health GET 200"
-  "http://localhost:1337/api/events/1 GET 200"
   "http://localhost:1337/wild/example GET 200"
   "http://localhost:1337/wild/ayoooooooo GET 200"
   "http://localhost:1337/redirect GET 302"
@@ -30,7 +29,12 @@ tests=(
   "http://localhost:1337/in GET 404"
   "http://localhost:1337/index?query=53094 GET 200"
   "http://localhost:1337/index#anchor GET 200"
-  "http://localhost:1337/not-found GET 404"
+  "http://localhost:1337/api/users/12 GET 404"
+  "http://localhost:1337/api/users/12/account/15/update GET 200"
+  "http://localhost:1337/api/users GET 404"
+  "http://localhost:1337/api/users/12/account GET 404"
+  "http://localhost:1337/api/users/12/account/15 GET 200"
+  "http://localhost:1337/api/users/12/account/15/upd GET 404"
 )
 
 sum_time_us=0  # Accumulate total processing time in microseconds

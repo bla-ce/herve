@@ -462,6 +462,13 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [dir_path]
+  mov   rdx, TRUE
+  call  add_dir_route
+  cmp   rax, 0
+  jl    .error
+
   ; add dynamic route
   mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
@@ -470,14 +477,17 @@ _start:
   xor   r8, r8
   call  add_route
   cmp   rax, 0
-  jl    .error
+  jl    error
 
+  ; add dynamic route
   mov   rdi, [rsp+0x8]
-  lea   rsi, [dir_path]
-  mov   rdx, TRUE
-  call  add_dir_route
+  lea   rsi, [GET]
+  lea   rdx, [dynamic_url2]
+  mov   rcx, test_string
+  xor   r8, r8
+  call  add_route
   cmp   rax, 0
-  jl    .error
+  jl    error
 
   mov   rdi, [rsp+0x8]
   mov   rsi, middleware
@@ -540,8 +550,9 @@ section .data
   redirect_url  db "/redirect", NULL_CHAR
   basic_url     db "/basic-auth/", NULL_CHAR
   post_url      db "/post", NULL_CHAR
-  dynamic_url   db "/api/events/<id", NULL_CHAR
   wildcard_url  db "/wild/*", NULL_CHAR
+  dynamic_url   db "/api/users/<id/account/<id2", NULL_CHAR
+  dynamic_url2  db "/api/users/<id/account/<id2/update", NULL_CHAR
 
   index_path    db "examples/test/views/index.html", NULL_CHAR
   template_path db "examples/test/views/template.apl", NULL_CHAR
