@@ -60,11 +60,15 @@ At the moment, only string keys and values are supported which should be enough 
 
 ### Basic Auth
 
-Basic auth can be used with `Herve`, this is the simplest and of course one of the least robust way to provide authentication but I hoping to implement other authentication methods in the future as middlewares.
+Basic auth can be used with `Herve`, this is the simplest and of course one of the least robust way to provide authentication but I am hoping to implement other authentication methods in the future as middlewares.
 
 ### Grouping
 
 Routes with a common prefix can be grouped inside a `group` structure with specific middlewares.
+
+### Dynamic Route Parameters
+
+A route can be defined with dynamic paramater such as `/api/v1/events/<id`. This feature allows for flexibility in supporting varying parameters within the defined route.
 
 ## Quick Start
 
