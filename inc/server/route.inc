@@ -185,7 +185,6 @@ compare_route:
   mov   rdi, [rsp+0x10]
   mov   rsi, QUESTION_MARK
   call  find_next_char
-
   cmp   rax, 0
   jl    .no_query
 
@@ -196,7 +195,6 @@ compare_route:
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  strndup
-
   cmp   rax, 0
   jl    .error
 
@@ -218,23 +216,23 @@ compare_route:
   mov   rdi, [rsi+ROUTE_OFF_URL]
   call  is_dynamic_route
   cmp   rax, TRUE
-  je    .cmp_dynamic
+  je    .handle_dynamic_route
 
   mov   rdi, [rsp+0x10]
   mov   rdx, [rsp+0x8]
   mov   rsi, [rdx+ROUTE_OFF_URL]
   call  strcmp
-
   cmp   rax, 0
   jl    .error
   je    .not_the_same
 
   jmp   .equal
 
-.cmp_dynamic:
+.handle_dynamic_route:
   mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
-  call  cmp_dynamic
+  mov   rsi, [rsp]
+  mov   rdx, [rsp+0x10]
+  call  handle_dynamic_route
   cmp   rax, 0
   jl    .error
   je    .not_the_same
@@ -978,17 +976,265 @@ cmp_wildcard:
   add   rsp, 0x10
   ret
 
-; compares the current route with a dynamic route
+; compares the current route with a dynamic route and
+; populates a hash table with the parameters and the values
+; the hash table will be saved inside request struct
 ; @param  rdi: pointer to the dynamic route struct
-; @param  rsi: pointer to the current url
+; @param  rsi: pointer to the request struct
+; @param  rdx: pointer to the request url
 ; @return rax: same route (bool)
-cmp_dynamic:
-  sub   rsp, 0x18
+handle_dynamic_route:
+  sub   rsp, 0x48
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the route struct
-  ; [rsp+0x8]   -> pointer to the current url
-  ; [rsp+0x10]  -> pointer to the url of the route struct
+  ; [rsp+0x8]   -> pointer to the request struct
+  ; [rsp+0x10]  -> pointer to the request url
+  ; [rsp+0x18]  -> pointer to the url of the route struct
+  ; [rsp+0x20]  -> number of parameter
+  ; [rsp+0x28]  -> pointer to the hash table
+  ; [rsp+0x30]  -> offset to next slash
+  ; [rsp+0x38]  -> pointer to the key of the parameter
+  ; [rsp+0x40]  -> pointer to the value of the parameter
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x28], 0
+  mov   qword [rsp+0x38], 0
+  mov   qword [rsp+0x40], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+ROUTE_OFF_URL]
+  mov   [rsp+0x18], rdi
+
+  ; count the number of parameter
+  mov   rdi, [rsp+0x18]
+  mov   rsi, LESS_THAN
+  call  count_char
+  cmp   rax, 0
+  jle   .error
+
+  mov   [rsp+0x20], rax
+
+  ; create hash table
+  mov   rdi, rax
+  call  ht_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+.loop:
+  ; check if there is another parameter to get
+  mov   rdi, [rsp+0x18]
+  mov   rsi, LESS_THAN
+  call  find_next_char
+  cmp   rax, 0
+  jge   .compare  ; if yes, compare until the parameter
+
+  ; if not, get the remaining length to compare
+  mov   rdi, [rsp+0x18]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+.compare:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x18]
+  mov   rcx, rax
+  rep   cmpsb
+  jne    .not_equal
+
+  mov   [rsp+0x10], rdi
+  mov   [rsp+0x18], rsi
+
+  ; check if we are at the end (null char)
+  xor   rax, rax
+  add   al, byte [rdi]
+  add   al, byte [rsi]
+  test  rax, rax
+  jz    .equal
+
+  ; go after the parameter and compare the rest of the url
+  mov   rdi, [rsp+0x18]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  jg    .move_after_param
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  je    .loop_end
+  jl    .equal
+
+  jmp   .not_equal
+
+.move_after_param:
+  ; save offset
+  mov   [rsp+0x30], rax
+
+  ; get key
+  mov   rdi, [rsp+0x18]
+  inc   rdi         ; go after the '<'
+  mov   rsi, rax
+  dec   rsi         ; remove the '<'
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x38], rax
+
+  mov   rdi, [rsp+0x18]
+  add   rdi, [rsp+0x30]
+  mov   [rsp+0x18], rdi
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  jle   .not_equal
+
+  ; save offset
+  mov   [rsp+0x30], rax
+
+  ; get value
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x40], rax
+
+  mov   rdi, [rsp+0x10]
+  add   rdi, [rsp+0x30]
+  mov   [rsp+0x10], rdi
+
+  ; insert to hash table
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x38]
+  mov   rdx, [rsp+0x40]
+  call  ht_insert
+  cmp   rax, 0
+  jl    .error
+
+  ; free key
+  mov   rdi, [rsp+0x38]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x38], 0
+
+  ; free value
+  mov   rdi, [rsp+0x40]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x40], 0
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x18]
+  call  strcmp
+  cmp   rax, TRUE
+  jne   .not_equal
+
+.equal:
+  ; set dynamic parameters ht to request
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x28]
+  call  set_request_dynamic_param
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x38]
+  mov   rsi, [rsp+0x40]
+  xor   rdx, rdx        ; we don't free the ht here
+  call  free_kv_dyn_param
+
+  mov   rax, TRUE
+
+  jmp   .return
+
+.not_equal:
+  mov   rdi, [rsp+0x38]
+  mov   rsi, [rsp+0x40]
+  mov   rdx, [rsp+0x28]
+  call  free_kv_dyn_param
+
+  mov   rax, FALSE
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x38]
+  mov   rsi, [rsp+0x40]
+  mov   rdx, [rsp+0x28]
+  call  free_kv_dyn_param
+
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x48
+  ret
+
+; frees the key, the value and the hash table if previously mallocd
+; @param  rdi: pointer to the key
+; @param  rsi: pointer to the value
+; @param  rdx: pointer to the hash table
+; @return rax: return code
+free_kv_dyn_param:
+  sub   rsp, 0x18
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  mov   rdi, [rsp]
+  test  rdi, rdi
+  jz    .no_key_free
+
+  call  free
+
+.no_key_free:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_value_free
+
+  call  free
+
+.no_value_free:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .return
+
+  call  ht_free
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; returns dynamic parameter
+; @param  rdi: pointer to request struct
+; @param  rsi: key
+; @return rax: value
+get_dynamic_param:
+  sub   rsp, 0x10
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -999,96 +1245,24 @@ cmp_dynamic:
   cmp   rsi, 0
   jle   .error
 
-  mov   rsi, [rsp]
-  mov   rdi, [rsi+ROUTE_OFF_URL]
-  mov   [rsp+0x10], rdi
-  
-  ; TODO: end parameter not working
-
-.loop:
-  ; check if there is another parameter to get
-  mov   rdi, [rsp+0x10]
-  mov   rsi, LESS_THAN
-  call  find_next_char
+  ; get query hash table
+  mov   rdi, [rsp]
+  call  get_request_dynamic_param
   cmp   rax, 0
-  jge   .compare  ; if yes, compare until the parameter
+  jle   .error
 
-  ; if not, get the remaining length to compare
-  mov   rdi, [rsp+0x10]
-  call  strlen
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  ht_get
   cmp   rax, 0
   jl    .error
 
-.compare:
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
-  mov   rcx, rax
-  rep   cmpsb
-  jne    .not_equal
-
-  mov   [rsp+0x8], rdi
-  mov   [rsp+0x10], rsi
-
-  ; check if we are at the end (null char)
-  xor   rax, rax
-  add   al, byte [rdi]
-  add   al, byte [rsi]
-  test  rax, rax
-  jz    .equal
-
-  ; go after the parameter and compare the rest of the url
-  mov   rdi, [rsp+0x10]
-  mov   rsi, SLASH
-  call  find_next_char
-  cmp   rax, 0
-  jg    .move_after_param
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, SLASH
-  call  find_next_char
-  cmp   rax, 0
-  je    .loop_end
-  jl    .equal
-
-  jmp   .not_equal
-
-.move_after_param:
-  mov   rdi, [rsp+0x10]
-  add   rdi, rax
-  mov   [rsp+0x10], rdi
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, SLASH
-  call  find_next_char
-  cmp   rax, 0
-  jle   .not_equal
-
-  mov   rdi, [rsp+0x8]
-  add   rdi, rax
-  mov   [rsp+0x8], rdi
-
-  jmp   .loop
-
-.loop_end:
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
-  call  strcmp
-  cmp   rax, TRUE
-  jne   .not_equal
-
-.equal:
-  mov   rax, TRUE
-
   jmp   .return
-
-.not_equal:
-  mov   rax, FALSE
-  jmp   .return
-
+  
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x10
   ret
 

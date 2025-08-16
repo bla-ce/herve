@@ -27,6 +27,59 @@ middleware:
   add   rsp, 0x8
   ret
 
+test_dynamic:
+  sub   rsp, 0x10
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get request
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  get_request_dynamic_param
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, rax
+  mov   rsi, dynamic_key
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, dynamic2_key
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 test_wildcard:
   mov   rsi, OK
   lea   rdx, [wildcard_msg]
@@ -473,7 +526,7 @@ _start:
   mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [dynamic_url]
-  mov   rcx, test_string
+  mov   rcx, test_dynamic
   xor   r8, r8
   call  add_route
   cmp   rax, 0
@@ -483,7 +536,7 @@ _start:
   mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [dynamic_url2]
-  mov   rcx, test_string
+  mov   rcx, test_dynamic
   xor   r8, r8
   call  add_route
   cmp   rax, 0
@@ -557,6 +610,9 @@ section .data
   index_path    db "examples/test/views/index.html", NULL_CHAR
   template_path db "examples/test/views/template.apl", NULL_CHAR
   dir_path      db "examples/test/views", NULL_CHAR
+
+  dynamic_key   db "id", NULL_CHAR
+  dynamic2_key  db "id2", NULL_CHAR
 
   name_query  db "name", NULL_CHAR
   form_fname  db "fname", NULL_CHAR

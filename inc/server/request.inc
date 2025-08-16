@@ -11,6 +11,7 @@ request_struct:
   req_host        resq 1
   req_str         resq 1
   req_query_param resq 1
+  req_dyn_param   resq 1
   req_close       resq 1
 request_struct_end:
 
@@ -37,7 +38,8 @@ section .data
   REQ_OFF_HOST        equ REQ_OFF_CONTENT_LEN + 0x8
   REQ_OFF_STR         equ REQ_OFF_HOST + 0x8
   REQ_OFF_QUERY_PARAM equ REQ_OFF_STR + 0x8
-  REQ_OFF_CLOSE       equ REQ_OFF_QUERY_PARAM + 0x8
+  REQ_OFF_DYN_PARAM   equ REQ_OFF_QUERY_PARAM + 0x8
+  REQ_OFF_CLOSE       equ REQ_OFF_DYN_PARAM + 0x8
 
 section .text
 ; initialise the request with null pointers
@@ -54,49 +56,48 @@ request_init:
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_request_body
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_request_headers
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_request_proto
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_request_method
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_request_url
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_request_str
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   xor   rsi, rsi
   call  set_request_query_param
+  cmp   rax, 0
+  jl    .error
 
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  call  set_request_dynamic_param
   cmp   rax, 0
   jl    .error
 
@@ -264,10 +265,21 @@ set_request_body:
 parse_query_param:
   sub   rsp, 0x30
 
-  cmp   rdi, 0
-  jle   .error
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the request url
+  ; [rsp+0x8]   -> dynamic pointer through the url
+  ; [rsp+0x10]  -> number of parameter
+  ; [rsp+0x18]  -> pointer to the hash table
+  ; [rsp+0x20]  -> pointer to the key
+  ; [rsp+0x28]  -> pointer to the value
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x28], 0
+
+  cmp   rdi, 0
+  jle   .error
 
   ; save position
   mov   [rsp+0x8], rdi
@@ -277,7 +289,6 @@ parse_query_param:
   mov   rdi, [rsp+0x8]
   mov   rsi, AMPERSAND
   call  count_char
-
   cmp   rax, 0
   jl    .error
 
@@ -288,7 +299,6 @@ parse_query_param:
   ; create hash table
   mov   rdi, qword [rsp+0x10]
   call  ht_create
-
   cmp   rax, 0
   jl    .error
 
@@ -303,7 +313,6 @@ parse_query_param:
   ; look for '=' 
   mov   rsi, EQUAL_SIGN
   call  find_next_char
-
   cmp   rax, 0
   jl    .loop_end
   
@@ -317,7 +326,6 @@ parse_query_param:
   ; strndup key
   mov   rsi, rax
   call  strndup
-  
   cmp   rax, 0
   jl    .error
 
@@ -328,7 +336,6 @@ parse_query_param:
   mov   rdi, [rsp+0x8]
   mov   rsi, AMPERSAND
   call  find_next_char
-
   cmp   rax, 0
   jl    .get_last_key
 
@@ -341,7 +348,6 @@ parse_query_param:
   ; strndup value
   mov   rsi, rax
   call  strndup
-
   cmp   rax, 0
   jl    .error
   
@@ -352,7 +358,6 @@ parse_query_param:
   mov   rsi, [rsp+0x20]
   mov   rdx, [rsp+0x28]
   call  ht_insert
-
   cmp   rax, 0
   jl    .error
 
@@ -374,13 +379,14 @@ parse_query_param:
 .get_last_key:
   mov   rdi, [rsp+0x8]
   call  strlen
-
   cmp   rax, 0
   jle   .error
 
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  strndup
+  cmp   rax, 0
+  jl    .error
 
   mov   [rsp+0x28], rax
 
@@ -388,7 +394,6 @@ parse_query_param:
   mov   rsi, [rsp+0x20]
   mov   rdx, rax
   call  ht_insert
-
   cmp   rax, 0
   jl    .error
 
@@ -414,6 +419,27 @@ parse_query_param:
   jmp   .return
     
 .error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_ht_free
+
+  call  ht_free
+
+.no_ht_free:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_key_free
+
+  call  free
+
+.no_key_free:
+  mov   rdi, [rsp+0x28]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -438,15 +464,13 @@ get_query_param:
 
   ; get query hash table
   mov   rdi, [rsp]
-  call  get_request_param
-
+  call  get_request_query_param
   cmp   rax, 0
   jle   .error
 
   mov   rdi, rax
   mov   rsi, [rsp+0x8]
   call  ht_get
-
   cmp   rax, 0
   jl    .error
 
@@ -515,10 +539,49 @@ set_request_str:
 .return:
   ret
 
+; returns the dynamic parameters of the request
+; @param  rdi: pointer to request struct
+; @return rax: pointer to the hash table
+get_request_dynamic_param:
+  cmp   rdi, 0
+  jl    .error
+  
+  mov   rax, qword [rdi+REQ_OFF_DYN_PARAM]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the dynamic parameters of the request
+; @param  rdi: pointer to request struct
+; @param  rsi: pointer to the hash table
+; @return rax: return code
+set_request_dynamic_param:
+  cmp   rdi, 0
+  jl    .error
+  
+  cmp   rsi, 0
+  jl    .error
+
+  mov   qword [rdi+REQ_OFF_DYN_PARAM], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the query parameters of the request
 ; @param  rdi: pointer to request struct
 ; @return rax: pointer to the hash table
-get_request_param:
+get_request_query_param:
   cmp   rdi, 0
   jl    .error
   
@@ -1131,28 +1194,36 @@ free_request:
 .free_body:
   mov   rdi, [rsp]
   call  get_request_body
-
   cmp   rax, 0
   jl    .error
   je    .free_query_param
 
   mov   rdi, rax
   call  free
-
   cmp   rax, 0
   jl    .error
 
 .free_query_param:
   mov   rdi, [rsp]
-  call  get_request_param
+  call  get_request_query_param
+  cmp   rax, 0
+  jl    .error
+  je    .free_dynamic_param
 
+  mov   rdi, rax
+  call  ht_free
+  cmp   rax, 0
+  jl    .error
+
+.free_dynamic_param:
+  mov   rdi, [rsp]
+  call  get_request_dynamic_param
   cmp   rax, 0
   jl    .error
   je    .free_struct
 
   mov   rdi, rax
   call  ht_free
-
   cmp   rax, 0
   jl    .error
 
