@@ -340,10 +340,6 @@ test_string:
   ; add cookie
   lea   rdi, [name]
   lea   rsi, [value]
-  mov   rdx, 20
-  mov   rcx, 1
-  mov   r8, 1
-  lea   r9, [localhost]
   call  create_cookie
   cmp   rax, 0
   jl    .error

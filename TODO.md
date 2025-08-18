@@ -1,7 +1,8 @@
+# Need to find a project to use it
+
 ## BIG TODO:
     - [ ] Add middleware to a specific route
-    - [ ] Implement Dynamic Routes Parameter
-    - [ ] Database Integration Middleware
+    - [ ] Database Integration
     - [ ] JSON Parser
     - [ ] Support HTTP2
     - [ ] Support HTTPS
@@ -10,13 +11,13 @@
 ## MEDIUM TODO:
     - [ ] Get IP from header if it exists
     - [ ] Implement timeout for idle connections
-    - [ ] Routing with Parameters
     - [ ] Error management
     - [ ] Define other timezones
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
 ## SMALL TODO:
     - [ ] Add rest of the attributes for cookie struct
+    - [ ] Validate cookie attributes
 ## BORING TODO:
     - [ ] Calling conventions
     - [ ] prevent double free

@@ -6,6 +6,8 @@ cookie_struct:
   cookie_http_only resq 1
   cookie_secure    resq 1
   cookie_domain    resq 1
+  cookie_path      resq 1
+  cookie_samesite  resq 1
 cookie_struct_end:
 
 section .data
@@ -18,6 +20,8 @@ COOKIE_OFF_MAX_AGE    equ COOKIE_OFF_VALUE + 0x8
 COOKIE_OFF_HTTP_ONLY  equ COOKIE_OFF_MAX_AGE + 0x8
 COOKIE_OFF_SECURE     equ COOKIE_OFF_HTTP_ONLY + 0x8
 COOKIE_OFF_DOMAIN     equ COOKIE_OFF_SECURE + 0x8
+COOKIE_OFF_PATH       equ COOKIE_OFF_DOMAIN + 0x8
+COOKIE_OFF_SAMESITE   equ COOKIE_OFF_PATH + 0x8
 
 COOKIE_MAX_SIZE equ 0x1000
 
@@ -28,6 +32,8 @@ MAX_AGE_ATTR    db "Max-Age", NULL_CHAR
 SECURE_ATTR     db "Secure", NULL_CHAR
 HTTP_ONLY_ATTR  db "HttpOnly", NULL_CHAR
 DOMAIN_ATTR     db "Domain", NULL_CHAR
+PATH_ATTR       db "Path", NULL_CHAR
+SAMESITE_ATTR   db "SameSite", NULL_CHAR
 
 ; token_table: each byte is 0 or 1 indicating invalid or valid token char
 ;              for ASCII code = index in [0..127]
@@ -167,32 +173,20 @@ is_cookie_key_valid:
 
 ; creates cookie struct and returns a pointer to it
 ; user is responsible of freeing the struct
-; @param  rdi:  pointer to the name
-; @param  rsi:  pointer to the value
-; @param  rdx:  max age
-; @param  rcx:  http_only
-; @param  r8:   secure
-; @param  r9:   domain
-; @param  [rsp]
+; @param  rdi: pointer to the name
+; @param  rsi: pointer to the value
 ; @return rax: pointer to the cookie struct
 create_cookie:
-  sub   rsp, 0x38
+  sub   rsp, 0x18
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the name
   ; [rsp+0x8]   -> pointer to the value
-  ; [rsp+0x10]  -> max age of the cookie
-  ; [rsp+0x18]  -> http_only attribute
-  ; [rsp+0x20]  -> secure attribute
-  ; [rsp+0x28]  -> domain attribute
-  ; [rsp+0x30]  -> pointer to the cookie struct
+  ; [rsp+0x10]  -> pointer to the cookie struct
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
-  mov   [rsp+0x18], rcx
-  mov   [rsp+0x20], r8
-  mov   [rsp+0x28], r9
+  mov   qword [rsp+0x10], 0
 
   cmp   rdi, 0
   jle   .error
@@ -210,7 +204,7 @@ create_cookie:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x30], rax
+  mov   [rsp+0x10], rax
 
   mov   rdi, [rsp]
   mov   [rax+COOKIE_OFF_NAME], rdi
@@ -218,17 +212,12 @@ create_cookie:
   mov   rdi, [rsp+0x8]
   mov   [rax+COOKIE_OFF_VALUE], rdi
 
-  mov   rdi, [rsp+0x10]
-  mov   [rax+COOKIE_OFF_MAX_AGE], rdi
-
-  mov   rdi, [rsp+0x18]
-  mov   [rax+COOKIE_OFF_HTTP_ONLY], rdi
-
-  mov   rdi, [rsp+0x20]
-  mov   [rax+COOKIE_OFF_SECURE], rdi
-
-  mov   rdi, [rsp+0x28]
-  mov   [rax+COOKIE_OFF_DOMAIN], rdi
+  mov   qword [rax+COOKIE_OFF_MAX_AGE], 0
+  mov   qword [rax+COOKIE_OFF_HTTP_ONLY], 0
+  mov   qword [rax+COOKIE_OFF_SECURE], 0
+  mov   qword [rax+COOKIE_OFF_DOMAIN], 0
+  mov   qword [rax+COOKIE_OFF_PATH], 0
+  mov   qword [rax+COOKIE_OFF_SAMESITE], 0
 
   jmp   .return
 
@@ -236,7 +225,127 @@ create_cookie:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x18
+  ret
+
+; sets the max age attribute of the cookie
+; @param  rdi: pointer to the cookie struct
+; @param  rsi: max age of the cookie
+; @return rax: return code
+set_cookie_max_age:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rdi+COOKIE_OFF_MAX_AGE], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the domain attribute of the cookie
+; @param  rdi: pointer to the cookie struct
+; @param  rsi: domain of the cookie
+; @return rax: return code
+set_cookie_domain:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rdi+COOKIE_OFF_DOMAIN], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the secure attribute of the cookie
+; @param  rdi: pointer to the cookie struct
+; @param  rsi: secure attribute
+; @return rax: return code
+set_cookie_secure:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rdi+COOKIE_OFF_SECURE], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the path attribute of the cookie
+; @param  rdi: pointer to the cookie struct
+; @param  rsi: path of the cookie
+; @return rax: return code
+set_cookie_path:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rdi+COOKIE_OFF_PATH], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the http only attribute of the cookie
+; @param  rdi: pointer to the cookie struct
+; @param  rsi: http only attribute
+; @return rax: return code
+set_cookie_http_only:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rdi+COOKIE_OFF_HTTP_ONLY], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the same site attribute of the cookie
+; @param  rdi: pointer to the cookie struct
+; @param  rsi: same site attribute
+; @return rax: return code
+set_cookie_samesite:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rdi+COOKIE_OFF_SAMESITE], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 
 ; returns the serialization of the cookie
@@ -394,7 +503,7 @@ serialize_cookie:
   cmp   rax, 0
   jl    .error
 
-  ; c
+  ; add http only
   mov   rdi, rax
   mov   rsi, HTTP_ONLY_ATTR
   call  boeuf_append
@@ -427,6 +536,32 @@ serialize_cookie:
   mov   [rsp+0x8], rax
 
 .skip_secure:
+  ; path attribute
+  mov   rdi, [rsp]
+  mov   rax, qword [rdi+COOKIE_OFF_PATH]
+  cmp   rax, 0
+  je    .skip_path
+
+  ; add '; '
+  mov   rdi, [rsp+0x8]
+  mov   rsi, ATTRIBUTE_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; add secure
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+COOKIE_OFF_PATH]
+  mov   rdi, [rsp+0x8]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+.skip_path:
   ; duplicate boeuf to return a string
   mov   rdi, [rsp+0x8]
   call  strdup
