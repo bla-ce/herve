@@ -1031,41 +1031,47 @@ parse_request:
 ; @param  rdi: pointer to context struct
 ; @return rax: pointer to route
 verify_request:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the server struct
+  ; [rsp+0x10]  -> pointer to the array of routes
+  ; [rsp+0x18]  -> pointer to the request struct
+  ; [rsp+0x20]  -> dynamic pointer to the route
+
+  mov   [rsp], rdi
 
   cmp   rdi, 0
   jle   .error
 
-  mov   [rsp], rdi
-
   ; get context server
   call  get_ctx_server
-
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp+0x8], rax
 
   ; get routes server
   mov   rdi, rax
   call  get_server_routes
-
   cmp   rax, 0
   jl    .error
   je    .not_found
 
   ; save routes onto the stack
-  mov   [rsp+0x8], rax
+  mov   [rsp+0x10], rax
 
   ; get ctx request
   mov   rdi, [rsp]
   call  get_ctx_request
-
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
   ; check if the host header is present in the request
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   call  get_request_headers
   cmp   rax, 0
   jl    .error
@@ -1076,21 +1082,20 @@ verify_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rsi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
 
 .loop:
   ; save route onto the stack
-  mov   [rsp+0x18], rsi
+  mov   [rsp+0x20], rsi
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   call  compare_route
-
   cmp   rax, 0
   jl    .error
   jg    .end_loop ; route is valid
 
   ; go to next route
-  mov   rdx, [rsp+0x18]
+  mov   rdx, [rsp+0x20]
   mov   rsi, [rdx+ROUTE_OFF_NEXT]
 
   cmp   rsi, 0
@@ -1099,10 +1104,28 @@ verify_request:
   jmp   .loop
 .end_loop:
   
-  mov   rax, [rsp+0x18]
+  mov   rax, [rsp+0x20]
   jmp   .return
 
 .not_found:
+  ; check if there is a 404 handler
+  mov   rdi, [rsp+0x8]
+  mov   rax, [rdi+SERVER_OFF_404_HANDLER]
+  test  rax, rax
+  jz    .send_404
+
+  mov   rdi, [rsp]
+  call  rax
+
+  mov   rdi, [rsp]
+  call  ctx_abort
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.send_404:
   ; send 404
   mov   rdi, [rsp] 
   mov   rsi, NOT_FOUND
@@ -1110,7 +1133,6 @@ verify_request:
 
   mov   rdi, [rsp]
   call  ctx_abort
-
   cmp   rax, 0
   jl    .error
 
@@ -1124,14 +1146,13 @@ verify_request:
 
   mov   rdi, [rsp]
   call  ctx_abort
-
   cmp   rax, 0
   jl    .error
 
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; frees the request structrure and all malloc'd variable

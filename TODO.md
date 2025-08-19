@@ -1,4 +1,8 @@
-# Need to find a project to use it
+## WAYYYYY TO BIG TODO
+
+Two potential directions:
+    - AWish -> AWS clone but wish
+    - Django like framework based on Herve
 
 ## BIG TODO:
     - [ ] Add middleware to a specific route
@@ -14,11 +18,8 @@
     - [ ] Error management
     - [ ] Define other timezones
     - [ ] Implement other load balancing algorithm
-        - Might be better to create a proxy repo using the lib
+    - [NEXT] Implement 404 function
 ## SMALL TODO:
-    - [NEXT] Add rest of the attributes for cookie struct
-        - Add SameSite to serialize_cookie
-    - [ ] Validate cookie attributes
 ## BORING TODO:
     - [ ] Calling conventions
     - [ ] prevent double free

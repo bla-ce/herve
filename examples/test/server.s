@@ -8,6 +8,30 @@ global  _start
 %include "os.inc"
 
 section .text
+handler_404:
+  sub   rsp, 0x8
+
+  mov   [rsp], rdi
+
+  mov   rdi, custom_404_msg
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, NOT_FOUND
+  call  send_no_content
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
 middleware:
   sub   rsp, 0x8
 
@@ -565,7 +589,7 @@ _start:
   cmp   rax, 0
   jl    error
 
-  ; add dynamic route
+  ; add dynamic2 route
   mov   rdi, [rsp+0x8]
   lea   rsi, [GET]
   lea   rdx, [dynamic_url2]
@@ -574,6 +598,13 @@ _start:
   call  add_route
   cmp   rax, 0
   jl    error
+
+  ; custom 404 handler
+  mov   rdi, [rsp+0x8]
+  mov   rsi, handler_404
+  call  set_404_handler
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [rsp+0x8]
   mov   rsi, middleware
@@ -678,4 +709,6 @@ section .data
   value     db "value", NULL_CHAR
   localhost db "localhost", NULL_CHAR
   path      db "/admin", NULL_CHAR
+
+  custom_404_msg db "Hello from 404 message", NULL_CHAR
 
