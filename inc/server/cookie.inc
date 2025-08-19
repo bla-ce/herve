@@ -35,8 +35,13 @@ DOMAIN_ATTR     db "Domain", NULL_CHAR
 PATH_ATTR       db "Path", NULL_CHAR
 SAMESITE_ATTR   db "SameSite", NULL_CHAR
 
-; token_table: each byte is 0 or 1 indicating invalid or valid token char
-;              for ASCII code = index in [0..127]
+; samesite values
+SAMESITE_STRICT db "Strict", NULL_CHAR
+SAMESITE_LAX    db "Lax", NULL_CHAR
+SAMESITE_NONE   db "None", NULL_CHAR
+
+; token_table: each byte is 0 or 1 indicating invalid or 
+; valid token char for ASCII code = index in [0..127]
 ; 
 ;  0 => invalid token character
 ;  1 => valid token character
@@ -551,7 +556,23 @@ serialize_cookie:
 
   mov   [rsp+0x8], rax
 
-  ; add secure
+  ; append path key
+  mov   rdi, rax
+  mov   rsi, PATH_ATTR
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; append equal
+  mov   rdi, rax
+  lea   rsi, [rsp+0x18]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; add path
   mov   rdi, [rsp]
   mov   rsi, [rdi+COOKIE_OFF_PATH]
   mov   rdi, [rsp+0x8]
@@ -562,6 +583,48 @@ serialize_cookie:
   mov   [rsp+0x8], rax
 
 .skip_path:
+  ; samesite attribute
+  mov   rdi, [rsp]
+  mov   rax, qword [rdi+COOKIE_OFF_SAMESITE]
+  cmp   rax, 0
+  je    .skip_samesite
+
+  ; add '; '
+  mov   rdi, [rsp+0x8]
+  mov   rsi, ATTRIBUTE_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; append samesite key
+  mov   rdi, rax
+  mov   rsi, SAMESITE_ATTR
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; append equal
+  mov   rdi, rax
+  lea   rsi, [rsp+0x18]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; add samesite
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+COOKIE_OFF_SAMESITE]
+  mov   rdi, [rsp+0x8]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+.skip_samesite:
   ; duplicate boeuf to return a string
   mov   rdi, [rsp+0x8]
   call  strdup

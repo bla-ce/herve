@@ -16,7 +16,8 @@
     - [ ] Implement other load balancing algorithm
         - Might be better to create a proxy repo using the lib
 ## SMALL TODO:
-    - [ ] Add rest of the attributes for cookie struct
+    - [NEXT] Add rest of the attributes for cookie struct
+        - Add SameSite to serialize_cookie
     - [ ] Validate cookie attributes
 ## BORING TODO:
     - [ ] Calling conventions

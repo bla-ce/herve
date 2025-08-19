@@ -346,8 +346,45 @@ test_string:
 
   mov   [rsp+0x8], rax
 
+  ; add the attributes
+  mov   rdi, [rsp+0x8]
+  mov   rsi, 420
+  call  set_cookie_max_age
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, localhost
+  call  set_cookie_domain
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, TRUE
+  call  set_cookie_secure
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, TRUE
+  call  set_cookie_http_only
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, path
+  call  set_cookie_path
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, SAMESITE_LAX
+  call  set_cookie_samesite
+  cmp   rax, 0
+  jl    .error
+  
   mov   rdi, [rsp]
-  mov   rsi, rax
+  mov   rsi, [rsp+0x8]
   call  set_cookie
   cmp   rax, 0
   jl    .error
@@ -640,4 +677,5 @@ section .data
   name      db "name", NULL_CHAR
   value     db "value", NULL_CHAR
   localhost db "localhost", NULL_CHAR
+  path      db "/admin", NULL_CHAR
 
