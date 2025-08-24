@@ -6,7 +6,6 @@
 %include "config.inc"
 %include "constants.inc"
 %include "context.inc"
-%include "error.inc"
 %include "file.inc"
 %include "free.inc"
 %include "group.inc"

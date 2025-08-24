@@ -2,6 +2,7 @@ section .data
 section .text
 
 ; parses cli arguments into an array of string pointers
+; devs are responsible of freeing the array
 ; @param  rdi: argc
 ; @param  rsi: pointer to argv[0]
 ; @return rax: pointer to array
@@ -13,15 +14,15 @@ parse_cli:
   ; [rsp+0x8]   -> pointer to argv[0]
   ; [rsp+0x10]  -> array of pointers
 
+  mov   [rsp], rdi 
+  mov   [rsp+0x8], rsi
+
   cmp   rdi, 0
   jl    .error
   je    .null
 
   cmp   rsi, 0
   jle   .error
-
-  mov   [rsp], rdi 
-  mov   [rsp+0x8], rsi
 
   ; malloc array of pointers
   mov   rdi, [rsp]
