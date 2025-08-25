@@ -9,7 +9,7 @@ Why using Herve:
 
 ## Milestones
     - [ ] Run herve as an executable to init a project `herve init <app-name> <directory>` -> 01/09/2025
-        - [ ] add logan 
+        - [x] add logan 
         - [ ] parse init command
         - [ ] implement init command
 

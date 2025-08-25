@@ -4,6 +4,8 @@ global _start
 %include "os.inc"
 
 section .data
+  logan dq 0  ; pointer to the logan struct
+
   MIN_CLI_ARGS  equ 2
   INIT_ARGV     equ 4 
 
@@ -11,15 +13,15 @@ section .data
   INIT_CMD db "init", NULL_CHAR
 
   ; log messages
-  init_msg db "[LOG] Initialising Herve...", NULL_CHAR
+  init_msg db "Initialising Herve...", NULL_CHAR
 
   ; error messages
-  invalid_cmd_err db "[ERROR] The command you entered is invalid", LINE_FEED
+  invalid_cmd_err db "Invalid command.", LINE_FEED
                   db "Available commands:", LINE_FEED
                   db SPACE, SPACE, "- herve init", NULL_CHAR
 
 
-  missing_args_err  db "[ERROR] Not enough arguments.", LINE_FEED
+  missing_args_err  db "Not enough arguments.", LINE_FEED
                     db "Available commands:", LINE_FEED
                     db SPACE, SPACE, "- herve init", NULL_CHAR
 
@@ -31,6 +33,13 @@ _start:
   ; [rsp]       -> pointer to the cli args
   ; [rsp+0x8]   -> argv
   ; [rsp+0x10]  -> pointer to argc
+
+  ; initialise logan struct
+  call  logan_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   [logan], rax
 
   ; read cli args
   mov   rdi, [rsp+0x8]    ; offset 0x8 because we sub above
@@ -127,8 +136,9 @@ parse_command:
   cmp   rsi, MIN_CLI_ARGS
   jge   .compare
 
-  mov   rdi, missing_args_err
-  call  println
+  mov   rdi, [logan]
+  mov   rsi, missing_args_err
+  call  log_errorln
 
   jmp   .error
 
@@ -144,8 +154,9 @@ parse_command:
   cmp   rax, TRUE
   je    .init_cmd
 
-  mov   rdi, invalid_cmd_err
-  call  println
+  mov   rdi, [logan]
+  mov   rsi, invalid_cmd_err
+  call  log_errorln
 
   jmp   .error
 
@@ -164,7 +175,9 @@ parse_command:
   ret
 
 herve_init:
-  mov   rdi, init_msg
-  call  println
+  mov   rdi, [logan]
+  mov   rsi, init_msg
+  call  log_infoln
 
   ret
+
