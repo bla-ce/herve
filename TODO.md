@@ -9,7 +9,9 @@ Why using Herve:
 
 ## Milestones
     - [ ] Run herve as an executable to init a project `herve init <app-name> <directory>` -> 01/09/2025
-        - [ ] Update makefile to run examples as tests
+        - [x] Rework file structure
+        - [x] How to structure library and makefiles
+        - [x] Update makefile to run examples as tests
         - [ ] Read and print CLI arguments
         - [ ] Parse CLI arguments
 

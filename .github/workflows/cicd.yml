@@ -23,7 +23,7 @@ jobs:
 
     - name: Build HTTP server
       run: |
-        make PROGRAM_NAME=examples/test/server
+        make test
 
     - name: Start HTTP server
       run: |
@@ -50,7 +50,7 @@ jobs:
 
     - name: Build echo server
       run: |
-        make PROGRAM_NAME=examples/echo/echo
+        make echo
 
     - name: Start echo server
       run: |
