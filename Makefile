@@ -30,13 +30,11 @@ test:
 	nasm -o $(TEST_PATH).o $(TEST_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(TEST_PATH) $(TEST_PATH).o
-	./$(TEST_PATH) $(TEST_PORT)
 
 echo:
 	nasm -o $(ECHO_PATH).o $(ECHO_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(ECHO_PATH) $(ECHO_PATH).o
-	./$(ECHO_PATH)
 
 .PHONY: clean
 clean:
