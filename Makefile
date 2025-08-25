@@ -2,6 +2,7 @@ INCLUDE_DIR = include
 LIB_DIR = lib
 SRC_DIR = src
 BUILD_DIR = build
+BIN_DIR = bin
 
 EXEC = herve
 TEST_PATH = examples/test/server
@@ -24,7 +25,7 @@ BASE_FLAGS = -felf64 -w+all
 build: $(INCLUDE_FILES) $(SRC_DIR)/$(EXEC).s
 	nasm -o $(BUILD_DIR)/$(EXEC).o $(SRC_DIR)/$(EXEC).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(BUILD_DIR)/$(EXEC) $(BUILD_DIR)/$(EXEC).o
+	ld -o $(BIN_DIR)/$(EXEC) $(BUILD_DIR)/$(EXEC).o
 
 test:
 	nasm -o $(TEST_PATH).o $(TEST_PATH).s \
