@@ -65,7 +65,7 @@ jobs:
 
     - name: Run malloc tests
       run: |
-        cd inc/malloc/tests
+        cd lib/malloc/tests
         make
 
     - name: Kill server
