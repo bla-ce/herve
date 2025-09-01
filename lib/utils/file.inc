@@ -50,6 +50,9 @@ section .data
   SEEK_SET equ 0x0
   SEEK_END equ 0x2
 
+  DIRENT_OFF_DRECLEN    equ 0x10
+  DIRENT_OFF_FILE_NAME  equ 0x12
+
 section .text
 ; writes to a file
 ; @param  rdi: file descriptor
