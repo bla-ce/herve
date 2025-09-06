@@ -99,12 +99,6 @@ proxy_middleware:
 handle_proxy_request:
   sub   rsp, 0x30
 
-  cmp   rdi, 0
-  jl    .error
-
-  cmp   rsi, 0
-  jl    .error
-
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> file descriptor of the upstream server
@@ -115,6 +109,13 @@ handle_proxy_request:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
 
   ; send the request to the server
   call  send_request_to_server
@@ -150,6 +151,8 @@ handle_proxy_request:
   mov   rsi, [rsp+0x10]
   mov   rdx, qword [rsp+0x18]
   call  send_response_from_proxy
+  cmp   rax, 0
+  jl    .error
 
   ; close connection with end server
   mov   rdi, qword [rsp+0x8]
@@ -208,6 +211,13 @@ handle_proxy_request:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -363,7 +373,6 @@ connect_proxy:
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEPORT
   call  set_socket_option
-
   cmp   rax, 0
   jl    .error
 
@@ -371,7 +380,6 @@ connect_proxy:
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEADDR
   call  set_socket_option
-
   cmp   rax, 0
   jl    .error
 

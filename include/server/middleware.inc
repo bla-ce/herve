@@ -3,6 +3,7 @@ middleware_struct:
   middleware_addr     resq 1
   middleware_arg1     resq 1
   middleware_arg2     resq 1
+  middleware_arg3     resq 1
   middleware_next     resq 1
   middleware_post_req resq 1
 middleware_struct_end:
@@ -13,50 +14,36 @@ section .data
   MIDDLEWARE_OFF_ADDR     equ 0x0
   MIDDLEWARE_OFF_ARG1     equ MIDDLEWARE_OFF_ADDR + 0x8
   MIDDLEWARE_OFF_ARG2     equ MIDDLEWARE_OFF_ARG1 + 0x8
-  MIDDLEWARE_OFF_NEXT     equ MIDDLEWARE_OFF_ARG2 + 0x8
+  MIDDLEWARE_OFF_ARG3     equ MIDDLEWARE_OFF_ARG2 + 0x8
+  MIDDLEWARE_OFF_NEXT     equ MIDDLEWARE_OFF_ARG3 + 0x8
   MIDDLEWARE_OFF_POST_REQ equ MIDDLEWARE_OFF_NEXT + 0x8
 
 section .text
 ; adds a middleware to the end of the linked list of the group
 ; @param  rdi: pointer to server
-; @param  rsi: middleware
-; @param  rdx: pointer to the group or 0 if root
-; @param  rcx: arg1
-; @param  r8:  arg2
-; @param  r9:  post request middlewware (bool)
+; @param  rsi: pointer to the group or 0 if root
+; @param  rdx: pointer to a middleware struct
 ; @return rax: return code
 add_middleware:
-  sub   rsp, 0x40
+  sub   rsp, 0x18
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
-  ; [rsp+0x8]   -> middleware function
-  ; [rsp+0x10]  -> pointer to the group or 0 if root
-  ; [rsp+0x18]  -> arg 1 to be passed when calling the function
-  ; [rsp+0x20]  -> arg 2 to be passed when calling the function
-  ; [rsp+0x28]  -> post request middleware (bool)
-  ; [rsp+0x30]  -> pointer to go through the list of middlewares
-  ; [rsp+0x38]  -> pointer to middleware struct
+  ; [rsp+0x8]   -> pointer to the group or 0 if root
+  ; [rsp+0x10]  -> pointer to a middleware struct
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
-  mov   [rsp+0x18], rcx
-  mov   [rsp+0x20], r8
-  mov   [rsp+0x28], r9
-  mov   qword [rsp+0x38], 0
 
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, 0
+  cmp   rdx, 0
   jle   .error
 
-  cmp   rdx, 0
-  jl    .error
-
   ; get the root group if the value is 0
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x8]
   test  rdi, rdi
   jnz   .no_root_group
 
@@ -65,7 +52,7 @@ add_middleware:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x8], rax
   mov   rdi, rax
 
 .no_root_group:
@@ -94,47 +81,19 @@ add_middleware:
   jmp   .loop
 
 .add:
-  ; save next pos onto the stack
-  mov   [rsp+0x30], rdi
-
-  mov   rdi, MIDDLEWARE_STRUCT_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x38], rax
-
-  mov   rsi, [rsp+0x8]
-  mov   rdx, [rsp+0x18]
-  mov   rcx, [rsp+0x20]
-  mov   r9, [rsp+0x28]
-
-  ; mov middleware inside address of middleware struct
-  mov   [rax+MIDDLEWARE_OFF_ADDR], rsi
-  mov   [rax+MIDDLEWARE_OFF_ARG1], rdx  ; load first argument
-  mov   [rax+MIDDLEWARE_OFF_ARG2], rcx  ; load second argument
-  mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], r9
-  mov   qword [rax+MIDDLEWARE_OFF_NEXT], 0
+  mov   rax, [rsp+0x10]
 
   ; mov middleware struct inside rdi
-  mov   rdi, [rsp+0x30]
   mov   [rdi], rax
 
   mov   rax, SUCCESS_CODE
   jmp   .return
   
 .error:
-  mov   rdi, [rsp+0x38]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
   mov    rax, FAILURE_CODE
   
 .return:
-  add   rsp, 0x40
+  add   rsp, 0x18
   ret
 
 ; run the chain of middlewares
@@ -180,7 +139,8 @@ run_middlewares:
   mov   rax, [rdi+MIDDLEWARE_OFF_ADDR]
   mov   [rsp+0x18], rdi
   mov   rsi, [rdi+MIDDLEWARE_OFF_ARG1]  ; load first argument
-  mov   rdx, [rdi+MIDDLEWARE_OFF_ARG2]  ; load first argument
+  mov   rdx, [rdi+MIDDLEWARE_OFF_ARG2]  ; load second argument
+  mov   rcx, [rdi+MIDDLEWARE_OFF_ARG3]  ; load third argument
   mov   rdi, [rsp+0x8]
   call  rax
   cmp   rax, 0

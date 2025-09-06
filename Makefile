@@ -3,7 +3,12 @@ LIB_DIR = lib
 
 TEST_PATH = examples/test/server
 TEST_PORT = 1337
+
 ECHO_PATH = examples/echo/echo
+
+PROXY_PATH = examples/reverse_proxy/reverse_proxy
+PROXY_SERVER_1_PATH = examples/reverse_proxy/server
+PROXY_SERVER_2_PATH = examples/reverse_proxy/server2
 
 INCLUDE_FILES = \
 	$(shell find -type f -name '*.inc')
@@ -27,6 +32,17 @@ echo:
 	nasm -o $(ECHO_PATH).o $(ECHO_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(ECHO_PATH) $(ECHO_PATH).o
+
+proxy:
+	nasm -o $(PROXY_PATH).o $(PROXY_PATH).s \
+		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
+	ld -o $(PROXY_PATH) $(PROXY_PATH).o
+	nasm -o $(PROXY_SERVER_1_PATH).o $(PROXY_SERVER_1_PATH).s \
+		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
+	ld -o $(PROXY_SERVER_1_PATH) $(PROXY_SERVER_1_PATH).o
+	nasm -o $(PROXY_SERVER_2_PATH).o $(PROXY_SERVER_2_PATH).s \
+		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
+	ld -o $(PROXY_SERVER_2_PATH) $(PROXY_SERVER_2_PATH).o
 
 .PHONY: clean
 clean:
