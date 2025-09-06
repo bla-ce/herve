@@ -11,84 +11,29 @@ concurrency:
 jobs:
   http-server-tests:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y nasm curl wrk
-
-    - name: Build HTTP server
-      run: |
-        make test
-
-    - name: Start HTTP server
-      run: |
-        ./examples/test/server 1337 &
-        echo $! > server.pid
-        sleep 2  # Wait for server to be ready
-
-    - name: Run example tests
-      run: |
-        chmod +x scripts/test.sh
-        ./scripts/test.sh
-
-    - name: Run wrk benchmark
-      run: |
-        echo "Running wrk on /index..."
-        wrk -t1 -c1 -d30s --latency http://localhost:1337/index
-
-        echo "Running wrk on /not-found..."
-        wrk -t1 -c1 -d30s --latency http://localhost:1337/not-found
-
-    - name: Kill server
-      run: |
-        kill $(cat server.pid)
+      - uses: actions/checkout@v3
+      - run: sudo apt update && sudo apt install -y nasm curl wrk
+      - run: make test
+      - run: ./examples/test/server 1337 & echo $! > server.pid && sleep 2
+      - run: chmod +x scripts/test.sh && ./scripts/test.sh
+      - run: wrk -t1 -c1 -d30s --latency http://localhost:1337/index
+      - run: wrk -t1 -c1 -d30s --latency http://localhost:1337/not-found
+      - run: kill $(cat server.pid)
 
   echo-server-tests:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      - run: sudo apt update && sudo apt install -y nasm
+      - run: make echo
+      - run: ./examples/echo/echo & echo $! > server.pid && sleep 2
+      - run: chmod +x scripts/test_echo.sh && ./scripts/test_echo.sh
+      - run: kill $(cat server.pid)
 
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y nasm
-
-    - name: Build echo server
-      run: |
-        make echo
-
-    - name: Start echo server
-      run: |
-        ./examples/echo/echo &
-        echo $! > server.pid
-        sleep 2  # Wait for server to be ready
-
-    - name: Run echo tests
-      run: |
-        chmod +x scripts/test_echo.sh
-        ./scripts/test_echo.sh
-
-    - name: Kill server
-      run: |
-        kill $(cat server.pid)
-  
   malloc-tests:
-    runs-in: ubuntu-latest
-
+    runs-on: ubuntu-latest
     steps:
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y nasm
-
-    - name: Run malloc tests
-      run: |
-        cd lib/malloc/tests
-        make
+      - uses: actions/checkout@v3
+      - run: sudo apt update && sudo apt install -y nasm
+      - run: cd lib/malloc/tests && make
