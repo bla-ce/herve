@@ -68,7 +68,7 @@ Routes with a common prefix can be grouped inside a `group` structure with speci
 
 ### Dynamic Route Parameters
 
-A route can be defined with dynamic paramater such as `/api/v1/events/<id`. This feature allows for flexibility in supporting varying parameters within the defined route.
+A route can be defined with dynamic paramater such as `/api/v1/events/:id`. This feature allows for flexibility in supporting varying parameters within the defined route.
 
 ## Quick Start
 

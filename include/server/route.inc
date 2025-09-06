@@ -907,7 +907,7 @@ is_dynamic_route:
   cmp   rdi, 0
   jl    .error
 
-  mov   rsi, LESS_THAN
+  mov   rsi, COLON
   call  find_next_char
   cmp   rax, 0
   jl    .not_dynamic
@@ -1053,7 +1053,7 @@ handle_dynamic_route:
 
   ; count the number of parameter
   mov   rdi, [rsp+0x18]
-  mov   rsi, LESS_THAN
+  mov   rsi, COLON
   call  count_char
   cmp   rax, 0
   jle   .error
@@ -1071,7 +1071,7 @@ handle_dynamic_route:
 .loop:
   ; check if there is another parameter to get
   mov   rdi, [rsp+0x18]
-  mov   rsi, LESS_THAN
+  mov   rsi, COLON
   call  find_next_char
   cmp   rax, 0
   jge   .compare  ; if yes, compare until the parameter

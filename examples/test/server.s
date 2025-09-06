@@ -700,8 +700,8 @@ section .data
   basic_url     db "/basic-auth/", NULL_CHAR
   post_url      db "/post", NULL_CHAR
   wildcard_url  db "/wild/*", NULL_CHAR
-  dynamic_url   db "/api/users/<id/account/<id2", NULL_CHAR
-  dynamic_url2  db "/api/users/<id/account/<id2/update", NULL_CHAR
+  dynamic_url   db "/api/users/:id/account/:id2", NULL_CHAR
+  dynamic_url2  db "/api/users/:id/account/:id2/update", NULL_CHAR
 
   index_path    db "examples/test/views/index.html", NULL_CHAR
   template_path db "examples/test/views/template.apl", NULL_CHAR
