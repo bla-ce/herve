@@ -34,11 +34,9 @@ Each handler will receive the context structure as an argument so that you have 
 
 ### Middlewares
 
-When writing a webserver, you might want to add custom middlewares at the root level like authentication, reverse-proxy, request logs etc...
+When writing a webserver, you might want to add custom middlewares for specific groups of routes like authentication, reverse-proxy, request logs etc...
 
 To avoid writing these functions for every route, you can add middlewares that can be executed before or after the request handler. These middlewares are stored as a linked list.
-
-In the future, `Herve` will allow middlewares for specific groups of routes and not just at the root level.
 
 `Herve` provides some middlewares, including a custom request logger and a proxy middleware.
 

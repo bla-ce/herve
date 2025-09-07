@@ -27,6 +27,7 @@ _start:
 
   mov   rdi, qword [proxy_port]
   mov   word [rax+PROXY_OFF_PORT], di
+  mov   dword [rax+PROXY_OFF_WEIGHT], 2
 
   lea   rdi, [proxy_ip]
   mov   [rax+PROXY_OFF_IP], rdi
@@ -40,6 +41,7 @@ _start:
 
   mov   rdi, qword [proxy2_port]
   mov   word [rax+PROXY_OFF_PORT], di
+  mov   dword [rax+PROXY_OFF_WEIGHT], 3
 
   lea   rdi, [proxy_ip]
   mov   [rax+PROXY_OFF_IP], rdi
@@ -56,7 +58,7 @@ _start:
 
   mov   qword [rax+MIDDLEWARE_OFF_ADDR], proxy_middleware
   mov   qword [rax+MIDDLEWARE_OFF_ARG1], proxy_array
-  mov   qword [rax+MIDDLEWARE_OFF_ARG2], ROUND_ROBIN_IP
+  mov   qword [rax+MIDDLEWARE_OFF_ARG2], WEIGHTED_ROUND_ROBIN_IP
   mov   qword [rax+MIDDLEWARE_OFF_ARG3], PROXY_COUNT
   mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], FALSE
 

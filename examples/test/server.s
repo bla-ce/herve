@@ -652,7 +652,6 @@ _start:
   mov   [rsp+0x10], rax
 
   ; malloc middleware for logging
-  ; malloc second middleware
   mov   rdi, MIDDLEWARE_STRUCT_LEN
   call  malloc
   cmp   rax, 0

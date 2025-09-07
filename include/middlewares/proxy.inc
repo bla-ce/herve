@@ -1,21 +1,23 @@
 section .bss
 proxy_struct:
-  _proxy_ip    resq 1
-  _proxy_port  resq 1
+  _proxy_ip     resq 1
+  _proxy_port   resq 1
+  _proxy_weight resq 1
 proxy_struct_end:
 
 section .data
 PROXY_STRUCT_LEN equ proxy_struct_end - proxy_struct
 
-PROXY_OFF_IP    equ 0x0
-PROXY_OFF_PORT  equ PROXY_OFF_IP + 0x8
+PROXY_OFF_IP      equ 0x0
+PROXY_OFF_PORT    equ PROXY_OFF_IP + 0x8
+PROXY_OFF_WEIGHT  equ PROXY_OFF_PORT + 0x8
 
 ROUND_ROBIN_IP          equ 0
 WEIGHTED_ROUND_ROBIN_IP equ 1
-IP_HASH                 equ 2
 
 ; keep track of the proxy index
-proxy_idx dq 0
+proxy_idx   dq 0
+curr_weight dq 0
 
 bad_gateway_message db "Bad Gateway: The remote server is unreachable. "
                     db "Forwarding failed because the connection could not be established.", NULL_CHAR
@@ -55,6 +57,20 @@ proxy_middleware:
   mov   qword [rsp+0x10], rdx
   mov   qword [rsp+0x18], rcx
 
+  cmp   qword [rsp+0x10], WEIGHTED_ROUND_ROBIN_IP
+  jne   .skip_weight
+
+  cmp   qword [curr_weight], 0
+  jne   .skip_weight
+
+  mov   rdx, [rsp+0x8]
+  mov   rcx, qword [proxy_idx]
+  mov   rsi, [rdx+8*rcx]
+  mov   rax, [rsi+PROXY_OFF_WEIGHT]
+
+  mov   qword [curr_weight], rax
+
+.skip_weight:
   ; connect to the end server   
   mov   rdi, [rsp]
   mov   rdx, [rsp+0x8]
@@ -73,6 +89,28 @@ proxy_middleware:
   cmp   rax, 0
   jl    .error
 
+  ; close connection
+  mov   rdi, qword [rsp+0x28]
+  call  close_file
+  cmp   rax, 0
+  jl    .error
+
+  ; skip decrement if not weighted
+  cmp   qword [rsp+0x10], WEIGHTED_ROUND_ROBIN_IP
+  jne   .skip_dec
+
+  ; decrement curr weight
+  dec   qword [curr_weight]
+
+  cmp   qword [curr_weight], 0
+  jne   .skip_reset_idx
+
+.skip_dec:
+  ; get current proxy struct
+  mov   rdi, [rsp+0x8]
+  mov   rax, qword [proxy_idx]
+  mov   rsi, [rdi+8*rax]
+  
   inc   qword [proxy_idx]
   mov   r9, qword [proxy_idx]
   cmp   r9, qword [rsp+0x18]
@@ -153,10 +191,6 @@ handle_proxy_request:
   call  send_response_from_proxy
   cmp   rax, 0
   jl    .error
-
-  ; close connection with end server
-  mov   rdi, qword [rsp+0x8]
-  call  close_file
 
   ; parse response to get status code
   mov   rdi, [rsp+0x10]
