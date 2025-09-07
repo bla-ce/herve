@@ -118,6 +118,62 @@ json_insert_key:
   add   rsp, 0x10
   ret
 
+; inserts an integer into the json object
+; @param  rdi: pointer to the json object
+; @param  rsi: pointer to the key
+; @param  rdx: integer
+; @return rax: pointer to the updated json object
+json_insert_integer:
+  sub   rsp, 0x18
+  sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the json object
+  ; [rsp+0x8]   -> pointer to the key
+  ; [rsp+0x10]  -> interger
+  ; [rsp+0x18]  -> tmp string for holding the number
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; insert key
+  call  json_insert_key
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  mov   rdi, [rsp+0x10] 
+  lea   rsi, [rsp+0x18]
+  mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
+  call  to_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; return
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
+  add   rsp, 0x18
+  ret
+
 ; inserts a string into the json object
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the key
