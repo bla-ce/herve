@@ -16,9 +16,9 @@ INCLUDE_FILES = \
 	$(shell find -type f -name '*.inc')
 
 INCLUDE_DIRS = \
-	$(shell find $(INCLUDE_DIR) -type d -printf '-Iinclude/%P ')
+	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')
 
-LIB_DIRS = $(shell find $(LIB_DIR) -type d -printf '-Ilib/%P ')
+LIB_DIRS = $(shell find $(LIB_DIR) -type d -printf '-I$(LIB_DIR)/%P ')
 
 INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS)
 
@@ -35,11 +35,6 @@ echo:
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(ECHO_PATH) $(ECHO_PATH).o
 
-json:
-	nasm -o $(JSON_PATH).o $(JSON_PATH).s \
-		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(JSON_PATH) $(JSON_PATH).o
-
 proxy:
 	nasm -o $(PROXY_PATH).o $(PROXY_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
@@ -55,4 +50,7 @@ proxy:
 clean:
 	rm -f $(ECHO_PATH) $(ECHO_PATH).o
 	rm -f $(TEST_PATH) $(TEST_PATH).o
+	rm -f $(PROXY_PATH) $(PROXY_PATH).o
+	rm -f $(PROXY_SERVER_1_PATH) $(PROXY_SERVER_1_PATH).o
+	rm -f $(PROXY_SERVER_2_PATH) $(PROXY_SERVER_2_PATH).o
 

@@ -1,5 +1,6 @@
 main
 herve
+include/encoding/json/json_test
 examples/test/server
 examples/reverse_proxy/server
 examples/reverse_proxy/server2
