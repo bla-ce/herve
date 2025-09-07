@@ -512,22 +512,38 @@ ht_insert:
   ; check key length
   mov   rdi, [rsp+0x8]
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
   cmp   rax, HT_ENTRY_KEY_MAX_LENGTH
   jg    .error
 
+  ; dup and store key
+  mov   rdi, [rsp+0x8] 
+  mov   rsi, rax
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x38], rax
+
   ; check value length
   mov   rdi, [rsp+0x10]
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
   cmp   rax, HT_ENTRY_VALUE_MAX_LENGTH
   jg    .error
+
+  ; dup and store value
+  mov   rdi, [rsp+0x10] 
+  mov   rsi, rax
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x40], rax
 
   ; create ht_entry
   ; malloc entry
@@ -539,26 +555,12 @@ ht_insert:
   ; save entry
   mov   [rsp+0x18], rax
 
-  ; dup and store key
-  mov   rdi, [rsp+0x8] 
-  call  strdup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x38], rax
-
   mov   rdi, [rsp+0x18]
+  mov   rax, [rsp+0x38]
   mov   [rdi+HT_ENTRY_OFF_KEY], rax
 
-  ; dup and store value
-  mov   rdi, [rsp+0x10] 
-  call  strdup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x40], rax
-
   mov   rdi, [rsp+0x18]
+  mov   rax, [rsp+0x40]
   mov   [rdi+HT_ENTRY_OFF_VALUE], rax
 
   ; set next as 0

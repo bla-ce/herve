@@ -6,6 +6,8 @@ TEST_PORT = 1337
 
 ECHO_PATH = examples/echo/echo
 
+JSON_PATH = include/encoding/json_test
+
 PROXY_PATH = examples/reverse_proxy/reverse_proxy
 PROXY_SERVER_1_PATH = examples/reverse_proxy/server
 PROXY_SERVER_2_PATH = examples/reverse_proxy/server2
@@ -32,6 +34,11 @@ echo:
 	nasm -o $(ECHO_PATH).o $(ECHO_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(ECHO_PATH) $(ECHO_PATH).o
+
+json:
+	nasm -o $(JSON_PATH).o $(JSON_PATH).s \
+		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
+	ld -o $(JSON_PATH) $(JSON_PATH).o
 
 proxy:
 	nasm -o $(PROXY_PATH).o $(PROXY_PATH).s \
