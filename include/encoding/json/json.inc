@@ -2,6 +2,10 @@ section .data
 
 JSON_BEGIN      db "{", NULL_CHAR
 JSON_END        db "}", NULL_CHAR
+
+JSON_ARRAY_BEGIN  db "[", NULL_CHAR
+JSON_ARRAY_END    db "]", NULL_CHAR
+
 JSON_STR_QUOTES db DOUBLE_QUOTES, NULL_CHAR
 JSON_KV_DELIM   db ":", NULL_CHAR
 JSON_KEYS_DELIM db COMMA, NULL_CHAR
@@ -130,7 +134,7 @@ json_insert_integer:
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
-  ; [rsp+0x10]  -> interger
+  ; [rsp+0x10]  -> integer
   ; [rsp+0x18]  -> tmp string for holding the number
 
   mov   [rsp], rdi
@@ -171,6 +175,56 @@ json_insert_integer:
 
 .return:
   add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
+  add   rsp, 0x18
+  ret
+
+; inserts a json object into the json object
+; @param  rdi: pointer to the json object
+; @param  rsi: pointer to the key
+; @param  rdx: pointer to the json object to insert
+; @return rax: pointer to the updated json object
+json_insert_object:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the json object
+  ; [rsp+0x8]   -> pointer to the key
+  ; [rsp+0x10]  -> pointer to the json object to insert
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; insert key
+  call  json_insert_key
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  ; insert json object 
+  mov   rdi, rax
+  mov   rsi, [rsp+0x10]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; return
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x18
   ret
 
@@ -339,6 +393,382 @@ json_insert_null:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; initialise a json array
+; @return rax: pointer to the json array
+json_array_create:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the json object
+
+  mov   rdi, JSON_ARRAY_BEGIN 
+  call  boeuf_create
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; inserts an integer into the json array
+; @param  rdi: pointer to the json array
+; @param  rsi: integer
+; @return rax: pointer to the updated json array
+json_array_insert_integer:
+  sub   rsp, 0x10
+  sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the json array
+  ; [rsp+0x8]   -> integer
+  ; [rsp+0x10]  -> tmp string for holding the number
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [rsp+0x10]
+  mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
+  call  to_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  ; add comma
+  mov   rdi, [rsp]
+  mov   rsi, JSON_KEYS_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; return
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
+  add   rsp, 0x10
+  ret
+
+; inserts a json object into the json array
+; @param  rdi: pointer to the json array
+; @param  rsi: pointer to the json object to insert
+; @return rax: pointer to the updated json array
+json_array_insert_object:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the json object
+  ; [rsp+0x8] -> pointer to the json object to insert
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; insert json object 
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; add comma
+  mov   rdi, rax
+  mov   rsi, JSON_KEYS_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; return
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; inserts a string into the json object
+; @param  rdi: pointer to the json object
+; @param  rsi: pointer to the value
+; @return rax: pointer to the updated json object
+json_array_insert_string:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the json object
+  ; [rsp+0x8] -> pointer to the value
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; insert double quote
+  mov   rdi, [rsp]
+  mov   rsi, JSON_STR_QUOTES
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; insert second string
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; insert double quote
+  mov   rdi, rax
+  mov   rsi, JSON_STR_QUOTES
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; add comma
+  mov   rdi, rax
+  mov   rsi, JSON_KEYS_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; return
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; inserts a boolean into the json object
+; @param  rdi: pointer to the json object
+; @param  rsi: TRUE (1) | FALSE (0)
+; @return rax: pointer to the updated json object
+json_array_insert_bool:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the json object
+  ; [rsp+0x8] -> TRUE (1) | FALSE (0)
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   qword [rsp+0x8], FALSE
+  je    .insert_false
+
+.insert_true:
+  mov   rdi, [rsp]
+  mov   rsi, JSON_BOOL_TRUE
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .insert_comma
+
+.insert_false:
+  mov   rdi, [rsp]
+  mov   rsi, JSON_BOOL_FALSE
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+.insert_comma:
+  mov   rdi, rax
+  mov   rsi, JSON_KEYS_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; return
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; inserts a null value into the json object
+; @param  rdi: pointer to the json object
+; @return rax: pointer to the updated json object
+json_array_insert_null:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the json object
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; insert double quote
+  mov   rdi, [rsp]
+  mov   rsi, JSON_NULL
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; insert omma
+  mov   rdi, [rsp]
+  mov   rsi, JSON_KEYS_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; return
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; inserts a json array into the json object
+; @param  rdi: pointer to the json object
+; @param  rsi: pointer to the key
+; @param  rdx: pointer to the array
+; @return rax: pointer to the updated json object
+json_insert_array:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the json object
+  ; [rsp+0x8]   -> pointer to the key
+  ; [rsp+0x10]  -> pointer to the array
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; insert key
+  call  json_insert_key
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  ; insert json array 
+  mov   rdi, rax
+  mov   rsi, [rsp+0x10]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; return
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; ends the json array
+; @param  rdi: pointer to the json array
+; @return rax: pointer to the json array
+json_array_end:
+  sub   rsp, 0x8
+  
+  ; *** STACK USAGE *** ;
+  ; [rsp]   -> pointer to the json array
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; go at the end of the boeuf
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  add   rdi, rax
+  dec   rdi
+
+  cmp   byte [rdi], OPENING_BRACKET
+  jne   .replace
+
+  ; append closing
+  mov   rdi, [rsp]
+  mov   rsi, JSON_ARRAY_END
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+  
+  jmp   .return
+
+.replace:
+  ; replace comma with ']'
+  mov   rax, CLOSING_BRACKET
+  stosb
+
+  mov   rax, [rsp]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; frees the json array
+; @param  rdi: pointer to the json array
+; @return rax: return code
+json_array_free:
+  call  boeuf_free
   ret
 
 ; ends the json object
