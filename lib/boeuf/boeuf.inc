@@ -198,6 +198,11 @@ boeuf_nappend:
   mov   rax, qword [rdi+BOEUF_METADATA_OFF_SIZE]
   add   rax, qword [rsp+0x18]
   add   rax, BOEUF_METADATA_LEN
+
+  ; here, we doubld the size, so that we can avoid malloc for each append
+  xor   rdx, rdx
+  mov   rbx, 2
+  mul   rbx
   
   ; make sure the requested size is not over MAX_BOEUF_BUF_SIZE
   mov   qword [boeuf_errno], BOEUF_BUF_TOO_LARGE
