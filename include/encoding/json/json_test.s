@@ -332,6 +332,16 @@ _start:
   jl    .error
 
   mov   rdi, [rsp]
+  mov   rsi, personal_income_key
+  mov   rdx, qword [personal_income_value]
+  mov   rcx, 2
+  call  json_insert_float
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  mov   rdi, [rsp]
   mov   rsi, spouse_key
   call  json_insert_null
   cmp   rax, 0
@@ -405,6 +415,7 @@ section .data
   number_value1         db "212 555-1234", NULL_CHAR
   type_value2           db "office", NULL_CHAR
   number_value2         db "646 555-4567", NULL_CHAR
+  personal_income_value dq 87467.89
 
   target_json db '{'
               db '"first_name":"John",'
@@ -435,6 +446,6 @@ section .data
               db '"id":1',
               db '}'
               db '],'
-              ; db '"personal_income":87467.89,'
+              db '"personal_income":87467.89,'
               db '"spouse":null'
               db '}', NULL_CHAR
