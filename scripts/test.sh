@@ -16,6 +16,7 @@ tests=(
   "http://localhost:1337/ HEHE 404"
   "http://localhost:1337/ HEHEHEHEHEHE 500"
   "http://localhost:1337/health GET 200"
+  "http://localhost:1337/json GET 200"
   "http://localhost:1337/wild/example GET 200"
   "http://localhost:1337/wild/ayoooooooo GET 200"
   "http://localhost:1337/redirect GET 302"

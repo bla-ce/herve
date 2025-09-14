@@ -8,6 +8,58 @@ global  _start
 %include "os.inc"
 
 section .text
+
+test_json:
+  sub   rsp, 0x10
+
+  mov   [rsp], rdi
+
+  ; create json
+  call  json_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; insert string
+  mov   rdi, [rsp+0x8]
+  mov   rsi, json_key
+  mov   rdx, json_value
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+  
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; send json
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, [rsp+0x8]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+    
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 handler_404:
   sub   rsp, 0x8
 
@@ -599,6 +651,16 @@ _start:
   cmp   rax, 0
   jl    error
 
+  ; add json route
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [GET]
+  lea   rdx, [json_url]
+  mov   rcx, test_json
+  xor   r8, r8
+  call  add_route
+  cmp   rax, 0
+  jl    error
+
   ; custom 404 handler
   mov   rdi, [rsp+0x8]
   mov   rsi, handler_404
@@ -701,6 +763,10 @@ section .data
   wildcard_url  db "/wild/*", NULL_CHAR
   dynamic_url   db "/api/users/:id/account/:id2", NULL_CHAR
   dynamic_url2  db "/api/users/:id/account/:id2/update", NULL_CHAR
+  json_url      db "/json", NULL_CHAR
+
+  json_key    db "message", NULL_CHAR
+  json_value  db "JSON works as expected", NULL_CHAR
 
   index_path    db "examples/test/views/index.html", NULL_CHAR
   template_path db "examples/test/views/template.apl", NULL_CHAR

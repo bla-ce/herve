@@ -613,6 +613,120 @@ send_no_content:
   add   rsp, 0x18
   ret
 
+; sends a json response
+; @param  rdi: pointer to context struct
+; @param  rsi: status code
+; @param  rdx: pointer to the json
+; @return rax: return code
+send_JSON:
+  sub   rsp, 0x38
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to context struct
+  ; [rsp+0x8]   -> status code
+  ; [rsp+0x10]  -> pointer to the the json object
+  ; [rsp+0x18]  -> pointer to the response struct
+  ; [rsp+0x20]  -> pointer to the response headers
+  ; [rsp+0x28]  -> content length
+  ; [rsp+0x30]  -> content length string
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; get response
+  call  get_ctx_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, rax
+  call  get_response_headers
+
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+  
+  ; set content type headers
+  mov   rdi, [rsp+0x20]
+  mov   rsi, CONTENT_TYPE_HEADER
+  mov   rdx, CONTENT_JSON
+  call  set_header
+  cmp   rax, 0
+  jl    .error
+ 
+  ; get json length   
+  mov   rdi, [rsp+0x10]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x28], rax
+
+  ; duplicate string
+  mov   rdi, [rsp+0x10]
+  mov   rsi, qword [rsp+0x28]
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, qword [rsp+0x28]
+  call  set_response_content_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [rsp+0x28]
+  lea   rsi, [rsp+0x30]
+  mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
+  call  to_string
+  cmp   rax, 0
+  jl    .error
+
+  ; set content length
+  mov   rdx, rax
+  mov   rdi, [rsp+0x20]
+  mov   rsi, CONTENT_LENGTH_HEADER
+  call  set_header
+  cmp   rax, 0
+  jl    .error
+
+  ; add json to body
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x10]
+  call  set_response_body
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  send_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x38
+  ret
+
 ; sends a string response as HTML
 ; TODO: merge with send string?
 ; @param  rdi: pointer to context struct
@@ -661,10 +775,9 @@ send_HTML:
   
   ; set content type headers
   mov   rdi, [rsp+0x20]
-  lea   rsi, [CONTENT_TYPE_HEADER]
-  lea   rdx, [CONTENT_HTML]
+  mov   rsi, CONTENT_TYPE_HEADER
+  mov   rdx, CONTENT_HTML
   call  set_header
-
   cmp   rax, 0
   jl    .error
  
@@ -695,16 +808,14 @@ send_HTML:
   lea   rsi, [rsp+0x30]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  to_string
-
   cmp   rax, 0
   jl    .error
 
   ; set content length
   mov   rdx, rax
   mov   rdi, [rsp+0x20]
-  lea   rsi, [CONTENT_LENGTH_HEADER]
+  mov   rsi, CONTENT_LENGTH_HEADER
   call  set_header
-
   cmp   rax, 0
   jl    .error
 
@@ -712,14 +823,12 @@ send_HTML:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x10]
   call  set_response_body
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   call  send_response
-
   cmp   rax, 0
   jl    .error
   
