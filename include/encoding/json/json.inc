@@ -528,6 +528,110 @@ json_array_create:
   add   rsp, 0x8
   ret
 
+; inserts a float value into the json array
+; @param  rdi: pointer to the json array
+; @param  rsi: pointer to the key
+; @param  rdx: float value
+; @param  rcx: precision
+; @return rax: pointer to the updated json array
+json_array_insert_float:
+  sub   rsp, 0x20
+  sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the json array
+  ; [rsp+0x8]  -> float value
+  ; [rsp+0x10]  -> precision
+  ; [rsp+0x18]  -> power of ten to get remainder
+  ; [rsp+0x20]  -> tmp string to hold the number
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rdx
+  mov   [rsp+0x10], rcx
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; insert integer part
+  cvttsd2si rdi, [rsp+0x8]
+  lea   rsi, [rsp+0x20]
+  mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
+  call  to_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; insert dot
+  mov   rdi, rax
+  mov   rsi, JSON_FLOAT_DOT
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  ; get decimal part
+  mov   rax, 1
+.loop:
+  cmp   qword [rsp+0x10], 0
+  je    .loop_end
+
+  xor   rdx, rdx
+  mov   rbx, 10
+  mul   rbx
+
+  dec   qword [rsp+0x10]
+
+  jmp   .loop
+
+.loop_end:
+
+  mov   [rsp+0x18], rax
+
+  movsd xmm0, [rsp+0x8]
+  movsd xmm1, [rsp+0x18]
+  mulsd xmm0, xmm1
+
+  xor   rdx, rdx
+  movq  rax, xmm0
+  mov   rbx, [rsp+0x18]
+  div   rbx
+
+  mov   rdi, rdx
+  lea   rsi, [rsp+0x20]
+  mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
+  call  to_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  ; add comma
+  mov   rdi, [rsp]
+  mov   rsi, JSON_KEYS_DELIM
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
+  add   rsp, 0x20
+  ret
+
 ; inserts an integer into the json array
 ; @param  rdi: pointer to the json array
 ; @param  rsi: integer
