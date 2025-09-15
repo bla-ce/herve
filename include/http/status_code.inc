@@ -79,12 +79,12 @@ STR_OK                              db "200 OK", NULL_CHAR
 STR_CREATED                         db "201 Created", NULL_CHAR
 STR_ACCEPTED                        db "202 Accepted", NULL_CHAR
 STR_NON_AUTHORITATIVE_INFORMATION   db "203 Non-Authoritative Information", NULL_CHAR
-STR_NO_CONTENT        db "204 No Content", NULL_CHAR
-STR_RESET_CONTENT     db "205 Reset Content", NULL_CHAR
-STR_PARTIAL_CONTENT   db "206 Partial Content", NULL_CHAR
-STR_MULTI_STATUS      db "207 Multi-Status", NULL_CHAR
-STR_ALREADY_REPORTED  db "208 Already Reported", NULL_CHAR
-STR_IM_USED           db "226 IM Used", NULL_CHAR
+STR_NO_CONTENT                      db "204 No Content", NULL_CHAR
+STR_RESET_CONTENT                   db "205 Reset Content", NULL_CHAR
+STR_PARTIAL_CONTENT                 db "206 Partial Content", NULL_CHAR
+STR_MULTI_STATUS                    db "207 Multi-Status", NULL_CHAR
+STR_ALREADY_REPORTED                db "208 Already Reported", NULL_CHAR
+STR_IM_USED                         db "226 IM Used", NULL_CHAR
 
 STR_MULTIPLE_CHOICES    db "300 Multiple Choices", NULL_CHAR
 STR_MOVED_PERMANENTLY   db "301 Moved Permanently", NULL_CHAR
@@ -142,123 +142,332 @@ section .text
 ; @param  rdi: status code (int)
 ; @return rax: pointer to a string representing the status code
 get_status_string:
-  cmp   rdi, NO_CONTENT
-  je    .no_content
+  ; 1xx informational
+  cmp   rdi, CONTINUE
+  je    .continue
+  cmp   rdi, SWITCHING_PROTOCOLS
+  je    .switching_protocols
+  cmp   rdi, PROCESSING
+  je    .processing
+  cmp   rdi, EARLY_HINTS
+  je    .early_hints
 
+  ; 2xx success
   cmp   rdi, OK
   je    .ok
+  cmp   rdi, CREATED
+  je    .created
+  cmp   rdi, ACCEPTED
+  je    .accepted
+  cmp   rdi, NON_AUTHORITATIVE_INFORMATION
+  je    .non_authoritative_information
+  cmp   rdi, NO_CONTENT
+  je    .no_content
+  cmp   rdi, RESET_CONTENT
+  je    .reset_content
+  cmp   rdi, PARTIAL_CONTENT
+  je    .partial_content
+  cmp   rdi, MULTI_STATUS
+  je    .multi_status
+  cmp   rdi, ALREADY_REPORTED
+  je    .already_reported
+  cmp   rdi, IM_USED
+  je    .im_used
 
-  ; Redirection status codes (300-399)
+  ; 3xx redirection
   cmp   rdi, MULTIPLE_CHOICES
   je    .multiple_choices
-
   cmp   rdi, MOVED_PERMANENTLY
   je    .moved_permanently
-
   cmp   rdi, FOUND
   je    .found
-
   cmp   rdi, SEE_OTHER
   je    .see_other
-
   cmp   rdi, NOT_MODIFIED
   je    .not_modified
-
   cmp   rdi, USE_PROXY
   je    .use_proxy
-
   cmp   rdi, TEMPORARY_REDIRECT
   je    .temporary_redirect
-
   cmp   rdi, PERMANENT_REDIRECT
   je    .permanent_redirect
 
-  ; client error 
-
+  ; 4xx client errors
   cmp   rdi, BAD_REQUEST
   je    .bad_request
-
   cmp   rdi, UNAUTHORIZED
   je    .unauthorized
-
+  cmp   rdi, PAYMENT_REQUIRED
+  je    .payment_required
   cmp   rdi, FORBIDDEN
   je    .forbidden
-
   cmp   rdi, NOT_FOUND
   je    .not_found
+  cmp   rdi, METHOD_NOT_ALLOWED
+  je    .method_not_allowed
+  cmp   rdi, NOT_ACCEPTABLE
+  je    .not_acceptable
+  cmp   rdi, PROXY_AUTHENTICATION_REQUIRED
+  je    .proxy_authentication_required
+  cmp   rdi, REQUEST_TIMEOUT
+  je    .request_timeout
+  cmp   rdi, CONFLICT
+  je    .conflict
+  cmp   rdi, GONE
+  je    .gone
+  cmp   rdi, LENGTH_REQUIRED
+  je    .length_required
+  cmp   rdi, PRECONDITION_FAILED
+  je    .precondition_failed
+  cmp   rdi, PAYLOAD_TOO_LARGE
+  je    .payload_too_large
+  cmp   rdi, URI_TOO_LONG
+  je    .uri_too_long
+  cmp   rdi, UNSUPPORTED_MEDIA_TYPE
+  je    .unsupported_media_type
+  cmp   rdi, RANGE_NOT_SATISFIABLE
+  je    .range_not_satisfiable
+  cmp   rdi, EXPECTATION_FAILED
+  je    .expectation_failed
+  cmp   rdi, I_AM_A_TEAPOT
+  je    .i_am_a_teapot
+  cmp   rdi, MISDIRECTED_REQUEST
+  je    .misdirected_request
+  cmp   rdi, UNPROCESSABLE_ENTITY
+  je    .unprocessable_entity
+  cmp   rdi, LOCKED
+  je    .locked
+  cmp   rdi, FAILED_DEPENDENCY
+  je    .failed_dependency
+  cmp   rdi, TOO_EARLY
+  je    .too_early
+  cmp   rdi, UPGRADE_REQUIRED
+  je    .upgrade_required
+  cmp   rdi, PRECONDITION_REQUIRED
+  je    .precondition_required
+  cmp   rdi, TOO_MANY_REQUESTS
+  je    .too_many_requests
+  cmp   rdi, REQUEST_HEADER_FIELDS_TOO_LARGE
+  je    .request_header_fields_too_large
+  cmp   rdi, UNAVAILABLE_FOR_LEGAL_REASONS
+  je    .unavailable_for_legal_reasons
 
-  ; server error
-
+  ; 5xx server errors
   cmp   rdi, INTERNAL_SERVER_ERROR
   je    .internal_server_error
-
+  cmp   rdi, NOT_IMPLEMENTED
+  je    .not_implemented
   cmp   rdi, BAD_GATEWAY
   je    .bad_gateway
+  cmp   rdi, SERVICE_UNAVAILABLE
+  je    .service_unavailable
+  cmp   rdi, GATEWAY_TIMEOUT
+  je    .gateway_timeout
+  cmp   rdi, HTTP_VERSION_NOT_SUPPORTED
+  je    .http_version_not_supported
+  cmp   rdi, VARIANT_ALSO_NEGOTIATES
+  je    .variant_also_negotiates
+  cmp   rdi, INSUFFICIENT_STORAGE
+  je    .insufficient_storage
+  cmp   rdi, LOOP_DETECTED
+  je    .loop_detected
+  cmp   rdi, NOT_EXTENDED
+  je    .not_extended
+  cmp   rdi, NETWORK_AUTHENTICATION_REQUIRED
+  je    .network_authentication_required
 
+  ; unknown
   jmp   .error
 
-.no_content:
-  lea   rax, [STR_NO_CONTENT]
+.continue:
+  lea   rax, [REL STR_CONTINUE]
+  ret
+.switching_protocols:
+  lea   rax, [REL STR_SWITCHING_PROTOCOLS]
+  ret
+.processing:
+  lea   rax, [REL STR_PROCESSING]
+  ret
+.early_hints:
+  lea   rax, [REL STR_EARLY_HINTS]
   ret
 
 .ok:
-  lea   rax, [STR_OK]
+  lea   rax, [REL STR_OK]
+  ret
+.created:
+  lea   rax, [REL STR_CREATED]
+  ret
+.accepted:
+  lea   rax, [REL STR_ACCEPTED]
+  ret
+.non_authoritative_information:
+  lea   rax, [REL STR_NON_AUTHORITATIVE_INFORMATION]
+  ret
+.no_content:
+  lea   rax, [REL STR_NO_CONTENT]
+  ret
+.reset_content:
+  lea   rax, [REL STR_RESET_CONTENT]
+  ret
+.partial_content:
+  lea   rax, [REL STR_PARTIAL_CONTENT]
+  ret
+.multi_status:
+  lea   rax, [REL STR_MULTI_STATUS]
+  ret
+.already_reported:
+  lea   rax, [REL STR_ALREADY_REPORTED]
+  ret
+.im_used:
+  lea   rax, [REL STR_IM_USED]
   ret
 
 .multiple_choices:
-  lea   rax, [STR_MULTIPLE_CHOICES]
+  lea   rax, [REL STR_MULTIPLE_CHOICES]
   ret
-
 .moved_permanently:
-  lea   rax, [STR_MOVED_PERMANENTLY]
+  lea   rax, [REL STR_MOVED_PERMANENTLY]
   ret
-
 .found:
-  lea   rax, [STR_FOUND]
+  lea   rax, [REL STR_FOUND]
   ret
-
 .see_other:
-  lea   rax, [STR_SEE_OTHER]
+  lea   rax, [REL STR_SEE_OTHER]
   ret
-
 .not_modified:
-  lea   rax, [STR_NOT_MODIFIED]
+  lea   rax, [REL STR_NOT_MODIFIED]
   ret
-
 .use_proxy:
-  lea   rax, [STR_USE_PROXY]
+  lea   rax, [REL STR_USE_PROXY]
   ret
-
 .temporary_redirect:
-  lea   rax, [STR_TEMPORARY_REDIRECT]
+  lea   rax, [REL STR_TEMPORARY_REDIRECT]
   ret
-
 .permanent_redirect:
-  lea   rax, [STR_PERMANENT_REDIRECT]
+  lea   rax, [REL STR_PERMANENT_REDIRECT]
   ret
 
 .bad_request:
-  lea   rax, [STR_BAD_REQUEST]
+  lea   rax, [REL STR_BAD_REQUEST]
   ret
-
 .unauthorized:
-  lea   rax, [STR_UNAUTHORIZED]
+  lea   rax, [REL STR_UNAUTHORIZED]
   ret
-
+.payment_required:
+  lea   rax, [REL STR_PAYMENT_REQUIRED]
+  ret
 .forbidden:
-  lea   rax, [STR_FORBIDDEN]
+  lea   rax, [REL STR_FORBIDDEN]
   ret
-
 .not_found:
-  lea   rax, [STR_NOT_FOUND]
+  lea   rax, [REL STR_NOT_FOUND]
+  ret
+.method_not_allowed:
+  lea   rax, [REL STR_METHOD_NOT_ALLOWED]
+  ret
+.not_acceptable:
+  lea   rax, [REL STR_NOT_ACCEPTABLE]
+  ret
+.proxy_authentication_required:
+  lea   rax, [REL STR_PROXY_AUTHENTICATION_REQUIRED]
+  ret
+.request_timeout:
+  lea   rax, [REL STR_REQUEST_TIMEOUT]
+  ret
+.conflict:
+  lea   rax, [REL STR_CONFLICT]
+  ret
+.gone:
+  lea   rax, [REL STR_GONE]
+  ret
+.length_required:
+  lea   rax, [REL STR_LENGTH_REQUIRED]
+  ret
+.precondition_failed:
+  lea   rax, [REL STR_PRECONDITION_FAILED]
+  ret
+.payload_too_large:
+  lea   rax, [REL STR_PAYLOAD_TOO_LARGE]
+  ret
+.uri_too_long:
+  lea   rax, [REL STR_URI_TOO_LONG]
+  ret
+.unsupported_media_type:
+  lea   rax, [REL STR_UNSUPPORTED_MEDIA_TYPE]
+  ret
+.range_not_satisfiable:
+  lea   rax, [REL STR_RANGE_NOT_SATISFIABLE]
+  ret
+.expectation_failed:
+  lea   rax, [REL STR_EXPECTATION_FAILED]
+  ret
+.i_am_a_teapot:
+  lea   rax, [REL STR_I_AM_A_TEAPOT]
+  ret
+.misdirected_request:
+  lea   rax, [REL STR_MISDIRECTED_REQUEST]
+  ret
+.unprocessable_entity:
+  lea   rax, [REL STR_UNPROCESSABLE_ENTITY]
+  ret
+.locked:
+  lea   rax, [REL STR_LOCKED]
+  ret
+.failed_dependency:
+  lea   rax, [REL STR_FAILED_DEPENDENCY]
+  ret
+.too_early:
+  lea   rax, [REL STR_TOO_EARLY]
+  ret
+.upgrade_required:
+  lea   rax, [REL STR_UPGRADE_REQUIRED]
+  ret
+.precondition_required:
+  lea   rax, [REL STR_PRECONDITION_REQUIRED]
+  ret
+.too_many_requests:
+  lea   rax, [REL STR_TOO_MANY_REQUESTS]
+  ret
+.request_header_fields_too_large:
+  lea   rax, [REL STR_REQUEST_HEADER_FIELDS_TOO_LARGE]
+  ret
+.unavailable_for_legal_reasons:
+  lea   rax, [REL STR_UNAVAILABLE_FOR_LEGAL_REASONS]
   ret
 
 .internal_server_error:
-  lea   rax, [STR_INTERNAL_SERVER_ERROR]
+  lea   rax, [REL STR_INTERNAL_SERVER_ERROR]
   ret
-
+.not_implemented:
+  lea   rax, [REL STR_NOT_IMPLEMENTED]
+  ret
 .bad_gateway:
-  lea   rax, [STR_BAD_GATEWAY]
+  lea   rax, [REL STR_BAD_GATEWAY]
+  ret
+.service_unavailable:
+  lea   rax, [REL STR_SERVICE_UNAVAILABLE]
+  ret
+.gateway_timeout:
+  lea   rax, [REL STR_GATEWAY_TIMEOUT]
+  ret
+.http_version_not_supported:
+  lea   rax, [REL STR_HTTP_VERSION_NOT_SUPPORTED]
+  ret
+.variant_also_negotiates:
+  lea   rax, [REL STR_VARIANT_ALSO_NEGOTIATES]
+  ret
+.insufficient_storage:
+  lea   rax, [REL STR_INSUFFICIENT_STORAGE]
+  ret
+.loop_detected:
+  lea   rax, [REL STR_LOOP_DETECTED]
+  ret
+.not_extended:
+  lea   rax, [REL STR_NOT_EXTENDED]
+  ret
+.network_authentication_required:
+  lea   rax, [REL STR_NETWORK_AUTHENTICATION_REQUIRED]
   ret
 
 .error:

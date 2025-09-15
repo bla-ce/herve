@@ -568,7 +568,14 @@ send_no_content:
   mov   [rsp], rdi
   mov   qword [rsp+0x8], rsi
 
+  ; validate status code
+  mov   rdi, qword [rsp+0x8]
+  call  get_status_string
+  cmp   rax, 0
+  jl    .error
+
   ; get response
+  mov   rdi, [rsp]
   call  get_ctx_response
   cmp   rax, 0
   jl    .error
@@ -576,7 +583,7 @@ send_no_content:
   mov   [rsp+0x10], rax
 
   ; get response headers
-  mov   rdi, rax
+  mov   rdi, [rsp+0x10]
   call  get_response_headers
   cmp   rax, 0
   jl    .error
@@ -607,6 +614,11 @@ send_no_content:
   jmp   .return
 
 .error:
+  ; return 500
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
   mov   rax, FAILURE_CODE
 
 .return:
@@ -619,20 +631,22 @@ send_no_content:
 ; @param  rdx: pointer to the json
 ; @return rax: return code
 send_JSON:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to context struct
   ; [rsp+0x8]   -> status code
-  ; [rsp+0x10]  -> pointer to the the json object
-  ; [rsp+0x18]  -> pointer to the response struct
-  ; [rsp+0x20]  -> pointer to the response headers
-  ; [rsp+0x28]  -> content length
-  ; [rsp+0x30]  -> content length string
+  ; [rsp+0x10]  -> pointer to the json object
+  ; [rsp+0x18]  -> pointer to the duplicated json object
+  ; [rsp+0x20]  -> pointer to the response struct
+  ; [rsp+0x28]  -> pointer to the response headers
+  ; [rsp+0x30]  -> content length
+  ; [rsp+0x38]  -> content length string
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -643,23 +657,29 @@ send_JSON:
   cmp   rdx, 0
   jle   .error
 
+  ; validate status code
+  mov   rdi, qword [rsp+0x8]
+  call  get_status_string
+  cmp   rax, 0
+  jl    .error
+
   ; get response
+  mov   rdi, [rsp]
   call  get_ctx_response
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
 
-  mov   rdi, rax
+  mov   rdi, [rsp+0x20]
   call  get_response_headers
-
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x28], rax
   
   ; set content type headers
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   mov   rsi, CONTENT_TYPE_HEADER
   mov   rdx, CONTENT_JSON
   call  set_header
@@ -672,25 +692,25 @@ send_JSON:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x28], rax
+  mov   qword [rsp+0x30], rax
 
   ; duplicate string
   mov   rdi, [rsp+0x10]
-  mov   rsi, qword [rsp+0x28]
+  mov   rsi, qword [rsp+0x30]
   call  strndup
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x18]
-  mov   rsi, qword [rsp+0x28]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, qword [rsp+0x30]
   call  set_response_content_len
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [rsp+0x28]
-  lea   rsi, [rsp+0x30]
+  mov   rdi, qword [rsp+0x30]
+  lea   rsi, [rsp+0x38]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  to_string
   cmp   rax, 0
@@ -698,15 +718,15 @@ send_JSON:
 
   ; set content length
   mov   rdx, rax
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   mov   rsi, CONTENT_LENGTH_HEADER
   call  set_header
   cmp   rax, 0
   jl    .error
 
   ; add json to body
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x10]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x18]
   call  set_response_body
   cmp   rax, 0
   jl    .error
@@ -721,10 +741,22 @@ send_JSON:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  ; return 500
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 ; sends a string response as HTML
@@ -740,14 +772,16 @@ send_HTML:
   ; [rsp]       -> pointer to context struct
   ; [rsp+0x8]   -> status code
   ; [rsp+0x10]  -> pointer to the html string
-  ; [rsp+0x18]  -> pointer to the response struct
-  ; [rsp+0x20]  -> pointer to the response headers
-  ; [rsp+0x28]  -> content length
-  ; [rsp+0x30]  -> content length string
+  ; [rsp+0x18]  -> pointer to the duplicated string
+  ; [rsp+0x20]  -> pointer to the response struct
+  ; [rsp+0x28]  -> pointer to the response headers
+  ; [rsp+0x30]  -> content length
+  ; [rsp+0x38]  -> content length string
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -758,23 +792,29 @@ send_HTML:
   cmp   rdx, 0
   jle   .error
 
+  ; validate status code
+  mov   rdi, qword [rsp+0x8]
+  call  get_status_string
+  cmp   rax, 0
+  jl    .error
+
   ; get response
+  mov   rdi, [rsp]
   call  get_ctx_response
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
 
-  mov   rdi, rax
+  mov   rdi, [rsp+0x20]
   call  get_response_headers
-
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x28], rax
   
   ; set content type headers
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   mov   rsi, CONTENT_TYPE_HEADER
   mov   rdx, CONTENT_HTML
   call  set_header
@@ -787,25 +827,25 @@ send_HTML:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x28], rax
+  mov   qword [rsp+0x30], rax
 
   ; duplicate string
   mov   rdi, [rsp+0x10]
-  mov   rsi, qword [rsp+0x28]
+  mov   rsi, qword [rsp+0x30]
   call  strndup
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x18]
-  mov   rsi, qword [rsp+0x28]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, qword [rsp+0x30]
   call  set_response_content_len
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [rsp+0x28]
-  lea   rsi, [rsp+0x30]
+  mov   rdi, qword [rsp+0x30]
+  lea   rsi, [rsp+0x38]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  to_string
   cmp   rax, 0
@@ -813,15 +853,15 @@ send_HTML:
 
   ; set content length
   mov   rdx, rax
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   mov   rsi, CONTENT_LENGTH_HEADER
   call  set_header
   cmp   rax, 0
   jl    .error
 
   ; add string to body
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x10]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x18]
   call  set_response_body
   cmp   rax, 0
   jl    .error
@@ -836,6 +876,17 @@ send_HTML:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
   mov   rax, FAILURE_CODE
 
 .return:
@@ -854,10 +905,16 @@ send_string:
   ; [rsp]       -> pointer to context struct
   ; [rsp+0x8]   -> status code
   ; [rsp+0x10]  -> pointer to string to send
-  ; [rsp+0x18]  -> pointer to response struct
-  ; [rsp+0x20]  -> pointer to response headers
-  ; [rsp+0x28]  -> string length
-  ; [rsp+0x30]  -> content length string
+  ; [rsp+0x18]  -> pointer to the duplicated string
+  ; [rsp+0x20]  -> pointer to response struct
+  ; [rsp+0x28]  -> pointer to response headers
+  ; [rsp+0x30]  -> string length
+  ; [rsp+0x38]  -> content length string
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -868,60 +925,60 @@ send_string:
   cmp   rdx, 0
   jle   .error
 
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
+  ; validate status code
+  mov   rdi, qword [rsp+0x8]
+  call  get_status_string
+  cmp   rax, 0
+  jl    .error
 
   ; get response
+  mov   rdi, [rsp]
   call  get_ctx_response
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
 
-  mov   rdi, rax
+  mov   rdi, [rsp+0x20]
   call  get_response_headers
-
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x28], rax
   
   ; set content type headers
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   lea   rsi, [CONTENT_TYPE_HEADER]
   lea   rdx, [CONTENT_PLAIN]
   call  set_header
-
   cmp   rax, 0
   jl    .error
  
   ; get string length   
   mov   rdi, [rsp+0x10]
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x28], rax
+  mov   qword [rsp+0x30], rax
 
   ; duplicate string
   mov   rdi, [rsp+0x10]
-  mov   rsi, qword [rsp+0x28]
+  mov   rsi, qword [rsp+0x30]
   call  strndup
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x18]
-  mov   rsi, qword [rsp+0x28]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, qword [rsp+0x30]
   call  set_response_content_len
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [rsp+0x28]
-  lea   rsi, [rsp+0x30]
+  mov   rdi, qword [rsp+0x30]
+  lea   rsi, [rsp+0x38]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  to_string
   cmp   rax, 0
@@ -929,25 +986,22 @@ send_string:
 
   ; set content length
   mov   rdx, rax
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   lea   rsi, [CONTENT_LENGTH_HEADER]
   call  set_header
-
   cmp   rax, 0
   jl    .error
 
   ; add string to body
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x10]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x18]
   call  set_response_body
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   call  send_response
-
   cmp   rax, 0
   jl    .error
   
@@ -955,6 +1009,17 @@ send_string:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
   mov   rax, FAILURE_CODE
 
 .return:
@@ -985,7 +1050,14 @@ send_response:
   cmp   rsi, 0
   jle   .error
 
+  ; validate status code
+  mov   rdi, qword [rsp+0x8]
+  call  get_status_string
+  cmp   rax, 0
+  jl    .error
+
   ; get response
+  mov   rdi, [rsp]
   call  get_ctx_response
   cmp   rax, 0
   jl    .error
@@ -1002,7 +1074,6 @@ send_response:
   lea   rsi, [CONNECTION_HEADER]
   lea   rdx, [CONNECTION_KEEP_ALIVE]
   call  set_header
-
   cmp   rax, 0
   jl    .error
 
@@ -1010,20 +1081,20 @@ send_response:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
   call  set_response_status_code
+  cmp   rax, 0
+  jl    .error
 
   ; stringify response
   mov   rdi, [rsp+0x10]
   call  stringify_response
-
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x18], rax
 
   ; get response length
-  mov   rdi, rax
+  mov   rdi, [rsp+0x18]
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
