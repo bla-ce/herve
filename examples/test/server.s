@@ -794,7 +794,7 @@ section .data
   footer_key  db "Footer", NULL_CHAR
 
   title   db "GOAT | HEHE", NULL_CHAR
-  header  db "Be careful, you're walking on a place of divinity", NULL_CHAR
+  header  db "Be careful, you're walking on a place of divinity<script>alert('Oups')</script>", NULL_CHAR
   content db "This page uses a template engine written in assembly", NULL_CHAR
   footer  db "Still here?", NULL_CHAR
 

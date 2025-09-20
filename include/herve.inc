@@ -11,6 +11,7 @@
 %include "group.inc"
 %include "hash_table.inc"
 %include "headers.inc"
+%include "html.inc"
 %include "json.inc"
 %include "logan.inc"
 %include "logger.inc"

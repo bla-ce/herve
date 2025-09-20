@@ -44,3 +44,10 @@ jobs:
       - uses: actions/checkout@v3
       - run: sudo apt update && sudo apt install -y nasm
       - run: cd include/encoding/json && make
+
+  utils-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update && sudo apt install -y nasm
+      - run: cd include/utils && make
