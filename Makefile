@@ -6,6 +6,8 @@ TEST_PORT = 1337
 
 ECHO_PATH = examples/echo/echo
 
+REACT_PATH = examples/react/react
+
 JSON_PATH = include/encoding/json_test
 
 PROXY_PATH = examples/reverse_proxy/reverse_proxy
@@ -34,6 +36,11 @@ echo:
 	nasm -o $(ECHO_PATH).o $(ECHO_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(ECHO_PATH) $(ECHO_PATH).o
+
+react:
+	nasm -o $(REACT_PATH).o $(REACT_PATH).s \
+		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
+	ld -o $(REACT_PATH) $(REACT_PATH).o
 
 proxy:
 	nasm -o $(PROXY_PATH).o $(PROXY_PATH).s \
