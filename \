@@ -9,7 +9,7 @@ section .text
 ; @param  rsi: pointer to the hash table
 ; @return rax: pointer to the template parsed
 parse_template:
-  sub   rsp, 0x50
+  sub   rsp, 0x48
 
   cmp   rdi, 0
   jle   .error
@@ -27,13 +27,11 @@ parse_template:
   ; [rsp+0x30]  -> delimiter position
   ; [rsp+0x38]  -> pointer to the boeuf buffer
   ; [rsp+0x40]  -> duplicated string
-  ; [rsp+0x48]  -> encoded string
 
   mov   [rsp], rdi  
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x40], 0
-  mov   qword [rsp+0x48], 0
 
   ; make sure the file has a .apl extension
   call  get_content_type
