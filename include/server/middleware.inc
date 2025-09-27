@@ -19,6 +19,61 @@ section .data
   MIDDLEWARE_OFF_POST_REQ equ MIDDLEWARE_OFF_NEXT + 0x8
 
 section .text
+; creates a middleware structure - dev is responsible of freeing 
+; the structure
+; @param  rdi: pointer to the function
+; @param  rsi: arg1
+; @param  rdx: arg2
+; @param  rcx: arg3
+; @param  r9: post request (boolean)
+; @return rax: pointer to the middleware
+create_middleware:
+  sub   rsp, 0x28
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the function
+  ; [rsp+0x8]   -> arg1
+  ; [rsp+0x10]  -> arg2
+  ; [rsp+0x18]  -> arg3
+  ; [rsp+0x20]  -> post request middleware
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
+  mov   [rsp+0x20], r9
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; malloc structure
+  mov   rdi, MIDDLEWARE_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, [rsp+0x10]
+  mov   rcx, [rsp+0x18]
+  mov   r9, [rsp+0x20]
+
+  ; add arguments
+  mov   qword [rax+MIDDLEWARE_OFF_ADDR], rdi
+  mov   qword [rax+MIDDLEWARE_OFF_ARG1], rsi
+  mov   qword [rax+MIDDLEWARE_OFF_ARG2], rdx
+  mov   qword [rax+MIDDLEWARE_OFF_ARG3], rcx
+  mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], r9
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x28
+  ret
+
 ; adds a middleware to the end of the linked list of the group
 ; @param  rdi: pointer to server
 ; @param  rsi: pointer to the group or 0 if root

@@ -48,19 +48,14 @@ _start:
 
   mov   qword [proxy_array+8], rax
 
-  ; malloc middleware struct
-  mov   rdi, MIDDLEWARE_STRUCT_LEN
-  call  malloc
+  mov   rdi, proxy_middleware
+  mov   rsi, proxy_array
+  mov   rdx, WEIGHTED_ROUND_ROBIN_IP
+  mov   rcx, PROXY_COUNT
+  mov   r9, FALSE
+  call  create_middleware
   cmp   rax, 0
-  jle   .error
-
-  mov   [rsp+0x8], rax
-
-  mov   qword [rax+MIDDLEWARE_OFF_ADDR], proxy_middleware
-  mov   qword [rax+MIDDLEWARE_OFF_ARG1], proxy_array
-  mov   qword [rax+MIDDLEWARE_OFF_ARG2], WEIGHTED_ROUND_ROBIN_IP
-  mov   qword [rax+MIDDLEWARE_OFF_ARG3], PROXY_COUNT
-  mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], FALSE
+  jl    .error
 
   mov   rdi, [rsp]
   xor   rsi, rsi

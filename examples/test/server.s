@@ -539,7 +539,6 @@ _start:
 
   mov   rdi, rax
   call  get_server_sockfd
-
   cmp   rax, 0
   jl    .error
 
@@ -668,17 +667,14 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; malloc first middleware
-  mov   rdi, MIDDLEWARE_STRUCT_LEN
-  call  malloc
+  mov   rdi, middleware
+  mov   rsi, hello
+  mov   rdx, 0
+  mov   rcx, 0
+  mov   r9, FALSE
+  call  create_middleware
   cmp   rax, 0
   jl    .error
-
-  mov   qword [rax+MIDDLEWARE_OFF_ADDR], middleware
-  mov   qword [rax+MIDDLEWARE_OFF_ARG1], hello
-  mov   qword [rax+MIDDLEWARE_OFF_ARG2], 0
-  mov   qword [rax+MIDDLEWARE_OFF_ARG3], 0
-  mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], FALSE
 
   mov   rdi, [rsp+0x8]
   xor   rsi, rsi
@@ -687,17 +683,14 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; malloc second middleware
-  mov   rdi, MIDDLEWARE_STRUCT_LEN
-  call  malloc
+  mov   rdi, middleware
+  mov   rsi, hello2
+  mov   rdx, 0
+  mov   rcx, 0
+  mov   r9, FALSE
+  call  create_middleware
   cmp   rax, 0
   jl    .error
-
-  mov   qword [rax+MIDDLEWARE_OFF_ADDR], middleware
-  mov   qword [rax+MIDDLEWARE_OFF_ARG1], hello2
-  mov   qword [rax+MIDDLEWARE_OFF_ARG2], 0
-  mov   qword [rax+MIDDLEWARE_OFF_ARG3], 0
-  mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], FALSE
 
   mov   rdi, [rsp+0x8]
   xor   rsi, rsi
@@ -713,19 +706,14 @@ _start:
 
   mov   [rsp+0x10], rax
 
-  ; malloc middleware for logging
-  mov   rdi, MIDDLEWARE_STRUCT_LEN
-  call  malloc
+  mov   rdi, log_ctx
+  mov   rsi, [rsp+0x10]
+  mov   rdx, 0xFF
+  mov   rcx, 0
+  mov   r9, TRUE
+  call  create_middleware
   cmp   rax, 0
   jl    .error
-
-  mov   rdi, [rsp+0x10]
-
-  mov   qword [rax+MIDDLEWARE_OFF_ADDR], log_ctx
-  mov   qword [rax+MIDDLEWARE_OFF_ARG1], rdi
-  mov   qword [rax+MIDDLEWARE_OFF_ARG2], 0xFF
-  mov   qword [rax+MIDDLEWARE_OFF_ARG3], 0
-  mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], TRUE
 
   mov   rdi, [rsp+0x8]
   xor   rsi, rsi
