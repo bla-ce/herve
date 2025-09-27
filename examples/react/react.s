@@ -21,19 +21,14 @@ _start:
 
   mov   [rsp+0x8], rax
 
-  ; malloc middleware for logging
-  mov   rdi, MIDDLEWARE_STRUCT_LEN
-  call  malloc
+  mov   rdi, log_ctx
+  mov   rsi, [rsp+0x8]
+  mov   rdx, 0xFF
+  mov   rcx, 0
+  mov   r9, TRUE
+  call  create_middleware
   cmp   rax, 0
   jl    .error
-
-  mov   rdi, [rsp+0x8]
-
-  mov   qword [rax+MIDDLEWARE_OFF_ADDR], log_ctx
-  mov   qword [rax+MIDDLEWARE_OFF_ARG1], rdi
-  mov   qword [rax+MIDDLEWARE_OFF_ARG2], 0xFF
-  mov   qword [rax+MIDDLEWARE_OFF_ARG3], 0
-  mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], TRUE
 
   mov   rdi, [rsp]
   xor   rsi, rsi
