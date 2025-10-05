@@ -1,7 +1,7 @@
 section .bss
 
 model_t:
-  model_t_name  resq 0
+  model_t_name  resq 1
 model_t_end:
 
 section .data
