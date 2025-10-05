@@ -20,6 +20,7 @@
 %include "method.inc"
 %include "middleware.inc"
 %include "mmap.inc"
+%include "models.inc"
 %include "realloc.inc"
 %include "request.inc"
 %include "response.inc"
