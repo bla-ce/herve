@@ -49,9 +49,15 @@ _start:
   jl    .error
 
   mov   rdi, [rsp]
-  mov   rsi, job
-  mov   rdx, FIELD_OFF_STRING
-  mov   rcx, 32   ; max size of the string
+  mov   rsi, age
+  mov   rdx, FIELD_OFF_INT
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, active
+  mov   rdx, FIELD_OFF_BOOL
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -73,5 +79,6 @@ section .data
 model_name  db "Person", NULL_CHAR
 first_name  db "First Name", NULL_CHAR
 last_name   db "Last Name", NULL_CHAR
-job         db "Job", NULL_CHAR
+age         db "Age", NULL_CHAR
+active      db "Active", NULL_CHAR
 

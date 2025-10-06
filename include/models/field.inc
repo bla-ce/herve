@@ -18,14 +18,146 @@ FIELD_OFF_ARG   equ FIELD_OFF_TYPE + 0x8
 FIELD_OFF_NEXT  equ FIELD_OFF_ARG + 0x8
 
 ; field types
-FIELD_OFF_BOOLEAN equ 0
+FIELD_OFF_BOOL    equ 0
 FIELD_OFF_STRING  equ 1
-FIELD_OFF_FLOAT   equ 2
-FIELD_OFF_INT     equ 3
+FIELD_OFF_INT     equ 2
 
 STRING_DEFAULT_LEN equ 255
 
 section .text
+; inserts a boolean field to a model
+; @param  rdi: pointer to the model struct
+; @param  rsi: pointer to the name of the field
+; @return rax: pointer to the field struct
+model_insert_bool:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the name of the field
+  ; [rsp+0x10]  -> pointer to the field struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; malloc field struct
+  mov   rdi, FIELD_T_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; populate field struct
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
+  call  field_set_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, FIELD_OFF_BOOL
+  call  field_set_type
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  xor   rsi, rsi
+  call  field_set_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x10]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+  
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; inserts an integer field to a model
+; @param  rdi: pointer to the model struct
+; @param  rsi: pointer to the name of the field
+; @return rax: pointer to the field struct
+model_insert_int:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the name of the field
+  ; [rsp+0x10]  -> pointer to the field struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; malloc field struct
+  mov   rdi, FIELD_T_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; populate field struct
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
+  call  field_set_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, FIELD_OFF_INT
+  call  field_set_type
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  xor   rsi, rsi
+  call  field_set_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x10]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+  
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
 
 ; inserts a string field to a model
 ; @param  rdi: pointer to the model struct
@@ -44,6 +176,7 @@ model_insert_string:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -93,6 +226,13 @@ model_insert_string:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:

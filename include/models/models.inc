@@ -234,6 +234,12 @@ model_insert_field:
   cmp   rdx, FIELD_OFF_STRING
   je    .insert_string
 
+  cmp   rdx, FIELD_OFF_INT
+  je    .insert_string
+
+  cmp   rdx, FIELD_OFF_BOOL
+  je    .insert_string
+
   ; field not supported
   jmp   .error
 
@@ -245,6 +251,26 @@ model_insert_field:
   mov   rdx, rcx
 
   call  model_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  jmp   .insert_field
+
+.insert_integer:
+  ; all registered are already populated
+  call  model_insert_int
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  jmp   .insert_field
+
+.insert_bool:
+  ; all registered are already populated
+  call  model_insert_bool
   cmp   rax, 0
   jl    .error
 
@@ -338,6 +364,7 @@ add_field_to_list:
 .loop_end:
   ; add the field to next
   mov   rdi, [rsp+0x10]
+
   mov   rsi, [rsp+0x8]
   call  field_set_next
   cmp   rax, 0

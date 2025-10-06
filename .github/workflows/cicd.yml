@@ -1,4 +1,4 @@
-name: Assembly HTTP Server CI
+name: Herve CI
 
 on:
   push:
