@@ -33,6 +33,30 @@ _start:
   jne   .error
 
   mov   rdi, [rsp]
+  mov   rsi, first_name
+  mov   rdx, FIELD_OFF_STRING
+  mov   rcx, 30   ; max size of the string
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, last_name
+  mov   rdx, FIELD_OFF_STRING
+  mov   rcx, 60   ; max size of the string
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, job
+  mov   rdx, FIELD_OFF_STRING
+  mov   rcx, 32   ; max size of the string
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
   call  model_free
   cmp   rax, 0
   jl    .error
@@ -46,4 +70,8 @@ _start:
 
 section .data
 
-model_name db "Person", NULL_CHAR
+model_name  db "Person", NULL_CHAR
+first_name  db "First Name", NULL_CHAR
+last_name   db "Last Name", NULL_CHAR
+job         db "Job", NULL_CHAR
+
