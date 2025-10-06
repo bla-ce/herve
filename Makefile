@@ -6,6 +6,8 @@ TEST_PORT = 1337
 
 ECHO_PATH = examples/echo/echo
 
+MODELS_PATH = examples/models/main
+
 REACT_PATH = examples/react/react
 
 JSON_PATH = include/encoding/json_test
@@ -36,6 +38,11 @@ echo:
 	nasm -o $(ECHO_PATH).o $(ECHO_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(ECHO_PATH) $(ECHO_PATH).o
+
+models:
+	nasm -o $(MODELS_PATH).o $(MODELS_PATH).s \
+		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
+	ld -o $(MODELS_PATH) $(MODELS_PATH).o
 
 react:
 	nasm -o $(REACT_PATH).o $(REACT_PATH).s \

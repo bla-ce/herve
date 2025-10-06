@@ -55,7 +55,13 @@ model_init:
   cmp   rax, 0
   jl    .error
 
-  ; TODO: free fields
+  ; create id field
+  mov   rdi, [rsp+0x8]
+  mov   rsi, field_id_name
+  mov   rdx, FIELD_OFF_INT
+  call  model_insert_int
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [rsp+0x8]
 
@@ -186,6 +192,8 @@ model_free:
   cmp   rax, 0
   jl    .error
 
+  ; TODO: free fields
+
   ; free the structure
   mov   rdi, [rsp]
   call  free
@@ -244,7 +252,7 @@ model_insert_field:
   jmp   .error
 
 .insert_string:
-  ; all registered are already populated
+  ; all registers are already populated
   cmp   rcx, 0
   jle   .error
 
@@ -259,7 +267,7 @@ model_insert_field:
   jmp   .insert_field
 
 .insert_integer:
-  ; all registered are already populated
+  ; all registers are already populated
   call  model_insert_int
   cmp   rax, 0
   jl    .error
@@ -269,7 +277,7 @@ model_insert_field:
   jmp   .insert_field
 
 .insert_bool:
-  ; all registered are already populated
+  ; all registers are already populated
   call  model_insert_bool
   cmp   rax, 0
   jl    .error

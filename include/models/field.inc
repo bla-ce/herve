@@ -24,6 +24,8 @@ FIELD_OFF_INT     equ 2
 
 STRING_DEFAULT_LEN equ 255
 
+field_id_name db "id", NULL_CHAR
+
 section .text
 ; inserts a boolean field to a model
 ; @param  rdi: pointer to the model struct
