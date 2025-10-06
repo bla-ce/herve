@@ -19,7 +19,7 @@ jobs:
       - run: ./examples/test/server 1337 & echo $! > server.pid && sleep 2
       - run: chmod +x scripts/test.sh && ./scripts/test.sh
       - run: wrk -t1 -c1 -d10s --latency http://localhost:1337/index
-      - run: wrk -t1 -c1 -ds --latency http://localhost:1337/not-found
+      - run: wrk -t1 -c1 -d10s --latency http://localhost:1337/not-found
       - run: kill $(cat server.pid)
 
   echo-server-tests:
