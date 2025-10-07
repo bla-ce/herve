@@ -1,3 +1,6 @@
+; NOTE: this hash table implementation only supports strings as 
+; keys and values
+
 section .data
 
 hash_table_struct:

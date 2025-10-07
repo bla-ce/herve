@@ -1,7 +1,7 @@
 INCLUDE_DIR = ../..
 LIB_DIR = ../../../lib
 
-JSON_PATH = json_test
+JSON_PATH = tests/json_test
 
 INCLUDE_DIRS = \
 	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')

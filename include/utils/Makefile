@@ -1,7 +1,7 @@
 INCLUDE_DIR = ../
 LIB_DIR = ../../lib
 
-TEST_PATH = html_test
+TEST_PATH = tests/html_test
 
 INCLUDE_DIRS = \
 	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')
