@@ -785,7 +785,7 @@ ht_free:
   inc   qword [rsp+0x20]
   
   ; check if the key has next populated
-.inner_loop
+.inner_loop:
   ; save position
   mov   rsi, [rsp+0x18]
 

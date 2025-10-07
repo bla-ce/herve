@@ -1,8 +1,8 @@
 INCLUDE_DIR = include
 LIB_DIR = lib
 
-TEST_PATH = examples/test/server
-TEST_PORT = 1337
+SERVER_PATH = examples/test/server
+SERVER_PORT = 1337
 
 ECHO_PATH = examples/echo/echo
 
@@ -27,10 +27,10 @@ INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS)
 DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
 
-test:
-	nasm -o $(TEST_PATH).o $(TEST_PATH).s \
+server:
+	nasm -o $(SERVER_PATH).o $(SERVER_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(TEST_PATH) $(TEST_PATH).o
+	ld -o $(SERVER_PATH) $(SERVER_PATH).o
 
 echo:
 	nasm -o $(ECHO_PATH).o $(ECHO_PATH).s \
