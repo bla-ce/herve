@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt install -y nasm curl wrk
-      - run: make test
+      - run: make server
       - run: ./examples/test/server 1337 & echo $! > server.pid && sleep 2
       - run: chmod +x scripts/test.sh && ./scripts/test.sh
       - run: wrk -t1 -c1 -d10s --latency http://localhost:1337/index
