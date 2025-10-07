@@ -1,8 +1,9 @@
-name: Assembly HTTP Server CI
+name: Herve CI
 
 on:
   push:
     branches: [main]
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,19 +14,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt update && sudo apt install -y nasm curl wrk
+      - run: sudo apt install -y nasm curl wrk
       - run: make test
       - run: ./examples/test/server 1337 & echo $! > server.pid && sleep 2
       - run: chmod +x scripts/test.sh && ./scripts/test.sh
-      - run: wrk -t1 -c1 -d30s --latency http://localhost:1337/index
-      - run: wrk -t1 -c1 -d30s --latency http://localhost:1337/not-found
+      - run: wrk -t1 -c1 -d10s --latency http://localhost:1337/index
+      - run: wrk -t1 -c1 -d10s --latency http://localhost:1337/not-found
       - run: kill $(cat server.pid)
 
   echo-server-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt update && sudo apt install -y nasm
+      - run: sudo apt install -y nasm
       - run: make echo
       - run: ./examples/echo/echo & echo $! > server.pid && sleep 2
       - run: chmod +x scripts/test_echo.sh && ./scripts/test_echo.sh
@@ -35,26 +36,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt update && sudo apt install -y nasm
+      - run: sudo apt install -y nasm
       - run: cd lib/malloc/tests && make
 
   json-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt update && sudo apt install -y nasm
+      - run: sudo apt install -y nasm
       - run: cd include/encoding/json && make
 
   models-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt update && sudo apt install -y nasm
+      - run: sudo apt install -y nasm
       - run: cd include/models && make
 
   utils-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt update && sudo apt install -y nasm
+      - run: sudo apt install -y nasm
       - run: cd include/utils && make
