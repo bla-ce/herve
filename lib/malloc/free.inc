@@ -222,7 +222,6 @@ free:
 
   mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
   add   qword [freed], rbx
-.b1:
 
   ; make sure the chunk needs to be freed
   mov   rax, qword [rdi+CHUNK_OFFSET_INUSE]

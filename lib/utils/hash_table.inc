@@ -29,7 +29,6 @@ HT_ENTRY_OFF_VALUE  equ HT_ENTRY_OFF_KEY + 0x8
 HT_ENTRY_OFF_NEXT   equ HT_ENTRY_OFF_VALUE + 0x8
 
 HT_ENTRY_KEY_MAX_LENGTH   equ 0xFF
-HT_ENTRY_VALUE_MAX_LENGTH equ 0x1000
 
 section .text
 ; returns the number of entries in the hash table
@@ -480,36 +479,31 @@ ht_del:
 ; inserts an entry into the hash table
 ; @param  rdi: pointer to the hash table
 ; @param  rsi: pointer to the key
-; @param  rdx: pointer to the value
+; @param  rdx: value
 ; @return rax: return value
 ht_insert:
-  sub   rsp, 0x48
+  sub   rsp, 0x40
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the key
-  ; [rsp+0x10]  -> pointer to the value
+  ; [rsp+0x10]  -> value
   ; [rsp+0x18]  -> pointer to the new entry
   ; [rsp+0x20]  -> hash value of the key
   ; [rsp+0x28]  -> index of the entry
   ; [rsp+0x30]  -> pointer to the array of entry at the index
   ; [rsp+0x38]  -> pointer to the duplicated key
-  ; [rsp+0x40]  -> pointer to the duplicated value
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x38], 0
-  mov   qword [rsp+0x40], 0
 
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
   jle   .error
 
   ; check key length
@@ -530,24 +524,6 @@ ht_insert:
 
   mov   [rsp+0x38], rax
 
-  ; check value length
-  mov   rdi, [rsp+0x10]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  cmp   rax, HT_ENTRY_VALUE_MAX_LENGTH
-  jg    .error
-
-  ; dup and store value
-  mov   rdi, [rsp+0x10] 
-  mov   rsi, rax
-  call  strndup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x40], rax
-
   ; create ht_entry
   ; malloc entry
   mov   rdi, HT_ENTRY_STRUCT_LEN
@@ -563,7 +539,7 @@ ht_insert:
   mov   [rdi+HT_ENTRY_OFF_KEY], rax
 
   mov   rdi, [rsp+0x18]
-  mov   rax, [rsp+0x40]
+  mov   rax, [rsp+0x10]
   mov   [rdi+HT_ENTRY_OFF_VALUE], rax
 
   ; set next as 0
@@ -572,7 +548,6 @@ ht_insert:
   ; hash string
   mov   rdi, [rsp+0x8]
   call  hash_string_key
-
   cmp   rax, 0
   jl   .error
 
@@ -662,13 +637,6 @@ ht_insert:
   call  free
 
 .no_free_key:
-  mov   rdi, [rsp+0x40]
-  test  rdi, rdi
-  jz    .no_free_value
-
-  call  free
-
-.no_free_value:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
   jz    .no_free
@@ -679,7 +647,7 @@ ht_insert:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x48
+  add   rsp, 0x40
   ret 
 
 ; returns a hash table of n buckets
@@ -808,13 +776,6 @@ ht_free:
   cmp   rax, 0
   jl    .error
 
-  ; free the value
-  mov   rsi, [rsp+0x18]
-  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
   ; free the entry
   mov   rdi, [rsp+0x18]
   call  free
@@ -824,7 +785,7 @@ ht_free:
   inc   qword [rsp+0x20]
   
   ; check if the key has next populated
-.inner_loop:  ; AHHAHAHAHAHAHA O(n^2) this is not optimized
+.inner_loop
   ; save position
   mov   rsi, [rsp+0x18]
 
@@ -839,13 +800,6 @@ ht_free:
 
   ; free the key
   mov   rdi, [rax+HT_ENTRY_OFF_KEY]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free the value
-  mov   rsi, [rsp+0x18]
-  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
   call  free
   cmp   rax, 0
   jl    .error
