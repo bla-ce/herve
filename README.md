@@ -18,6 +18,22 @@ After one year and ~17,000 lines of Assembly code, we are still far away from a 
 
 (of course, this library is also intended to show off).
 
+## Install
+
+Copy the `include/` and `lib/` directory into your project and use the `Makefile` template in `examples/` to build your project with Herve.
+
+```bash
+git clone https://github.com/bla-ce/herve
+cd herve
+cp -r include <project-path>
+cp -r lib <project-path>
+cd <project-path>
+make
+```
+
+**Incoming:**
+Use `herve` as a static or shared library.
+
 ## Features
 
 ### Performance
@@ -69,8 +85,6 @@ Routes with a common prefix can be grouped inside a `group` structure with speci
 A route can be defined with dynamic paramater such as `/api/v1/events/:id`. This feature allows for flexibility in supporting varying parameters within the defined route.
 
 ## Quick Start
-
-To use `Herve`, you can copy the content of the `inc/` directory and include the required files in your projects. 
 
 Here is an example of an echo server built with `Herve`:
 
