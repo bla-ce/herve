@@ -20,7 +20,7 @@ After one year and ~17,000 lines of Assembly code, we are still far away from a 
 
 ## Install
 
-Copy the `include/` and `lib/` directory into your project and use the `Makefile` template in `examples/` to build your project with Herve.
+Copy the `include/` and `lib/` directories into your project tree and use the `Makefile` template in `examples/` to build your project with Herve.
 
 ```bash
 git clone https://github.com/bla-ce/herve
