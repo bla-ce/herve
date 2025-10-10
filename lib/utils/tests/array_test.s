@@ -27,6 +27,12 @@ _start:
 
   mov   [rsp], rax
 
+  ; this one should fail
+  mov   rdi, [rsp]
+  call  array_pop
+  cmp   rax, FAILURE_CODE
+  jne   .error
+
   mov   rdi, [rsp]
   mov   rsi, value1
   call  array_push
@@ -60,6 +66,14 @@ _start:
   call  array_push
   cmp   rax, 0
   jl    .error
+
+  mov   rdi, [rsp]
+  call  array_pop
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, qword [value5]
+  jne   .error
 
   ; this one should fail 
   mov   rdi, [rsp]
