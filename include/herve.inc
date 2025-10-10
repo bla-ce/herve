@@ -21,6 +21,7 @@
 %include "method.inc"
 %include "middleware.inc"
 %include "mmap.inc"
+%include "parse_conf.inc"
 %include "realloc.inc"
 %include "request.inc"
 %include "response.inc"

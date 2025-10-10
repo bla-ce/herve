@@ -19,19 +19,6 @@ INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS)
 DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
 
-herve:
-	mkdir -p build bin
-	nasm -o $(BUILD_DIR)/$(HERVE_PATH).o $(SRC_DIR)/$(HERVE_PATH).s \
-		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(BIN_DIR)/$(HERVE_PATH) $(BUILD_DIR)/$(HERVE_PATH).o
-
-herve-run:
-	mkdir -p build bin
-	nasm -o $(BUILD_DIR)/$(HERVE_PATH).o $(SRC_DIR)/$(HERVE_PATH).s \
-		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(BIN_DIR)/$(HERVE_PATH) $(BUILD_DIR)/$(HERVE_PATH).o
-	./$(BIN_DIR)/$(HERVE_PATH)
-
 .PHONY: clean
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR).o
