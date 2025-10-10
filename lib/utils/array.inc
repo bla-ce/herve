@@ -252,7 +252,46 @@ array_push:
 array_pop:
   ret
 
-
+; returns the element at index i
+; @param  rdi: pointer to the array struct
+; @param  rsi: index of the element to get
+; @return rax: return code
 array_get:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the array struct
+  ; [rsp+0x8] -> index of the element to get
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; make sure the index required is not greater than current index
+  mov   rax, [rdi+ARRAY_OFF_INDEX]
+  cmp   rsi, rax
+  jge   .error
+
+  xor   rdx, rdx
+  mov   rax, [rdi+ARRAY_OFF_EL_SIZE]
+  mov   rbx, rsi
+  mul   rbx
+
+  mov   rsi, [rdi+ARRAY_OFF_EL]
+  add   rsi, rax
+
+  mov   rax, [rsi]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
