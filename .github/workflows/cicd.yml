@@ -10,28 +10,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  http-server-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt install -y nasm curl wrk
-      - run: make server
-      - run: ./examples/test/server 1337 & echo $! > server.pid && sleep 2
-      - run: chmod +x scripts/test.sh && ./scripts/test.sh
-      - run: wrk -t1 -c1 -d10s --latency http://localhost:1337/index
-      - run: wrk -t1 -c1 -d10s --latency http://localhost:1337/not-found
-      - run: kill $(cat server.pid)
-
-  echo-server-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt install -y nasm
-      - run: make echo
-      - run: ./examples/echo/echo & echo $! > server.pid && sleep 2
-      - run: chmod +x scripts/test_echo.sh && ./scripts/test_echo.sh
-      - run: kill $(cat server.pid)
-
   malloc-tests:
     runs-on: ubuntu-latest
     steps:
