@@ -4,6 +4,7 @@ array_t:
   elements  resq 1
   size      resq 1
   el_size   resq 1
+  index     resq 1
 array_t_end:
 
 section .data
@@ -11,10 +12,10 @@ section .data
 ARRAY_T_LEN equ array_t_end - array_t
 
 ; offsets
-
 ARRAY_OFF_EL      equ 0
 ARRAY_OFF_SIZE    equ ARRAY_OFF_EL + 0x8
 ARRAY_OFF_EL_SIZE equ ARRAY_OFF_SIZE + 0x8
+ARRAY_OFF_INDEX   equ ARRAY_OFF_EL_SIZE + 0x8
 
 section .text
 
@@ -55,6 +56,8 @@ array_create:
 
   mov   rdi, [rsp+0x8]
   mov   [rax+ARRAY_OFF_EL_SIZE], rdi
+
+  mov   qword [rax+ARRAY_OFF_INDEX], 0
 
   ; calloc n * size
   mov   rdi, [rsp]
@@ -130,7 +133,117 @@ array_free:
   add   rsp, 0x8
   ret
 
+; pushes an element to the array
+; @param  rdi: pointer to the array struct
+; @param  rsi: new element
+; @return rax: return code
 array_push:
+  sub   rsp, 0x28
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the array struct
+  ; [rsp+0x8]   -> new element
+  ; [rsp+0x10]  -> old size of the array
+  ; [rsp+0x18]  -> pointer to old array
+  ; [rsp+0x20]  -> pointer to new array
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x20], 0
+  
+  cmp   rdi, 0
+  jle   .error
+
+  ; check if array needs to be increased in size
+  mov   rdi, [rsp]
+  mov   rax, [rdi+ARRAY_OFF_SIZE]
+  mov   rsi, [rdi+ARRAY_OFF_INDEX]
+  cmp   rsi, rax
+  jl    .insert
+
+  ; save old size of the array
+  mov   [rsp+0x10], rax
+
+  ; get new size of the array
+  xor   rdx, rdx
+  mov   rbx, 2
+  mul   rbx
+
+  ; save new size into array struct
+  mov   rdi, [rsp]
+  mov   [rdi+ARRAY_OFF_SIZE], rax
+
+  ; create new array of element
+  mov   rsi, [rdi+ARRAY_OFF_EL_SIZE]
+  mov   rdi, rax
+  call  calloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; copy content
+  mov   rdi, [rsp]
+
+  xor   rdx, rdx
+  mov   rbx, [rdi+ARRAY_OFF_EL_SIZE]
+  mov   rax, [rsp+0x10] ; old size of the array
+  mul   rbx 
+
+  mov   rcx, rax
+
+  ; get old array
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+ARRAY_OFF_EL]
+  mov   [rsp+0x18], rsi
+
+  ; new array
+  mov   rdi, [rsp+0x20]
+  rep   movsb
+
+  ; update array element
+  mov   rdi, [rsp+0x20]
+  mov   rax, [rsp]
+  mov   [rax+ARRAY_OFF_EL], rdi
+
+  ; free prev array
+  mov   rdi, [rsp+0x18]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+.insert:
+  xor   rdx, rdx
+
+  mov   rdi, [rsp]
+  mov   rax, [rdi+ARRAY_OFF_EL_SIZE]
+  mov   rbx, [rdi+ARRAY_OFF_INDEX]
+  mul   rbx
+
+  mov   rsi, [rdi+ARRAY_OFF_EL]
+  mov   rdi, [rsp+0x8]
+  mov   [rsi+rax], rdi
+
+  mov   rdi, [rsp]
+  inc   qword [rdi+ARRAY_OFF_INDEX]
+
+  ; return the array
+  mov   rax, [rsp]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x28
   ret
 
 array_pop:
