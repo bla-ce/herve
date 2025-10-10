@@ -1,5 +1,6 @@
 %include "ansi.inc"
 %include "ascii.inc"
+%include "array.inc"
 %include "boeuf.inc"
 %include "calloc.inc"
 %include "client.inc"
