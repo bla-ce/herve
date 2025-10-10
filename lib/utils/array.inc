@@ -249,7 +249,36 @@ array_push:
   add   rsp, 0x28
   ret
 
+; pops the last element of the array and returns it
+; @param  rdi: pointer to the array structure
+; @return rax: popped element
 array_pop:
+  cmp   rdi, 0
+  jle   .error
+
+  xor   rdx, rdx
+  mov   rax, [rdi+ARRAY_OFF_EL_SIZE]
+  mov   rbx, [rdi+ARRAY_OFF_INDEX]
+
+  cmp   rbx, 0
+  jle   .error
+
+  dec   rbx
+  mul   rbx
+
+  mov   rsi, [rdi+ARRAY_OFF_EL] 
+  add   rsi, rax
+  mov   rax, [rsi]
+  mov   qword [rsi], 0
+
+  dec   qword [rdi+ARRAY_OFF_INDEX]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 
 ; returns the element at index i
