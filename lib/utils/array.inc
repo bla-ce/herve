@@ -135,14 +135,14 @@ array_free:
 
 ; pushes an element to the array
 ; @param  rdi: pointer to the array struct
-; @param  rsi: new element
+; @param  rsi: pointer to the new element
 ; @return rax: return code
 array_push:
   sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the array struct
-  ; [rsp+0x8]   -> new element
+  ; [rsp+0x8]   -> pointer to the new element
   ; [rsp+0x10]  -> old size of the array
   ; [rsp+0x18]  -> pointer to old array
   ; [rsp+0x20]  -> pointer to new array
@@ -215,20 +215,23 @@ array_push:
 .insert:
   xor   rdx, rdx
 
-  mov   rdi, [rsp]
-  mov   rax, [rdi+ARRAY_OFF_EL_SIZE]
-  mov   rbx, [rdi+ARRAY_OFF_INDEX]
+  mov   rsi, [rsp]
+  mov   rax, [rsi+ARRAY_OFF_EL_SIZE]
+  mov   rbx, [rsi+ARRAY_OFF_INDEX]
   mul   rbx
 
-  mov   rsi, [rdi+ARRAY_OFF_EL]
-  mov   rdi, [rsp+0x8]
-  mov   [rsi+rax], rdi
+  mov   rdi, [rsi+ARRAY_OFF_EL]
+  add   rdi, rax
+
+  mov   rcx, [rsi+ARRAY_OFF_EL_SIZE]
+  mov   rsi, [rsp+0x8]
+  rep   movsb
 
   mov   rdi, [rsp]
   inc   qword [rdi+ARRAY_OFF_INDEX]
 
   ; return the array
-  mov   rax, [rsp]
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 

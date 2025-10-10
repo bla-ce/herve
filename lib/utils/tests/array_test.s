@@ -3,6 +3,14 @@ global _start
 %include "herve.inc"
 %include "os.inc"
 
+section .data
+
+value1  dq 421
+value2  dq 422
+value3  dq 423
+value4  dq 424
+value5  dq 425
+
 section .text
 
 _start:
@@ -20,31 +28,31 @@ _start:
   mov   [rsp], rax
 
   mov   rdi, [rsp]
-  mov   rsi, 420
+  mov   rsi, value1
   call  array_push
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
-  mov   rsi, 1024
+  mov   rsi, value2
   call  array_push
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
-  mov   rsi, -100
+  mov   rsi, value3
   call  array_push
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
-  mov   rsi, 50
+  mov   rsi, value4
   call  array_push
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
-  mov   rsi, 72
+  mov   rsi, value5
   call  array_push
   cmp   rax, 0
   jl    .error
