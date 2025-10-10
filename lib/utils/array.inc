@@ -93,14 +93,49 @@ array_create:
   add   rsp, 0x20
   ret
 
+; frees the array struct and associated resources
+; @param  rdi: pointer to the array struct
+; @return rax: return code
+array_free:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the array struct
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; free array
+  mov   rax, [rsp]
+  mov   rdi, [rax+ARRAY_OFF_EL]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free array struct
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
 array_push:
   ret
 
 array_pop:
   ret
 
-array_destroy:
-  ret
 
 array_get:
   ret
