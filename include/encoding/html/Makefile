@@ -1,5 +1,5 @@
-INCLUDE_DIR = ../
-LIB_DIR = ../../lib
+INCLUDE_DIR = ../..
+LIB_DIR = ../../../lib
 
 TEST_PATH = tests/html_test
 
