@@ -1,11 +1,7 @@
 global _start
 
-%include "utils.inc"
+%include "malloc_utils.inc"
 %include "malloc.inc"
-%include "calloc.inc"
-%include "memset.inc"
-%include "free.inc"
-%include "mmap.inc"
 
 section .text
 _start:

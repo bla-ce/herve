@@ -1,0 +1,7 @@
+%include "cookie.inc"
+%include "headers.inc"
+%include "method.inc"
+%include "redirect.inc"
+%include "request.inc"
+%include "response.inc"
+%include "status_code.inc"

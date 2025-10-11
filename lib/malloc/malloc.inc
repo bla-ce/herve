@@ -1,3 +1,9 @@
+%include "calloc.inc"
+%include "free.inc"
+%include "memset.inc"
+%include "mmap.inc"
+%include "realloc.inc"
+
 section .bss
   heap_start  resq 1
 

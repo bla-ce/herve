@@ -10,7 +10,9 @@ server_struct:
 server_struct_end:
 
 section .data
-  clients times MAX_CONNECT dq 0
+  N_CLIENTS equ 10
+
+  clients times N_CLIENTS dq 0
 
   ; server constants
   DEFAULT_BACKLOG         equ 10
