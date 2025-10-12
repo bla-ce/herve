@@ -1,10 +1,20 @@
-global _start
+section .data
 
-%include "herve.inc"
+model_name  db "User", NULL_CHAR
+
+field_username db "username", NULL_CHAR
+field_password db "password", NULL_CHAR
+field_age      db "age", NULL_CHAR
+field_active   db "active", NULL_CHAR
 
 section .text
-_start:
+
+; @return rax: pointer to the user model
+create_user_model:
   sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the user model
 
   mov   rdi, model_name
   call  model_create
@@ -43,23 +53,14 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp]
-  call  model_free
-  cmp   rax, 0
-  jl    .error
+  mov   rax, [rsp]
 
-  mov   rdi, SUCCESS_CODE
-  call  exit
+  jmp   .return
 
 .error:
-  mov   rdi, FAILURE_CODE
-  call  exit
+  mov   rax, FAILURE_CODE
 
-section .data
-  model_name  db "User", NULL_CHAR
-
-  field_username db "username", NULL_CHAR
-  field_password db "password", NULL_CHAR
-  field_age      db "age", NULL_CHAR
-  field_active   db "active", NULL_CHAR
+.return:
+  add   rsp, 0x8
+  ret
 

@@ -24,6 +24,8 @@ FIELD_TYPE_NUMBER equ 0
 FIELD_TYPE_STRING equ 1
 FIELD_TYPE_BOOL   equ 2
 
+id_field_name db "id", NULL_CHAR
+
 section .text
 ; creates a field
 ; @param  rdi: pointer to the name of the field

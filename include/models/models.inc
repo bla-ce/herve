@@ -1,8 +1,10 @@
 section .bss
 
 model_t:
-  _model_name    resq 1  ; pointer to the name of the field
-  _model_fields  resq 1  ; linked list of field struct
+  _model_name     resq 1  ; pointer to the name of the field
+  _model_fields   resq 1  ; linked list of field struct
+  _model_curr_idx resq 1  ; next index for the next instance
+  _model_n_fields resq 1  ; number of fields
 model_t_end:
 
 section .data
@@ -12,10 +14,46 @@ MODEL_NAME_MAX_LEN  equ 0xFF
 MODEL_T_LEN equ model_t_end - model_t
 
 ; offsets
-MODEL_OFF_NAME    equ 0
-MODEL_OFF_FIELDS  equ MODEL_OFF_NAME + 0x8
+MODEL_OFF_NAME      equ 0
+MODEL_OFF_FIELDS    equ MODEL_OFF_NAME + 0x8
+MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS
+MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 
 section .text
+; returns the number of fields the model has
+; @param  rdi: pointer to the model
+; @return rax: number of fields
+model_get_curr_idx:
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rax, [rdi+MODEL_OFF_CURR_IDX]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the number of fields the model has
+; @param  rdi: pointer to the model
+; @return rax: number of fields
+model_get_n_fields:
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rax, [rdi+MODEL_OFF_N_FIELDS]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; generic function to insert any field to the model
 ; @param  rdi: pointer to the model struct
 ; @param  rsi: field name
@@ -85,6 +123,10 @@ model_insert_field:
   call  model_add_field_to_list
   cmp   rax, 0
   jl    .error
+
+  ; increase number of fields
+  mov   rdi, [rsp]
+  inc   qword [rdi+MODEL_OFF_N_FIELDS]
 
   mov   rax, SUCCESS_CODE
 
@@ -181,6 +223,17 @@ model_create:
   mov   rax, [rsp+0x8]
 
   mov   qword [rax+MODEL_OFF_FIELDS], 0
+  mov   qword [rax+MODEL_OFF_N_FIELDS], 0
+
+  ; insert id field
+  mov   rdi, [rsp+0x8]
+  mov   rsi, id_field_name
+  mov   rdx, FIELD_TYPE_NUMBER
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 

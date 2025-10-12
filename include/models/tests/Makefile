@@ -4,7 +4,7 @@ LIB_DIR = ../../../lib
 BIN_DIR = bin
 BUILD_DIR = build
 
-MODEL_PATH = models_test
+MODEL_PATH = main
 
 INCLUDE_DIRS = \
 	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')
