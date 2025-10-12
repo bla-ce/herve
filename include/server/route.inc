@@ -305,7 +305,24 @@ add_dir_route:
 
   cmp   rsi, 0
   jle   .error
+  
+  ; check if dir path ends with '/', if yes, trim it
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
 
+.b1:
+  mov   rdi, [rsp+0x8]
+  add   rdi, rax
+  dec   rdi
+  cmp   byte [rdi], SLASH
+  jne   .no_trim
+
+  mov   rax, NULL_CHAR
+  stosb
+
+.no_trim:
   ; map file_path and direntries
   mov   rdi, DIR_ENTRIES_LEN
   call  malloc

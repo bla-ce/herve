@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-URL="http://localhost:8080/"
+URL="http://localhost:1337/"
 WORDLIST="examples/echo/medium.txt"
 
 # check if the file exists
