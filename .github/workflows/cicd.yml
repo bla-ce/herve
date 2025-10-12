@@ -9,6 +9,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  wrk-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+
+      - name: Build echo example
+        working-directory: examples/echo
+        run: make
+
+      - name: Start echo server
+        working-directory: examples/echo
+        run: |
+          make run &
+          echo $! > server.pid
+          sleep 2
+
+      - name: Run wrk benchmark
+        run: |
+          wrk -t1 -c1 -d30s --latency http://localhost:1337/
+
+      - name: Stop echo server
+        run: kill $(cat examples/echo/server.pid)
+
   static-content-tests:
     runs-on: ubuntu-latest
     steps:
