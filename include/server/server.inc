@@ -38,6 +38,95 @@ section .data
   STR_PORT_MAX_LENGTH equ 6
 
 section .text
+; returns the root group of the server
+; @param  rdi: pointer to the server
+; @return rax: pointer to the root group
+get_server_root_group:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the server struct
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get group offset to check if groups are init
+  add   rdi, SERVER_OFF_GROUPS
+
+  cmp   qword [rdi], 0
+  je    .error
+
+  ; load first group
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+  
+.loop:
+  ; rsi points to the address of current group
+  cmp   qword [rsi+GRP_STRUCT_OFF_IS_ROOT], TRUE
+  je    .loop_end
+
+  ; go to next offset
+  add   rdi, GRP_STRUCT_OFF_NEXT
+  cmp   qword [rdi], 0
+  je    .error
+ 
+  ; rdi contains the address of the group
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+
+  jmp   .loop
+.loop_end:
+
+  mov   rax, rsi
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; enables logger globally
+; @param  rdi: pointer to the server
+; @return rax: return code
+server_enable_logger:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the server struct
+  
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  call  get_logger_middleware
+  cmp   rax, 0
+  jl    .error
+
+  ; add logger
+  mov   rdi, [rsp]
+  xor   rsi, rsi
+  mov   rdx, rax
+  call  add_middleware
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
 ; once the server is initialised, prints the logo, server init
 ; message and listening port
 ; @param  rdi: pointer to the server struct

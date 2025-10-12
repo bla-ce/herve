@@ -21,7 +21,7 @@ all:
 	nasm -o $(BUILD_DIR)/$(JSON_PATH).o $(JSON_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(BIN_DIR)/$(JSON_PATH) $(BUILD_DIR)/$(JSON_PATH).o
-	./$(BIN_PATH)/$(JSON_PATH)
+	./$(BIN_DIR)/$(JSON_PATH)
 
 clean:
 	rm -rf $(BIN_DIR) $(BUILD_DIR)

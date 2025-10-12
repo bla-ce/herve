@@ -11,6 +11,32 @@ section .data
 
 section .text
 
+; returns a middleware struct with log_ctx
+; @return rax: pointer to the middleware struct
+get_logger_middleware:
+  ; get default logger
+  call  logan_init
+  cmp   rax, 0
+  jl    .error
+
+  ; create the middleware
+  mov   rdi, log_ctx
+  mov   rsi, rax
+  mov   rdx, 0xFF
+  mov   rcx, 0
+  mov   r9, TRUE
+  call  create_middleware
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; logs information about a request
 ; format: [INFO] timestamp | ip | status_code | method | url
 ; @param  rdi: pointer to the context struct

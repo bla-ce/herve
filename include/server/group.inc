@@ -22,7 +22,6 @@ GRP_STRUCT_OFF_NEXT         equ GRP_STRUCT_OFF_IS_ROOT + 0x8
 ROOT_GRP_PREFIX db "/", NULL_CHAR
 
 section .text
-
 ; creates a group and adds it to the server struct
 ; @param  rdi: pointer to the server struct
 ; @param  rsi: pointer to the prefix
@@ -272,58 +271,6 @@ get_group_prefix:
   mov   rax, FAILURE_CODE
 
 .return:
-  ret
-
-; returns the root group of the server
-; @param  rdi: pointer to the server
-; @return rax: pointer to the root group
-get_server_root_group:
-  sub   rsp, 0x8
-
-  ; *** STACK USAGE *** ;
-  ; [rsp] -> pointer to the server struct
-
-  mov   [rsp], rdi
-
-  cmp   rdi, 0
-  jle   .error
-
-  ; get group offset to check if groups are init
-  add   rdi, SERVER_OFF_GROUPS
-
-  cmp   qword [rdi], 0
-  je    .error
-
-  ; load first group
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-  
-.loop:
-  ; rsi points to the address of current group
-  cmp   qword [rsi+GRP_STRUCT_OFF_IS_ROOT], TRUE
-  je    .loop_end
-
-  ; go to next offset
-  add   rdi, GRP_STRUCT_OFF_NEXT
-  cmp   qword [rdi], 0
-  je    .error
- 
-  ; rdi contains the address of the group
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
-  jmp   .loop
-.loop_end:
-
-  mov   rax, rsi
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x8
   ret
 
 ; returns the group struct corresponsing to the url of the ctx

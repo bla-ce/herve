@@ -21,7 +21,7 @@ all:
 	nasm -o $(BUILD_DIR)/$(TEST_PATH).o $(TEST_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(BIN_DIR)/$(TEST_PATH) $(BUILD_DIR)/$(TEST_PATH).o
-	./$(BIN_PATH)/$(TEST_PATH)
+	./$(BIN_DIR)/$(TEST_PATH)
 
 clean:
 	rm -rf $(BIN_DIR) $(BUILD_DIR)
