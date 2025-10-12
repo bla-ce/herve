@@ -28,7 +28,7 @@ jobs:
         working-directory: examples/static_content
         run: |
           make run &
-          static_content $! > server.pid
+          echo $! > server.pid
           sleep 2
 
       - name: Run static_content tests
