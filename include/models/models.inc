@@ -1,14 +1,13 @@
 section .bss
 
 model_t:
-  name    resq 1  ; pointer to the name of the field
-  fields  resq 1  ; linked list of field struct
+  _model_name    resq 1  ; pointer to the name of the field
+  _model_fields  resq 1  ; linked list of field struct
 model_t_end:
 
 section .data
 
 MODEL_NAME_MAX_LEN  equ 0xFF
-FIELD_NAME_MAX_LEN  equ 0xFF
 
 MODEL_T_LEN equ model_t_end - model_t
 
@@ -17,7 +16,6 @@ MODEL_OFF_NAME    equ 0
 MODEL_OFF_FIELDS  equ MODEL_OFF_NAME + 0x8
 
 section .text
-
 ; creates a model
 ; @param  rdi: pointer to the name of the model
 ; @return rax: pointer to the model struct
@@ -48,6 +46,8 @@ model_create:
   jl    .error
 
   mov   rax, [rsp+0x8]
+
+  mov   qword [rax+MODEL_OFF_FIELDS], 0
 
   jmp   .return
 
