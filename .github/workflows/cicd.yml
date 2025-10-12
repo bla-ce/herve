@@ -10,9 +10,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  malloc-tests:
-    runs-on: ubuntu-latest
+  echo-tests:
     steps:
+      runs-on: ubuntu-latest
+      - uses: actions/checkout@v3
+      - run: sudo apt install -y nasm
+      - run: cd examples/echo && make
+      - run: make run & echo $! > server.pid && sleep 2
+      - run: cd ../..
+      - run: chmod +x scripts/test_echo.sh
+      - run: ./scripts/test_echo.sh
+      - run: kill $(cat server.pid)
+
+  malloc-tests:
+    steps:
+      runs-on: ubuntu-latest
       - uses: actions/checkout@v3
       - run: sudo apt install -y nasm
       - run: cd lib/malloc/tests && make
