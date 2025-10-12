@@ -13,29 +13,33 @@ _start:
 
   mov   [rsp], rax
 
-  mov   rdi, field_username
-  mov   rsi, FIELD_TYPE_STRING
-  mov   rdx, 32
-  call  field_create
+  mov   rdi, [rsp]
+  mov   rsi, field_username
+  mov   rdx, FIELD_TYPE_STRING
+  mov   rcx, 32
+  call  model_insert_field
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, field_password
-  mov   rsi, FIELD_TYPE_STRING
-  mov   rdx, 128
-  call  field_create
+  mov   rdi, [rsp]
+  mov   rsi, field_password
+  mov   rdx, FIELD_TYPE_STRING
+  mov   rcx, 128
+  call  model_insert_field
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, field_age
-  mov   rsi, FIELD_TYPE_NUMBER
-  call  field_create
+  mov   rdi, [rsp]
+  mov   rsi, field_age
+  mov   rdx, FIELD_TYPE_NUMBER
+  call  model_insert_field
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, field_active
-  mov   rsi, FIELD_TYPE_BOOL
-  call  field_create
+  mov   rdi, [rsp]
+  mov   rsi, field_active
+  mov   rdx, FIELD_TYPE_BOOL
+  call  model_insert_field
   cmp   rax, 0
   jl    .error
 

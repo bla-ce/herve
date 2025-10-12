@@ -16,6 +16,139 @@ MODEL_OFF_NAME    equ 0
 MODEL_OFF_FIELDS  equ MODEL_OFF_NAME + 0x8
 
 section .text
+; generic function to insert any field to the model
+; @param  rdi: pointer to the model struct
+; @param  rsi: field name
+; @param  rdx: field type
+; @param  rcx: field spec arg
+; @return rax: return code
+model_insert_field:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the field name
+  ; [rsp+0x10]  -> field type
+  ; [rsp+0x18]  -> field spec arg
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; check field type
+  mov   rdi, [rsp+0x10]
+
+  cmp   rdi, FIELD_TYPE_NUMBER
+  je    .insert_number
+
+  cmp   rdi, FIELD_TYPE_STRING
+  je    .insert_string
+
+  cmp   rdi, FIELD_TYPE_BOOL
+  je    .insert_bool
+
+  ; invalid type
+  jmp   .error
+
+.insert_number:
+  jmp   .create_field
+
+.insert_string:
+  ; check max length of the string
+  mov   rdi, [rsp+0x18]
+  cmp   rdi, 0
+  jle   .error
+
+  jmp   .create_field
+
+.insert_bool:
+  jmp   .create_field
+
+.create_field:
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, [rsp+0x18]
+  call  field_create
+  cmp   rax, 0
+  jl    .error
+
+  ; add field to the linked list
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  model_add_field_to_list
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
+; appends a field struct to the linked list of field
+; @param  rdi: pointer to the model struct
+; @param  rsi: pointer to the field struct
+; @return rax: return code
+model_add_field_to_list:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the field struct
+  ; [rsp+0x10]  -> pointer to the linked list
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   rdi, [rsp]
+  add   rdi, MODEL_OFF_FIELDS
+  mov   [rsp+0x10], rdi
+
+.loop:
+  mov   rdi, [rsp+0x10]
+  cmp   qword [rdi], 0
+  je    .insert
+
+  ; go to next
+  mov   rsi, [rdi]
+  add   rsi, FIELD_OFF_NEXT
+
+  mov   [rsp+0x10], rsi
+
+  jmp   .loop
+
+.insert:
+  mov   rsi, [rsp+0x8]
+  mov   [rdi], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
 ; creates a model
 ; @param  rdi: pointer to the name of the model
 ; @return rax: pointer to the model struct
@@ -63,6 +196,23 @@ model_create:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; returns the linked list of fields
+; @param  rdi: pointer to the model struct
+; @return rax: pointer to the linked list
+model_get_fields:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+MODEL_OFF_FIELDS]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 
 ; sets the name of the model

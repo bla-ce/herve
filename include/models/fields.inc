@@ -4,6 +4,7 @@ field_t:
   _field_name  resq 1  ; pointer to the name of the field
   _field_type  resq 1  ; field type
   _field_arg   resq 1  ; specific argument for the field
+  _field_next  resq 1  ; next field
 field_t_end:
 
 section .data
@@ -16,6 +17,7 @@ FIELD_T_LEN equ field_t_end - field_t
 FIELD_OFF_NAME  equ 0
 FIELD_OFF_TYPE  equ FIELD_OFF_NAME + 0x8
 FIELD_OFF_ARG   equ FIELD_OFF_TYPE + 0x8
+FIELD_OFF_NEXT  equ FIELD_OFF_ARG + 0x8
 
 ; field types
 FIELD_TYPE_NUMBER equ 0
