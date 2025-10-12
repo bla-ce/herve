@@ -1,6 +1,9 @@
 INCLUDE_DIR = ../..
 LIB_DIR = ../../../lib
 
+BIN_DIR = bin
+BUILD_DIR = build
+
 JSON_PATH = tests/json_test
 
 INCLUDE_DIRS = \
@@ -14,7 +17,11 @@ DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
 
 all:
-	nasm -o $(JSON_PATH).o $(JSON_PATH).s \
+	mkdir -p $(BIN_DIR) $(BUILD_DIR)
+	nasm -o $(BUILD_DIR)/$(JSON_PATH).o $(JSON_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(JSON_PATH) $(JSON_PATH).o
+	ld -o $(BIN_DIR)/$(JSON_PATH) $(BUILD_DIR)/$(JSON_PATH).o
 	./$(JSON_PATH)
+
+clean:
+	rm -rf $(BIN_DIR) $(BUILD_DIR)

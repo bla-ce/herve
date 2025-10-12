@@ -1,6 +1,9 @@
 INCLUDE_DIR = ../..
 LIB_DIR = ../../../lib
 
+BIN_DIR = bin
+BUILD_DIR = build
+
 TEST_PATH = tests/html_test
 
 INCLUDE_DIRS = \
@@ -14,7 +17,11 @@ DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
 
 all:
-	nasm -o $(TEST_PATH).o $(TEST_PATH).s \
+	mkdir -p $(BIN_DIR) $(BUILD_DIR)
+	nasm -o $(BUILD_DIR)/$(TEST_PATH).o $(TEST_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(TEST_PATH) $(TEST_PATH).o
+	ld -o $(BIN_DIR)/$(TEST_PATH) $(BUILD_DIR)/$(TEST_PATH).o
 	./$(TEST_PATH)
+
+clean:
+	rm -rf $(BIN_DIR) $(BUILD_DIR)

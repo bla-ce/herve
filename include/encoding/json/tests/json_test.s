@@ -1,7 +1,6 @@
 global _start
 
 %include "herve.inc"
-%include "os.inc"
 
 section .text
 

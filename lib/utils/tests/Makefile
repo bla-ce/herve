@@ -1,6 +1,9 @@
 INCLUDE_DIR = ../../../include
 LIB_DIR = ../..
 
+BIN_DIR = bin
+BUILD_DIR = build
+
 ARRAY_PATH = array_test
 
 INCLUDE_DIRS = \
@@ -13,8 +16,12 @@ INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS)
 DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
 
-array:
-	nasm -o $(ARRAY_PATH).o $(ARRAY_PATH).s \
+all:
+	mkdir -p $(BIN_DIR) $(BUILD_DIR)
+	nasm -o $(BUILD_DIR)/$(ARRAY_PATH).o $(ARRAY_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(ARRAY_PATH) $(ARRAY_PATH).o
+	ld -o $(BIN_DIR)/$(ARRAY_PATH) $(BUILD_DIR)/$(ARRAY_PATH).o
 	./$(ARRAY_PATH)
+
+clean:
+	rm -rf $(BIN_DIR) $(BUILD_DIR)
