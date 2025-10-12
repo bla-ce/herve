@@ -21,7 +21,7 @@ all:
 	nasm -o $(BUILD_DIR)/$(ARRAY_PATH).o $(ARRAY_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 	ld -o $(BIN_DIR)/$(ARRAY_PATH) $(BUILD_DIR)/$(ARRAY_PATH).o
-	./$(ARRAY_PATH)
+	./$(BIN_DIR)/$(ARRAY_PATH)
 
 clean:
 	rm -rf $(BIN_DIR) $(BUILD_DIR)
