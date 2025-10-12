@@ -4,6 +4,7 @@
 %include "constants.inc"
 %include "file.inc"
 %include "hash_table.inc"
+%include "os.inc"
 %include "string.inc"
 %include "syscall.inc"
 %include "time.inc"
