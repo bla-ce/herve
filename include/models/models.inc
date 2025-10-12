@@ -22,7 +22,7 @@ section .text
 ; @param  rdi: pointer to the name of the model
 ; @return rax: pointer to the model struct
 model_create:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   ; *** STACK USAGE *** ;
   ; [rsp]     -> pointer to the name of the model
@@ -62,7 +62,7 @@ model_create:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; sets the name of the model
