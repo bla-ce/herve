@@ -290,13 +290,9 @@ htons:
   ret
 
 ; initialise server
-; @param  rdi: port
 ; @return rax: pointer to server struct | error
 server_init:
   sub   rsp, 0x20
-
-  cmp   rdi, 0
-  jg    .port_defined
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> port
@@ -304,15 +300,7 @@ server_init:
   ; [rsp+0x10]  -> file descriptor of the server
   ; [rsp+0x18]  -> pointer to the logger struct
 
-.default_port:
-  mov   rbx, DEFAULT_PORT
-  cmp   rax, 0
-  cmovl rax, rbx
-
-  mov   rdi, rbx
-
-.port_defined:
-  mov   qword [rsp], rdi
+  mov   qword [rsp], DEFAULT_PORT
   mov   qword [rsp+0x8], 0
 
   ; malloc server struct
@@ -370,21 +358,21 @@ server_init:
   jmp   .return
 
 .error:
+  ; free server struct
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .close_socket
+  
+  call  free
+
+.close_socket:
   ; check if socket have been opened
-  cmp   qword [rsp+0x8], 0
+  cmp   qword [rsp+0x10], 0
   jle   .skip_close_socket
 
   ; if yes close it
   mov   rdi, qword [rsp+0x10]
   call  close_file
-
-  ; free server struct
-  mov   rax, [rsp+0x8]
-  test  rax, rax
-  jz    .skip_close_socket
-
-  mov   rdi, rax
-  call  free
 
 .skip_close_socket:
   mov   rax, FAILURE_CODE
