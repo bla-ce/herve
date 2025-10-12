@@ -18,7 +18,7 @@ do
     echo "PASSED: $word"
   else
     echo "FAILED:"
-    echo "  Response: $out"
+    echo "  Got: $out"
     echo "  Expected: $word"
     exit 1
   fi
