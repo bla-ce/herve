@@ -11,42 +11,87 @@ concurrency:
 
 jobs:
   echo-tests:
+    runs-on: ubuntu-latest
     steps:
-      runs-on: ubuntu-latest
-      - uses: actions/checkout@v3
-      - run: sudo apt install -y nasm
-      - run: cd examples/echo && make
-      - run: make run & echo $! > server.pid && sleep 2
-      - run: cd ../..
-      - run: chmod +x scripts/test_echo.sh
-      - run: ./scripts/test_echo.sh
-      - run: kill $(cat server.pid)
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+
+      - name: Build echo example
+        working-directory: examples/echo
+        run: make
+
+      - name: Start echo server
+        working-directory: examples/echo
+        run: |
+          make run &
+          echo $! > server.pid
+          sleep 2
+
+      - name: Run echo tests
+        run: |
+          chmod +x scripts/test_echo.sh
+          ./scripts/test_echo.sh
+
+      - name: Stop echo server
+        run: kill "$(cat server.pid)"
 
   malloc-tests:
+    runs-on: ubuntu-latest
     steps:
-      runs-on: ubuntu-latest
-      - uses: actions/checkout@v3
-      - run: sudo apt install -y nasm
-      - run: cd lib/malloc/tests && make
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+
+      - name: Build malloc tests
+        working-directory: lib/malloc/tests
+        run: make
 
   json-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt install -y nasm
-      - run: cd include/encoding/json/tests && make
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+
+      - name: Build JSON encoding tests
+        working-directory: include/encoding/json/tests
+        run: make
 
   html-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt install -y nasm
-      - run: cd include/encoding/html/tests && make
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+
+      - name: Build HTML encoding tests
+        working-directory: include/encoding/html/tests
+        run: make
 
   array-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt install -y nasm
-      - run: cd lib/utils/tests && make
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+
+      - name: Build array tests
+        working-directory: lib/utils/tests
+        run: make
 
