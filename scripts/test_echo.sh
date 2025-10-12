@@ -12,7 +12,7 @@ fi
 # go over the list of words
 while IFS= read -r word;
 do
-  out=$(curl -s http://localhost:8080 --data-raw "${word}")
+  out=$(curl -s http://localhost:1337 --data-raw "${word}")
 
   if [ "$out" == "$word" ]; then
     echo "PASSED: $word"
