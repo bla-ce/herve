@@ -22,14 +22,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt install -y nasm
-      - run: cd include/encoding/json && make
+      - run: cd include/encoding/json/tests && make
 
   html-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt install -y nasm
-      - run: cd include/encoding/html && make
+      - run: cd include/encoding/html/tests && make
 
   array-tests:
     runs-on: ubuntu-latest
@@ -37,3 +37,4 @@ jobs:
       - uses: actions/checkout@v3
       - run: sudo apt install -y nasm
       - run: cd lib/utils/tests && make
+

@@ -4,7 +4,7 @@ LIB_DIR = ../../../lib
 BIN_DIR = bin
 BUILD_DIR = build
 
-JSON_PATH = tests/json_test
+TEST_PATH = html_test
 
 INCLUDE_DIRS = \
 	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')
@@ -18,10 +18,10 @@ BASE_FLAGS = -felf64 -w+all
 
 all:
 	mkdir -p $(BIN_DIR) $(BUILD_DIR)
-	nasm -o $(BUILD_DIR)/$(JSON_PATH).o $(JSON_PATH).s \
+	nasm -o $(BUILD_DIR)/$(TEST_PATH).o $(TEST_PATH).s \
 		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(BIN_DIR)/$(JSON_PATH) $(BUILD_DIR)/$(JSON_PATH).o
-	./$(JSON_PATH)
+	ld -o $(BIN_DIR)/$(TEST_PATH) $(BUILD_DIR)/$(TEST_PATH).o
+	./$(TEST_PATH)
 
 clean:
 	rm -rf $(BIN_DIR) $(BUILD_DIR)
