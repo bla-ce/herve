@@ -1,5 +1,5 @@
-INCLUDE_DIR = ../..
-LIB_DIR = ../../../lib
+INCLUDE_DIR = ../../..
+LIB_DIR = ../../../../lib
 
 BIN_DIR = bin
 BUILD_DIR = build
