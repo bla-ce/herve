@@ -18,7 +18,7 @@ section .data
   DEFAULT_BACKLOG         equ 10
 
   PORT_MIN     equ 0x1
-  DEFAULT_PORT equ 8080
+  DEFAULT_PORT equ 1337
   PORT_MAX     equ 0xffff
 
   SERVER_STRUCT_LEN equ server_struct_end - server_struct

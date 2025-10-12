@@ -277,53 +277,53 @@ compare_route:
 ; create a route serving files located in a specified dir 
 ; @param  rdi: pointer to server struct
 ; @param  rsi: path
-; @param  rdx: (bool) recursion
 ; @return rax: code
 add_dir_route:
-  sub   rsp, 0x50
+  sub   rsp, 0x20
   
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the dir path
-  ; [rsp+0x10]  -> allow recursion
-  ; [rsp+0x18]  -> pointer to the direntries
-  ; [rsp+0x20]  -> pointer to the file path
-  ; [rsp+0x28]  -> file descriptor of the directory
-  ; [rsp+0x30]  -> number of bytes read by SYS_GETDENTS
-  ; [rsp+0x38]  -> file path len
-  ; [rsp+0x40]  -> bytes index
-  ; [rsp+0x48]  -> d_reclen
+  ; [rsp+0x10]  -> length of the dir path
+  ; [rsp+0x18]  -> pointer to the route url
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
-  mov   qword [rsp+0x18], 0
-  mov   qword [rsp+0x20], 0
 
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
+  
+  ; check if dir path ends with '/', if yes, trim it
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
 
-  ; map file_path and direntries
-  mov   rdi, DIR_ENTRIES_LEN
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x8]
+  add   rdi, rax
+  dec   rdi
+  cmp   byte [rdi], SLASH
+  jne   .no_trim
+
+  mov   rax, NULL_CHAR
+  stosb
+
+.no_trim:
+  ; malloc route url
+  mov   rdi, FILE_PATH_LEN
   call  malloc
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x18], rax
 
-  mov   rdi, FILE_PATH_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
-  ; save dir_path into file var
+  mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x8]
-  mov   rdi, [rsp+0x20]
 
   ; add slash before dir path
   mov   rax, SLASH
@@ -333,202 +333,32 @@ add_dir_route:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
+  mov   rdi, [rsp+0x18]
+  add   rdi, [rsp+0x10]
+
+  ; add '/' and '*'
+  mov   rax, SLASH
+  stosb
+
+  mov   rax, ASTERISK
+  stosb
 
   ; load null char
   mov   rax, NULL_CHAR
   stosb
   
-  mov   rdi, [rsp+0x8]
-
-  ; open directory
-  mov   rsi, O_RDONLY | O_DIRECTORY
-  mov   rdx, 0
-  call  open_file
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
-
-  ; get dirent struct
-  mov   rdi, rax
-  mov   rax, SYS_GETDENTS
-  mov   rsi, [rsp+0x18]
-  mov   rdx, DIR_ENTRIES_LEN
-  syscall
-
-  cmp   rax, 0
-  jl    .error
-
-  ; store number of bytes read
-  mov   qword [rsp+0x30], rax
-
-  ; close fd
-  mov   rdi, [rsp+0x28]
-  call  close_file
-  cmp   rax, 0
-  jl    .error
-
-  ; save file_path_len
-  mov   rdi, [rsp+0x20]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x38], rax
-
-  xor   r9, r9
-  mov   rdi, [rsp+0x18]
-  
-.loop:
-  ; d_reclen
-  xor   r10, r10
-
-  ; mov to d_reclen (offset 16)
-  mov   r10w, word [rdi + DIRENT_OFF_DRECLEN]
-
-  ; get d_type (offset d_reclen - 1)
-  xor   rax, rax
-  mov   al, byte [rdi + r10 - 1]
-
-  ; check if it's a file (DT_REG = 0x8)
-  cmp   rax, DT_REG
-  jne   .skip_not_file
-
-  ; save rdi pos
-  mov   [rsp+0x8], rdi
-
-  ; clear file path after dir
-  mov   rdi, [rsp+0x20]
-  mov   rax, qword [rsp+0x38]
-  add   rdi, rax
-
-  mov   rax, SLASH
-  stosb
-  mov   rax, NULL_CHAR
-  stosb
-
-  mov   rdi, [rsp+0x20] 
-  mov   rax, qword [rsp+0x38]
-  add   rdi, rax
-  inc   rdi
-
-  mov   rsi, [rsp+0x8]
-
-  ; go to file name (offset 18)
-  add   rsi, DIRENT_OFF_FILE_NAME
-
-  call  strcpy
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-
-  ; add null char at the end
-  mov   rax, NULL_CHAR
-  stosb
-
-  mov   rdi, [rsp+0x20]
-  call  get_content_type
-  cmp   rax, 0
-  jl    .next
-
-  cmp   rax, CONTENT_APL
-  je    .next
-
+  ; create wildcard route
   mov   rdi, [rsp]
   lea   rsi, [GET]
-  mov   rdx, [rsp+0x20] 
+  mov   rdx, [rsp+0x18]
   mov   rcx, serve_dir
   xor   r8, r8
   call  add_route
   cmp   rax, 0
   jl    .error
 
-.next:
-  mov   rdi, [rsp+0x8]
-
-  jmp   .skip_not_dir
-
-.skip_not_file:
-  cmp   rax, DT_DIR
-  jne   .skip_not_dir
-
-  ; make sure the dir is not '.'
-  cmp   byte [rdi+DIRENT_OFF_FILE_NAME], DOT
-  je    .skip_not_dir 
-
-  ; save r9, r10 and rdi
-  mov   qword [rsp+0x40], r9
-  mov   qword [rsp+0x48], r10
-  mov   [rsp+0x8], rdi
-
-  ; clear file path after dir
-  mov   rdi, [rsp+0x20]
-  mov   rax, qword [rsp+0x38]
-  add   rdi, rax
-
-  mov   rax, SLASH
-  stosb
-  mov   rax, NULL_CHAR
-  stosb
-
-  mov   rdi, [rsp+0x20] 
-  mov   rax, qword [rsp+0x38]
-  add   rdi, rax
-  inc   rdi
-
-  mov   rsi, [rsp+0x8]
-
-  ; go to file name (offset 18)
-  add   rsi, DIRENT_OFF_FILE_NAME
-
-  call  strcpy
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-
-  ; add null char at the end
-  mov   rax, NULL_CHAR
-  stosb
-
-  mov   rdi, [rsp+0x20]
-
-  ; add one to remove slash at the beginning
-  cmp   qword [rsp+0x10], TRUE
-  jne   .no_recursion
-
-  inc   rdi
-  mov   rsi, rdi
-  mov   rdi, [rsp]
-  mov   rdx, TRUE
-  xor   r8, r8
-  call  add_dir_route
-  cmp   rax, 0
-  jl    .error
-
-.no_recursion:
-  mov   r9, qword [rsp+0x40]
-  mov   r10, qword [rsp+0x48]
-  mov   rdi, [rsp+0x8]
-
-.skip_not_dir:
-  add   r9, r10
-  add   rdi, r10
-
-  cmp   r9, qword [rsp+0x30]
-  jge   .loop_end
-
-  jmp   .loop
-
-.loop_end:
+  ; free route url
   mov   rdi, [rsp+0x18]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x20]
   call  free
   cmp   rax, 0
   jl    .error
@@ -544,14 +374,11 @@ add_dir_route:
 
   call  free
 
-  mov   rdi, [rsp+0x20]
-  call  free
-
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x50
+  add   rsp, 0x20
   ret
 
 ; checks if a route already exists
