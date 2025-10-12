@@ -37,7 +37,7 @@ jobs:
           ./scripts/test_echo.sh
 
       - name: Stop echo server
-        run: kill "$(cat server.pid)"
+        run: kill $(cat server.pid)
 
   malloc-tests:
     runs-on: ubuntu-latest
