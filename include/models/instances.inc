@@ -4,7 +4,7 @@ section .text
 ; creates a new instance of the new model
 ; @param  rdi: pointer to the model struct
 ; @return rax: new instance of the model
-model_create_instance:
+model_instance_create:
   sub   rsp, 0x10
 
   ; *** STACK USAGE *** ;
@@ -71,6 +71,54 @@ model_create_instance:
 ; @param  rcx: value
 ; @return rax: return code
 model_instance_set:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model
+  ; [rsp+0x8]   -> pointer to the instance
+  ; [rsp+0x10]  -> pointer to the name of the field
+  ; [rsp+0x18]  -> value
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; check if field exist
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  call  model_field_exist
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  jne   .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, [rsp+0x18]
+  call  ht_insert
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
 
 ; frees an instance of the model

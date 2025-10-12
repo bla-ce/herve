@@ -333,3 +333,62 @@ model_free:
   add   rsp, 0x8
   ret
 
+; check if the field exist in the model
+; @param  rdi: pointer to the model
+; @param  rsi: pointer to the name of the field
+; @return rax: model exist (bool)
+model_field_exist:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model
+  ; [rsp+0x8]   -> pointer to the name of the field
+  ; [rsp+0x10]  -> pointer to the fields
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; get fields
+  add   rdi, MODEL_OFF_FIELDS 
+
+  mov   [rsp+0x10], rdi
+
+.loop:
+  mov   rax, [rsp+0x10]
+  cmp   qword [rax], 0
+  je    .end_loop
+
+  ; compare fields
+  mov   rsi, [rax]
+  mov   rdi, [rsi+FIELD_OFF_NAME]
+  mov   rsi, [rsp+0x8]
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .exist
+
+  ; go to next
+  mov   rax, [rsp+0x10]
+  mov   rdi, [rax]
+  add   rdi, FIELD_OFF_NEXT
+  mov   [rsp+0x10], rdi
+
+  jmp   .loop
+
+.end_loop:
+  mov   rax, FALSE
+  jmp   .return
+
+.exist:
+  mov   rax, TRUE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
