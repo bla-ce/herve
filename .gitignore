@@ -1,5 +1,6 @@
 main
 herve
+echo
 node_modules
 *.o
 *.c
