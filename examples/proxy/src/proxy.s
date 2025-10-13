@@ -67,11 +67,6 @@ _start:
   call  add_middleware
   cmp   rax, 0
   jl    .error
-
-  mov   rdi, [proxy]
-  call  server_enable_logger
-  cmp   rax, 0
-  jl    .error
     
   mov   rdi, [proxy]
   call  run_server
@@ -91,8 +86,8 @@ section .data
   target1_port equ 4000
   target2_port equ 4001
 
-  target1_weight equ 1
-  target2_weight equ 2
+  target1_weight equ 2
+  target2_weight equ 3
 
   target1_id db "127.0.0.1", NULL_CHAR
   target2_id db "127.0.0.1", NULL_CHAR

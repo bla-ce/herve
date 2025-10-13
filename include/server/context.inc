@@ -60,13 +60,13 @@ handle_ctx:
 
   call  get_curr_ns
   cmp   rax, 0
-  jl   .log_request 
+  jl   .post_request_middlewares 
 
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  set_ctx_start_time
   cmp   rax, 0
-  jl   .log_request 
+  jl   .post_request_middlewares 
 
   mov   rdi,  [rsp+0x10]
   call  handle_request
@@ -77,13 +77,13 @@ handle_ctx:
   mov   rdi, [rsp+0x10]
   call  is_ctx_aborted
   cmp   rax, TRUE
-  je    .log_request
+  je    .post_request_middlewares
 
   ; get root group
   mov   rdi, [rsp]
   call  get_server_root_group
   cmp   rax, 0
-  jl    .log_request
+  jl    .post_request_middlewares
 
   ; run root pre request middlewares
   mov   rdi, rax
@@ -113,13 +113,13 @@ handle_ctx:
   mov   rdi, [rsp+0x10]
   call  is_ctx_aborted
   cmp   rax, TRUE
-  je    .log_request
+  je    .post_request_middlewares
 
   ; verify request
   mov   rdi, [rsp+0x10]
   call  verify_request
   cmp   rax, 0
-  jl   .log_request
+  jl   .post_request_middlewares
 
   mov   [rsp+0x18], rax ; returns a pointer to the route
 
@@ -127,7 +127,7 @@ handle_ctx:
   mov   rdi, [rsp+0x10]
   call  is_ctx_aborted
   cmp   rax, TRUE
-  je    .log_request
+  je    .post_request_middlewares
 
   ; check if route has a callback
   mov   rdi, [rsp+0x18]
@@ -140,18 +140,18 @@ handle_ctx:
 
   mov   rdi, [rsp+0x10]
   cmp   qword [rdi+CTX_OFF_DONE], 1
-  je    .log_request
+  je    .post_request_middlewares
 
 .done:
   mov   rdi, [rsp+0x10]
   mov   rsi, OK
   call  send_no_content
 
-.log_request:
+.post_request_middlewares:
   ; set end timer
   call  get_curr_ns
   cmp   rax, 0
-  jl   .log_request 
+  jl   .free_ctx 
 
   ; if yes, compute the difference
   mov   rdi, [rsp+0x10]
