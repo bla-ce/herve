@@ -320,12 +320,19 @@ get_server_port:
 ; @param  rdi: pointer to server struct 
 ; @param  rsi: port
 ; @return rax: return code
-set_server_port:
+server_set_port:
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jl    .error
+
+  ; check if port is in bounds
+  cmp   esi, PORT_MIN
+  jl    .error
+
+  cmp   esi, PORT_MAX
+  jg    .error
 
   mov   dword [rdi+SERVER_OFF_PORT], esi
 
@@ -381,16 +388,12 @@ htons:
 ; initialise server
 ; @return rax: pointer to server struct | error
 server_init:
-  sub   rsp, 0x20
+  sub   rsp, 0x8
 
   ; *** STACK USAGE *** ;
-  ; [rsp]       -> port
-  ; [rsp+0x8]   -> pointer to the server struct
-  ; [rsp+0x10]  -> file descriptor of the server
-  ; [rsp+0x18]  -> pointer to the logger struct
+  ; [rsp]  -> pointer to the server struct
 
-  mov   qword [rsp], DEFAULT_PORT
-  mov   qword [rsp+0x8], 0
+  mov   qword [rsp], 0
 
   ; malloc server struct
   mov   rdi, SERVER_STRUCT_LEN
@@ -398,7 +401,7 @@ server_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  mov   [rsp], rax
 
   ; set default values
   mov   qword [rax+SERVER_OFF_ROUTES], 0
@@ -406,68 +409,38 @@ server_init:
   mov   qword [rax+SERVER_OFF_LOGGER], 0
   mov   qword [rax+SERVER_OFF_GROUPS], 0
 
-  ; check if port is in bounds
-  cmp   qword [rsp], PORT_MIN
-  jl    .error
-
-  cmp   qword [rsp], PORT_MAX
-  jg    .error
-
   ; add port to server struct
-  mov   rdi, [rsp+0x8]
-  mov   rsi, qword [rsp]
-  call  set_server_port
+  mov   rdi, [rsp]
+  mov   rsi, DEFAULT_PORT
+  call  server_set_port
   cmp   rax, 0
   jl    .error
-
-  ; create, bind and listen to the socket
-  mov   rdi, qword [rsp]
-  call  socket_init
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x10], rax
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, qword [rsp+0x10]
-  call  set_server_sockfd
-  cmp   rax, 0
-  jl    .error  
 
   ; create root group 
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp]
   mov   rsi, ROOT_GRP_PREFIX
   mov   rdx, TRUE
   call  add_group
   cmp   rax, 0
   jl    .error
 
-  mov   rax, [rsp+0x8]
+  mov   rax, [rsp]
 
   jmp   .return
 
 .error:
   ; free server struct
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp]
   test  rdi, rdi
-  jz    .close_socket
+  jz    .no_free
   
   call  free
 
-.close_socket:
-  ; check if socket have been opened
-  cmp   qword [rsp+0x10], 0
-  jle   .skip_close_socket
-
-  ; if yes close it
-  mov   rdi, qword [rsp+0x10]
-  call  close_file
-
-.skip_close_socket:
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x8
   ret
 
 ; runs the server
@@ -492,6 +465,23 @@ run_server:
 
   cmp   rdi, 0
   jle   .error
+
+  ; create, bind and listen to the socket
+  mov   rdi, qword [rsp]
+  call  get_server_port
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  socket_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  set_server_sockfd
+  cmp   rax, 0
+  jl    .error  
 
   ; malloc main set of file descriptors
   mov   rdi, FD_SET_STRUCT_LEN

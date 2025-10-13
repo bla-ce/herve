@@ -1,23 +1,23 @@
 section .bss
-proxy_struct:
-  _proxy_ip     resq 1
-  _proxy_port   resq 1
-  _proxy_weight resq 1
-proxy_struct_end:
+proxy_target_struct:
+  _proxy_target_ip     resq 1
+  _proxy_target_port   resq 1
+  _proxy_target_weight resq 1
+proxy_target_struct_end:
 
 section .data
-PROXY_STRUCT_LEN equ proxy_struct_end - proxy_struct
+PROXY_TARGET_STRUCT_LEN equ proxy_target_struct_end - proxy_target_struct
 
-PROXY_OFF_IP      equ 0x0
-PROXY_OFF_PORT    equ PROXY_OFF_IP + 0x8
-PROXY_OFF_WEIGHT  equ PROXY_OFF_PORT + 0x8
+PROXY_TARGET_OFF_IP      equ 0x0
+PROXY_TARGET_OFF_PORT    equ PROXY_TARGET_OFF_IP + 0x8
+PROXY_TARGET_OFF_WEIGHT  equ PROXY_TARGET_OFF_PORT + 0x8
 
 ROUND_ROBIN_IP          equ 0
 WEIGHTED_ROUND_ROBIN_IP equ 1
 
 ; keep track of the proxy index
-proxy_idx   dq 0
-curr_weight dq 0
+proxy_target_idx  dq 0
+curr_weight       dq 0
 
 bad_gateway_message db "Bad Gateway: The remote server is unreachable. "
                     db "Forwarding failed because the connection could not be established.", NULL_CHAR
@@ -25,7 +25,7 @@ bad_gateway_message db "Bad Gateway: The remote server is unreachable. "
 section .text
 ; configures a proxy middleware
 ; @param  rdi: pointer to the context struct
-; @param  rsi: pointer to an array of proxy struct
+; @param  rsi: pointer to an array of proxy target
 ; @param  rdx: load balancer algorithm
 ; @param  rcx: servers count
 ; @return rax: success code
@@ -46,7 +46,7 @@ proxy_middleware:
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
-  ; [rsp+0x8]   -> pointer to an array of proxy struct
+  ; [rsp+0x8]   -> pointer to an array of proxy target
   ; [rsp+0x10]  -> load balancer algorithm
   ; [rsp+0x18]  -> servers count
   ; [rsp+0x20]  -> server index
@@ -63,19 +63,27 @@ proxy_middleware:
   cmp   qword [curr_weight], 0
   jne   .skip_weight
 
-  mov   rdx, [rsp+0x8]
-  mov   rcx, qword [proxy_idx]
-  mov   rsi, [rdx+8*rcx]
-  mov   rax, [rsi+PROXY_OFF_WEIGHT]
+  ; get weight of current target
+  mov   rdi, [rsp+0x8]
+  mov   rsi, qword [proxy_target_idx]
+  call  array_get
+  cmp   rax, 0
+  jl    .error
 
-  mov   qword [curr_weight], rax
+  mov   rdi, [rax+PROXY_TARGET_OFF_WEIGHT]
+
+  mov   qword [curr_weight], rdi
 
 .skip_weight:
   ; connect to the end server   
+  mov   rdi, [rsp+0x8]
+  mov   rsi, qword [proxy_target_idx]
+  call  array_get
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp]
-  mov   rdx, [rsp+0x8]
-  mov   rcx, qword [proxy_idx]
-  mov   rsi, [rdx+8*rcx]
+  mov   rsi, rax
   call  connect_proxy
   cmp   rax, 0
   jl    .error
@@ -106,17 +114,12 @@ proxy_middleware:
   jne   .skip_reset_idx
 
 .skip_dec:
-  ; get current proxy struct
-  mov   rdi, [rsp+0x8]
-  mov   rax, qword [proxy_idx]
-  mov   rsi, [rdi+8*rax]
-  
-  inc   qword [proxy_idx]
-  mov   r9, qword [proxy_idx]
+  inc   qword [proxy_target_idx]
+  mov   r9, qword [proxy_target_idx]
   cmp   r9, qword [rsp+0x18]
   jl    .skip_reset_idx
 
-  mov   qword [proxy_idx], 0
+  mov   qword [proxy_target_idx], 0
 
 .skip_reset_idx:
   mov   rax, SUCCESS_CODE
@@ -188,7 +191,7 @@ handle_proxy_request:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
   mov   rdx, qword [rsp+0x18]
-  call  send_response_from_proxy
+  call  send_response_from_target
   cmp   rax, 0
   jl    .error
 
@@ -263,7 +266,7 @@ handle_proxy_request:
 ; @param  rsi: pointer to the response
 ; @param  rdx: response length
 ; @return rax: return code
-send_response_from_proxy:
+send_response_from_target:
   sub   rsp, 0x18
 
   cmp   rdi, 0
@@ -419,7 +422,7 @@ connect_proxy:
 
   ; convert port to network port
   mov   rsi, [rsp+0x8]
-  mov   di, word [rsi+PROXY_OFF_PORT]
+  mov   di, word [rsi+PROXY_TARGET_OFF_PORT]
   call  htons
 
   lea   rdi, [rsp+0x18]
@@ -428,7 +431,7 @@ connect_proxy:
   mov   word [rdi+SOCKADDR_OFF_SIN_FAMILY], AF_INET
 
   mov   rsi, [rsp+0x8]
-  mov   rdi, [rsi+PROXY_OFF_IP]
+  mov   rdi, [rsi+PROXY_TARGET_OFF_IP]
   test  rdi, rdi
   jz    .ip_null 
 
@@ -479,5 +482,187 @@ connect_proxy:
 .return:
   add   rsp, SOCKADDR_STRUCT_LEN
   add   rsp, 0x20
+  ret
+
+; creates a proxy target struct
+; @param  rdi: listnening port of the target
+; @param  rsi: pointer to the ip of the target
+; @param  rdx: weight of the target (if using weighted algorithm)
+; @return rax: pointer to the proxy target
+proxy_target_create:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> listening port of the target
+  ; [rsp+0x8]   -> pointer to the ip of the target
+  ; [rsp+0x10]  -> weight of the target
+  ; [rsp+0x18]  -> pointer to the proxy target
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
+
+  mov   rdi, PROXY_TARGET_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+  
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x18] 
+  mov   rsi, [rsp]
+  call  proxy_target_set_port
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18] 
+  mov   rsi, [rsp+0x8]
+  call  proxy_target_set_ip
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18] 
+  mov   rsi, [rsp+0x10]
+  call  proxy_target_set_weight
+  cmp   rax, 0
+  jl    .error
+  
+  mov   rax, [rsp+0x18]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
+; sets the listening port of the proxy target
+; @param  rdi: pointer to the target struct
+; @param  rsi: listening port
+; @return rax: return code
+proxy_target_set_port:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+PROXY_TARGET_OFF_PORT], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the listening port of the proxy target
+; @param  rdi: pointer to the target struct
+; @return rax: listening port
+proxy_target_get_port:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+PROXY_TARGET_OFF_PORT]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the ip of the proxy target
+; @param  rdi: pointer to the target struct
+; @param  rsi: pointer to the ip address
+; @return rax: return code
+proxy_target_set_ip:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+PROXY_TARGET_OFF_IP], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the ip address
+; @param  rdi: pointer to the target struct
+; @return rax: pointer to the ip address
+proxy_target_get_ip:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+PROXY_TARGET_OFF_IP]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the weight of the proxy target
+; @param  rdi: pointer to the target struct
+; @param  rsi: weight of the target
+; @return rax: return code
+proxy_target_set_weight:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+PROXY_TARGET_OFF_WEIGHT], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the weight of the proxy target
+; @param  rdi: pointer to the target struct
+; @return rax: weight of the proxy target
+proxy_target_get_weight:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+PROXY_TARGET_OFF_WEIGHT]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 

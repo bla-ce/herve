@@ -299,7 +299,7 @@ array_get:
   jle   .error
 
   cmp   rsi, 0
-  jle   .error
+  jl    .error
 
   ; make sure the index required is not greater than current index
   mov   rax, [rdi+ARRAY_OFF_INDEX]
