@@ -69,7 +69,7 @@ _start:
   jl    .error
     
   mov   rdi, [proxy]
-  call  run_server
+  call  server_run
 
   mov   rdi, SUCCESS_CODE
   call  exit

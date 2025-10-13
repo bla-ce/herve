@@ -227,7 +227,7 @@ accept_connection:
 
   ; get server from context
   mov   rdi, [rsp]
-  call  get_server_sockfd 
+  call  server_get_sockfd 
 
   cmp   rax, 0
   jl    .error

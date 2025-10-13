@@ -188,7 +188,7 @@ group_exist:
 
   ; load server routes
   mov   rdi, [rsp]
-  call  get_server_groups
+  call  server_get_groups
   cmp   rax, 0
   jl    .error
   je    .loop_end
@@ -294,7 +294,7 @@ get_group_from_ctx:
 
   ; get the groups from the server
   mov   rdi, [rsp]
-  call  get_server_groups
+  call  server_get_groups
   cmp   rax, 0
   jle   .error
 

@@ -577,7 +577,7 @@ add_route:
   jnz   .no_root_group
 
   mov   rdi, [rsp]
-  call  get_server_root_group
+  call  server_get_root_group
   cmp   rax, 0
   jl    .error
 

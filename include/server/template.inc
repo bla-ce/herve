@@ -8,7 +8,7 @@ section .text
 ; @param  rdi: pointer to the file path
 ; @param  rsi: pointer to the hash table
 ; @return rax: pointer to the template parsed
-parse_template:
+template_parse:
   sub   rsp, 0x50
 
   cmp   rdi, 0

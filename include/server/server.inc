@@ -41,7 +41,7 @@ section .text
 ; returns the root group of the server
 ; @param  rdi: pointer to the server
 ; @return rax: pointer to the root group
-get_server_root_group:
+server_get_root_group:
   sub   rsp, 0x8
 
   ; *** STACK USAGE *** ;
@@ -196,7 +196,7 @@ log_server_init:
 
   ; get port
   mov   rdi, [rsp]
-  call  get_server_port
+  call  server_get_port
   cmp   rax, 0
   jle   .error
 
@@ -227,7 +227,7 @@ log_server_init:
 ; returns the socket fd associated to the server
 ; @param  rdi: pointer to server struct 
 ; @return rax: socket fd
-get_server_sockfd:
+server_get_sockfd:
   cmp   rdi, 0
   jle   .error
 
@@ -244,7 +244,7 @@ get_server_sockfd:
 ; @param  rdi: pointer to server struct 
 ; @param  rsi: pointer to the logger struct
 ; @return rax: return code
-set_server_logger:
+server_set_logger:
   cmp   rdi, 0
   jle   .error
 
@@ -265,7 +265,7 @@ set_server_logger:
 ; returns the logger associated to the server
 ; @param  rdi: pointer to server struct 
 ; @return rax: pointer to the logger struct
-get_server_logger:
+server_get_logger:
   cmp   rdi, 0
   jle   .error
 
@@ -282,7 +282,7 @@ get_server_logger:
 ; @param  rdi: pointer to server struct 
 ; @param  rsi: sockfd
 ; @return rax: return code
-set_server_sockfd:
+server_set_sockfd:
   cmp   rdi, 0
   jle   .error
 
@@ -303,7 +303,7 @@ set_server_sockfd:
 ; returns the port associated to the server
 ; @param  rdi: pointer to server struct 
 ; @return rax: port
-get_server_port:
+server_get_port:
   cmp   rdi, 0
   jle   .error
 
@@ -348,7 +348,7 @@ server_set_port:
 ; returns the first group struct associated to the server
 ; @param  rdi: pointer to server struct 
 ; @return rax: pointer to the first group struct
-get_server_groups:
+server_get_groups:
   cmp   rdi, 0
   jle   .error
 
@@ -446,7 +446,7 @@ server_init:
 ; runs the server
 ; @param  rdi: pointer to server struct
 ; @param  rax: return value
-run_server:
+server_run:
   sub   rsp, 0x30
 
   ; *** STACK USAGE *** ;
@@ -468,7 +468,7 @@ run_server:
 
   ; create, bind and listen to the socket
   mov   rdi, qword [rsp]
-  call  get_server_port
+  call  server_get_port
   cmp   rax, 0
   jl    .error
 
@@ -479,7 +479,7 @@ run_server:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  set_server_sockfd
+  call  server_set_sockfd
   cmp   rax, 0
   jl    .error  
 
@@ -507,7 +507,7 @@ run_server:
 
   ; get the server file descriptor
   mov   rdi, [rsp]
-  call  get_server_sockfd
+  call  server_get_sockfd
   cmp   rax, 0
   jl    .error
 
@@ -555,7 +555,7 @@ run_server:
 
   ; get the server file descriptor
   mov   rdi, [rsp]
-  call  get_server_sockfd
+  call  server_get_sockfd
   cmp   rax, 0
   jl    .error
 

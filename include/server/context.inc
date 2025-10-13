@@ -81,7 +81,7 @@ handle_ctx:
 
   ; get root group
   mov   rdi, [rsp]
-  call  get_server_root_group
+  call  server_get_root_group
   cmp   rax, 0
   jl    .post_request_middlewares
 
@@ -162,7 +162,7 @@ handle_ctx:
 
   ; get root group
   mov   rdi, [rsp]
-  call  get_server_root_group
+  call  server_get_root_group
   cmp   rax, 0
   jl    .error
 
