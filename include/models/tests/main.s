@@ -51,6 +51,16 @@ _start:
 
   mov   [rsp+0x10], rax
 
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, SUCCESS_CODE
   call  exit
 

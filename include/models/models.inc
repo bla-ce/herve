@@ -311,16 +311,41 @@ model_get_name:
 ; @param  rdi: pointer to the model struct
 ; @return rax: return code
 model_free:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   ; *** STACK USAGE *** ;
-  ; [rsp]   -> pointer to the model struct
+  ; [rsp]     -> pointer to the model struct
+  ; [rsp+0x8] -> pointer to the fields linked list
 
   mov   [rsp], rdi
 
   cmp   rdi, 0
   jle   .error
 
+  ; free fields
+  add   rdi, MODEL_OFF_FIELDS
+  mov   [rsp+0x8], rdi
+
+.loop:
+  mov   rax, [rsp+0x8]
+  cmp   qword [rax], 0
+  je    .loop_end
+
+  ; get field struct
+  mov   rdi, [rax]
+  mov   [rsp+0x8], rdi
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; go to next
+  mov   rdi, [rsp+0x8]
+  add   rdi, FIELD_OFF_NEXT
+  mov   [rsp+0x8], rdi
+
+  jmp   .loop
+
+.loop_end:
   ; free struct
   mov   rdi, [rsp]
   call  free
