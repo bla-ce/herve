@@ -38,6 +38,22 @@ _start:
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
+  mov   rdx, field_password
+  call  model_instance_get
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, pass1
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  jne   .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
   mov   rdx, pass1
   mov   rcx, pass1
   call  model_instance_set

@@ -121,6 +121,58 @@ model_instance_set:
   add   rsp, 0x20
   ret
 
+; returns the value of a field for the instance
+; @param  rdi: pointer to the model
+; @param  rsi: pointer to the instance
+; @param  rdx: pointer to the name of the field
+; @return rax: value
+model_instance_get:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model
+  ; [rsp+0x8]   -> pointer to the instance
+  ; [rsp+0x10]  -> pointer to the name of the field
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; check if field exist
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  call  model_field_exist
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  jne   .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, [rsp+0x18]
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
 ; frees an instance of the model
 ; @param  rdi: pointer to the instance
 ; @return rax: return code
