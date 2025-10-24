@@ -73,6 +73,33 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; create proxy middleware structures
+  mov   rdi, PROXY_MIDDLEWARE_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [proxy_middlew_struct_1], rax
+
+  mov   qword [rax+PROXY_MIDDLEWARE_OFF_CURR_IDX], 0
+  mov   qword [rax+PROXY_MIDDLEWARE_OFF_CURR_WEIGHT], 0
+
+  mov   rdi, [target1_array]
+  mov   [rax+PROXY_MIDDLEWARE_OFF_TARGETS], rdi
+
+  mov   rdi, PROXY_MIDDLEWARE_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [proxy_middlew_struct_2], rax
+
+  mov   qword [rax+PROXY_MIDDLEWARE_OFF_CURR_IDX], 0
+  mov   qword [rax+PROXY_MIDDLEWARE_OFF_CURR_WEIGHT], 0
+
+  mov   rdi, [target2_array]
+  mov   [rax+PROXY_MIDDLEWARE_OFF_TARGETS], rdi
+
   ; create group
   mov   rdi, [proxy]
   mov   rsi, target1_url
@@ -94,7 +121,7 @@ _start:
 
   ; create middleware
   mov   rdi, proxy_middleware
-  mov   rsi, [target1_array]
+  mov   rsi, [proxy_middlew_struct_1]
   mov   rdx, WEIGHTED_ROUND_ROBIN_IP
   mov   rcx, 2
   mov   r9, FALSE
@@ -111,7 +138,7 @@ _start:
 
   ; create middleware
   mov   rdi, proxy_middleware
-  mov   rsi, [target2_array]
+  mov   rsi, [proxy_middlew_struct_2]
   mov   rdx, ROUND_ROBIN_IP
   mov   rcx, 1
   mov   r9, FALSE
@@ -138,6 +165,9 @@ _start:
 
 section .data
   proxy dq 0
+
+  proxy_middlew_struct_1 dq 0
+  proxy_middlew_struct_2 dq 0
 
   target1_array dq 0
   target2_array dq 0

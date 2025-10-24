@@ -28,10 +28,6 @@ PROXY_MIDDLEWARE_OFF_TARGETS     equ PROXY_MIDDLEWARE_OFF_CURR_WEIGHT + 0x8
 ROUND_ROBIN_IP          equ 0
 WEIGHTED_ROUND_ROBIN_IP equ 1
 
-; keep track of the proxy index
-proxy_target_idx  dq 0
-curr_weight       dq 0
-
 bad_gateway_message db "Bad Gateway: The remote server is unreachable. "
                     db "Forwarding failed because the connection could not be established.", NULL_CHAR
 
@@ -73,24 +69,32 @@ proxy_middleware:
   cmp   qword [rsp+0x10], WEIGHTED_ROUND_ROBIN_IP
   jne   .skip_weight
 
-  cmp   qword [curr_weight], 0
+  mov   rdi, [rsp+0x8]
+  call  proxy_middleware_get_curr_weight
+  cmp   rax, 0
+  jl    .error
   jne   .skip_weight
 
   ; get weight of current target
-  mov   rdi, [rsp+0x8]
-  mov   rsi, qword [proxy_target_idx]
+  mov   rax, [rsp+0x8]
+  mov   rdi, [rax+PROXY_MIDDLEWARE_OFF_TARGETS]
+  mov   rsi, [rax+PROXY_MIDDLEWARE_OFF_CURR_IDX]
   call  array_get
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rax+PROXY_TARGET_OFF_WEIGHT]
+  mov   rsi, [rax+PROXY_TARGET_OFF_WEIGHT]
 
-  mov   qword [curr_weight], rdi
+  mov   rdi, [rsp+0x8]
+  call  proxy_middleware_set_curr_weight
+  cmp   rax, 0
+  jl    .error
 
 .skip_weight:
   ; connect to the end server   
-  mov   rdi, [rsp+0x8]
-  mov   rsi, qword [proxy_target_idx]
+  mov   rax, [rsp+0x8]
+  mov   rdi, [rax+PROXY_MIDDLEWARE_OFF_TARGETS]
+  mov   rsi, [rax+PROXY_MIDDLEWARE_OFF_CURR_IDX]
   call  array_get
   cmp   rax, 0
   jl    .error
@@ -121,18 +125,46 @@ proxy_middleware:
   jne   .skip_dec
 
   ; decrement curr weight
-  dec   qword [curr_weight]
+  mov   rdi, [rsp+0x8]
+  call  proxy_middleware_get_curr_weight
+  cmp   rax, 0
+  jl    .error
 
-  cmp   qword [curr_weight], 0
+  dec   rax
+
+  mov   rbx, rax
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  proxy_middleware_set_curr_weight
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rbx, 0
   jne   .skip_reset_idx
 
 .skip_dec:
-  inc   qword [proxy_target_idx]
-  mov   r9, qword [proxy_target_idx]
-  cmp   r9, qword [rsp+0x18]
+  mov   rdi, [rsp+0x8]
+  call  proxy_middleware_get_curr_idx
+  cmp   rax, 0
+  jl    .error
+
+  inc   rax
+
+  mov   rbx, rax
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  proxy_middleware_set_curr_idx
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rbx, qword [rsp+0x18]
   jl    .skip_reset_idx
 
-  mov   qword [proxy_target_idx], 0
+  mov   rdi, [rsp+0x8]
+  xor   rsi, rsi
+  call  proxy_middleware_set_curr_idx
+  cmp   rax, 0
+  jl    .error
 
 .skip_reset_idx:
   mov   rax, SUCCESS_CODE
