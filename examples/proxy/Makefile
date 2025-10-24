@@ -8,6 +8,7 @@ SRC_DIR = src
 PROXY_PATH = proxy
 SERVER1_PATH = server1
 SERVER2_PATH = server2
+SERVER3_PATH = server3
 
 INCLUDE_DIRS = \
 	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')
@@ -30,6 +31,9 @@ proxy:
 	nasm -o $(BUILD_DIR)/$(SERVER2_PATH).o $(SRC_DIR)/$(SERVER2_PATH).s \
 		$(INCLUDE_FLAGS) $(DEBUG_FLAGS) $(BASE_FLAGS)
 	ld -o $(BIN_DIR)/$(SERVER2_PATH) $(BUILD_DIR)/$(SERVER2_PATH).o
+	nasm -o $(BUILD_DIR)/$(SERVER3_PATH).o $(SRC_DIR)/$(SERVER3_PATH).s \
+		$(INCLUDE_FLAGS) $(DEBUG_FLAGS) $(BASE_FLAGS)
+	ld -o $(BIN_DIR)/$(SERVER3_PATH) $(BUILD_DIR)/$(SERVER3_PATH).o
 
 run-proxy:
 	./$(BIN_DIR)/$(PROXY_PATH)
@@ -39,6 +43,9 @@ run-server1:
 
 run-server2:
 	./$(BIN_DIR)/$(SERVER2_PATH)
+
+run-server3:
+	./$(BIN_DIR)/$(SERVER3_PATH)
 
 .PHONY: clean
 clean:

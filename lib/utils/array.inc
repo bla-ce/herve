@@ -159,7 +159,7 @@ array_push:
   mov   rax, [rdi+ARRAY_OFF_SIZE]
   mov   rsi, [rdi+ARRAY_OFF_INDEX]
   cmp   rsi, rax
-  jl    .insert
+  jle   .insert
 
   ; save old size of the array
   mov   [rsp+0x10], rax

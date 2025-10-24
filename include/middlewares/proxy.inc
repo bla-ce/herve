@@ -5,12 +5,25 @@ proxy_target_struct:
   _proxy_target_weight resq 1
 proxy_target_struct_end:
 
+; keep track of the next target to serve
+proxy_middleware_struct:
+  _proxy_middleware_curr_idx     resq 1
+  _proxy_middleware_curr_weight  resq 1
+  _proxy_middleware_targets      resq 1
+proxy_middleware_struct_end:
+
 section .data
 PROXY_TARGET_STRUCT_LEN equ proxy_target_struct_end - proxy_target_struct
+
+PROXY_MIDDLEWARE_STRUCT_LEN equ proxy_middleware_struct_end - proxy_middleware_struct
 
 PROXY_TARGET_OFF_IP      equ 0x0
 PROXY_TARGET_OFF_PORT    equ PROXY_TARGET_OFF_IP + 0x8
 PROXY_TARGET_OFF_WEIGHT  equ PROXY_TARGET_OFF_PORT + 0x8
+
+PROXY_MIDDLEWARE_OFF_CURR_IDX    equ 0x0
+PROXY_MIDDLEWARE_OFF_CURR_WEIGHT equ PROXY_MIDDLEWARE_OFF_CURR_IDX + 0x8
+PROXY_MIDDLEWARE_OFF_TARGETS     equ PROXY_MIDDLEWARE_OFF_CURR_WEIGHT + 0x8
 
 ROUND_ROBIN_IP          equ 0
 WEIGHTED_ROUND_ROBIN_IP equ 1
@@ -25,7 +38,7 @@ bad_gateway_message db "Bad Gateway: The remote server is unreachable. "
 section .text
 ; configures a proxy middleware
 ; @param  rdi: pointer to the context struct
-; @param  rsi: pointer to an array of proxy target
+; @param  rsi: pointer to a proxy middleware struct
 ; @param  rdx: load balancer algorithm
 ; @param  rcx: servers count
 ; @return rax: success code
@@ -666,3 +679,122 @@ proxy_target_get_weight:
 .return:
   ret
 
+; sets the target of the proxy middleware struct
+; @param  rdi: pointer to the proxy middleware struct
+; @param  rsi: pointer to the target array
+; @return rax: return code
+proxy_middleware_set_targets:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+PROXY_MIDDLEWARE_OFF_TARGETS], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the target of the proxy middleware struct
+; @param  rdi: pointer to the proxy middleware struct
+; @return rax: pointer to the target array
+proxy_middleware_get_targets:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+PROXY_MIDDLEWARE_OFF_TARGETS]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the current index of the proxy middleware struct
+; @param  rdi: pointer to the proxy middleware struct
+; @param  rsi: current target index
+; @return rax: return code
+proxy_middleware_set_curr_idx:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+PROXY_MIDDLEWARE_OFF_CURR_IDX], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the current target index of the proxy middleware struct
+; @param  rdi: pointer to the proxy middleware struct
+; @return rax: current target index
+proxy_middleware_get_curr_idx:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+PROXY_MIDDLEWARE_OFF_CURR_IDX]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the current weight of the proxy middleware struct
+; @param  rdi: pointer to the proxy middleware struct
+; @param  rsi: current target weight
+; @return rax: return code
+proxy_middleware_set_curr_weight:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+PROXY_MIDDLEWARE_OFF_CURR_WEIGHT], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the current target weight of the proxy middleware struct
+; @param  rdi: pointer to the proxy middleware struct
+; @return rax: current target weight
+proxy_middleware_get_curr_weight:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+PROXY_MIDDLEWARE_OFF_CURR_WEIGHT]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
