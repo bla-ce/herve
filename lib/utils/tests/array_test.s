@@ -57,26 +57,26 @@ _start:
   jl    .error
 
   mov   rdi, [rsp]
-  mov   rsi, 3
+  mov   rsi, 1
   call  array_get
 
+  cmp   ax, word [value2]
+  jne   .error
+
   mov   rdi, [rsp]
-  mov   rsi, value5
-  call  array_push
-  cmp   rax, 0
-  jl    .error
+  mov   rsi, 5
+  call  array_get
+  cmp   rax, FAILURE_CODE
+  jne   .error
 
   mov   rdi, [rsp]
   call  array_pop
-  cmp   rax, 0
-  jl    .error
 
-  cmp   rax, qword [value5]
+  cmp   ax, word [value4]
   jne   .error
 
-  ; this one should fail 
   mov   rdi, [rsp]
-  mov   rsi, 10
+  mov   rsi, 5
   call  array_get
   cmp   rax, FAILURE_CODE
   jne   .error

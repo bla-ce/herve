@@ -152,6 +152,11 @@ _start:
   call  add_middleware
   cmp   rax, 0
   jl    .error
+
+  mov   rdi, [proxy]
+  call  server_enable_logger
+  cmp   rax, 0
+  jl    .error
     
   mov   rdi, [proxy]
   call  server_run
