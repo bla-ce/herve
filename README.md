@@ -4,8 +4,8 @@ Documentation in progress forever...
 
 Check out the examples, then hope that one day, documentation will magically appear. 🪄
 
-> [!WARNING] This library is not yet production ready
-> This library is for educational purposes only
+> [!WARNING]
+> This library is intended for educational purposes only and is not yet ready for production use.
 
 ## Overview
 
@@ -26,16 +26,3 @@ No, I want developers to be able to spin up a webserver with 70 lines of Assembl
 After one year and ~18,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
 
 (of course, this library is also intended to show off).
-
-### Install
-
-Copy the `include/` and `lib/` directories into your project tree and use the `Makefile` template in `examples/` to build your project with Herve.
-
-```bash
-git clone https://github.com/bla-ce/herve
-cd herve
-cp -r include <project-path>
-cp -r lib <project-path>
-cd <project-path>
-make
-```
