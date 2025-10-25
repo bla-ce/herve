@@ -3,3 +3,39 @@
 Documentation in progress forever...
 
 Check out the examples, then hope that one day, documentation will magically appear. 🪄
+
+> [!WARNING] This library is not yet production ready
+> This library is for educational purposes only
+
+## Overview
+
+### What is Herve?
+
+Herve is a high-performance HTTP Server Library written entirely in Assembly for x86 systems.
+
+### Why Herve has been built and why would you use it?
+
+To gain a deeper knowledge of computer architecture and how the CPU works at the instruction level, I wanted to build projects in Assembly.
+
+But let's be real, spending hours to just write basic functions like `to_string` or `strlen` is not the most exciting or rewarding thing.
+
+The goal of this library is to provide a thorough yet simple API to allow developers to write exciting Assembly projects with a webserver without spending months building the underlying webserver and network operations.
+
+No, I want developers to be able to spin up a webserver with 70 lines of Assembly and focus on the rest of the project.
+
+After one year and ~18,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
+
+(of course, this library is also intended to show off).
+
+### Install
+
+Copy the `include/` and `lib/` directories into your project tree and use the `Makefile` template in `examples/` to build your project with Herve.
+
+```bash
+git clone https://github.com/bla-ce/herve
+cd herve
+cp -r include <project-path>
+cp -r lib <project-path>
+cd <project-path>
+make
+```
