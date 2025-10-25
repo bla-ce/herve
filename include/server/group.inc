@@ -279,7 +279,7 @@ get_group_prefix:
 ; @param  rsi: pointer to the context struct
 ; @return rax: pointer to the group struct or 0 if no match
 get_group_from_ctx:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
@@ -288,6 +288,7 @@ get_group_from_ctx:
   ; [rsp+0x18]  -> pointer to the url
 
   mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
 
   cmp   rdi, 0
   jle   .error
@@ -324,15 +325,32 @@ get_group_from_ctx:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x20], rax
+
   ; check if the url starts with the prefix of the group
   mov   rdi, [rsp+0x18]
-  mov   rsi, rax
+  mov   rsi, [rsp+0x20]
   call  starts_with
   cmp   rax, 0
   jl    .error
 
   cmp   rax, TRUE
-  je    .loop_end
+  jne   .skip_root
+
+  ; check if the last character of the url is '/' or '\0'
+  mov   rdi, [rsp+0x20]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  add   rdi, rax
+
+  cmp   byte [rdi], SLASH
+  je    .loop_end 
+
+  cmp   byte [rdi], NULL_CHAR
+  je    .loop_end 
 
 .skip_root:
   mov   rdi, [rsp+0x10]
@@ -358,7 +376,7 @@ get_group_from_ctx:
   xor   rax, rax   ; no need to return -1
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; frees the group struct and all associated resources
