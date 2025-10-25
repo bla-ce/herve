@@ -13,5 +13,7 @@ STDIN_FILENO  equ 0
 STDOUT_FILENO equ 1
 STDERR_FILENO equ 2
 
+BUFSIZ equ 1024
+
 %endif
 
