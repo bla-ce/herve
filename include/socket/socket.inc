@@ -40,35 +40,29 @@ section .text
 socket_init:
   sub   rsp, 0x10
 
-  cmp   rdi, 0
-  jle   .error
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> port the socket will be listening to
+  ; [rsp+0x8] -> file descriptor
 
   mov   qword [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
 
   mov   rdi, AF_INET
   mov   rsi, SOCK_STREAM
   mov   rdx, 0
   call  create_socket
-
   cmp   rax, 0
   jl    .error
 
   mov   qword [rsp+0x8], rax
 
-  ; set socket options
-  mov   rdi, qword [rsp+0x8]
-  mov   rsi, SOL_SOCKET
-  mov   rdx, SO_REUSEPORT
-  call  set_socket_option
-
-  cmp   rax, 0
-  jl    .error
-
+  ; set socket option to allow reusing the address
   mov   rdi, qword [rsp+0x8]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEADDR
   call  set_socket_option
-
   cmp   rax, 0
   jl    .error
 
@@ -76,7 +70,6 @@ socket_init:
   mov   rdi, qword [rsp+0x8]
   mov   rdx, AF_INET
   call  bind_socket
-
   cmp   rax, 0
   jl    .error
 
@@ -84,7 +77,6 @@ socket_init:
   mov   rdi, qword [rsp+0x8]
   mov   rsi, DEFAULT_BACKLOG
   call  listen_socket
-
   cmp   rax, 0
   jl    .error
 
