@@ -274,10 +274,71 @@ compare_route:
   add   rsp, 0x30
   ret
 
+; creates a list of routes from a model
+; @param  rdi: pointer to the server struct
+; @param  rsi: pointer to the model struct
+; @return rax: return code 
+add_model_routes:
+  sub   rsp, 0x18
+  sub   rsp, BUFSIZ
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to the model struct
+  ; [rsp+0x10]  -> pointer to the model name
+  ; [rsp+0x18]  -> group url
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; get the name of the model
+  mov   rdi, [rsp+0x8]
+  call  model_get_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; create group url
+  lea   rdi, [rsp+0x18]
+  mov   rax, SLASH
+  stosb
+
+  mov   rsi, [rsp+0x10]
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; create group
+  mov   rdi, [rsp]
+  lea   rsi, [rsp+0x18]
+  mov   rdx, FALSE
+  call  add_group
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, BUFSIZ
+  add   rsp, 0x18
+  ret
+
 ; create a route serving files located in a specified dir 
 ; @param  rdi: pointer to server struct
 ; @param  rsi: path
-; @return rax: code
+; @return rax: return code
 add_dir_route:
   sub   rsp, 0x20
   
