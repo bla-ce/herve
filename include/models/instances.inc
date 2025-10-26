@@ -3,7 +3,6 @@ section .bss
 instance_t:
   _instance_ht    resq 1  ; pointer to the hash table
   _instance_next  resq 1  ; pointer to the next instance
-  _instance_prev  resq 1  ; pointer to the prev instance
 instance_t_end:
 
 section .data
@@ -13,24 +12,35 @@ INSTANCE_T_LEN equ instance_t_end - instance_t
 ; offsets
 INSTANCE_OFF_HT   equ 0
 INSTANCE_OFF_NEXT equ INSTANCE_OFF_HT + 0x8
-INSTANCE_OFF_PREV equ INSTANCE_OFF_NEXT + 0x8
 
 section .text
 ; creates a new instance of the new model
 ; @param  rdi: pointer to the model struct
 ; @return rax: new instance of the model
 model_instance_create:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   ; *** STACK USAGE *** ;
-  ; [rsp]     -> pointer to the model struct
-  ; [rsp+0x8] -> pointer to the instance
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the instance struct
+  ; [rsp+0x10]  -> pointer to the hash table
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x10], 0
 
   cmp   rdi, 0
   jl    .error
+
+  ; malloc instance struct
+  mov   rdi, INSTANCE_T_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   qword [rax+INSTANCE_OFF_NEXT], 0
 
   ; get number of fields
   mov   rdi, [rsp]
@@ -44,7 +54,13 @@ model_instance_create:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  model_instance_set_ht
+  cmp   rax, 0
+  jl    .error
 
   ; set the id
   mov   rdi, [rsp]
@@ -61,12 +77,26 @@ model_instance_create:
   cmp   rax, 0
   jl    .error
 
+  ; add the instance to linked list
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  model_add_instance
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, [rsp+0x8]
 
   jmp   .return
 
 .error:
   mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .free_ht
+
+  call  free
+
+.free_ht:
+  mov   rdi, [rsp+0x10]
   test  rdi, rdi
   jz    .no_free
 
@@ -76,7 +106,7 @@ model_instance_create:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; sets a value of a field for the instance
@@ -118,7 +148,13 @@ model_instance_set:
   cmp   rax, TRUE
   jne   .error
 
+  ; get hash table
   mov   rdi, [rsp+0x8]
+  call  model_instance_get_ht
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x18]
   call  ht_insert
@@ -173,6 +209,11 @@ model_instance_get:
   jne   .error
 
   mov   rdi, [rsp+0x8]
+  call  model_instance_get_ht
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x18]
   call  ht_get
@@ -192,14 +233,72 @@ model_instance_get:
 ; @param  rdi: pointer to the instance
 ; @return rax: return code
 model_instance_free:
+  sub   rsp, 0x8
+
+  ; *** STACK FREE *** ;
+  ; [rsp]   -> pointer to the instance struct
+
+  mov   [rsp], rdi
+
   cmp   rdi, 0
   jl    .error
 
+  mov   rdi, [rsp]
+  call  model_instance_get_ht
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   call  ht_free
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the hash table of the instance
+; @param  rdi: pointer to the instance struct
+; @param  rsi: pointer to the hash table
+; @return rax: return code
+model_instance_set_ht:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+INSTANCE_OFF_HT], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the hash table of the instance
+; @param  rdi: pointer to the instance
+; @return rax: pointer to the hash table
+model_instance_get_ht:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+INSTANCE_OFF_HT]
 
   jmp   .return
 
