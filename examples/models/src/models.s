@@ -44,4 +44,3 @@ section .data
   person_model_name db "person", NULL_CHAR
 
   person_model dq 0
-

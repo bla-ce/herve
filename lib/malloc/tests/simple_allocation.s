@@ -34,4 +34,3 @@ _start:
 section .data
   p1    dq 0
   p2    dq 0
-

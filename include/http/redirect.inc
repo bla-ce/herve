@@ -67,4 +67,3 @@ redirect:
 .return:
   add   rsp, 0x18
   ret
-

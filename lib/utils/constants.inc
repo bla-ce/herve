@@ -16,4 +16,3 @@ STDERR_FILENO equ 2
 BUFSIZ equ 1024
 
 %endif
-

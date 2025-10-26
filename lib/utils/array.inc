@@ -326,4 +326,3 @@ array_get:
 .return:
   add   rsp, 0x10
   ret
-

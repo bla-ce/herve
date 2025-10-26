@@ -289,4 +289,3 @@ get_html_esc_char:
 ; returns a NEW allocated url encoded
 escape_url:
   ret
-

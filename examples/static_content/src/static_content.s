@@ -36,4 +36,3 @@ section .data
   server dq 0
 
   public_path db "public/", NULL_CHAR
-

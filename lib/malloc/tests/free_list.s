@@ -532,4 +532,3 @@ section .data
   p5    dq 0
   p6    dq 0
   p7    dq 0
-

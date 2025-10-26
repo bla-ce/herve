@@ -88,4 +88,3 @@ call    log_error           ; [ERROR] msg
 cmp     rax, 0
 jl      .error
 ```
-

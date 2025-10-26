@@ -38,4 +38,3 @@ unmap:
   syscall
 
   ret
-

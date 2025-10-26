@@ -4,4 +4,3 @@ section .text
 csrf_middleware:
   ; TODO
   ret
-

@@ -963,4 +963,3 @@ strcat:
 .return:
   add   rsp, 0x28
   ret
-

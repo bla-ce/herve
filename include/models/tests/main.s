@@ -90,4 +90,3 @@ section .data
 
   pass1 db "pass1", NULL_CHAR
   pass2 db "pass2", NULL_CHAR
-

@@ -792,4 +792,3 @@ logan_get_minimum_level:
 
 .return:
   ret
-

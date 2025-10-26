@@ -176,4 +176,3 @@ _start:
   mov		rax, SYS_EXIT
   mov		rdi, FAILURE_CODE
   syscall
-
