@@ -25,7 +25,6 @@ section .data
   align 8
   CONNECT db "CONNECT", NULL_CHAR
 
-
   METHOD_STRUCT_LEN equ method_struct_end - method_struct
 
   METHOD_OFF_STR    equ 0x0
