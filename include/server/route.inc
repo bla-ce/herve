@@ -1,10 +1,10 @@
 section .bss
 route_struct:
-  route_method    resq 1
-  route_url       resq 1
-  route_callback  resq 1
-  route_group     resq 1
-  route_next      resq 1
+  _route_method   resq 1
+  _route_url      resq 1
+  _route_callback resq 1
+  _route_group    resq 1
+  _route_next     resq 1
 route_struct_end:
 
 section .data
@@ -17,6 +17,9 @@ section .data
   ROUTE_OFF_NEXT      equ ROUTE_OFF_GROUP + 0x8
 
   log_pre_routes  db SPACE, SPACE, NULL_CHAR
+
+  model_route_root  db "/", NULL_CHAR
+  model_route_id    db "/<id>", NULL_CHAR
 
 section .text
 ; logs the route "METHOD  URL"
@@ -279,14 +282,15 @@ compare_route:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code 
 add_model_routes:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
   sub   rsp, BUFSIZ
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the model name
-  ; [rsp+0x18]  -> group url
+  ; [rsp+0x18]  -> pointer to the model group
+  ; [rsp+0x20]  -> group url
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -306,7 +310,7 @@ add_model_routes:
   mov   [rsp+0x10], rax
 
   ; create group url
-  lea   rdi, [rsp+0x18]
+  lea   rdi, [rsp+0x20]
   mov   rax, SLASH
   stosb
 
@@ -317,9 +321,62 @@ add_model_routes:
 
   ; create group
   mov   rdi, [rsp]
-  lea   rsi, [rsp+0x18]
+  lea   rsi, [rsp+0x20]
   mov   rdx, FALSE
   call  add_group
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; create routes
+  ; GET -> model_read_many
+  mov   rdi, [rsp]
+  mov   rsi, GET
+  mov   rdx, model_route_root
+  mov   rcx, model_read_many
+  mov   r8, [rsp+0x18]
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  ; GET -> model_read_single
+  mov   rdi, [rsp]
+  mov   rsi, GET
+  mov   rdx, model_route_id
+  mov   rcx, model_read_single
+  mov   r8, [rsp+0x18]
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  ; POST -> model_post
+  mov   rdi, [rsp]
+  mov   rsi, POST
+  mov   rdx, model_route_root
+  mov   rcx, model_post
+  mov   r8, [rsp+0x18]
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  ; PUT -> model_update
+  mov   rdi, [rsp]
+  mov   rsi, PUT
+  mov   rdx, model_route_id
+  mov   rcx, model_update
+  mov   r8, [rsp+0x18]
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  ; DELETE -> model_update
+  mov   rdi, [rsp]
+  mov   rsi, DELETE
+  mov   rdx, model_route_id
+  mov   rcx, model_delete
+  mov   r8, [rsp+0x18]
+  call  add_route
   cmp   rax, 0
   jl    .error
 
@@ -332,7 +389,7 @@ add_model_routes:
 
 .return:
   add   rsp, BUFSIZ
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; create a route serving files located in a specified dir 
@@ -484,30 +541,28 @@ route_exist:
   ; check if the url is the same
   mov   rdi, [rsp+0x18]
   call  get_route_url
-
   cmp   rax, 0
   jl    .error
 
   mov   rsi, rax
   mov   rdi, [rsp+0x10]  
   call  strcmp
-
   cmp   rax, 0
   jl    .error
   je    .not_equal
 
   mov   rdi, [rsp+0x18]
   call  get_route_method
-
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [rsp+0x10]
   mov   rsi, rax
-  mov   rdi, [rsp+0x10]  
   call  strcmp  
-
   cmp   rax, 0
   jl    .error
+
+  cmp   rax, TRUE
   je    .equal
 
   ; go to next

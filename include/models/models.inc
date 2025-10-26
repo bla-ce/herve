@@ -417,3 +417,18 @@ model_field_exist:
   add   rsp, 0x18
   ret
 
+model_read_many:
+  ret
+
+model_read_single:
+  ret
+
+model_update:
+  ret
+
+model_post:
+  ret
+
+model_delete:
+  ret
+

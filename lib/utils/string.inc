@@ -883,7 +883,7 @@ ascii_to_int:
   ret
 
 ; concatenates two strings
-; the user is responsibl of freeing the string
+; the user is responsible of freeing the string
 ; @param  rdi: pointer to the string1
 ; @param  rsi: pointer to the string2
 ; @return rax: pointer to the string concatenated
