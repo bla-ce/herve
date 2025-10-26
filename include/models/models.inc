@@ -1,10 +1,12 @@
 section .bss
 
 model_t:
-  _model_name     resq 1  ; pointer to the name of the field
-  _model_fields   resq 1  ; linked list of field struct
-  _model_curr_idx resq 1  ; next index for the next instance
-  _model_n_fields resq 1  ; number of fields
+  _model_name       resq 1  ; pointer to the name of the field
+  _model_fields     resq 1  ; linked list of field struct
+  _model_curr_idx   resq 1  ; next index for the next instance
+  _model_n_fields   resq 1  ; number of fields
+  _model_instances  resq 1  ; linked list of instances
+                            ; models are saved in memory for now
 model_t_end:
 
 section .data
@@ -18,6 +20,7 @@ MODEL_OFF_NAME      equ 0
 MODEL_OFF_FIELDS    equ MODEL_OFF_NAME + 0x8
 MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS
 MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
+MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
 section .text
 ; returns the number of fields the model has
