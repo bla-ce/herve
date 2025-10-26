@@ -1,7 +1,7 @@
 section .bss
 response_struct:
   res_str             resq 1
-  res_client          resq 1    
+  res_client          resq 1
   res_len             resq 1
   res_proto           resq 1
   res_headers         resq 1
@@ -31,7 +31,7 @@ section .data
 
   EMPTY_CONTENT db "0", NULL_CHAR
 
-  ; delimiters 
+  ; delimiters
   space_delim       db " ", NULL_CHAR
   CRLF_delim        db CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
   DOUBLE_CRLF_delim db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
@@ -95,7 +95,7 @@ free_response:
 
 .return:
   add   rsp, 0x8
-  ret 
+  ret
 
 ; sets the length of the body of the response
 ; @param  rdi: pointer to response struct
@@ -215,14 +215,14 @@ set_response_content_len_str:
   ret
 
 ; TODO: read ctx protocol, return HTTP/1.1 for now
-; returns the response protocol 
+; returns the response protocol
 ; @param  rdi: pointer to response
 ; @param  rax: pointer to response headers
 get_response_protocol:
   lea   rax, [HTTP_1_1]
   ret
 
-; returns the response headers 
+; returns the response headers
 ; @param  rdi: pointer to response
 ; @param  rax: pointer to response headers
 get_response_headers:
@@ -238,7 +238,7 @@ get_response_headers:
 .return:
   ret
 
-; returns the response status code 
+; returns the response status code
 ; @param  rdi: pointer to response
 ; @param  rax: pointer to response status code
 get_response_status_code:
@@ -447,7 +447,7 @@ stringify_response:
   call  get_response_status_code
   cmp   rax, 0
   jl    .error
-   
+
   ; get string status code
   mov   rdi, rax
   call  get_status_string
@@ -473,7 +473,7 @@ stringify_response:
   ; get headers
   mov   rdi, [rsp]
   call  get_response_headers
-  
+
   cmp   rax, 0
   jl    .error
 
@@ -677,7 +677,7 @@ send_JSON:
   jl    .error
 
   mov   [rsp+0x28], rax
-  
+
   ; set content type headers
   mov   rdi, [rsp+0x28]
   mov   rsi, CONTENT_TYPE_HEADER
@@ -685,8 +685,8 @@ send_JSON:
   call  set_header
   cmp   rax, 0
   jl    .error
- 
-  ; get json length   
+
+  ; get json length
   mov   rdi, [rsp+0x10]
   call  strlen
   cmp   rax, 0
@@ -812,7 +812,7 @@ send_HTML:
   jl    .error
 
   mov   [rsp+0x28], rax
-  
+
   ; set content type headers
   mov   rdi, [rsp+0x28]
   mov   rsi, CONTENT_TYPE_HEADER
@@ -820,8 +820,8 @@ send_HTML:
   call  set_header
   cmp   rax, 0
   jl    .error
- 
-  ; get string length   
+
+  ; get string length
   mov   rdi, [rsp+0x10]
   call  strlen
   cmp   rax, 0
@@ -871,7 +871,7 @@ send_HTML:
   call  send_response
   cmp   rax, 0
   jl    .error
-  
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -945,7 +945,7 @@ send_string:
   jl    .error
 
   mov   [rsp+0x28], rax
-  
+
   ; set content type headers
   mov   rdi, [rsp+0x28]
   lea   rsi, [CONTENT_TYPE_HEADER]
@@ -953,8 +953,8 @@ send_string:
   call  set_header
   cmp   rax, 0
   jl    .error
- 
-  ; get string length   
+
+  ; get string length
   mov   rdi, [rsp+0x10]
   call  strlen
   cmp   rax, 0
@@ -1004,7 +1004,7 @@ send_string:
   call  send_response
   cmp   rax, 0
   jl    .error
-  
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -1061,7 +1061,7 @@ send_response:
   call  get_ctx_response
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x10], rax
 
   ; set connection header
@@ -1132,7 +1132,7 @@ send_response:
 
   mov   rdi, rax
   call  boeuf_free
-  
+
 .no_free:
   mov   rax, FAILURE_CODE
 
@@ -1142,7 +1142,7 @@ send_response:
   mov   qword [rdi+CTX_OFF_DONE], 1
 
   add   rsp, 0x30
-  ret  
+  ret
 
 ; TODO: make sure we have permissions
 ; serves a static file
@@ -1207,7 +1207,7 @@ send_static_file:
 
   cmp   rax, 0
   jl    .error
- 
+
   ; open file
   mov   rdi, [rsp+0x8]
   mov   rsi, O_RDONLY
@@ -1301,7 +1301,7 @@ send_static_file:
   call  ctx_abort
 
   jmp   .error
-  
+
 .error_read:
   ; load 500
   mov   rdi, [rsp]
@@ -1336,7 +1336,7 @@ serve_dir:
   ; get context request
   mov   rdi, [rsp]
   call  get_ctx_request
-  
+
   cmp   rax, 0
   jl    .error
 
@@ -1365,7 +1365,7 @@ serve_dir:
   je    .is_aborted
 
   ; send 500
-  mov   rdi, [rsp] 
+  mov   rdi, [rsp]
   mov   rsi, INTERNAL_SERVER_ERROR
   call  send_no_content
 

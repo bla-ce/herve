@@ -205,7 +205,7 @@ model_instance_free:
 
 .error:
   mov   rax, FAILURE_CODE
-   
+
 .return:
   ret
 

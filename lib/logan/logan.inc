@@ -57,7 +57,7 @@ section .text
 logan_init:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** 
+  ; *** STACK USAGE ***
   ; [rsp]   -> pointer to the logan struct
 
   mov   qword [rsp], 0
@@ -70,7 +70,7 @@ logan_init:
 
   mov   rdi, rax
   mov   qword [rdi+LOGAN_OFF_OUT], STDOUT_FILENO
-  mov   qword [rdi+LOGAN_OFF_LVL], LOGAN_TRACE  
+  mov   qword [rdi+LOGAN_OFF_LVL], LOGAN_TRACE
   mov   qword [rdi+LOGAN_OFF_FMT], 0  ; disable everything
 
   ; enable colors
@@ -89,7 +89,7 @@ logan_init:
   jz    .no_free
 
   call  free
-  
+
 .no_free:
   mov   rax, FAILURE_CODE
 
@@ -101,9 +101,9 @@ logan_init:
 ; @param  rdi: pointer to the logan struct
 ; @return rax: return code
 logan_free:
-  sub   rsp, 0x8 
+  sub   rsp, 0x8
 
-  ; *** STACK USAGE *** 
+  ; *** STACK USAGE ***
   ; [rsp]   -> pointer to the logan struct
 
   mov   [rsp], rdi
@@ -230,7 +230,7 @@ log_fatal:
 
   ret
 
-; prints the error message with a new line and exits the 
+; prints the error message with a new line and exits the
 ; programme with -1
 ; @param  rdi: pointer to the logan struct
 ; @param  rsi: pointer to the string
@@ -437,7 +437,7 @@ _log:
   jl    .error
 
   cmp   [rsp+0x10], rax
-  jl    .return    
+  jl    .return
 
   ; check if prefixes are enabled
   mov   rdi, [rsp]
@@ -513,7 +513,7 @@ _log:
   cmp   rax, 0
   jle   .log_message
 
-  lea   rdi, [rsp+0x40] 
+  lea   rdi, [rsp+0x40]
   call  strlen
   cmp   rax, 0
   jle   .log_message
@@ -571,7 +571,7 @@ _log:
   je    .exit
 
   jmp   .return
-  
+
 .error:
   cmp   qword [rsp+0x10], LOGAN_FATAL
   je    .exit
@@ -601,7 +601,7 @@ _logln:
   ret
 
 ; enables prefixes when logging with Logan
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @return rax: return code
 logan_enable_prefixes:
   cmp   rdi, 0
@@ -611,7 +611,7 @@ logan_enable_prefixes:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -619,12 +619,12 @@ logan_enable_prefixes:
   ret
 
 ; disables prefixes when logging with Logan
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @return rax: return code
 logan_disable_prefixes:
   cmp   rdi, 0
   jle   .error
-  
+
   or    byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_PREFIXES
   xor   byte [rdi+LOGAN_OFF_FMT], LOGAN_FMT_PREFIXES
 
@@ -638,7 +638,7 @@ logan_disable_prefixes:
   ret
 
 ; enables colors when logging with Logan
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @return rax: return code
 logan_enable_colors:
   cmp   rdi, 0
@@ -648,7 +648,7 @@ logan_enable_colors:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -657,7 +657,7 @@ logan_enable_colors:
 
 
 ; disables colors when logging with Logan
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @return rax: return code
 logan_disable_colors:
   cmp   rdi, 0
@@ -668,16 +668,16 @@ logan_disable_colors:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
   ret
 
-; enables logging timestamp 
+; enables logging timestamp
 ; timestamp are logged in UTC
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @return rax: return code
 logan_enable_timestamp:
   cmp   rdi, 0
@@ -688,15 +688,15 @@ logan_enable_timestamp:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
   ret
 
-; disables logging timestamp 
-; @param  rdi: pointer to logan struct 
+; disables logging timestamp
+; @param  rdi: pointer to logan struct
 ; @return rax: return code
 logan_disable_timestamp:
   cmp   rdi, 0
@@ -706,7 +706,7 @@ logan_disable_timestamp:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -714,7 +714,7 @@ logan_disable_timestamp:
   ret
 
 ; sets the output of the logs
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @param  rsi: file descriptor
 ; @return rax: return code
 logan_set_output:
@@ -729,7 +729,7 @@ logan_set_output:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -737,7 +737,7 @@ logan_set_output:
   ret
 
 ; returns the output file descriptor of the logs
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @return rax: file descriptor
 logan_get_output:
   cmp   rdi, 0
@@ -746,7 +746,7 @@ logan_get_output:
   mov   rax, [rdi+LOGAN_OFF_OUT]
 
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -755,7 +755,7 @@ logan_get_output:
 
 
 ; sets the minimum level of the logs
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @param  rsi: minimum level (included)
 ; @return rax: return code
 logan_set_minimum_level:
@@ -769,7 +769,7 @@ logan_set_minimum_level:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -777,7 +777,7 @@ logan_set_minimum_level:
   ret
 
 ; returns the minimum level of the logs
-; @param  rdi: pointer to logan struct 
+; @param  rdi: pointer to logan struct
 ; @return rax: minimum level
 logan_get_minimum_level:
   cmp   rdi, 0
@@ -786,7 +786,7 @@ logan_get_minimum_level:
   mov   rax, [rdi+LOGAN_OFF_LVL]
 
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 

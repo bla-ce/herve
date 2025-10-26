@@ -1,9 +1,9 @@
 section .data
 
-char_to_esc db DOUBLE_QUOTES, 
-            db SINGLE_QUOTE, 
-            db AMPERSAND, 
-            db LESS_THAN, 
+char_to_esc db DOUBLE_QUOTES,
+            db SINGLE_QUOTE,
+            db AMPERSAND,
+            db LESS_THAN,
             db GREATER_THAN
 
 double_quote_esc  db "&quot;", NULL_CHAR
@@ -38,7 +38,7 @@ escape_html:
   jle   .error
 
 .loop:
-  mov   rsi, [rsp] 
+  mov   rsi, [rsp]
   mov   rax, qword [rsp+0x18]
 
   xor   rdi, rdi

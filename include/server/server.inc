@@ -61,7 +61,7 @@ server_get_root_group:
   ; load first group
   mov   rsi, [rdi]
   mov   rdi, rsi
-  
+
 .loop:
   ; rsi points to the address of current group
   cmp   qword [rsi+GRP_STRUCT_OFF_IS_ROOT], TRUE
@@ -71,7 +71,7 @@ server_get_root_group:
   add   rdi, GRP_STRUCT_OFF_NEXT
   cmp   qword [rdi], 0
   je    .error
- 
+
   ; rdi contains the address of the group
   mov   rsi, [rdi]
   mov   rdi, rsi
@@ -98,7 +98,7 @@ server_enable_logger:
 
   ; *** STACK USAGE *** ;
   ; [rsp] -> pointer to the server struct
-  
+
   mov   [rsp], rdi
 
   cmp   rdi, 0
@@ -162,7 +162,7 @@ log_server_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax 
+  mov   [rsp+0x8], rax
 
   test  rax, rax
   jz    .loop_end
@@ -182,7 +182,7 @@ log_server_init:
 
   jmp   .loop
 .loop_end:
-  
+
   mov   rdi, LINE_FEED
   call  print_char
   cmp   rax, 0
@@ -225,7 +225,7 @@ log_server_init:
   ret
 
 ; returns the socket fd associated to the server
-; @param  rdi: pointer to server struct 
+; @param  rdi: pointer to server struct
 ; @return rax: socket fd
 server_get_sockfd:
   cmp   rdi, 0
@@ -241,7 +241,7 @@ server_get_sockfd:
   ret
 
 ; sets the logger associated to the server
-; @param  rdi: pointer to server struct 
+; @param  rdi: pointer to server struct
 ; @param  rsi: pointer to the logger struct
 ; @return rax: return code
 server_set_logger:
@@ -263,7 +263,7 @@ server_set_logger:
   ret
 
 ; returns the logger associated to the server
-; @param  rdi: pointer to server struct 
+; @param  rdi: pointer to server struct
 ; @return rax: pointer to the logger struct
 server_get_logger:
   cmp   rdi, 0
@@ -279,7 +279,7 @@ server_get_logger:
   ret
 
 ; sets the socket fd associated to the server
-; @param  rdi: pointer to server struct 
+; @param  rdi: pointer to server struct
 ; @param  rsi: sockfd
 ; @return rax: return code
 server_set_sockfd:
@@ -301,7 +301,7 @@ server_set_sockfd:
   ret
 
 ; returns the port associated to the server
-; @param  rdi: pointer to server struct 
+; @param  rdi: pointer to server struct
 ; @return rax: port
 server_get_port:
   cmp   rdi, 0
@@ -317,7 +317,7 @@ server_get_port:
   ret
 
 ; sets the port the server will be listening to
-; @param  rdi: pointer to server struct 
+; @param  rdi: pointer to server struct
 ; @param  rsi: port
 ; @return rax: return code
 server_set_port:
@@ -346,7 +346,7 @@ server_set_port:
   ret
 
 ; returns the first group struct associated to the server
-; @param  rdi: pointer to server struct 
+; @param  rdi: pointer to server struct
 ; @return rax: pointer to the first group struct
 server_get_groups:
   cmp   rdi, 0
@@ -362,7 +362,7 @@ server_get_groups:
   ret
 
 ; returns the first route struct associated to the server
-; @param  rdi: pointer to server struct 
+; @param  rdi: pointer to server struct
 ; @return rax: pointer to the first route struct
 get_server_routes:
   cmp   rdi, 0
@@ -416,7 +416,7 @@ server_init:
   cmp   rax, 0
   jl    .error
 
-  ; create root group 
+  ; create root group
   mov   rdi, [rsp]
   mov   rsi, ROOT_GRP_PREFIX
   mov   rdx, TRUE
@@ -433,7 +433,7 @@ server_init:
   mov   rdi, [rsp]
   test  rdi, rdi
   jz    .no_free
-  
+
   call  free
 
 .no_free:
@@ -451,8 +451,8 @@ server_run:
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
-  ; [rsp+0x8]   -> pointer to main FD_SET 
-  ; [rsp+0x10]  -> pointer to read FD_SET 
+  ; [rsp+0x8]   -> pointer to main FD_SET
+  ; [rsp+0x10]  -> pointer to read FD_SET
   ; [rsp+0x18]  -> current file descriptor
   ; [rsp+0x20]  -> number of active connections
   ; [rsp+0x28]  -> pointer to the client struct
@@ -481,7 +481,7 @@ server_run:
   mov   rsi, rax
   call  server_set_sockfd
   cmp   rax, 0
-  jl    .error  
+  jl    .error
 
   ; malloc main set of file descriptors
   mov   rdi, FD_SET_STRUCT_LEN
@@ -538,7 +538,7 @@ server_run:
 
   mov   qword [rsp+0x18], -1 ; it is incremented at the beginning of the inner loop
 
-.inner_loop: 
+.inner_loop:
   inc   qword [rsp+0x18]
 
   ; TODO: what the value of MAX CONNECT should be?

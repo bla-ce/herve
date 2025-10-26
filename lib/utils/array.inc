@@ -27,8 +27,8 @@ array_create:
   sub   rsp, 0x20
 
   ; *** STACK USAGE *** ;
-  ; [rsp]       -> number of elements 
-  ; [rsp+0x8]   -> size of elements 
+  ; [rsp]       -> number of elements
+  ; [rsp+0x8]   -> size of elements
   ; [rsp+0x10]  -> pointer to the array
   ; [rsp+0x18]  -> pointer to the elements
 
@@ -150,7 +150,7 @@ array_push:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x20], 0
-  
+
   cmp   rdi, 0
   jle   .error
 
@@ -188,7 +188,7 @@ array_push:
   xor   rdx, rdx
   mov   rbx, [rdi+ARRAY_OFF_EL_SIZE]
   mov   rax, [rsp+0x10] ; old size of the array
-  mul   rbx 
+  mul   rbx
 
   mov   rcx, rax
 
@@ -266,7 +266,7 @@ array_pop:
   dec   rbx
   mul   rbx
 
-  mov   rsi, [rdi+ARRAY_OFF_EL] 
+  mov   rsi, [rdi+ARRAY_OFF_EL]
   add   rsi, rax
 
   xor   rax, rax

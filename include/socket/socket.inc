@@ -24,7 +24,7 @@ section .data
   BYTE_MAX    equ 255
 
   SOCKADDR_STRUCT_LEN equ sockaddr_struct_end - sockaddr_struct
-  
+
   addrlen dq sockaddr_addrlen - sockaddr_sin_family
 
   SOCKADDR_OFF_SIN_FAMILY  equ 0x0
@@ -91,7 +91,7 @@ socket_init:
   add   rsp, 0x10
   ret
 
-  
+
 ; creates socket
 ; @param  rdi: family
 ; @param  rsi: type
@@ -153,7 +153,7 @@ bind_socket:
   mov   qword [rdi+SOCKADDR_OFF_SA_ZERO], 0
 
   mov   rax, SYS_BIND
-  mov   rsi, rdi 
+  mov   rsi, rdi
   mov   rdi, qword [rsp]
   mov   rdx, qword [addrlen]
   syscall
@@ -219,7 +219,7 @@ accept_connection:
 
   ; get server from context
   mov   rdi, [rsp]
-  call  server_get_sockfd 
+  call  server_get_sockfd
 
   cmp   rax, 0
   jl    .error
@@ -310,7 +310,7 @@ inet_addr:
 .check_dot:
   mov   rsi, DOT
   jmp   .get_next_char
-  
+
 .check_null:
   mov   rsi, NULL_CHAR
 
@@ -335,7 +335,7 @@ inet_addr:
   call  stoi
   cmp   rax, 0
   jl    .error
-  
+
   cmp   rax, BYTE_MAX
   je    .error
 
@@ -349,7 +349,7 @@ inet_addr:
   xor   rax, rax
   mov   eax, dword [rsp+0x10]
 
-  jmp   .return 
+  jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
@@ -383,13 +383,13 @@ connect_fd:
   ret
 
 
-; wait until a file descriptor from the set is ready for I/O 
+; wait until a file descriptor from the set is ready for I/O
 ; @param  rdi: max number of fd
 ; @param  rsi: set of file descriptors to be read
 ; @return rax: return code
 ; @return rax: return code
 read_select:
-  mov   rax, SYS_SELECT 
+  mov   rax, SYS_SELECT
   mov   rdi, MAX_CONNECT
   inc   rdi
   ; rsi is already populated

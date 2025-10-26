@@ -21,7 +21,7 @@ section .data
   CHUNK_OFFSET_MAGIC  equ 0
   CHUNK_OFFSET_SIZE   equ CHUNK_OFFSET_MAGIC + 0x8
   CHUNK_OFFSET_INUSE  equ CHUNK_OFFSET_SIZE + 0x8
-  CHUNK_OFFSET_NEXT   equ CHUNK_OFFSET_INUSE + 0x8 
+  CHUNK_OFFSET_NEXT   equ CHUNK_OFFSET_INUSE + 0x8
   CHUNK_OFFSET_PREV   equ CHUNK_OFFSET_NEXT + 0x8
   CHUNK_OFFSET_DATA   equ CHUNK_OFFSET_PREV + 0x8
 
@@ -29,7 +29,7 @@ section .data
   ; corrupted
   MAGIC_VAL_HEAP_CORRUPT        equ 0xC0FFEE
 
-  ; min size is 8 bytes which gives a result of 3 with 'bsr' 
+  ; min size is 8 bytes which gives a result of 3 with 'bsr'
   ; instruction.
   FIRST_BIN_BSR_INDEX equ 0x3
   N_BINS              equ 0xC
@@ -72,7 +72,7 @@ can_split:
 
   cmp   rbx, rsi
   setg  al
-  movzx rax, al  
+  movzx rax, al
 
   ret
 
@@ -92,7 +92,7 @@ _split:
 
   ; remove chunk from free list
   call  remove_from_free_list
-  
+
 .new_chunk:
   ; save size onto the stack
   mov   rdi, [rsp]
@@ -134,7 +134,7 @@ request_from_os:
   call  _align
 
   add   qword [mmapd], rax
-  
+
   mov   rdi, rax
   call  mmap
 
@@ -174,7 +174,7 @@ search_chunk:
   ; get bin of data size
   mov   rdi, rax
   call  get_bin
-  
+
 .loop:
   mov   rdi, [seg_free_list+0x8*rax]
   cmp   rdi, 0
@@ -227,7 +227,7 @@ search_chunk:
 
   mov   rdi, [rsp+0x8]
   mov   qword [rdi+CHUNK_OFFSET_INUSE], 1
-  
+
   ; return chunk
   mov   rax, rdi
   jmp   .return
@@ -252,7 +252,7 @@ malloc:
   ; make sure the size if greater than 0
   cmp   rdi, 0
   je    .null
-  jl    .error 
+  jl    .error
 
   ; add chunk_size to the size
   add   rdi, CHUNK_METADATA_LEN
@@ -293,7 +293,7 @@ malloc:
 
   ; if request from os, size needs to be page aligned
   mov   rsi, PAGE_SIZE
-  call  _align 
+  call  _align
 
   mov   rsi, [rsp+0x8]
 

@@ -1,4 +1,4 @@
-section .data 
+section .data
   logger_delim db " | ", NULL_CHAR
 
   ; offsets
@@ -49,7 +49,7 @@ log_ctx:
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the logan struct
-  ; [rsp+0x10]  -> flags 
+  ; [rsp+0x10]  -> flags
   ; [rsp+0x18]  -> pointer to the boeuf buffer
 
   mov   [rsp], rdi
@@ -84,7 +84,7 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  ; get ip 
+  ; get ip
   mov   rdi, rax
   call  get_client_ip
   cmp   rax, 0
@@ -133,7 +133,7 @@ log_ctx:
   call  boeuf_append
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x18], rax
 
   mov   rdi, [rsp+0x18]
@@ -165,7 +165,7 @@ log_ctx:
   call  boeuf_append
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x18], rax
 
   mov   rdi, [rsp+0x18]
@@ -197,7 +197,7 @@ log_ctx:
   call  boeuf_append
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x18], rax
 
 .skip_url:

@@ -59,7 +59,7 @@ coalesce:
 get_bin:
   bsr   rax, rdi
   sub   rax, FIRST_BIN_BSR_INDEX
-  
+
   mov   rbx, N_BINS-1
 
   cmp   rax, rbx
@@ -76,16 +76,16 @@ get_bin:
 ; @return rax: void
 remove_from_free_list:
   sub   rsp, 0x8
-  
+
   mov   [rsp], rdi
-  
+
   ; get bin of data size
   mov   rdi, qword [rdi+CHUNK_OFFSET_SIZE]
   sub   rdi, CHUNK_METADATA_LEN
   call  get_bin
 
   mov   rdi, qword [seg_free_list+0x8*rax]
-  
+
   ; find chunk from free list
 .loop:
   cmp   rdi, [rsp]
@@ -164,28 +164,28 @@ add_to_free_list:
   mov   rdi, qword [rdi+CHUNK_OFFSET_SIZE]
   sub   rdi, CHUNK_METADATA_LEN
   call  get_bin
-  
+
   ; save bin index
   mov   qword [rsp+0x8], rax
-  
+
   lea   rsi, [seg_free_list+0x8*rax]
   cmp   qword [rsi], 0
   je    .init_free_list
-  
+
   mov   rdi, [rsp]
   mov   rbx, [rsi]
-  
+
   mov   qword [rdi+CHUNK_OFFSET_NEXT], rbx
   mov   qword [rbx+CHUNK_OFFSET_PREV], rdi
-  
+
   ; update free_list top - LIFO
-  mov   rax, qword [rsp+0x8] 
+  mov   rax, qword [rsp+0x8]
   mov   [seg_free_list+0x8*rax], rdi
 
   xor   rax, rax
-  
+
   jmp   .return
-  
+
 .init_free_list:
   mov   rdi, [rsp]
   mov   [seg_free_list+0x8*rax], rdi
@@ -208,7 +208,7 @@ free:
 
   cmp   rdi, 0
   jl    .error
-  
+
   ; go to the beginning of the struct
   call  get_chunk_header
   cmp   rax, 0

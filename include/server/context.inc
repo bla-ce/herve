@@ -28,7 +28,7 @@ section .data
 
 section .text
 ; initializes and processes a new request context
-; @param  rdi: pointer to the server  
+; @param  rdi: pointer to the server
 ; @param  rsi: pointer to client struct
 ; @return rax: return code
 handle_ctx:
@@ -50,7 +50,7 @@ handle_ctx:
   cmp   rsi, 0
   jle   .error
 
-  mov   rdi, [rsp] 
+  mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   call  ctx_init
   cmp   rax, 0
@@ -60,13 +60,13 @@ handle_ctx:
 
   call  get_curr_ns
   cmp   rax, 0
-  jl   .post_request_middlewares 
+  jl   .post_request_middlewares
 
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  set_ctx_start_time
   cmp   rax, 0
-  jl   .post_request_middlewares 
+  jl   .post_request_middlewares
 
   mov   rdi,  [rsp+0x10]
   call  handle_request
@@ -151,7 +151,7 @@ handle_ctx:
   ; set end timer
   call  get_curr_ns
   cmp   rax, 0
-  jl   .free_ctx 
+  jl   .free_ctx
 
   ; if yes, compute the difference
   mov   rdi, [rsp+0x10]
@@ -184,7 +184,7 @@ handle_ctx:
 .free_ctx:
   mov   rdi, [rsp+0x10]
   call  free_ctx
-  
+
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -326,7 +326,7 @@ ctx_init:
 
   cmp   rax, 0
   jl    .error
-   
+
   ; set client fd
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]

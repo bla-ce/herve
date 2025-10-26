@@ -27,7 +27,7 @@ _start:
 
   mov   [target2_array], rax
 
-  ; create first proxy target struct 
+  ; create first proxy target struct
   mov   rdi, target1_port
   mov   rsi, target1_id
   mov   rdx, target1_weight
@@ -37,7 +37,7 @@ _start:
 
   mov   [target1], rax
 
-  ; create second proxy target struct 
+  ; create second proxy target struct
   mov   rdi, target2_port
   mov   rsi, target2_id
   call  proxy_target_create
@@ -157,7 +157,7 @@ _start:
   call  server_enable_logger
   cmp   rax, 0
   jl    .error
-    
+
   mov   rdi, [proxy]
   call  server_run
 

@@ -27,7 +27,7 @@ json_create:
   ; *** STACK USAGE *** ;
   ; [rsp] -> pointer to the json object
 
-  mov   rdi, JSON_BEGIN 
+  mov   rdi, JSON_BEGIN
   call  boeuf_create
   cmp   rax, 0
   jl    .error
@@ -156,7 +156,7 @@ json_insert_integer:
 
   mov   [rsp], rax
 
-  mov   rdi, [rsp+0x10] 
+  mov   rdi, [rsp+0x10]
   lea   rsi, [rsp+0x18]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
   call  to_string
@@ -213,7 +213,7 @@ json_insert_object:
 
   mov   [rsp], rax
 
-  ; insert json object 
+  ; insert json object
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
   call  boeuf_append
@@ -514,7 +514,7 @@ json_array_create:
   ; *** STACK USAGE *** ;
   ; [rsp] -> pointer to the json object
 
-  mov   rdi, JSON_ARRAY_BEGIN 
+  mov   rdi, JSON_ARRAY_BEGIN
   call  boeuf_create
   cmp   rax, 0
   jl    .error
@@ -704,7 +704,7 @@ json_array_insert_object:
   cmp   rsi, 0
   jle   .error
 
-  ; insert json object 
+  ; insert json object
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   call  boeuf_append
@@ -910,7 +910,7 @@ json_insert_array:
 
   mov   [rsp], rax
 
-  ; insert json array 
+  ; insert json array
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
   call  boeuf_append
@@ -932,7 +932,7 @@ json_insert_array:
 ; @return rax: pointer to the json array
 json_array_end:
   sub   rsp, 0x8
-  
+
   ; *** STACK USAGE *** ;
   ; [rsp]   -> pointer to the json array
 
@@ -960,7 +960,7 @@ json_array_end:
   call  boeuf_append
   cmp   rax, 0
   jl    .error
-  
+
   jmp   .return
 
 .replace:

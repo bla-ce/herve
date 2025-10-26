@@ -168,7 +168,7 @@ compare_route:
 
   ; compare methods
   mov   rsi, [rsp]
-  mov   rdi, [rsi+REQ_OFF_METHOD] 
+  mov   rdi, [rsi+REQ_OFF_METHOD]
   mov   rdx, [rsp+0x8]
   mov   rsi, [rdx+ROUTE_OFF_METHOD]
   call  strcmp
@@ -179,7 +179,7 @@ compare_route:
 
   ; compare urls
   mov   rsi, [rsp]
-  mov   rdi, [rsi+REQ_OFF_URL] 
+  mov   rdi, [rsi+REQ_OFF_URL]
 
   ; save url
   mov   [rsp+0x10], rdi
@@ -268,7 +268,7 @@ compare_route:
   mov   rdi, [rsp+0x20]
   test  rdi, rdi
   jz    .no_free
-  
+
   call  free
 
 .no_free:
@@ -280,7 +280,7 @@ compare_route:
 ; creates a list of routes from a model
 ; @param  rdi: pointer to the server struct
 ; @param  rsi: pointer to the model struct
-; @return rax: return code 
+; @return rax: return code
 add_model_routes:
   sub   rsp, 0x20
   sub   rsp, BUFSIZ
@@ -392,13 +392,13 @@ add_model_routes:
   add   rsp, 0x20
   ret
 
-; create a route serving files located in a specified dir 
+; create a route serving files located in a specified dir
 ; @param  rdi: pointer to server struct
 ; @param  rsi: path
 ; @return rax: return code
 add_dir_route:
   sub   rsp, 0x20
-  
+
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the dir path
@@ -413,7 +413,7 @@ add_dir_route:
 
   cmp   rsi, 0
   jle   .error
-  
+
   ; check if dir path ends with '/', if yes, trim it
   mov   rdi, [rsp+0x8]
   call  strlen
@@ -464,7 +464,7 @@ add_dir_route:
   ; load null char
   mov   rax, NULL_CHAR
   stosb
-  
+
   ; create wildcard route
   mov   rdi, [rsp]
   lea   rsi, [GET]
@@ -545,7 +545,7 @@ route_exist:
   jl    .error
 
   mov   rsi, rax
-  mov   rdi, [rsp+0x10]  
+  mov   rdi, [rsp+0x10]
   call  strcmp
   cmp   rax, 0
   jl    .error
@@ -558,7 +558,7 @@ route_exist:
 
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
-  call  strcmp  
+  call  strcmp
   cmp   rax, 0
   jl    .error
 
@@ -584,7 +584,7 @@ route_exist:
 .equal:
   mov   rax, TRUE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -641,12 +641,12 @@ add_route:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax 
+  mov   rdi, rax
   mov   rsi, [rsp+0x10]
   call  strcat
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x40], rax
   mov   [rsp+0x10], rax
 
@@ -657,7 +657,7 @@ add_route:
   mov   rdx, [rsp+0x10]
   call  route_exist
   cmp   rax, 0
-  jl    .error 
+  jl    .error
 
   cmp   rax, TRUE
   je    .error
@@ -674,7 +674,7 @@ add_route:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x28], rax 
+  mov   [rsp+0x28], rax
 
   ; add method to struct
   mov   rdi, [rsp+0x8]
@@ -783,7 +783,7 @@ add_route:
   call  free
 
 .no_free_struct:
-  mov   rdi, [rsp+0x38] 
+  mov   rdi, [rsp+0x38]
   test  rdi, rdi
   jz    .no_free
 
@@ -815,14 +815,14 @@ add_route_struct_to_server:
   ; load first route
   mov   rsi, [rdi]
   mov   rdi, rsi
-  
+
 .loop:
   ; rdi points to the address of current route
   ; go to next offset
   add   rdi, ROUTE_OFF_NEXT
   cmp   qword [rdi], 0
   je    .add
- 
+
   ; rdi contains the address of the route
   mov   rsi, [rdi]
   mov   rdi, rsi
@@ -875,7 +875,7 @@ is_dynamic_route:
 ; @return rax: (bool) is a wildcard route
 is_wildcard_route:
   sub   rsp, 0x8
-  
+
   cmp   rdi, 0
   jl    .error
 
@@ -1235,7 +1235,7 @@ get_dynamic_param:
   jl    .error
 
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 

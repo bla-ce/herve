@@ -377,7 +377,7 @@ model_field_exist:
   mov   [rsp+0x8], rsi
 
   ; get fields
-  add   rdi, MODEL_OFF_FIELDS 
+  add   rdi, MODEL_OFF_FIELDS
 
   mov   [rsp+0x10], rdi
 

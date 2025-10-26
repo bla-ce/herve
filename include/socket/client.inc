@@ -97,7 +97,7 @@ get_client_ip:
 
 ; returns the string representation of the client ipv4 address
 ; @param  rdi: pointer to the client struct
-; @param  rsi: pointer to the string 
+; @param  rsi: pointer to the string
 ; @return rax: return code
 ip_to_str:
   sub   rsp, 0x38
@@ -121,7 +121,7 @@ ip_to_str:
 
   cmp   rsi, 0
   jle   .error
-  
+
   ; get client fd
   mov   rdi, [rsp]
   call  get_client_fd
@@ -136,7 +136,7 @@ ip_to_str:
   lea   rsi, [rsp+0x38]
   lea   rdx, [addrlen]
   syscall
-   
+
   cmp   rax, 0
   jl    .error
 

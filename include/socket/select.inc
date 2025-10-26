@@ -102,7 +102,7 @@ FD_ZERO:
   mov   rsi, 0
   mov   rdx, FD_SET_STRUCT_LEN
   call  memset
-  
+
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -277,7 +277,7 @@ remove_client_from_array:
   ; [rsp]     -> file descriptor
   ; [rsp+0x8] -> current number of active connections
 
-  mov   [rsp], rdi 
+  mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
   cmp   rdi, 0
@@ -288,7 +288,7 @@ remove_client_from_array:
   mov   rsi, clients
 
 .loop:
-  mov   rdi, [rsi] 
+  mov   rdi, [rsi]
   cmp   rdi, 0
   je    .null_struct
 
@@ -321,7 +321,7 @@ remove_client_from_array:
   add   rsp, 0x10
   ret
 
-; returns the client struct with the file descriptor 
+; returns the client struct with the file descriptor
 ; or return 0 if does not exist
 ; @param  rdi: file descriptor
 ; @param  rsi: current number of active connections
@@ -333,7 +333,7 @@ get_client_by_fd:
   ; [rsp]     -> file descriptor
   ; [rsp+0x8] -> current number of active connections
 
-  mov   [rsp], rdi 
+  mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
   cmp   rdi, 0
@@ -344,7 +344,7 @@ get_client_by_fd:
   mov   rsi, clients
 
 .loop:
-  mov   rdi, [rsi] 
+  mov   rdi, [rsi]
   cmp   rdi, 0
   je    .null_struct
 

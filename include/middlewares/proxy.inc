@@ -91,7 +91,7 @@ proxy_middleware:
   jl    .error
 
 .skip_weight:
-  ; connect to the end server   
+  ; connect to the end server
   mov   rax, [rsp+0x8]
   mov   rdi, [rax+PROXY_MIDDLEWARE_OFF_TARGETS]
   mov   rsi, [rax+PROXY_MIDDLEWARE_OFF_CURR_IDX]
@@ -177,7 +177,7 @@ proxy_middleware:
   add   rsp, 0x30
   ret
 
-; handles the request, sending it to the end server and returning the response to the 
+; handles the request, sending it to the end server and returning the response to the
 ; client
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: file descriptor of the upstream server
@@ -223,7 +223,7 @@ handle_proxy_request:
   call  receive_from_file
   cmp   rax, 0
   jl    .error
-  
+
   mov   qword [rsp+0x18], rax
 
   ; add null char at the end of the request
@@ -412,7 +412,7 @@ send_request_to_server:
 
 .error:
   mov   rax, FAILURE_CODE
-   
+
 .return:
   add   rsp, 0x20
   ret
@@ -478,7 +478,7 @@ connect_proxy:
   mov   rsi, [rsp+0x8]
   mov   rdi, [rsi+PROXY_TARGET_OFF_IP]
   test  rdi, rdi
-  jz    .ip_null 
+  jz    .ip_null
 
   call  inet_addr
   cmp   rax, 0
@@ -552,27 +552,27 @@ proxy_target_create:
   call  malloc
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x18] 
+  mov   rdi, [rsp+0x18]
   mov   rsi, [rsp]
   call  proxy_target_set_port
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18] 
+  mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x8]
   call  proxy_target_set_ip
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18] 
+  mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x10]
   call  proxy_target_set_weight
   cmp   rax, 0
   jl    .error
-  
+
   mov   rax, [rsp+0x18]
 
   jmp   .return

@@ -29,7 +29,7 @@ template_parse:
   ; [rsp+0x40]  -> duplicated string
   ; [rsp+0x48]  -> encoded string
 
-  mov   [rsp], rdi  
+  mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x40], 0
@@ -170,7 +170,7 @@ template_parse:
   mov   rdi, [rsp+0x28]
   add   rdi, qword [rsp+0x30]
   add   rdi, DELIMITER_LENGTH
-  
+
   mov   [rsp+0x28], rdi
 
   ; free duplicated string
@@ -204,7 +204,7 @@ template_parse:
   ; close the file
   mov   rdi, qword [rsp+0x10]
   call  close_file
-  
+
   mov   rax, [rsp+0x38]
 
   jmp   .return
@@ -215,7 +215,7 @@ template_parse:
   jz    .free_dup_string
 
   call  free
-  
+
 .free_dup_string:
   mov   rdi, [rsp+0x40]
   test  rdi, rdi
@@ -229,7 +229,7 @@ template_parse:
   jz    .no_free
 
   call  free
-  
+
 .no_free:
   mov   rax, FAILURE_CODE
 
