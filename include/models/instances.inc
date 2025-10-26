@@ -1,5 +1,20 @@
 section .bss
+
+instance_t:
+  _instance_ht    resq 1  ; pointer to the hash table
+  _instance_next  resq 1  ; pointer to the next instance
+  _instance_prev  resq 1  ; pointer to the prev instance
+instance_t_end:
+
 section .data
+
+INSTANCE_T_LEN equ instance_t_end - instance_t
+
+; offsets
+INSTANCE_OFF_HT   equ 0
+INSTANCE_OFF_NEXT equ INSTANCE_OFF_HT + 0x8
+INSTANCE_OFF_PREV equ INSTANCE_OFF_NEXT + 0x8
+
 section .text
 ; creates a new instance of the new model
 ; @param  rdi: pointer to the model struct
