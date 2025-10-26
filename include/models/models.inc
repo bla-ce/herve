@@ -23,6 +23,58 @@ MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
 section .text
+; add an instance to the linked list of the model
+; @param  rdi: pointer to the model struct
+; @param  rsi: pointer to the instance struct
+; @return rax: return code
+model_add_instance:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the instance struct
+  ; [rsp+0x10]  -> pointer to the linked list
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   rdi, [rsp]
+  add   rdi, MODEL_OFF_INSTANCES
+  mov   [rsp+0x10], rdi
+
+.loop:
+  mov   rdi, [rsp+0x10]
+  cmp   qword [rdi], 0
+  je    .insert
+
+  ; go to next
+  mov   rsi, [rdi]
+  add   rsi, INSTANCE_OFF_NEXT
+
+  mov   [rsp+0x10], rsi
+
+  jmp   .loop
+
+.insert:
+  mov   rsi, [rsp+0x8]
+  mov   [rdi], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
 ; returns the number of fields the model has
 ; @param  rdi: pointer to the model
 ; @return rax: number of fields
@@ -227,6 +279,7 @@ model_create:
 
   mov   qword [rax+MODEL_OFF_FIELDS], 0
   mov   qword [rax+MODEL_OFF_N_FIELDS], 0
+  mov   qword [rax+MODEL_OFF_INSTANCES], 0
 
   ; insert id field
   mov   rdi, [rsp+0x8]
