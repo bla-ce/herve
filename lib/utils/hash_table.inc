@@ -1,4 +1,4 @@
-; NOTE: this hash table implementation only supports strings as 
+; NOTE: this hash table implementation only supports strings as
 ; keys and values
 
 section .data
@@ -10,7 +10,7 @@ hash_table_struct:
 hash_table_struct_end:
 
 ht_entry_struct:
-  ht_entry_key   dq 0  
+  ht_entry_key   dq 0
   ht_entry_value dq 0
   ht_entry_next  dq 0
 ht_entry_struct_end:
@@ -48,7 +48,7 @@ ht_get_length:
 .return:
   ret
 
-; returns an array of keys. Users have to deal with freeing the pointer 
+; returns an array of keys. Users have to deal with freeing the pointer
 ; (might change)
 ; @param  rdi: pointer to hash table
 ; @return rax: pointer to array
@@ -138,7 +138,7 @@ ht_get_keys:
   mov   [rsi], rdi
 
   inc   qword [rsp+0x28]
-  
+
   ; check if the key has next populated
 .inner_loop:  ; AHHAHAHAHAHAHA O(n^2) this is not optimized
   ; save position
@@ -170,7 +170,7 @@ ht_get_keys:
   jmp   .inner_loop
 
 .inner_loop_end:
-  
+
 .empty:
   inc   r9
 
@@ -182,7 +182,7 @@ ht_get_keys:
   jge   .end_loop
 
   jmp   .loop
-    
+
 .end_loop:
   mov   rax, [rsp+0x10]
   jmp   .return
@@ -249,7 +249,7 @@ get_index_from_hash:
   xor   rdx, rdx
   mov   rax, rdi
   div   rsi
-  
+
   mov   rax, rdx
 
   ret
@@ -260,7 +260,7 @@ get_index_from_hash:
 ; @return rax: pointer to the value or 0 if it does not exist
 ht_get:
   sub   rsp, 0x20
-  
+
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the key
@@ -290,7 +290,7 @@ ht_get:
   call  get_index_from_hash
 
   ; store index
-  mov   qword [rsp+0x10], rax 
+  mov   qword [rsp+0x10], rax
 
   ; get table
   mov   rdi, [rsp]
@@ -310,7 +310,7 @@ ht_get:
   mov   [rsp+0x18], rdi
 
 .loop:
-  ; get key 
+  ; get key
   mov   rsi, [rdi+HT_ENTRY_OFF_KEY]
   mov   rdi, [rsp+0x8]
   ; compare with wanted key
@@ -338,7 +338,7 @@ ht_get:
   ; get value from entry
   mov   rax, [rdi+HT_ENTRY_OFF_VALUE]
 
-  jmp   .return  
+  jmp   .return
 
 .does_not_exist:
   mov   rax, 0
@@ -395,7 +395,7 @@ ht_del:
   ; get hash table
   mov   rsi, [rsp]
   mov   rdi, [rsi+HT_OFF_TABLE]
-  
+
   ; go to index
   mov   rsi, [rdi+rax*8]
   mov   [rsp+0x28], rsi
@@ -456,7 +456,7 @@ ht_del:
   ; go to bucket
   mov   rsi, [rsp]
   mov   rdi, [rsi+HT_OFF_TABLE]
-  
+
   ; set the bucket to 0
   mov   rsi, [rdi+rax*8]
   mov   qword [rdi+rax*8], 0
@@ -464,7 +464,7 @@ ht_del:
   ; free the entry
   mov   rdi, rsi
   call  free
-  
+
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -516,7 +516,7 @@ ht_insert:
   jg    .error
 
   ; dup and store key
-  mov   rdi, [rsp+0x8] 
+  mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  strndup
   cmp   rax, 0
@@ -564,7 +564,7 @@ ht_insert:
   ; store index
   mov   qword [rsp+0x28], rax
 
-  ; get hash table 
+  ; get hash table
   mov   rsi, [rsp]
   mov   rdi, [rsi+HT_OFF_TABLE]
 
@@ -607,7 +607,7 @@ ht_insert:
   ; update next to point to the current entry
   mov   [rdi+HT_ENTRY_OFF_NEXT], rax
 
-  ; now the entry we want to add is the head of the linked list and 
+  ; now the entry we want to add is the head of the linked list and
   ; next points to the previous head
   jmp   .store_key
 
@@ -617,7 +617,7 @@ ht_insert:
   dec   qword [rdi+HT_OFF_NENTRY]
 
 .store_key:
-  ; store ht entry 
+  ; store ht entry
   mov   rdi, [rsp+0x30]
   mov   rax, [rsp+0x18]
   mov   [rdi], rax
@@ -625,7 +625,7 @@ ht_insert:
   ; increase the number of entry
   mov   rdi, [rsp]
   inc   qword [rdi+HT_OFF_NENTRY]
-  
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -648,7 +648,7 @@ ht_insert:
 
 .return:
   add   rsp, 0x40
-  ret 
+  ret
 
 ; returns a hash table of n buckets
 ; @param  rdi: number of buckets
@@ -677,7 +677,7 @@ ht_create:
   mov   [rsp+0x8], rax
 
   ; alloc array of addresses pointing to entries
-  mov   rdi, qword [rsp]   
+  mov   rdi, qword [rsp]
   mov   rsi, 8  ; addresses of 8 bytes long
   call  calloc
   cmp   rax, 0
@@ -692,11 +692,11 @@ ht_create:
 
   mov   rbx, qword [rsp]
   mov   qword [rdi+HT_OFF_NENTRY], 0
-  
+
   mov   rax, [rsp+0x8]
   jmp   .return
 
-.ht_empty:  
+.ht_empty:
   xor   rax, rax
   jmp   .return
 
@@ -783,7 +783,7 @@ ht_free:
   jl    .error
 
   inc   qword [rsp+0x20]
-  
+
   ; check if the key has next populated
 .inner_loop:
   ; save position
@@ -815,7 +815,7 @@ ht_free:
   jmp   .inner_loop
 
 .inner_loop_end:
-  
+
 .empty:
   inc   r9
 
@@ -827,7 +827,7 @@ ht_free:
   jge   .end_loop
 
   jmp   .loop
-    
+
 .end_loop:
   mov   rsi, [rsp]
   mov   rdi, [rsi+HT_OFF_TABLE]

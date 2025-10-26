@@ -1532,7 +1532,7 @@ traffic
 trails
 transfer
 transito
-transmissio  
+transmissio
 traspaso
 treballador
 treballadors

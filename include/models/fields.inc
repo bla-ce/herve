@@ -73,7 +73,7 @@ field_create:
   call  field_set_type
   cmp   rax, 0
   jl    .error
-  
+
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x10]
   call  field_set_arg

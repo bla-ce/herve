@@ -40,9 +40,9 @@ SAMESITE_STRICT db "Strict", NULL_CHAR
 SAMESITE_LAX    db "Lax", NULL_CHAR
 SAMESITE_NONE   db "None", NULL_CHAR
 
-; token_table: each byte is 0 or 1 indicating invalid or 
+; token_table: each byte is 0 or 1 indicating invalid or
 ; valid token char for ASCII code = index in [0..127]
-; 
+;
 ;  0 => invalid token character
 ;  1 => valid token character
 token_table:
@@ -64,10 +64,10 @@ section .text
 set_cookie:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ; 
+  ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the cookie struct
-  ; [rsp+0x10]  -> pointer to the serialized cookie struct 
+  ; [rsp+0x10]  -> pointer to the serialized cookie struct
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi

@@ -21,7 +21,7 @@ _start:
 
   mov   rdi, [p1]
   call  free
-  
+
   mov   rdi, 12
   call  malloc
 

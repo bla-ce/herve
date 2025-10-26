@@ -14,7 +14,7 @@ parse_cli:
   ; [rsp+0x8]   -> pointer to argv[0]
   ; [rsp+0x10]  -> array of pointers
 
-  mov   [rsp], rdi 
+  mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
   cmp   rdi, 0
@@ -46,7 +46,7 @@ parse_cli:
 
   inc   r9
   add   rsi, 8
-  
+
   jmp   .loop
 
 .end_loop:

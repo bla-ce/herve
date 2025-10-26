@@ -40,7 +40,7 @@ _start:
 
 section .data
   server dq 0
-  
+
   person_model_name db "person", NULL_CHAR
 
   person_model dq 0

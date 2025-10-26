@@ -12,7 +12,7 @@ section .data
   DIR_ENTRIES_LEN equ 0x800
   DT_DIR          equ 0x4
   DT_REG          equ 0x8
-  
+
   ; file permissions
   S_IRWXU equ 0x1C0
   S_IRUSR equ 0x100
@@ -189,7 +189,7 @@ get_file_length:
   mov   rsi, 0
   mov   rdx, SEEK_SET
   syscall
-  
+
   mov   rax, SYS_LSEEK
   mov   rdi, [rsp]
   mov   rsi, 0
@@ -239,6 +239,6 @@ receive_from_file:
   xor   r9, r9
   xor   r8, r8
   syscall
-  
+
   ret
 

@@ -15,7 +15,7 @@ _start:
   ; [rsp+0x20]  -> pointer to the first phone json object
   ; [rsp+0x28]  -> pointer to the second phone json object
 
-  call  json_create 
+  call  json_create
   cmp   rax, 0
   jl    .error
 
@@ -27,7 +27,7 @@ _start:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp], rax
 
   mov   rdi, [rsp]
@@ -36,7 +36,7 @@ _start:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp], rax
 
   mov   rdi, [rsp]
@@ -45,7 +45,7 @@ _start:
   call  json_insert_bool
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp], rax
 
   mov   rdi, [rsp]
@@ -55,7 +55,7 @@ _start:
   call  json_insert_bool
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp], rax
 
   mov   rdi, [rsp]
@@ -64,7 +64,7 @@ _start:
   call  json_insert_integer
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp], rax
 
   ; create second object
@@ -134,7 +134,7 @@ _start:
   jl    .error
 
   ; create array
-  call  json_array_create  
+  call  json_array_create
   cmp   rax, 0
   jl    .error
 
@@ -208,7 +208,7 @@ _start:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
@@ -217,7 +217,7 @@ _start:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
@@ -226,7 +226,7 @@ _start:
   call  json_insert_integer
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
@@ -244,7 +244,7 @@ _start:
   jl    .error
 
   mov   [rsp+0x18], rax
-  
+
   ; free object
   mov   rdi, [rsp+0x20]
   call  json_free
@@ -264,7 +264,7 @@ _start:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
@@ -273,7 +273,7 @@ _start:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
@@ -282,7 +282,7 @@ _start:
   call  json_insert_integer
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
@@ -300,7 +300,7 @@ _start:
   jl    .error
 
   mov   [rsp+0x18], rax
-  
+
   ; free object
   mov   rdi, [rsp+0x20]
   call  json_free

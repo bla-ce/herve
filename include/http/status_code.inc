@@ -518,7 +518,7 @@ get_status_code_color:
 .blue:
   lea   rax, [BLUE_FG]
   jmp   .return
-  
+
 .error:
   lea   rax, [DEFAULT_FG]
 

@@ -90,7 +90,7 @@ strdup:
   add   rsp, 0x8
   ret
 
-; returns a pointer to a new string which is a duplicate of the string s, 
+; returns a pointer to a new string which is a duplicate of the string s,
 ; it copies at most n bytes
 ; user has to handle freeing the string
 ; @param  rdi: pointer to the string
@@ -120,7 +120,7 @@ strndup:
   cmp   rax, 0
   jle   .error
 
-  mov   rbx, qword [rsp+0x8] 
+  mov   rbx, qword [rsp+0x8]
   cmp   rax, rbx
   cmovg rax, rbx
 
@@ -144,7 +144,7 @@ strndup:
   stosb
 
   mov   rax, [rsp+0x10]
-  
+
   jmp   .return
 
 .error:
@@ -160,7 +160,7 @@ strndup:
 ; @return rax: count
 count_char:
   sub   rsp, 0x18
-  
+
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> character to find
@@ -191,7 +191,7 @@ count_char:
   je    .end_loop
 
   cmp   al, dil
-  jne   .loop  
+  jne   .loop
 
   inc   qword [rsp+0x10]
   jmp   .loop
@@ -399,7 +399,7 @@ to_string:
   mov   byte [rdi], NULL_CHAR
 
   dec   rdi
-  
+
   mov   rax, qword [rsp]
   cmp   rax, 0
   jg    .loop
@@ -443,7 +443,7 @@ to_string:
   stosb
 
   mov   rax, [rsp+0x8]
- 
+
   jmp   .return
 
 .error:
@@ -461,7 +461,7 @@ to_string:
 ; @return rax: index
 find_next_char:
   sub   rsp, 0x8
-  
+
   ; *** STACK USAGE *** ;
   ; [rsp] -> count
 
@@ -479,7 +479,7 @@ find_next_char:
   je    .found
 
   cmp   al, NULL_CHAR
-  je   .not_found 
+  je   .not_found
 
   inc   qword [rsp]
 
@@ -601,7 +601,7 @@ strpos:
   jl    .error
 
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -772,8 +772,8 @@ stoi:
   sub   rsp, 0x20
 
   ; *** STACK USAGE *** ;
-  ; [rsp+0x8]   -> number is negative 
-  ; [rsp+0x10]  -> length of the string 
+  ; [rsp+0x8]   -> number is negative
+  ; [rsp+0x10]  -> length of the string
   ; [rsp+0x18]  -> int value
 
   mov   [rsp], rdi

@@ -34,7 +34,7 @@ section .data
   CLOCK_REALTIME  equ 0
   HOURS_IN_DAY    equ 24
   EPOCH_YEAR      equ 1970
-  
+
   SECONDS_IN_MINUTE equ 60
   SECONDS_IN_HOUR   equ 3600
   SECONDS_IN_DAY    equ 86400
@@ -146,7 +146,7 @@ unix_to_date_time:
 .loop_end:
   mov   rax, qword [rsp]
   mov   qword [dt_day], rax
-  
+
   ; populate the struct
   mov   rdi, [rsp+0x8]
 
@@ -284,7 +284,7 @@ now:
   jl    .error
 
   lea   rdi, [rsp]
-  mov   rax, qword [rdi+TIMESPEC_OFF_TV_SEC] 
+  mov   rax, qword [rdi+TIMESPEC_OFF_TV_SEC]
 
   jmp   .return
 
@@ -365,7 +365,7 @@ time_to_str:
   stosb
 
   mov   [rsp+0x10], rdi
-  
+
   mov   rsi, [rsp]
   mov   rdi, [rsi+DT_STRUCT_MONTH]
   cmp   rdi, 10
@@ -543,7 +543,7 @@ time_to_str:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 

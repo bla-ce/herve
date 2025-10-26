@@ -19,7 +19,7 @@ section .data
   MIDDLEWARE_OFF_POST_REQ equ MIDDLEWARE_OFF_NEXT + 0x8
 
 section .text
-; creates a middleware structure - dev is responsible of freeing 
+; creates a middleware structure - dev is responsible of freeing
 ; the structure
 ; @param  rdi: pointer to the function
 ; @param  rsi: arg1
@@ -143,10 +143,10 @@ add_middleware:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov    rax, FAILURE_CODE
-  
+
 .return:
   add   rsp, 0x18
   ret

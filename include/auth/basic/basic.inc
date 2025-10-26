@@ -12,7 +12,7 @@ is_basic_auth:
 
   cmp   rdi, 0
   jle   .error
-  
+
   mov   [rsp], rdi
 
   mov   rdi, [rsp]
@@ -40,7 +40,7 @@ read_basic_auth:
   jle   .error
 
   mov   [rsp], rdi
- 
+
   mov   rdi, [rsp]
   call  is_basic_auth
   cmp   rax, FALSE
@@ -56,7 +56,7 @@ read_basic_auth:
 
 .error:
   mov   rax, FAILURE_CODE
-  
+
 .return:
   add   rsp, 0x8
   ret

@@ -16,7 +16,7 @@ It supports the following log levels:
 
 *If you wish, you can change the logging levels by modifying the constants and prefixes in the file. Please ensure that you also update the functions linked to these levels*.
 
-## Requirements 
+## Requirements
 
 To use Logan logger, you will need [malloc](https://github.com/bla-ce/unstack).
 
@@ -63,7 +63,7 @@ jl      .error
 
 **Free Logan**
 
-To free a Logan logger, simply run the `logan_free` function. 
+To free a Logan logger, simply run the `logan_free` function.
 It returns 0 on success and -1 on failure.
 
 ```assembly

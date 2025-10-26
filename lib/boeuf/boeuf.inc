@@ -7,7 +7,7 @@ section .data
 
   BOEUF_METADATA_LEN equ boeuf_metadata_struct_end - boeuf_metadata_struct
 
-  ; offsets  
+  ; offsets
   BOEUF_METADATA_OFF_MAGIC_VALUE  equ 0
   BOEUF_METADATA_OFF_SIZE         equ BOEUF_METADATA_OFF_MAGIC_VALUE + 0x8
   BOEUF_METADATA_OFF_LENGTH       equ BOEUF_METADATA_OFF_SIZE + 0x8
@@ -48,7 +48,7 @@ boeuf_ncreate:
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> length of the string
-  ; [rsp+0x10]  -> pointer to the boeuf buffer 
+  ; [rsp+0x10]  -> pointer to the boeuf buffer
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -100,7 +100,7 @@ boeuf_ncreate:
   add   rsp, 0x18
   ret
 
-; creates a growing buffer 
+; creates a growing buffer
 ; @param  rdi: pointer to the string
 ; @return rax: pointer to the buffer
 boeuf_create:
@@ -167,13 +167,13 @@ boeuf_nappend:
   jle   .error
 
   ; make sure of the integrity of the boeuf buffer
-  sub   rdi, BOEUF_METADATA_LEN 
+  sub   rdi, BOEUF_METADATA_LEN
   mov   rbx, qword [boeuf_magic_value]
-  
+
   mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
   jne   .error
-  
+
   ; get pointer to the boeuf struct
   mov   rdi, [rsp]
   sub   rdi, BOEUF_METADATA_LEN
@@ -186,7 +186,7 @@ boeuf_nappend:
 
   ; add to current length of the boeuf buffer, the length of the string to be appended
   add   rax, rcx
-  
+
   ; compare it with the size of the boeuf buffer
   cmp   rax, rbx
   jl    .no_grow
@@ -203,7 +203,7 @@ boeuf_nappend:
   xor   rdx, rdx
   mov   rbx, 2
   mul   rbx
-  
+
   ; make sure the requested size is not over MAX_BOEUF_BUF_SIZE
   mov   qword [boeuf_errno], BOEUF_BUF_TOO_LARGE
   cmp   rax, MAX_BOEUF_BUF_SIZE
@@ -278,7 +278,7 @@ boeuf_nappend:
   ; add null char
   mov   rax, NULL_CHAR
   stosb
-  
+
   mov   rax, [rsp]
   jmp   .return
 
@@ -314,7 +314,7 @@ boeuf_append:
   ; get length of string to be appended
   mov   rdi, [rsp+0x8]
   call  strlen
-  
+
   mov   qword [boeuf_errno], BOEUF_INVALID_ARG
   cmp   rax, 0
   jl    .error
@@ -325,7 +325,7 @@ boeuf_append:
   call  boeuf_nappend
 
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -369,7 +369,7 @@ boeuf_reset:
   stosb
 
   dec   rdi
-  sub   rdi, BOEUF_METADATA_LEN 
+  sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
   mov   rbx, qword [boeuf_magic_value]

@@ -39,7 +39,7 @@ is_valid_method:
 
   mov   [rsp], rdi
 
-  cmp   rdi, GET 
+  cmp   rdi, GET
   jl    .is_not_valid
 
   cmp   rdi, CONNECT
@@ -58,7 +58,7 @@ is_valid_method:
 
 .is_not_valid:
   mov   rax, 0
-  
+
 .return:
   add   rsp, 0x8
   ret

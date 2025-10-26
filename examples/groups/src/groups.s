@@ -9,7 +9,7 @@ public_handler:
   mov   rdi, public_url
   call  println
   ret
-  
+
 ; prints internal message
 internal_handler:
   mov   rdi, internal_url
@@ -80,7 +80,7 @@ _start:
   call  add_middleware
   cmp   rax, 0
   jl    .error
-    
+
   mov   rdi, [server]
   call  server_run
 

@@ -59,7 +59,7 @@ _start:
   call  server_enable_logger
   cmp   rax, 0
   jl    .error
-    
+
   ; add echo route
   mov   rdi, [server]
   mov   rsi, POST

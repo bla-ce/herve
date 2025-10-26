@@ -77,8 +77,8 @@ parse_headers:
   mov   [rsp+0x10], rdi
 
 .loop:
-; look for the following colon  
-  mov   rdi, [rsp+0x10]   
+; look for the following colon
+  mov   rdi, [rsp+0x10]
   mov   rsi, COLON
   call  find_next_char
 
@@ -104,7 +104,7 @@ parse_headers:
 
   ; get the following carriage return
   mov   rsi, [rsp+0x10]
-  
+
   ; next characters should be ':' and ' '
   xor   rax, rax
   lodsb
@@ -116,11 +116,11 @@ parse_headers:
 
   lodsb ; check if there is a space after
   cmp     rax, SPACE
-  cmove   rdi, rsi    ; if the next char is not a space, go back one   
+  cmove   rdi, rsi    ; if the next char is not a space, go back one
 
   mov   [rsp+0x10], rdi
 
-  mov   rsi, CARRIAGE_RETURN 
+  mov   rsi, CARRIAGE_RETURN
   call  find_next_char
 
   cmp   rax, 0
@@ -194,7 +194,7 @@ parse_headers:
   jz    .free_value
 
   call  free
-  
+
 .free_value:
   mov   rdi, [rsp+0x20]
   test  rdi, rdi
@@ -240,7 +240,7 @@ stringify_headers:
   jl    .error
 
   mov   rbx, HEADERS_MAX_COUNT
-  
+
   ; make sure length does not exceed HEADERS_MAX_COUNT
   cmp   rax, rbx
   cmovg rax, rbx
@@ -351,7 +351,7 @@ stringify_headers:
   cmp   rax, 0
   jl    .error
 
-  ; load value 
+  ; load value
   mov   rdi, [rsp+0x30]
   mov   rsi, rax
   call  strcpy
@@ -391,9 +391,9 @@ stringify_headers:
   call  free
   cmp   rax, 0
   jl    .error
-  
+
   mov   rax, SUCCESS_CODE
-  
+
   jmp   .return
 
 .error:
@@ -574,7 +574,7 @@ canonical_mime_header_key:
 
   inc   rsi
   jmp    .loop
-  
+
 .upper:
   sub   byte [rsi], LOWER_TO_UPPER
 
@@ -607,7 +607,7 @@ get_content_type:
   jle   .not_supported
 
   ; find next dot
-  mov   rsi, DOT 
+  mov   rsi, DOT
   call  find_next_char
 
   cmp   rax, 0
@@ -650,7 +650,7 @@ get_content_type:
 
   lea   rax, [CONTENT_JS]
   jmp   .return
-  
+
 .check_css:
   lea   rdi, [CSS_EXT]
   mov   rsi, [rsp]
@@ -716,7 +716,7 @@ get_content_type:
 
   lea   rax, [CONTENT_JPEG]
   jmp   .return
- 
+
 .check_json:
   lea   rdi, [JSON_EXT]
   mov   rsi, [rsp]
@@ -727,7 +727,7 @@ get_content_type:
 
   lea   rax, [CONTENT_JSON]
   jmp   .return
- 
+
 .check_mp4:
   lea   rdi, [MP4_EXT]
   mov   rsi, [rsp]
@@ -738,7 +738,7 @@ get_content_type:
 
   lea   rax, [CONTENT_MP4]
   jmp   .return
- 
+
 .check_png:
   lea   rdi, [PNG_EXT]
   mov   rsi, [rsp]
@@ -749,7 +749,7 @@ get_content_type:
 
   lea   rax, [CONTENT_PNG]
   jmp   .return
- 
+
 .check_svg:
   lea   rdi, [SVG_EXT]
   mov   rsi, [rsp]
@@ -760,7 +760,7 @@ get_content_type:
 
   lea   rax, [CONTENT_SVG]
   jmp   .return
- 
+
 .check_xml:
   lea   rdi, [XML_EXT]
   mov   rsi, [rsp]
@@ -771,7 +771,7 @@ get_content_type:
 
   lea   rax, [CONTENT_XML]
   jmp   .return
- 
+
 .check_plain:
   lea   rdi, [TEXT_EXT]
   mov   rsi, [rsp]

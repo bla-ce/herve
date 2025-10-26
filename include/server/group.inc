@@ -135,14 +135,14 @@ add_group_struct_to_server:
   ; load first group
   mov   rsi, [rdi]
   mov   rdi, rsi
-  
+
 .loop:
   ; rdi points to the address of current group
   ; go to next offset
   add   rdi, GRP_STRUCT_OFF_NEXT
   cmp   qword [rdi], 0
   je    .add
- 
+
   ; rdi contains the address of the group
   mov   rsi, [rdi]
   mov   rdi, rsi
@@ -231,7 +231,7 @@ group_exist:
 .equal:
   mov   rax, TRUE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -315,7 +315,7 @@ get_group_from_ctx:
   mov   [rsp+0x18], rax
 
 .loop:
-  mov   rdi, [rsp+0x10] 
+  mov   rdi, [rsp+0x10]
   cmp   qword [rdi+GRP_STRUCT_OFF_IS_ROOT], TRUE
   je    .skip_root
 
@@ -347,10 +347,10 @@ get_group_from_ctx:
   add   rdi, rax
 
   cmp   byte [rdi], SLASH
-  je    .loop_end 
+  je    .loop_end
 
   cmp   byte [rdi], NULL_CHAR
-  je    .loop_end 
+  je    .loop_end
 
 .skip_root:
   mov   rdi, [rsp+0x10]
@@ -359,7 +359,7 @@ get_group_from_ctx:
   add   rdi, GRP_STRUCT_OFF_NEXT
   cmp   qword [rdi], 0
   je    .error
- 
+
   ; rdi contains the address of the group
   mov   rsi, [rdi]
 
@@ -415,7 +415,7 @@ free_group:
 
   ; go to next
   mov   rsi, [rsp+0x8]
-  
+
   cmp   qword [rsi], 0
   je    .loop_end
 

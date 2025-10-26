@@ -310,12 +310,12 @@ parse_query_param:
 .loop:
   mov   rdi, [rsp+0x8]
 
-  ; look for '=' 
+  ; look for '='
   mov   rsi, EQUAL_SIGN
   call  find_next_char
   cmp   rax, 0
   jl    .loop_end
-  
+
   mov   rsi, [rsp+0x8]
   mov   rdi, rsi
 
@@ -350,7 +350,7 @@ parse_query_param:
   call  strndup
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x28], rax
 
 .add_key_value:
@@ -375,7 +375,7 @@ parse_query_param:
   ; go to next
   jmp   .loop
 
-  ; check if last query  
+  ; check if last query
 .get_last_key:
   mov   rdi, [rsp+0x8]
   call  strlen
@@ -417,7 +417,7 @@ parse_query_param:
 .no_query:
   xor   rax, rax
   jmp   .return
-    
+
 .error:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
@@ -475,7 +475,7 @@ get_query_param:
   jl    .error
 
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 
@@ -485,11 +485,11 @@ get_query_param:
 
 ; returns the method of the request
 ; @param  rdi: pointer to request struct
-; @return rax: pointer to url 
+; @return rax: pointer to url
 get_request_method:
   cmp   rdi, 0
   jl    .error
-  
+
   mov   rax, qword [rdi+REQ_OFF_METHOD]
 
   jmp   .return
@@ -502,11 +502,11 @@ get_request_method:
 
 ; returns the url of the request
 ; @param  rdi: pointer to request struct
-; @return rax: pointer to url 
+; @return rax: pointer to url
 get_request_url:
   cmp   rdi, 0
   jl    .error
-  
+
   mov   rax, qword [rdi+REQ_OFF_URL]
 
   jmp   .return
@@ -524,7 +524,7 @@ get_request_url:
 set_request_str:
   cmp   rdi, 0
   jl    .error
-  
+
   cmp   rsi, 0
   jl    .error
 
@@ -545,7 +545,7 @@ set_request_str:
 get_request_dynamic_param:
   cmp   rdi, 0
   jl    .error
-  
+
   mov   rax, qword [rdi+REQ_OFF_DYN_PARAM]
 
   jmp   .return
@@ -563,7 +563,7 @@ get_request_dynamic_param:
 set_request_dynamic_param:
   cmp   rdi, 0
   jl    .error
-  
+
   cmp   rsi, 0
   jl    .error
 
@@ -584,7 +584,7 @@ set_request_dynamic_param:
 get_request_query_param:
   cmp   rdi, 0
   jl    .error
-  
+
   mov   rax, qword [rdi+REQ_OFF_QUERY_PARAM]
 
   jmp   .return
@@ -602,7 +602,7 @@ get_request_query_param:
 set_request_query_param:
   cmp   rdi, 0
   jl    .error
-  
+
   cmp   rsi, 0
   jl    .error
 
@@ -624,7 +624,7 @@ set_request_query_param:
 set_request_length:
   cmp   rdi, 0
   jl    .error
-  
+
   cmp   rsi, 0
   jl    .error
 
@@ -722,7 +722,7 @@ receive_request:
 
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
-  call  set_request_str 
+  call  set_request_str
   cmp   rax, 0
   jl    .error
 
@@ -742,7 +742,7 @@ receive_request:
   call  ctx_abort
 
   mov   rax, FAILURE_CODE
-  
+
 .return:
   add   rsp, 0x20
   ret
@@ -772,7 +772,7 @@ parse_request:
 
   ; save pointer of the request struct
   mov   [rsp+0x8], rax
-  
+
   ; extract method: look for the next space
   mov   rdi, [rsp+0x10]
   mov   rsi, SPACE
@@ -780,7 +780,7 @@ parse_request:
 
   ; if < 0, bad request
   cmp   rax, 0
-  jl    .error 
+  jl    .error
 
   ; compare the length of the method with METHOD_MAX_LEN
   cmp   rax, METHOD_MAX_LEN
@@ -800,10 +800,10 @@ parse_request:
   mov   [rdi+REQ_OFF_METHOD], rax
 
   ; load method
-  mov   rsi, [rsp+0x10] 
+  mov   rsi, [rsp+0x10]
   add   rsi, qword [rsp+0x18]
 
-  ; method url HTTP/n.n 
+  ; method url HTTP/n.n
   ;       | inc rsi to go to first char of the url
   inc   rsi
 
@@ -850,7 +850,7 @@ parse_request:
   mov   rsi, [rsp+0x10]
   add   rsi, qword [rsp+0x18]
 
-  ; inc rsi to go to the protocol 
+  ; inc rsi to go to the protocol
   inc   rsi
 
   ; extract proto
@@ -898,7 +898,7 @@ parse_request:
   jg    .error
 
   mov   qword [rsp+0x18], rax
-   
+
   mov   rdi, [rsp+0x10]
   mov   rsi, qword [rsp+0x18]
   call  strndup
@@ -987,14 +987,14 @@ parse_request:
   call  find_next_char
   cmp   rax, 0
   jle   .no_query
-  
+
   mov   rdi, [rsp+0x28]
   add   rdi, rax
   inc   rdi       ; go after the '?'
   call  parse_query_param
 
   cmp   rax, 0
-  jl    .error 
+  jl    .error
 
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
@@ -1103,7 +1103,7 @@ verify_request:
 
   jmp   .loop
 .end_loop:
-  
+
   mov   rax, [rsp+0x20]
   jmp   .return
 
@@ -1127,7 +1127,7 @@ verify_request:
 
 .send_404:
   ; send 404
-  mov   rdi, [rsp] 
+  mov   rdi, [rsp]
   mov   rsi, NOT_FOUND
   call  send_no_content
 
@@ -1137,10 +1137,10 @@ verify_request:
   jl    .error
 
   jmp   .return
-  
+
 .error:
   ; send bad request
-  mov   rdi, [rsp] 
+  mov   rdi, [rsp]
   mov   rsi, BAD_REQUEST
   call  send_no_content
 
@@ -1255,7 +1255,7 @@ free_request:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
-  
+
 .error:
   mov   rax, FAILURE_CODE
 

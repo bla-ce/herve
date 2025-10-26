@@ -2,11 +2,11 @@ section .data
   base64_table:
     db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
     db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
-    db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,62  ,0x80,0x80,0x80,63  
+    db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,62  ,0x80,0x80,0x80,63
     db 52  ,53  ,54  ,55  ,56  ,57  ,58  ,59  ,60  ,61  ,0x80,0x80,0x80,0x80,0x80,0x80
-    db 0x80, 0  , 1  , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  ,10  ,11  ,12  ,13  ,14  
+    db 0x80, 0  , 1  , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  ,10  ,11  ,12  ,13  ,14
     db 15  ,16  ,17  ,18  ,19  ,20  ,21  ,22  ,23  ,24  ,25  ,0x80,0x80,0x80,0x80,0x80
-    db 0x80,26  ,27  ,28  ,29  ,30  ,31  ,32  ,33  ,34  ,35  ,36  ,37  ,38  ,39  ,40  
+    db 0x80,26  ,27  ,28  ,29  ,30  ,31  ,32  ,33  ,34  ,35  ,36  ,37  ,38  ,39  ,40
     db 41  ,42  ,43  ,44  ,45  ,46  ,47  ,48  ,49  ,50  ,51  ,0x80,0x80,0x80,0x80,0x80
     db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
     db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
@@ -63,7 +63,7 @@ base64_decode:
 .loop:
   mov   rsi, [rsp]
 
-  ; get first char 
+  ; get first char
   mov   dil, byte [rsi+r9]
   movzx rdi, dil
 
@@ -168,7 +168,7 @@ base64_decode:
   mov   rax, qword [rsp+0x40]
   shr   rax, 16
   and   rax, 0xFF
-  
+
   ; move to decoded string
   mov   rdi, [rsp+0x18]
   stosb
@@ -179,7 +179,7 @@ base64_decode:
   mov   rax, qword [rsp+0x40]
   shr   rax, 8
   and   rax, 0xFF
-  
+
   ; move to decoded string
   mov   rdi, [rsp+0x18]
   stosb
@@ -189,7 +189,7 @@ base64_decode:
   ; extract third 8-bit char
   mov   rax, qword [rsp+0x40]
   and   rax, 0xFF
-  
+
   ; move to decoded string
   mov   rdi, [rsp+0x18]
   stosb
@@ -208,7 +208,7 @@ base64_decode:
   mov   rax, qword [rsp+0x40]
   shr   rax, 16
   and   rax, 0xFF
-  
+
   ; move to decoded string
   mov   rdi, [rsp+0x18]
   stosb
@@ -217,7 +217,7 @@ base64_decode:
   mov   rax, qword [rsp+0x40]
   shr   rax, 8
   and   rax, 0xFF
-  
+
   ; move to decoded string
   mov   rdi, [rsp+0x18]
   stosb
@@ -231,7 +231,7 @@ base64_decode:
   mov   rax, qword [rsp+0x40]
   shr   rax, 16
   and   rax, 0xFF
-  
+
   ; move to decoded string
   mov   rdi, [rsp+0x18]
   stosb
@@ -278,7 +278,7 @@ decode_base64_char:
   ret
 
 ; converts a 6-bit integer value into its correspoinding Base64 character
-; @param  rdi: 6bit 
+; @param  rdi: 6bit
 ; @return rax: char
 encode_base64_char:
   cmp   rdi, 0
@@ -315,7 +315,7 @@ base64_encode:
   mov   qword [rsp+0x20], NULL_CHAR
   mov   qword [rsp+0x28], NULL_CHAR
   mov   qword [rsp+0x30], NULL_CHAR
-  
+
   ; get length of the string
   mov   rdi, [rsp]
   call  strlen
@@ -335,7 +335,7 @@ base64_encode:
   xor   r9, r9
 
 .loop:
-  mov   rsi, [rsp] 
+  mov   rsi, [rsp]
 
 .get_first_char:
   ; get first char
@@ -460,7 +460,7 @@ base64_encode:
   mov   [rsp+0x18], rdi
 
   jmp   .end_loop
-  
+
 .padding_1:
   mov   rdi, [rsp+0x18]
   mov   rax, EQUAL_SIGN
