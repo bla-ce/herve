@@ -483,4 +483,3 @@ base64_encode:
 .return:
   add   rsp, 0x40
   ret
-

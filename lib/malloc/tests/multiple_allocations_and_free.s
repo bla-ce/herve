@@ -150,4 +150,3 @@ section .data
   p4    dq 0
   p5    dq 0
   p6    dq 0
-

@@ -18,4 +18,3 @@ memset:
 
   add   rsp, 0x8
   ret
-

@@ -39,4 +39,3 @@ else
   echo "  Got: $status_code"
   exit 1
 fi
-

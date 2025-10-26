@@ -376,4 +376,3 @@ get_client_by_fd:
 .return:
   add   rsp, 0x10
   ret
-

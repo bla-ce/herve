@@ -231,4 +231,3 @@ log_ctx:
 .return:
   add   rsp, 0x20
   ret
-

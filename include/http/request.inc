@@ -1330,5 +1330,3 @@ get_request_body:
 
 .return:
   ret
-
-

@@ -550,4 +550,3 @@ time_to_str:
 .return:
   add   rsp, 0x20
   ret
-

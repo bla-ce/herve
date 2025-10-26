@@ -241,4 +241,3 @@ receive_from_file:
   syscall
 
   ret
-

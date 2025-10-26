@@ -524,4 +524,3 @@ get_status_code_color:
 
 .return:
   ret
-

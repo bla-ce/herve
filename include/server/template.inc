@@ -236,4 +236,3 @@ template_parse:
 .return:
   add   rsp, 0x50
   ret
-

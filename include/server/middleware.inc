@@ -231,5 +231,3 @@ run_middlewares:
 .return:
   add   rsp, 0x20
   ret
-
-

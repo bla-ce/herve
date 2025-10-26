@@ -684,4 +684,3 @@ set_404_handler:
 
 .return:
   ret
-

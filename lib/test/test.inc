@@ -181,4 +181,3 @@ assert_is_not_zero:
 
 .return:
   ret
-

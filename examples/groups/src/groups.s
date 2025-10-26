@@ -102,4 +102,3 @@ section .data
 
   public_group    dq 0
   internal_group  dq 0
-

@@ -663,4 +663,3 @@ serialize_cookie:
   add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
   add   rsp, 0x20
   ret
-

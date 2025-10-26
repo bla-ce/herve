@@ -1242,4 +1242,3 @@ get_dynamic_param:
 .return:
   add   rsp, 0x10
   ret
-

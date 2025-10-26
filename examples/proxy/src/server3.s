@@ -33,5 +33,3 @@ _start:
 
 section .data
   server dq 0
-
-

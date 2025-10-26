@@ -793,4 +793,3 @@ get_content_type:
 .return:
   add   rsp, 0x8
   ret
-

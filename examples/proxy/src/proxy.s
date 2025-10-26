@@ -197,4 +197,3 @@ section .data
 
   target1_url db "/public", NULL_CHAR
   target2_url db "/internal", NULL_CHAR
-
