@@ -307,3 +307,61 @@ model_instance_get_ht:
 
 .return:
   ret
+
+; returns the next instance of the linked list
+; @param  rdi: pointer to the instance
+; @return rax: pointer to the next instance
+model_instance_get_next:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+INSTANCE_OFF_NEXT]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; converts the model instance into a json object
+; dev is responsible of freeing the json object
+; @param  rdi: pointer to the instance
+; @return rax: pointer to the json object
+model_instance_to_json:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the pointer to the instance
+  ; [rsp+0x8] -> pointer to the json object
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  call  json_create
+  cmp   rax, 0
+  jl    .error
+
+  ; TODO
+
+  mov   [rsp+0x8], rax
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
