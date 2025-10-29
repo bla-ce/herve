@@ -59,7 +59,7 @@ _start:
   call  server_enable_logger
   cmp   rax, 0
   jl    .error
-    
+
   ; add echo route
   mov   rdi, [server]
   mov   rsi, POST
@@ -84,4 +84,3 @@ section .data
   server dq 0
 
   echo_url db "/", NULL_CHAR
-

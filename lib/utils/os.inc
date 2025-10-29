@@ -5,4 +5,3 @@ section .text
 exit:
   mov   rax, SYS_EXIT
   syscall
-

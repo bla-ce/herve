@@ -1,5 +1,5 @@
 section .text
-; allocates the specified number of bytes and initializes them to zero 
+; allocates the specified number of bytes and initializes them to zero
 ; @param  rdi: number of elements
 ; @param  rsi: size of element
 ; @return rax: chunk or null if failed
@@ -57,4 +57,3 @@ calloc:
 .return:
   add   rsp, 0x8
   ret
-

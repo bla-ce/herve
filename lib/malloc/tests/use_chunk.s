@@ -21,7 +21,7 @@ _start:
 
   mov   rdi, [p1]
   call  free
-  
+
   mov   rdi, 12
   call  malloc
 
@@ -65,4 +65,3 @@ section .data
   p1    dq 0
   p2    dq 0
   p3    dq 0
-

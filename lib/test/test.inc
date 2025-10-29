@@ -83,7 +83,7 @@ assert_string_equal:
 
   jmp   .return
 
-.error: 
+.error:
   mov   rdi, assert_str_equal_msg
   call  println
 
@@ -126,7 +126,7 @@ assert_string_not_equal:
 
   jmp   .return
 
-.error: 
+.error:
   mov   rdi, assert_str_not_equal_msg
   call  println
 
@@ -181,4 +181,3 @@ assert_is_not_zero:
 
 .return:
   ret
-

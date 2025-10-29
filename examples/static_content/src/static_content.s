@@ -14,7 +14,7 @@ _start:
   call  server_enable_logger
   cmp   rax, 0
   jl    .error
-    
+
   ; add echo route
   mov   rdi, [server]
   mov   rsi, public_path
@@ -36,4 +36,3 @@ section .data
   server dq 0
 
   public_path db "public/", NULL_CHAR
-

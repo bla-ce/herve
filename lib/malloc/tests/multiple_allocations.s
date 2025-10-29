@@ -67,4 +67,3 @@ section .data
   p1    dq 0
   p2    dq 0
   p3    dq 0
-

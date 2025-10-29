@@ -1,10 +1,12 @@
 section .bss
 
 model_t:
-  _model_name     resq 1  ; pointer to the name of the field
-  _model_fields   resq 1  ; linked list of field struct
-  _model_curr_idx resq 1  ; next index for the next instance
-  _model_n_fields resq 1  ; number of fields
+  _model_name       resq 1  ; pointer to the name of the field
+  _model_fields     resq 1  ; linked list of field struct
+  _model_curr_idx   resq 1  ; next index for the next instance
+  _model_n_fields   resq 1  ; number of fields
+  _model_instances  resq 1  ; linked list of instances
+                            ; models are saved in memory for now
 model_t_end:
 
 section .data
@@ -16,13 +18,91 @@ MODEL_T_LEN equ model_t_end - model_t
 ; offsets
 MODEL_OFF_NAME      equ 0
 MODEL_OFF_FIELDS    equ MODEL_OFF_NAME + 0x8
-MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS
+MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS + 0x8
 MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
+MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
+
+model_not_found db " with the specified id not found", NULL_CHAR
 
 section .text
-; returns the number of fields the model has
+; add an instance to the linked list of the model
+; @param  rdi: pointer to the model struct
+; @param  rsi: pointer to the instance struct
+; @return rax: return code
+model_add_instance:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the instance struct
+  ; [rsp+0x10]  -> pointer to the linked list
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   rdi, [rsp]
+  add   rdi, MODEL_OFF_INSTANCES
+  mov   [rsp+0x10], rdi
+
+.loop:
+  mov   rdi, [rsp+0x10]
+  cmp   qword [rdi], 0
+  je    .insert
+
+  ; go to next
+  mov   rsi, [rdi]
+  add   rsi, INSTANCE_OFF_NEXT
+
+  mov   [rsp+0x10], rsi
+
+  jmp   .loop
+
+.insert:
+  mov   rsi, [rsp+0x8]
+  mov   [rdi], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; sets the current index
 ; @param  rdi: pointer to the model
-; @return rax: number of fields
+; @param  rsi: current index
+; @return rax: return code
+model_set_curr_idx:
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+MODEL_OFF_CURR_IDX], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the current index
+; @param  rdi: pointer to the model
+; @return rax: current index
 model_get_curr_idx:
   cmp   rdi, 0
   jl    .error
@@ -83,7 +163,7 @@ model_insert_field:
   ; check field type
   mov   rdi, [rsp+0x10]
 
-  cmp   rdi, FIELD_TYPE_NUMBER
+  cmp   rdi, FIELD_TYPE_INTEGER
   je    .insert_number
 
   cmp   rdi, FIELD_TYPE_STRING
@@ -223,12 +303,14 @@ model_create:
   mov   rax, [rsp+0x8]
 
   mov   qword [rax+MODEL_OFF_FIELDS], 0
+  mov   qword [rax+MODEL_OFF_CURR_IDX], 0
   mov   qword [rax+MODEL_OFF_N_FIELDS], 0
+  mov   qword [rax+MODEL_OFF_INSTANCES], 0
 
   ; insert id field
   mov   rdi, [rsp+0x8]
   mov   rsi, id_field_name
-  mov   rdx, FIELD_TYPE_NUMBER
+  mov   rdx, FIELD_TYPE_INTEGER
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -374,7 +456,7 @@ model_field_exist:
   mov   [rsp+0x8], rsi
 
   ; get fields
-  add   rdi, MODEL_OFF_FIELDS 
+  add   rdi, MODEL_OFF_FIELDS
 
   mov   [rsp+0x10], rdi
 
@@ -417,3 +499,156 @@ model_field_exist:
   add   rsp, 0x18
   ret
 
+; returns the linked list of instances
+; @param  rdi: pointer to the model struct
+; @return rax: linked list of instances
+model_get_instances:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+MODEL_OFF_INSTANCES]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns all instances of a model
+; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the model struct
+; @return rax: return code
+model_read_many:
+  sub   rsp, 0x30
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the model struct
+  ; [rsp+0x10]  -> pointer to the linked list of instances
+  ; [rsp+0x18]  -> pointer to the json object
+  ; [rsp+0x20]  -> pointer to nested json object
+  ; [rsp+0x28]  -> pointer to current instance
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get instances linked list
+  mov   rdi, [rsp+0x8]
+  call  model_get_instances
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+  mov   [rsp+0x28], rax
+
+  ; create json object
+  call  json_array_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+.loop:
+  cmp   qword [rsp+0x28], 0
+  je    .loop_end
+
+  ; convert instance to json object
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x28]
+  call  model_instance_to_json
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; add json object
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
+  call  json_array_insert_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; free json object
+  mov   rdi, [rsp+0x20]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  ; get next instance
+  mov   rdi, [rsp+0x28]
+  call  model_instance_get_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x18]
+  call  json_array_end
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; send json
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, [rsp+0x18]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json object
+  mov   rdi, [rsp+0x18]
+  call  json_array_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .free_obj
+
+.free_obj:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x30
+  ret
+
+model_read_single:
+  ret
+
+model_update:
+  ret
+
+model_post:
+  ret
+
+model_delete:
+  ret

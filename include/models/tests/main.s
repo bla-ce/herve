@@ -1,7 +1,7 @@
 global _start
 
 %include "herve.inc"
-%include "models.s"
+%include "models_test.s"
 
 section .text
 _start:
@@ -90,4 +90,3 @@ section .data
 
   pass1 db "pass1", NULL_CHAR
   pass2 db "pass2", NULL_CHAR
-

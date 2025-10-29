@@ -23,4 +23,3 @@ test: $(TESTS)
 	echo "Passed: $$pass"; \
 	echo "Failed: $$fail"; \
 	if [ $$fail -gt 0 ]; then exit 1; fi
-

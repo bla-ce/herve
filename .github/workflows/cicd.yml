@@ -125,4 +125,3 @@ jobs:
       - name: Run array tests
         working-directory: lib/utils/tests
         run: make
-

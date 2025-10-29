@@ -20,9 +20,10 @@ FIELD_OFF_ARG   equ FIELD_OFF_TYPE + 0x8
 FIELD_OFF_NEXT  equ FIELD_OFF_ARG + 0x8
 
 ; field types
-FIELD_TYPE_NUMBER equ 0
-FIELD_TYPE_STRING equ 1
-FIELD_TYPE_BOOL   equ 2
+FIELD_TYPE_INTEGER  equ 0
+FIELD_TYPE_STRING   equ 1
+FIELD_TYPE_BOOL     equ 2
+FIELD_TYPE_FLOAT    equ 3
 
 id_field_name db "id", NULL_CHAR
 
@@ -73,7 +74,7 @@ field_create:
   call  field_set_type
   cmp   rax, 0
   jl    .error
-  
+
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x10]
   call  field_set_arg
@@ -237,4 +238,3 @@ field_free:
 .return:
   add   rsp, 0x8
   ret
-

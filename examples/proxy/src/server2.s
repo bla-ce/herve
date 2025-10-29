@@ -20,7 +20,7 @@ _start:
   call  server_enable_logger
   cmp   rax, 0
   jl    .error
-    
+
   mov   rdi, [server]
   call  server_run
 
@@ -33,4 +33,3 @@ _start:
 
 section .data
   server dq 0
-

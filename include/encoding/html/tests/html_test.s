@@ -112,4 +112,3 @@ section .data
 
   row     db "<> two characters in a row", NULL_CHAR
   row_esc db "&lt;&gt; two characters in a row", NULL_CHAR
-

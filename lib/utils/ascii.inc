@@ -132,4 +132,3 @@ section .text
   ; extended ascii
   MICRO_FIRST   equ 0xCE
   MICRO_SECOND  equ 0xBC
-

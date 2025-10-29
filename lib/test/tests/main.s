@@ -11,7 +11,7 @@ _start:
 
   mov   rdi, SUCCESS_CODE
   call  exit
-  
+
 .error:
   mov   rdi, FAILURE_CODE
   call  exit
