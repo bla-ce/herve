@@ -132,8 +132,11 @@ handle_ctx:
   ; check if route has a callback
   mov   rdi, [rsp+0x18]
   call  get_route_callback
-  cmp   rax, 0
-  je   .done
+  test  rax, rax
+  jz   .done
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rdi+ROUTE_OFF_ARG1]
 
   mov   rdi, [rsp+0x10]
   call  rax

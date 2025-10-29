@@ -4,6 +4,7 @@ route_struct:
   _route_url      resq 1
   _route_callback resq 1
   _route_group    resq 1
+  _route_arg1     resq 1
   _route_next     resq 1
 route_struct_end:
 
@@ -14,7 +15,8 @@ section .data
   ROUTE_OFF_URL       equ ROUTE_OFF_METHOD + 0x8
   ROUTE_OFF_CALLBACK  equ ROUTE_OFF_URL + 0x8
   ROUTE_OFF_GROUP     equ ROUTE_OFF_CALLBACK + 0x8
-  ROUTE_OFF_NEXT      equ ROUTE_OFF_GROUP + 0x8
+  ROUTE_OFF_ARG1      equ ROUTE_OFF_GROUP + 0x8
+  ROUTE_OFF_NEXT      equ ROUTE_OFF_ARG1 + 0x8
 
   log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
@@ -336,6 +338,7 @@ add_model_routes:
   mov   rdx, model_route_root
   mov   rcx, model_read_many
   mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
@@ -346,6 +349,7 @@ add_model_routes:
   mov   rdx, model_route_id
   mov   rcx, model_read_single
   mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
@@ -356,6 +360,7 @@ add_model_routes:
   mov   rdx, model_route_root
   mov   rcx, model_post
   mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
@@ -366,6 +371,7 @@ add_model_routes:
   mov   rdx, model_route_id
   mov   rcx, model_update
   mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
@@ -376,6 +382,7 @@ add_model_routes:
   mov   rdx, model_route_id
   mov   rcx, model_delete
   mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
@@ -598,9 +605,10 @@ route_exist:
 ; @param  rdx: pointer to url
 ; @param  rcx: pointer to callback
 ; @param  r8: pointer to the group struct or 0 if root
+; @param  r9: arg 1 for the callback function
 ; @return rax: pointer to route struct
 add_route:
-  sub   rsp, 0x48
+  sub   rsp, 0x50
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
@@ -612,6 +620,7 @@ add_route:
   ; [rsp+0x30]  -> size of the url
   ; [rsp+0x38]  -> pointer to the malloc'd url
   ; [rsp+0x40]  -> pointer to the concatenated prefix and url
+  ; [rsp+0x48]  -> argument for callback function
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -621,6 +630,7 @@ add_route:
   mov   qword [rsp+0x28], 0
   mov   qword [rsp+0x38], 0
   mov   qword [rsp+0x40], 0
+  mov   [rsp+0x48], r9
 
   cmp   rdi, 0
   jle   .error
@@ -757,6 +767,9 @@ add_route:
   mov   rax, [rsp+0x28]
   mov   [rax+ROUTE_OFF_URL], rdi
 
+  mov   rdi, [rsp+0x48]
+  mov   [rax+ROUTE_OFF_ARG1], rdi
+
   ; add route to server routes
   mov   rdi, [rsp]
   mov   rsi, rax
@@ -793,7 +806,7 @@ add_route:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x48
+  add   rsp, 0x50
   ret
 
 ; adds a structure of route to the list of routes available

@@ -22,6 +22,8 @@ MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS
 MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
+model_not_found db " with the specified id not found", NULL_CHAR
+
 section .text
 ; add an instance to the linked list of the model
 ; @param  rdi: pointer to the model struct
@@ -473,7 +475,145 @@ model_field_exist:
   add   rsp, 0x18
   ret
 
+; returns the linked list of instances
+; @param  rdi: pointer to the model struct
+; @return rax: linked list of instances
+model_get_instances:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+MODEL_OFF_INSTANCES]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns all instances of a model
+; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the model struct
+; @return rax: return code
 model_read_many:
+  sub   rsp, 0x30
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the model struct
+  ; [rsp+0x10]  -> pointer to the linked list of instances
+  ; [rsp+0x18]  -> pointer to the json object
+  ; [rsp+0x20]  -> pointer to nested json object
+  ; [rsp+0x28]  -> pointer to current instance
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get instances linked list
+  mov   rdi, [rsp+0x8]
+  call  model_get_instances
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+  mov   [rsp+0x28], rax
+
+  ; create json object
+  call  json_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+.loop:
+  cmp   qword [rsp+0x28], 0
+  je    .loop_end
+
+  ; convert instance to json object
+  mov   rdi, [rsp+0x28]
+  call  model_instance_to_json
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; add json object
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
+  call  json_insert_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; free json object
+  mov   rdi, [rsp+0x20]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  ; get next instance
+  mov   rdi, [rsp+0x28]
+  call  model_instance_get_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x18]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; send json
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, [rsp+0x18]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json object
+  mov   rdi, [rsp+0x18]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .free_obj
+
+.free_obj:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x30
   ret
 
 model_read_single:
