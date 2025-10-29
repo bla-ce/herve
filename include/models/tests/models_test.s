@@ -41,7 +41,7 @@ create_user_model:
 
   mov   rdi, [rsp]
   mov   rsi, field_age
-  mov   rdx, FIELD_TYPE_NUMBER
+  mov   rdx, FIELD_TYPE_INTEGER
   call  model_insert_field
   cmp   rax, 0
   jl    .error
