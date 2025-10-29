@@ -1,46 +1,65 @@
-global _start
+section .data
 
-%include "herve.inc"
+model_name  db "user", NULL_CHAR
+
+field_username db "username", NULL_CHAR
+field_password db "password", NULL_CHAR
+field_age      db "age", NULL_CHAR
+field_active   db "active", NULL_CHAR
 
 section .text
-_start:
-  call  server_init
-  cmp   rax, 0
-  jl    .error
 
-  mov   [server], rax
+; @return rax: pointer to the user model
+create_user_model:
+  sub   rsp, 0x8
 
-  mov   rdi, [server]
-  call  server_enable_logger
-  cmp   rax, 0
-  jl    .error
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the user model
 
-  mov   rdi, person_model_name
+  mov   rdi, model_name
   call  model_create
   cmp   rax, 0
   jl    .error
 
-  mov   [person_model], rax
+  mov   [rsp], rax
 
-  mov   rdi, [server]
-  mov   rsi, [person_model]
-  call  add_model_routes
+  mov   rdi, [rsp]
+  mov   rsi, field_username
+  mov   rdx, FIELD_TYPE_STRING
+  mov   rcx, 32
+  call  model_insert_field
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [server]
-  call  server_run
+  mov   rdi, [rsp]
+  mov   rsi, field_password
+  mov   rdx, FIELD_TYPE_STRING
+  mov   rcx, 128
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
 
-  mov   rdi, SUCCESS_CODE
-  call  exit
+  mov   rdi, [rsp]
+  mov   rsi, field_age
+  mov   rdx, FIELD_TYPE_INTEGER
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, field_active
+  mov   rdx, FIELD_TYPE_BOOL
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp]
+
+  jmp   .return
 
 .error:
-  mov   rdi, FAILURE_CODE
-  call  exit
+  mov   rax, FAILURE_CODE
 
-section .data
-  server dq 0
-
-  person_model_name db "person", NULL_CHAR
-
-  person_model dq 0
+.return:
+  add   rsp, 0x8
+  ret

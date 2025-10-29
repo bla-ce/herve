@@ -140,7 +140,7 @@ model_insert_field:
   ; check field type
   mov   rdi, [rsp+0x10]
 
-  cmp   rdi, FIELD_TYPE_NUMBER
+  cmp   rdi, FIELD_TYPE_INTEGER
   je    .insert_number
 
   cmp   rdi, FIELD_TYPE_STRING
@@ -286,7 +286,7 @@ model_create:
   ; insert id field
   mov   rdi, [rsp+0x8]
   mov   rsi, id_field_name
-  mov   rdx, FIELD_TYPE_NUMBER
+  mov   rdx, FIELD_TYPE_INTEGER
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -528,7 +528,7 @@ model_read_many:
   mov   [rsp+0x28], rax
 
   ; create json object
-  call  json_create
+  call  json_array_create
   cmp   rax, 0
   jl    .error
 
@@ -539,7 +539,8 @@ model_read_many:
   je    .loop_end
 
   ; convert instance to json object
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x28]
   call  model_instance_to_json
   cmp   rax, 0
   jl    .error
@@ -549,7 +550,7 @@ model_read_many:
   ; add json object
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
-  call  json_insert_object
+  call  json_array_insert_object
   cmp   rax, 0
   jl    .error
 
@@ -573,7 +574,7 @@ model_read_many:
 
 .loop_end:
   mov   rdi, [rsp+0x18]
-  call  json_end
+  call  json_array_end
   cmp   rax, 0
   jl    .error
 
@@ -589,7 +590,7 @@ model_read_many:
 
   ; free json object
   mov   rdi, [rsp+0x18]
-  call  json_free
+  call  json_array_free
   cmp   rax, 0
   jl    .error
 

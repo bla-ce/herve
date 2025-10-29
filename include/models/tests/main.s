@@ -1,7 +1,7 @@
 global _start
 
 %include "herve.inc"
-%include "models.s"
+%include "models_test.s"
 
 section .text
 _start:

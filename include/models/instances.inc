@@ -327,33 +327,163 @@ model_instance_get_next:
 
 ; converts the model instance into a json object
 ; dev is responsible of freeing the json object
-; @param  rdi: pointer to the instance
+; @param  rdi: pointer to the model
+; @param  rsi: pointer to the instance
 ; @return rax: pointer to the json object
 model_instance_to_json:
-  sub   rsp, 0x10
+  sub   rsp, 0x40
 
   ; *** STACK USAGE *** ;
-  ; [rsp]     -> pointer to the pointer to the instance
-  ; [rsp+0x8] -> pointer to the json object
+  ; [rsp]       -> pointer to the pointer to the model
+  ; [rsp+0x8]   -> pointer to the pointer to the instance
+  ; [rsp+0x10]  -> pointer to the json object
+  ; [rsp+0x18]  -> pointer to the fields of the model
+  ; [rsp+0x20]  -> pointer to the field struct
+  ; [rsp+0x28]  -> name of the field
+  ; [rsp+0x30]  -> type of the field
+  ; [rsp+0x38]  -> field value of the instance
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
 
   cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
   jle   .error
 
   call  json_create
   cmp   rax, 0
   jl    .error
 
-  ; TODO
+  mov   [rsp+0x10], rax
 
-  mov   [rsp+0x8], rax
+  ; get fields of the model
+  mov   rdi, [rsp]
+  add   rdi, MODEL_OFF_FIELDS
+
+  mov   [rsp+0x18], rdi
+
+.loop:
+  mov   rdi, [rsp+0x18]
+  cmp   qword [rdi], 0
+  je    .loop_end
+
+  mov   rax, [rdi]
+  mov   [rsp+0x20], rax
+  mov   [rsp+0x18], rax
+
+  ; get name of the field
+  mov   rdi, [rsp+0x20]
+  call  field_get_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  ; get type of the field
+  mov   rdi, [rsp+0x20]
+  call  field_get_type
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
+  ; get value
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, [rsp+0x28]
+  call  model_instance_get
+
+  mov   [rsp+0x38], rax
+
+  ; check the type of the field
+  mov   rdi, [rsp+0x30]
+  cmp   rdi, FIELD_TYPE_INTEGER
+  je    .insert_number
+
+  cmp   rdi, FIELD_TYPE_STRING
+  je    .insert_string
+
+  cmp   rdi, FIELD_TYPE_BOOL
+  je    .insert_bool
+
+  cmp   rdi, FIELD_TYPE_FLOAT
+  je    .insert_bool
+
+  ; unknown type
+  ; TODO: logger
+  jmp   .error
+
+.insert_number:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x28]
+  mov   rdx, [rsp+0x38]
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  jmp   .go_next
+
+.insert_string:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x28]
+  mov   rdx, [rsp+0x38]
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  jmp   .go_next
+
+.insert_bool:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x28]
+  mov   rdx, [rsp+0x38]
+  call  json_insert_bool
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  jmp   .go_next
+
+.insert_float:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x28]
+  mov   rdx, [rsp+0x38]
+  call  json_insert_float
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  jmp   .go_next
+
+.go_next:
+  ; go to next field
+  mov   rdi, [rsp+0x18]
+  add   rdi, FIELD_OFF_NEXT
+
+  mov   [rsp+0x18], rdi
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x10]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
 
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x10]
   test  rdi, rdi
   jz    .no_free
 
@@ -363,5 +493,5 @@ model_instance_to_json:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x40
   ret
