@@ -18,7 +18,7 @@ MODEL_T_LEN equ model_t_end - model_t
 ; offsets
 MODEL_OFF_NAME      equ 0
 MODEL_OFF_FIELDS    equ MODEL_OFF_NAME + 0x8
-MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS
+MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS + 0x8
 MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
@@ -77,9 +77,32 @@ model_add_instance:
   add   rsp, 0x18
   ret
 
-; returns the number of fields the model has
+; sets the current index
 ; @param  rdi: pointer to the model
-; @return rax: number of fields
+; @param  rsi: current index
+; @return rax: return code
+model_set_curr_idx:
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+MODEL_OFF_CURR_IDX], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the current index
+; @param  rdi: pointer to the model
+; @return rax: current index
 model_get_curr_idx:
   cmp   rdi, 0
   jl    .error
@@ -280,6 +303,7 @@ model_create:
   mov   rax, [rsp+0x8]
 
   mov   qword [rax+MODEL_OFF_FIELDS], 0
+  mov   qword [rax+MODEL_OFF_CURR_IDX], 0
   mov   qword [rax+MODEL_OFF_N_FIELDS], 0
   mov   qword [rax+MODEL_OFF_INSTANCES], 0
 
