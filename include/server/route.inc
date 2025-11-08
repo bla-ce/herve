@@ -21,7 +21,7 @@ section .data
   log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
   model_route_root  db "/", NULL_CHAR
-  model_route_id    db "/<id>", NULL_CHAR
+  model_route_id    db "/:id", NULL_CHAR
 
 section .text
 ; logs the route "METHOD  URL"
@@ -974,25 +974,21 @@ cmp_wildcard:
 ; @param  rdx: pointer to the request url
 ; @return rax: same route (bool)
 handle_dynamic_route:
-  sub   rsp, 0x48
+  sub   rsp, 0x38
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the route struct
   ; [rsp+0x8]   -> pointer to the request struct
   ; [rsp+0x10]  -> pointer to the request url
-  ; [rsp+0x18]  -> pointer to the url of the route struct
-  ; [rsp+0x20]  -> number of parameter
-  ; [rsp+0x28]  -> pointer to the hash table
-  ; [rsp+0x30]  -> offset to next slash
-  ; [rsp+0x38]  -> pointer to the key of the parameter
-  ; [rsp+0x40]  -> pointer to the value of the parameter
+  ; [rsp+0x18]  -> dynamic pointer to the request url
+  ; [rsp+0x20]  -> pointer to the url of the route struct
+  ; [rsp+0x28]  -> dynamic pointer to the url of the route struct
+  ; [rsp+0x30]  -> offset of the next parameter
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
-  mov   qword [rsp+0x28], 0
-  mov   qword [rsp+0x38], 0
-  mov   qword [rsp+0x40], 0
+  mov   [rsp+0x18], rdx
 
   cmp   rdi, 0
   jle   .error
@@ -1003,184 +999,109 @@ handle_dynamic_route:
   cmp   rdx, 0
   jle   .error
 
-  mov   rsi, [rsp]
-  mov   rdi, [rsi+ROUTE_OFF_URL]
-  mov   [rsp+0x18], rdi
-
-  ; count the number of parameter
-  mov   rdi, [rsp+0x18]
-  mov   rsi, COLON
-  call  count_char
+  mov   rdi, [rsp]
+  call  get_route_url
   cmp   rax, 0
-  jle   .error
+  jl   .error
 
   mov   [rsp+0x20], rax
-
-  ; create hash table
-  mov   rdi, rax
-  call  ht_create
-  cmp   rax, 0
-  jl    .error
-
   mov   [rsp+0x28], rax
 
-.loop:
-  ; check if there is another parameter to get
+  ; check that the routes are equal
   mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x28]
+
+.loop:
+  ; get the offset of the next parameter
+  mov   rdi, [rsp+0x28]
   mov   rsi, COLON
   call  find_next_char
   cmp   rax, 0
-  jge   .compare  ; if yes, compare until the parameter
+  jl    .get_remaining_length_to_compare
 
-  ; if not, get the remaining length to compare
-  mov   rdi, [rsp+0x18]
+  mov   rdx, rax
+  mov   [rsp+0x30], rax
+
+  jmp   .compare
+
+.get_remaining_length_to_compare:
+  mov   rdi, [rsp+0x28]
   call  strlen
   cmp   rax, 0
   jl    .error
+  je    .equal
+
+  mov   rdx, rax
 
 .compare:
-  mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x18]
-  mov   rcx, rax
-  rep   cmpsb
-  jne    .not_equal
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x28]
+  ; rdx is already populated
+  call  strncmp
+  cmp   rax, 0
+  jl    .error
 
-  mov   [rsp+0x10], rdi
-  mov   [rsp+0x18], rsi
+  cmp   rax, TRUE
+  jne   .not_equal
 
-  ; check if we are at the end (null char)
-  xor   rax, rax
-  add   al, byte [rdi]
-  add   al, byte [rsi]
-  test  rax, rax
-  jz    .equal
+  ; go just before the parameter
+  mov   rdi, [rsp+0x18]
+  add   rdi, qword [rsp+0x30]
+  mov   [rsp+0x18], rdi
 
-  ; go after the parameter and compare the rest of the url
+  mov   rdi, [rsp+0x28]
+  add   rdi, qword [rsp+0x30]
+  mov   [rsp+0x28], rdi
+
+  ; go after the parameter
   mov   rdi, [rsp+0x18]
   mov   rsi, SLASH
   call  find_next_char
   cmp   rax, 0
-  jg    .move_after_param
+  jl    .end_request_url
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
+  add   rdi, rax
+  mov   [rsp+0x18], rdi
+
+  mov   rdi, [rsp+0x28]
   mov   rsi, SLASH
   call  find_next_char
   cmp   rax, 0
-  je    .loop_end
+  jl    .not_equal
+
+  mov   rdi, [rsp+0x28]
+  add   rdi, rax
+  mov   [rsp+0x28], rdi
+
+  jmp   .loop
+
+.end_request_url:
+  ; check if it's the end of the route too
+  mov   rdi, [rsp+0x28]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
   jl    .equal
 
   jmp   .not_equal
 
-.move_after_param:
-  ; save offset
-  mov   [rsp+0x30], rax
-
-  ; get key
-  mov   rdi, [rsp+0x18]
-  inc   rdi         ; go after the '<'
-  mov   rsi, rax
-  dec   rsi         ; remove the '<'
-  call  strndup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x38], rax
-
-  mov   rdi, [rsp+0x18]
-  add   rdi, [rsp+0x30]
-  mov   [rsp+0x18], rdi
-
-  mov   rdi, [rsp+0x10]
-  mov   rsi, SLASH
-  call  find_next_char
-  cmp   rax, 0
-  jle   .not_equal
-
-  ; save offset
-  mov   [rsp+0x30], rax
-
-  ; get value
-  mov   rdi, [rsp+0x10]
-  mov   rsi, rax
-  call  strndup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x40], rax
-
-  mov   rdi, [rsp+0x10]
-  add   rdi, [rsp+0x30]
-  mov   [rsp+0x10], rdi
-
-  ; insert to hash table
-  mov   rdi, [rsp+0x28]
-  mov   rsi, [rsp+0x38]
-  mov   rdx, [rsp+0x40]
-  call  ht_insert
-  cmp   rax, 0
-  jl    .error
-
-  ; free key
-  mov   rdi, [rsp+0x38]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x38], 0
-
-  ; free value
-  mov   rdi, [rsp+0x40]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x40], 0
-
-  jmp   .loop
-
 .loop_end:
-  mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x18]
-  call  strcmp
-  cmp   rax, TRUE
-  jne   .not_equal
 
+  ; get the parameters
 .equal:
-  ; set dynamic parameters ht to request
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x28]
-  call  set_request_dynamic_param
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x38]
-  mov   rsi, [rsp+0x40]
-  xor   rdx, rdx        ; we don't free the ht here
-  call  free_kv_dyn_param
-
   mov   rax, TRUE
-
   jmp   .return
 
 .not_equal:
-  mov   rdi, [rsp+0x38]
-  mov   rsi, [rsp+0x40]
-  mov   rdx, [rsp+0x28]
-  call  free_kv_dyn_param
-
   mov   rax, FALSE
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x38]
-  mov   rsi, [rsp+0x40]
-  mov   rdx, [rsp+0x28]
-  call  free_kv_dyn_param
-
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x48
+  add   rsp, 0x38
   ret
 
 ; frees the key, the value and the hash table if previously mallocd
