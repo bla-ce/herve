@@ -741,7 +741,7 @@ model_read_single:
 .return_object:
   ; add instance to json
   mov   rdi, [rsp+0x8]
-  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x18]
   call  model_instance_to_json
   cmp   rax, 0
   jl    .error
@@ -763,6 +763,7 @@ model_read_single:
   jl    .error
 
   mov   rax, SUCCESS_CODE
+  jmp   .return
 
 .error:
   mov   rdi, [rsp+0x20]
