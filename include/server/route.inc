@@ -974,7 +974,7 @@ cmp_wildcard:
 ; @param  rdx: pointer to the request url
 ; @return rax: same route (bool)
 handle_dynamic_route:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the route struct
@@ -984,11 +984,13 @@ handle_dynamic_route:
   ; [rsp+0x20]  -> pointer to the url of the route struct
   ; [rsp+0x28]  -> dynamic pointer to the url of the route struct
   ; [rsp+0x30]  -> offset of the next parameter
+  ; [rsp+0x38]  -> hash table to store the parameters
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rdx
+  mov   [rsp+0x38], rdx
 
   cmp   rdi, 0
   jle   .error
@@ -1006,6 +1008,20 @@ handle_dynamic_route:
 
   mov   [rsp+0x20], rax
   mov   [rsp+0x28], rax
+
+  ; get number of parameters to create hash table
+  mov   rdi, [rsp+0x20]
+  mov   rsi, COLON
+  call  count_char
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  ht_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x38], rax
 
   ; check that the routes are equal
   mov   rdi, [rsp+0x18]
@@ -1053,6 +1069,14 @@ handle_dynamic_route:
   add   rdi, qword [rsp+0x30]
   mov   [rsp+0x28], rdi
 
+  ; save parameter
+  mov   rdi, [rsp+0x38]
+  mov   rsi, [rsp+0x28]
+  mov   rdx, [rsp+0x18]
+  call  save_parameter
+  cmp   rax, 0
+  jl    .error
+
   ; go after the parameter
   mov   rdi, [rsp+0x18]
   mov   rsi, SLASH
@@ -1086,10 +1110,14 @@ handle_dynamic_route:
 
   jmp   .not_equal
 
-.loop_end:
-
-  ; get the parameters
 .equal:
+  ; set dynamic parameters ht to request
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x38]
+  call  set_request_dynamic_param
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, TRUE
   jmp   .return
 
@@ -1098,10 +1126,132 @@ handle_dynamic_route:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x38]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  ht_free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x40
+  ret
+
+; saves the current parameter inside the hash table
+; @param  rdi: pointer to the hash table
+; @param  rsi: pointer to the route url
+; @param  rdx: pointer to the request url
+; @return rax: return code
+save_parameter:
+  sub   rsp, 0x28
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the hash table
+  ; [rsp+0x8]   -> pointer to the route url
+  ; [rsp+0x10]  -> pointer to the request url
+  ; [rsp+0x18]  -> pointer to the dup key
+  ; [rsp+0x20]  -> pointer to the dup value
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; get parameter name
+  mov   rdi, [rsp+0x8]
+  inc   rdi ; go past ':'
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  jl    .get_key_full_length
+
+  mov   rsi, rax
+  jmp   .dup_key
+
+.get_key_full_length:
+  mov   rdi, [rsp+0x8]
+  inc   rdi ; go past ':'
+  call  strlen
+  cmp   rax, 0
+  jl   .error
+
+  mov   rsi, rax
+
+.dup_key:
+  mov   rdi, [rsp+0x8]
+  inc   rdi
+  ; rsi is already populated
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; get parameter value
+  mov   rdi, [rsp+0x10]
+  mov   rsi, SLASH
+  call  find_next_char
+  cmp   rax, 0
+  jl    .get_value_full_length
+
+  mov   rsi, rax
+  jmp   .dup_value
+
+.get_value_full_length:
+  mov   rdi, [rsp+0x10]
+  call  strlen
+  cmp   rax, 0
+  jl   .error
+
+  mov   rsi, rax
+
+.dup_value:
+  mov   rdi, [rsp+0x10]
+  ; rsi is already populated
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x18]
+  mov   rdx, [rsp+0x20]
+  call  ht_insert
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
+  xor   rdx, rdx        ; we don't free the ht here
+  call  free_kv_dyn_param
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
+  xor   rdx, rdx        ; we don't free the ht here
+  call  free_kv_dyn_param
+
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x28
   ret
 
 ; frees the key, the value and the hash table if previously mallocd
