@@ -910,11 +910,27 @@ model_read_single:
 
   mov   [rsp+0x20], rax
 
+  ; create json response
+  mov   rdi, TRUE
+  xor   rsi, rsi
+  mov   rdx, [rsp+0x20]
+  call  create_json_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
   ; send json
   mov   rdi, [rsp]
   mov   rsi, OK
-  mov   rdx, [rsp+0x20]
+  mov   rdx, [rsp+0x30]
   call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json response
+  mov   rdi, [rsp+0x30]
+  call  json_free
   cmp   rax, 0
   jl    .error
 
