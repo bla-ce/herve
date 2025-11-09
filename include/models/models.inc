@@ -22,7 +22,8 @@ MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS + 0x8
 MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
-model_not_found db " not found", NULL_CHAR
+model_not_found_err       db " not found", NULL_CHAR
+model_internal_server_err db "an unexpected error occured", NULL_CHAR
 
 message_key db "message", NULL_CHAR
 data_key    db "data", NULL_CHAR
@@ -644,7 +645,7 @@ model_get_instances:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_read_many:
-  sub   rsp, 0x30
+  sub   rsp, 0x38
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
@@ -653,11 +654,13 @@ model_read_many:
   ; [rsp+0x18]  -> pointer to the json object
   ; [rsp+0x20]  -> pointer to nested json object
   ; [rsp+0x28]  -> pointer to current instance
+  ; [rsp+0x30]  -> pointer to json response object
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x30], 0
 
   cmp   rdi, 0
   jle   .error
@@ -727,11 +730,27 @@ model_read_many:
 
   mov   [rsp+0x18], rax
 
+  ; create json response
+  mov   rdi, TRUE
+  xor   rsi, rsi
+  mov   rdx, [rsp+0x18]
+  call  create_json_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
   ; send json
   mov   rdi, [rsp]
   mov   rsi, OK
-  mov   rdx, [rsp+0x18]
+  mov   rdx, [rsp+0x30]
   call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json response
+  mov   rdi, [rsp+0x30]
+  call  json_free
   cmp   rax, 0
   jl    .error
 
@@ -758,10 +777,26 @@ model_read_many:
   call  json_free
 
 .no_free:
-  ; return 500
+  ; create json response
+  mov   rdi, FALSE
+  mov   rsi, model_internal_server_err
+  xor   rdx, rdx
+  call  create_json_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
   mov   rdi, [rsp]
   mov   rsi, INTERNAL_SERVER_ERROR
-  call  send_no_content
+  mov   rdx, [rsp+0x30]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json
+  mov   rdi, [rsp+0x30]
+  call  json_free
   cmp   rax, 0
   jl    .error
 
@@ -860,7 +895,7 @@ model_read_single:
 
   ; create message
   mov   rdi, rax
-  mov   rsi, model_not_found
+  mov   rsi, model_not_found_err
   call  strcat
   cmp   rax, 0
   jl    .error
@@ -958,10 +993,26 @@ model_read_single:
   call  json_free
 
 .no_free:
-  ; return 500
+  ; create json response
+  mov   rdi, FALSE
+  mov   rsi, model_internal_server_err
+  xor   rdx, rdx
+  call  create_json_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
   mov   rdi, [rsp]
   mov   rsi, INTERNAL_SERVER_ERROR
-  call  send_no_content
+  mov   rdx, [rsp+0x30]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json
+  mov   rdi, [rsp+0x30]
+  call  json_free
   cmp   rax, 0
   jl    .error
 
