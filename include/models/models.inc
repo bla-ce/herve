@@ -23,6 +23,8 @@ MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
 model_not_found db " with the specified id not found", NULL_CHAR
+error_key       db "error", NULL_CHAR
+message_key     db "message", NULL_CHAR
 
 section .text
 ; removes an instance from the linked list of the model
@@ -846,6 +848,8 @@ model_read_single:
   jmp   .loop
 
 .loop_end:
+
+
   mov   rdi, [rsp]
   mov   rsi, NOT_FOUND
   call  send_no_content

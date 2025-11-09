@@ -4,6 +4,10 @@ Documentation in progress forever...
 
 Check out the examples, then hope that one day, documentation will magically appear. 🪄
 
+Take a look at the models one, I'm proud of this one even though it's still under development.
+
+If you have any feature ideas, feel free to create issues on GitHub.
+
 > [!WARNING]
 > This library is intended for educational purposes only and is not yet ready for production use.
 
