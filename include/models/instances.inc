@@ -3,6 +3,7 @@ section .bss
 instance_t:
   _instance_ht    resq 1  ; pointer to the hash table
   _instance_next  resq 1  ; pointer to the next instance
+  _instance_prev  resq 1  ; pointer to the prev instance
 instance_t_end:
 
 section .data
@@ -12,6 +13,7 @@ INSTANCE_T_LEN equ instance_t_end - instance_t
 ; offsets
 INSTANCE_OFF_HT   equ 0
 INSTANCE_OFF_NEXT equ INSTANCE_OFF_HT + 0x8
+INSTANCE_OFF_PREV equ INSTANCE_OFF_NEXT + 0x8
 
 section .text
 ; creates a new instance of the new model
@@ -41,6 +43,7 @@ model_instance_create:
   mov   [rsp+0x8], rax
 
   mov   qword [rax+INSTANCE_OFF_NEXT], 0
+  mov   qword [rax+INSTANCE_OFF_PREV], 0
 
   ; get number of fields
   mov   rdi, [rsp]
@@ -280,6 +283,7 @@ model_instance_free:
   mov   rax, FAILURE_CODE
 
 .return:
+  add   rsp, 0x8
   ret
 
 ; sets the hash table of the instance
@@ -313,6 +317,69 @@ model_instance_get_ht:
   jle   .error
 
   mov   rax, [rdi+INSTANCE_OFF_HT]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the prev instance of the linked list
+; @param  rdi: pointer to the instance
+; @param  rsi: pointer to the prev instance
+; @return rax: return code
+model_instance_set_prev:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+INSTANCE_OFF_PREV], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the prev instance of the linked list
+; @param  rdi: pointer to the instance
+; @return rax: pointer to the prev instance
+model_instance_get_prev:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+INSTANCE_OFF_PREV]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the next instance of the linked list
+; @param  rdi: pointer to the instance
+; @param  rsi: pointer to the next instance
+; @return rax: return code
+model_instance_set_next:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+INSTANCE_OFF_NEXT], rsi
+
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 

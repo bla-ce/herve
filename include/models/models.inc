@@ -25,20 +25,108 @@ MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 model_not_found db " with the specified id not found", NULL_CHAR
 
 section .text
+; removes an instance from the linked list of the model
+; @param  rdi: pointer to the model struct
+; @param  rsi: pointer to the instance struct
+; @return rax: return code
+model_remove_instance:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the instance struct
+  ; [rsp+0x10]  -> pointer to the prev instance
+  ; [rsp+0x18]  -> pointer to the next instance
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   rdi, [rsp+0x8]
+  call  model_instance_get_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x8]
+  call  model_instance_get_prev
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  cmp   qword [rsp+0x18], 0
+  je    .skip_set_next
+
+  ; update next prev instance
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x10]
+  call  model_instance_set_next
+  cmp   rax, 0
+  jl    .error
+
+.skip_set_next:
+  cmp   qword [rsp+0x10], 0
+  je    .skip_set_prev
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x18]
+  call  model_instance_set_prev
+  cmp   rax, 0
+  jl    .error
+
+.skip_set_prev:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jnz   .skip_update_head
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  call  model_set_instances
+  cmp   rax, 0
+  jl    .error
+
+.skip_update_head:
+  ; free instance
+  mov   rdi, [rsp+0x8]
+  call  model_instance_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
+
 ; add an instance to the linked list of the model
 ; @param  rdi: pointer to the model struct
 ; @param  rsi: pointer to the instance struct
 ; @return rax: return code
 model_add_instance:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance struct
   ; [rsp+0x10]  -> pointer to the linked list
+  ; [rsp+0x18]  -> pointer to the prev instance
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -57,6 +145,8 @@ model_add_instance:
 
   ; go to next
   mov   rsi, [rdi]
+  mov   [rsp+0x18], rsi   ; save prev
+
   add   rsi, INSTANCE_OFF_NEXT
 
   mov   [rsp+0x10], rsi
@@ -64,8 +154,14 @@ model_add_instance:
   jmp   .loop
 
 .insert:
-  mov   rsi, [rsp+0x8]
-  mov   [rdi], rsi
+  mov   rsi, [rsp+0x8]  ; pointer to the instance struct
+  mov   [rdi], rsi      ; next pointer of prev instance
+
+  mov   rdi, rsi
+  mov   rsi, [rsp+0x18]
+  call  model_instance_set_prev
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -74,7 +170,7 @@ model_add_instance:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; sets the current index
@@ -499,6 +595,29 @@ model_field_exist:
   add   rsp, 0x18
   ret
 
+; sets the linked list of instances
+; @param  rdi: pointer to the model struct
+; @param  rsi: linked list of instances
+; @return rax: return code
+model_set_instances:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+MODEL_OFF_INSTANCES], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the linked list of instances
 ; @param  rdi: pointer to the model struct
 ; @return rax: linked list of instances
@@ -792,5 +911,122 @@ model_update:
 model_post:
   ret
 
+; removes an instance of the model from its id
+; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the model struct
+; @return rax: return code
 model_delete:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the model struct
+  ; [rsp+0x10]  -> instance id
+  ; [rsp+0x18]  -> pointer to the linked list of instances
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get context request
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jle   .error
+
+  ; get id from param
+  mov   rdi, rax
+  mov   rsi, id_field_name
+  call  get_dynamic_param
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  stoi
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; get instances linked list
+  mov   rdi, [rsp+0x8]
+  call  model_get_instances
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+.loop:
+  cmp   qword [rsp+0x18], 0
+  je    .loop_end
+
+  ; get id of this instance
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x18]
+  mov   rdx, id_field_name
+  call  model_instance_get
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  cmp   rax, rdi
+  je    .remove_instance
+
+  ; get next instance
+  mov   rdi, [rsp+0x18]
+  call  model_instance_get_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp]
+  mov   rsi, NOT_FOUND
+  call  send_no_content
+  cmp   rax, 0
+  jl    .error
+
+  ; return not found
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.remove_instance:
+  ; add instance to json
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x18]
+  call  model_remove_instance
+  cmp   rax, 0
+  jl    .error
+
+  ; send json
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  call  send_no_content
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  ; return 500
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
