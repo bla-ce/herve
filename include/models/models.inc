@@ -416,6 +416,22 @@ model_create:
   cmp   rax, 0
   jl    .error
 
+  ; insert created_at field
+  mov   rdi, [rsp+0x8]
+  mov   rsi, created_at_field_name
+  mov   rdx, FIELD_TYPE_INTEGER
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
+  ; insert updated_at field
+  mov   rdi, [rsp+0x8]
+  mov   rsi, updated_at_field_name
+  mov   rdx, FIELD_TYPE_INTEGER
+  call  model_insert_field
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, [rsp+0x8]
 
   jmp   .return
@@ -1025,7 +1041,37 @@ model_read_single:
 model_update:
   ret
 
+; TODO: accept json, requires the parse to be implemented
+; creates an instance of the model from the form data
+; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the model struct
+; @return rax: return code
 model_post:
+  sub   rsp, 0x38
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the model struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get form data
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x38
   ret
 
 ; removes an instance of the model from its id
