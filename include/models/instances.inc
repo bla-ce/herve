@@ -94,6 +94,29 @@ model_instance_create:
   cmp   rax, 0
   jl    .error
 
+  ; get now
+  call  now
+  cmp   rax, 0
+  jl    .error
+
+  ; set created_at
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, created_at_field_name
+  mov   rcx, rax
+  call  model_instance_set
+  cmp   rax, 0
+  jl    .error
+
+  ; set updated_at to 0
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, updated_at_field_name
+  xor   rcx, rcx
+  call  model_instance_set
+  cmp   rax, 0
+  jl    .error
+
   ; add the instance to linked list
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]

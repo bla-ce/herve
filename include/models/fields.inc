@@ -25,7 +25,9 @@ FIELD_TYPE_STRING   equ 1
 FIELD_TYPE_BOOL     equ 2
 FIELD_TYPE_FLOAT    equ 3
 
-id_field_name db "id", NULL_CHAR
+id_field_name         db "id", NULL_CHAR
+created_at_field_name db "created_at", NULL_CHAR
+updated_at_field_name db "updated_at", NULL_CHAR
 
 section .text
 ; creates a field
