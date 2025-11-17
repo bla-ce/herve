@@ -4,7 +4,9 @@ LIB_DIR = ../..
 BIN_DIR = bin
 BUILD_DIR = build
 
-ARRAY_PATH = array_test
+TEST_FILES = $(wildcard *.s)
+
+TARGETS := $(patsubst %.s,%,$(TEST_FILES))
 
 INCLUDE_DIRS = \
 	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')
@@ -16,12 +18,15 @@ INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS)
 DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
 
-all:
-	mkdir -p $(BIN_DIR) $(BUILD_DIR)
-	nasm -o $(BUILD_DIR)/$(ARRAY_PATH).o $(ARRAY_PATH).s \
-		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
-	ld -o $(BIN_DIR)/$(ARRAY_PATH) $(BUILD_DIR)/$(ARRAY_PATH).o
-	./$(BIN_DIR)/$(ARRAY_PATH)
+all: $(TARGETS)
+
+$(TARGETS): %: $(BUILD_DIR)/%.o
+	mkdir -p $(BIN_DIR)
+	ld -o $(BIN_DIR)/$@ $<
+
+$(BUILD_DIR)/%.o: %.s
+	mkdir -p $(BUILD_DIR)
+	nasm -o $@ $< $(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
 
 clean:
 	rm -rf $(BIN_DIR) $(BUILD_DIR)

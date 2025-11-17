@@ -15,7 +15,6 @@ ht_entry_struct:
   ht_entry_next  dq 0
 ht_entry_struct_end:
 
-HT_KEY_MAX_LEN  equ 0xFF
 HT_STRUCT_LEN   equ hash_table_struct_end - hash_table_struct
 
 HT_OFF_NBUCKET  equ 0
@@ -315,7 +314,6 @@ ht_get:
   mov   rdi, [rsp+0x8]
   ; compare with wanted key
   call  strcmp
-
   cmp   rax, TRUE
   ; if equal, jmp to the end of the loop
   je    .loop_end

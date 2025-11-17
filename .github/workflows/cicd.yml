@@ -124,4 +124,12 @@ jobs:
 
       - name: Run array tests
         working-directory: lib/utils/tests
-        run: make
+        run: |
+          make
+          ./bin/array_test
+
+      - name: Run ht tests
+        working-directory: lib/utils/tests
+        run: |
+          make
+          ./bin/hash_table_test
