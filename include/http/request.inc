@@ -422,11 +422,6 @@ parse_query_param:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x28]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
   ; go to next
   jmp   .loop
 
@@ -447,18 +442,12 @@ parse_query_param:
 
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
-  mov   rdx, rax
+  mov   rdx, [rsp+0x28]
   call  ht_insert
   cmp   rax, 0
   jl    .error
 
-  ; free last key
-  mov   rdi, [rsp+0x28]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free value
+  ; free key
   mov   rdi, [rsp+0x20]
   call  free
   cmp   rax, 0

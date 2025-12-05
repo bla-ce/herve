@@ -133,3 +133,32 @@ jobs:
         run: |
           make
           ./bin/hash_table_test
+
+  models-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+
+      - name: Build models example
+        working-directory: examples/models
+        run: make
+
+      - name: Start models server
+        working-directory: examples/models
+        run: |
+          make run &
+          echo $! > server.pid
+          sleep 2
+
+      - name: Run models tests
+        run: |
+          chmod +x scripts/test_models.sh
+          ./scripts/test_models.sh
+
+      - name: Stop models server
+        run: kill $(cat examples/models/server.pid)
