@@ -113,23 +113,9 @@ strndup:
   cmp   rsi, 0
   jle   .error
 
-  ; get length of the string
-  mov   rdi, [rsp]
-  call  strlen
-
-  cmp   rax, 0
-  jle   .error
-
-  mov   rbx, qword [rsp+0x8]
-  cmp   rax, rbx
-  cmovg rax, rbx
-
-  mov   qword [rsp+0x8], rax
-
-  mov   rdi, rax
+  mov   rdi, qword [rsp+0x8]
   inc   rdi         ; add one for null char
   call  malloc
-
   cmp   rax, 0
   jl    .error
 

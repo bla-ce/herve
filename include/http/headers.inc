@@ -36,6 +36,8 @@ CONTENT_XML   db "application/xml", NULL_CHAR
 CONNECTION_CLOSE      db "close", NULL_CHAR
 CONNECTION_KEEP_ALIVE db "keep-alive", NULL_CHAR
 
+FORM_ENCODED db "application/x-www-form-urlencoded", NULL_CHAR
+
 CRLF  db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
 
 section .text
@@ -45,7 +47,15 @@ section .text
 parse_headers:
   sub   rsp, 0x28
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the header strings
+  ; [rsp+0x8]   -> pointer to the hash table structure
+  ; [rsp+0x10]  -> dynamic pointer traversing the string
+  ; [rsp+0x18]  -> pointer to the dup key
+  ; [rsp+0x20]  -> pointer to the dup value
+
   mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
 
@@ -56,7 +66,6 @@ parse_headers:
   mov   rdi, [rsp]
   mov   rsi, LINE_FEED
   call  count_char
-
   cmp   rax, 0
   jl    .error
 
@@ -66,7 +75,6 @@ parse_headers:
   ; create a hash table for n entries
   mov   rdi, rax
   call  ht_create
-
   cmp   rax, 0
   jl    .error
 
@@ -81,7 +89,6 @@ parse_headers:
   mov   rdi, [rsp+0x10]
   mov   rsi, COLON
   call  find_next_char
-
   cmp   rax, 0
   jl    .error
   je    .end_loop ; TODO: is it an error?
@@ -95,7 +102,6 @@ parse_headers:
   ; strndup the key
   mov   rsi, rax
   call  strndup
-
   cmp   rax, 0
   jl    .error
 
@@ -122,7 +128,6 @@ parse_headers:
 
   mov   rsi, CARRIAGE_RETURN
   call  find_next_char
-
   cmp   rax, 0
   jl    .last_key
 
@@ -131,19 +136,21 @@ parse_headers:
 .last_key:
   mov   rdi, [rsp+0x10]
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
 .copy_value:
-  ; strndup the value
+  ; get pointer to the value
   mov   rdi, [rsp+0x10]
   mov   rsi, rdi
+
+  ; move pointer after the value
   add   rsi, rax
   mov   [rsp+0x10], rsi
+
+  ; duplicate the value
   mov   rsi, rax
   call  strndup
-
   cmp   rax, 0
   jl    .error
 
@@ -152,19 +159,13 @@ parse_headers:
   ; insert into the hash table
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x18]
-  mov   rdx, rax
+  mov   rdx, [rsp+0x20]
   call  ht_insert
-
   cmp   rax, 0
   jl    .error
 
   ; free key and value
   mov   rdi, [rsp+0x18]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x20]
   call  free
   cmp   rax, 0
   jl    .error
@@ -198,9 +199,16 @@ parse_headers:
 .free_value:
   mov   rdi, [rsp+0x20]
   test  rdi, rdi
-  jz    .no_free
+  jz    .free_ht
 
   call  free
+
+.free_ht:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  ht_free
 
 .no_free:
   mov   rax, FAILURE_CODE
@@ -235,7 +243,6 @@ stringify_headers:
   ; get hash table length
   mov   rdi, [rsp]
   call  ht_get_length
-
   cmp   rax, 0
   jl    .error
 
@@ -250,7 +257,6 @@ stringify_headers:
   ; get all keys
   mov   rdi, [rsp]
   call  ht_get_keys
-
   cmp   rax, 0
   jl    .error
 
@@ -275,7 +281,6 @@ stringify_headers:
   ; get key length
   mov   rdi, [rsp+0x18]
   call  strlen
-
   cmp   rax, 0
   jl    .empty_header
 
@@ -286,14 +291,12 @@ stringify_headers:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x18]
   call  ht_get
-
   cmp   rax, 0
   jl    .error
 
   ; get value length
   mov   rdi, rax
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
@@ -305,6 +308,7 @@ stringify_headers:
 
   jmp   .loop
 .end_loop:
+
   mov   rax, [rsp+0x28]
   mov   [rsp+0x30], rax
 
@@ -434,7 +438,6 @@ set_header:
   ; make sure key and value length are below max lengths
   mov   rdi, [rsp+0x8]
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
@@ -443,7 +446,6 @@ set_header:
 
   mov   rdi, [rsp+0x10]
   call  strlen
-
   cmp   rax, 0
   jl    .error
 
@@ -460,7 +462,6 @@ set_header:
   mov   rsi, rax
   mov   rdx, [rsp+0x10]
   call  ht_insert
-
   cmp   rax, 0
   jl    .error
 
@@ -504,7 +505,6 @@ get_header_value:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   call  ht_get
-
   cmp   rax, 0
   jl    .error
 

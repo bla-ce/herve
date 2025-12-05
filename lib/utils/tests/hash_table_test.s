@@ -4,24 +4,24 @@ global _start
 
 section .data
 
-key1  db "key1", NULL_CHAR
-key2  db "kdy1", NULL_CHAR
-key3  db "key3", NULL_CHAR
-key4  db "key4", NULL_CHAR
-key5  db "key5", NULL_CHAR
+key1  db "Host", NULL_CHAR
+key2  db "User-Agent", NULL_CHAR
+key3  db "Accept", NULL_CHAR
+key4  db "Content-Type", NULL_CHAR
+key5  db "Content-Length", NULL_CHAR
 
-value1  db "value1", NULL_CHAR
-value2  db "value2", NULL_CHAR
-value3  db "value3", NULL_CHAR
-value4  db "value4", NULL_CHAR
-value5  db "value5", NULL_CHAR
+value1  db "localhost:1337", NULL_CHAR
+value2  db "curl/7.88.1", NULL_CHAR
+value3  db "*/*", NULL_CHAR
+value4  db "application/x-www-form-urlencoded", NULL_CHAR
+value5  dq 36
 
 hash_table dq 0
 
 section .text
 
 _start:
-  mov   rdi, 6
+  mov   rdi, 5
   call  ht_create
   cmp   rax, 0
   jl    .error
@@ -58,7 +58,7 @@ _start:
 
   mov   rdi, [hash_table]
   mov   rsi, key5
-  mov   rdx, value5
+  mov   rdx, [value5]
   call  ht_insert
   cmp   rax, 0
   jl    .error
@@ -92,14 +92,21 @@ _start:
   jne   .error
 
   mov   rdi, [hash_table]
-  mov   rsi, key5
-  mov   rdx, value4
-  call  ht_insert
+  mov   rsi, key3
+  call  ht_get
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, value3
+  mov   rsi, rax
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, TRUE
+  jne   .error
+
   mov   rdi, [hash_table]
-  mov   rsi, key5
+  mov   rsi, key4
   call  ht_get
   cmp   rax, 0
   jl    .error
@@ -110,6 +117,15 @@ _start:
   cmp   rax, 0
   jl    .error
   cmp   rax, TRUE
+  jne   .error
+
+  mov   rdi, [hash_table]
+  mov   rsi, key5
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  cmp   [value5], rax
   jne   .error
 
   mov   rdi, SUCCESS_CODE

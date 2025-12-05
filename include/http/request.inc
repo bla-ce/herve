@@ -259,30 +259,85 @@ set_request_body:
 .return:
   ret
 
-; parses the query parameters of the request url
-; @param  rdi: pointer to the request url
+; parses the form data contained inside the body to a hash table
+; @param  rdi: pointer to the request struct
+; @return rax: pointer to the hash table
+parse_form_data:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the request struct
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get headers of the request
+  mov   rdi, [rsp]
+  call  get_request_headers
+  cmp   rax, 0
+  jl    .error
+
+  ; make sure form encoded header is present
+  ; TODO: fix this
+  mov   rdi, rax
+  mov   rsi, CONTENT_TYPE_HEADER
+  call  get_header_value
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, FORM_ENCODED
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, TRUE
+  jne   .error
+
+  ; get body of the request
+  mov   rdi, [rsp]
+  call  get_request_body
+  cmp   rax, 0
+  jl    .error
+
+  ; parses form data
+  mov   rdi, rax
+  call  parse_query_param
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; parses query parameters into a hash table
+; @param  rdi: pointer to encoded data
 ; @return rax: pointer to the hash table
 parse_query_param:
   sub   rsp, 0x30
 
   ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the request url
-  ; [rsp+0x8]   -> dynamic pointer through the url
+  ; [rsp]       -> pointer to the encoded data
+  ; [rsp+0x8]   -> dynamic pointer
   ; [rsp+0x10]  -> number of parameter
   ; [rsp+0x18]  -> pointer to the hash table
   ; [rsp+0x20]  -> pointer to the key
   ; [rsp+0x28]  -> pointer to the value
 
   mov   [rsp], rdi
+  mov   [rsp+0x8], rdi
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x28], 0
 
   cmp   rdi, 0
   jle   .error
-
-  ; save position
-  mov   [rsp+0x8], rdi
 
   ; rdi now points to the beginning of the query param
   ; get the number of '&' to get the number of keys
@@ -419,6 +474,8 @@ parse_query_param:
   jmp   .return
 
 .error:
+  ; TODO: return 500
+
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
   jz    .no_ht_free
@@ -755,18 +812,25 @@ receive_request:
 parse_request:
   sub   rsp, 0x30
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the request struct
+  ; [rsp+0x10]  -> pointer to the request string
+  ; [rsp+0x18]  -> offset to extract request info
+  ; [rsp+0x20]  -> pointer to headers string
+  ; [rsp+0x28]  -> pointer to request url
+
+  mov   [rsp], rdi
+  mov   [rsp+0x10], rsi
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
 
-  mov   [rsp], rdi
-  mov   [rsp+0x10], rsi
-
   ; get request struct
   call  get_ctx_request
-
   cmp   rax, 0
   jl    .error
 
@@ -777,8 +841,6 @@ parse_request:
   mov   rdi, [rsp+0x10]
   mov   rsi, SPACE
   call  find_next_char
-
-  ; if < 0, bad request
   cmp   rax, 0
   jl    .error
 
@@ -814,7 +876,6 @@ parse_request:
   mov   rdi, rsi
   mov   rsi, SPACE
   call  find_next_char
-
   cmp   rax, 0
   jl    .error
 
@@ -889,7 +950,6 @@ parse_request:
   mov   rdi, rsi
   mov   rsi, CRLF
   call  strpos
-
   cmp   rax, 0
   jl    .error
 
@@ -919,7 +979,6 @@ parse_request:
   ; parse headers
   mov   rdi, [rsp+0x20]
   call  parse_headers
-
   cmp   rax, 0
   jl    .error
 
@@ -927,14 +986,12 @@ parse_request:
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  set_request_headers
-
   cmp   rax, 0
   jl    .error
 
   ; free headers string
   mov   rdi, [rsp+0x20]
   call  free
-
   cmp   rax, 0
   jl    .error
 
@@ -942,7 +999,6 @@ parse_request:
   mov   rdi, [rsp+0x10]
   mov   rsi, NULL_CHAR
   call  find_next_char
-
   cmp   rax, 0
   jl    .error
   je    .no_body
@@ -975,7 +1031,6 @@ parse_request:
   ; get request url
   mov   rdi, [rsp+0x8]
   call  get_request_url
-
   cmp   rax, 0
   jl    .error
 
@@ -992,14 +1047,12 @@ parse_request:
   add   rdi, rax
   inc   rdi       ; go after the '?'
   call  parse_query_param
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  set_request_query_param
-
   cmp   rax, 0
   jl    .error
 

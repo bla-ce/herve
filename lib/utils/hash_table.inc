@@ -1,5 +1,5 @@
 ; NOTE: this hash table implementation only supports strings as
-; keys and values
+; keys
 
 section .data
 
@@ -296,7 +296,6 @@ ht_get:
   mov   rsi, [rdi+HT_OFF_TABLE]
 
   ; go to index
-  xor   rdx, rdx
   mov   rax, qword [rsp+0x10]
 
   mov   rdi, [rsi+rax*8]
@@ -536,7 +535,6 @@ ht_insert:
   mov   rax, [rsp+0x38]
   mov   [rdi+HT_ENTRY_OFF_KEY], rax
 
-  mov   rdi, [rsp+0x18]
   mov   rax, [rsp+0x10]
   mov   [rdi+HT_ENTRY_OFF_VALUE], rax
 
@@ -553,11 +551,13 @@ ht_insert:
 
   ; get number of buckets
   mov   rax, [rsp]
+  mov   rsi, qword [rax+HT_OFF_NBUCKET]
 
   ; mod to the number of buckets
   mov   rdi, qword [rsp+0x20]
-  mov   rsi, qword [rax+HT_OFF_NBUCKET]
   call  get_index_from_hash
+  cmp   rax, 0
+  jl    .error
 
   ; store index
   mov   qword [rsp+0x28], rax
@@ -567,15 +567,14 @@ ht_insert:
   mov   rdi, [rsi+HT_OFF_TABLE]
 
   ; check if there is an entry at the index
-  mov   rbx, qword [rsp+0x28]
-
   xor   rdx, rdx
-  mov   rax, rbx
+  mov   rax, qword [rsp+0x28]
   mov   rbx, 8
   mul   rbx
+
   add   rdi, rax
 
-  ; rdi points to the position of the array
+  ; rdi points to the position of the bucket inside the array
   mov   [rsp+0x30], rdi
 
   ; if key is 0, go to store key
@@ -588,7 +587,6 @@ ht_insert:
   mov   rdi, [rax+HT_ENTRY_OFF_KEY]
   mov   rsi, [rsp+0x8]
   call  strcmp
-
   cmp   rax, 0
   jl    .error
   jg    .same_key  ; the key is the same, we can replace
@@ -668,7 +666,6 @@ ht_create:
   ; malloc hash table struct
   mov   rdi, HT_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -688,7 +685,6 @@ ht_create:
   mov   rbx, qword [rsp]
   mov   qword [rdi+HT_OFF_NBUCKET], rbx
 
-  mov   rbx, qword [rsp]
   mov   qword [rdi+HT_OFF_NENTRY], 0
 
   mov   rax, [rsp+0x8]
