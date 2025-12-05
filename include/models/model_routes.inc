@@ -1,3 +1,13 @@
+section .data
+
+model_not_found_err       db " not found", NULL_CHAR
+model_internal_server_err db "an unexpected error occured", NULL_CHAR
+
+message_key db "message", NULL_CHAR
+data_key    db "data", NULL_CHAR
+success_key db "success", NULL_CHAR
+
+model_deleted_msg db " has been deleted", NULL_CHAR
 
 section .text
 ; returns all instances of a model
@@ -143,7 +153,7 @@ model_read_many:
   xor   rdx, rdx
   call  create_json_response
   cmp   rax, 0
-  jl    .error
+  jl    .no_response
 
   mov   [rsp+0x30], rax
 
@@ -152,13 +162,16 @@ model_read_many:
   mov   rdx, [rsp+0x30]
   call  send_JSON
   cmp   rax, 0
-  jl    .error
+  jl    .no_response
 
   ; free json
   mov   rdi, [rsp+0x30]
   call  json_free
   cmp   rax, 0
-  jl    .error
+  jl    .no_response
+
+.no_response:
+  ; TODO: log error
 
   mov   rax, FAILURE_CODE
 
@@ -359,7 +372,7 @@ model_read_single:
   xor   rdx, rdx
   call  create_json_response
   cmp   rax, 0
-  jl    .error
+  jl    .no_response
 
   mov   [rsp+0x30], rax
 
@@ -368,14 +381,15 @@ model_read_single:
   mov   rdx, [rsp+0x30]
   call  send_JSON
   cmp   rax, 0
-  jl    .error
+  jl    .no_response
 
   ; free json
   mov   rdi, [rsp+0x30]
   call  json_free
   cmp   rax, 0
-  jl    .error
+  jl    .no_response
 
+.no_response:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -577,16 +591,20 @@ model_post:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_delete:
-  sub   rsp, 0x20
+  sub   rsp, 0x30
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> instance id
   ; [rsp+0x18]  -> pointer to the linked list of instances
+  ; [rsp+0x20]  -> pointer to the response message
+  ; [rsp+0x28]  -> json response
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x28], 0
 
   cmp   rdi, 0
   jle   .error
@@ -649,6 +667,8 @@ model_delete:
   jmp   .loop
 
 .loop_end:
+  ; TODO: send JSON
+
   mov   rdi, [rsp]
   mov   rsi, NOT_FOUND
   call  send_no_content
@@ -668,10 +688,46 @@ model_delete:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [rsp+0x8]
+  call  model_get_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, model_deleted_msg
+  call  strcat
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; create json response
+  mov   rdi, TRUE
+  mov   rsi, [rsp+0x20]
+  xor   rdx, rdx
+  call  create_json_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
   ; send json
   mov   rdi, [rsp]
   mov   rsi, OK
-  call  send_no_content
+  mov   rdx, [rsp+0x28]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free message
+  mov   rdi, [rsp+0x20]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free json
+  mov   rdi, [rsp+0x28]
+  call  json_free
   cmp   rax, 0
   jl    .error
 
@@ -679,15 +735,39 @@ model_delete:
   jmp   .return
 
 .error:
-  ; return 500
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  ; create json response
+  mov   rdi, FALSE
+  mov   rsi, model_internal_server_err
+  xor   rdx, rdx
+  call  create_json_response
+  cmp   rax, 0
+  jl    .no_response
+
+  mov   [rsp+0x28], rax
+
   mov   rdi, [rsp]
   mov   rsi, INTERNAL_SERVER_ERROR
-  call  send_no_content
+  mov   rdx, [rsp+0x28]
+  call  send_JSON
   cmp   rax, 0
-  jl    .error
+  jl    .no_response
 
+  ; free json
+  mov   rdi, [rsp+0x28]
+  call  json_free
+  cmp   rax, 0
+  jl    .no_response
+
+.no_response:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x30
   ret

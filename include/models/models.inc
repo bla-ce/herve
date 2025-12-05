@@ -22,13 +22,6 @@ MODEL_OFF_CURR_IDX  equ MODEL_OFF_FIELDS + 0x8
 MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
-model_not_found_err       db " not found", NULL_CHAR
-model_internal_server_err db "an unexpected error occured", NULL_CHAR
-
-message_key db "message", NULL_CHAR
-data_key    db "data", NULL_CHAR
-success_key db "success", NULL_CHAR
-
 section .text
 ; removes an instance from the linked list of the model
 ; @param  rdi: pointer to the model struct
