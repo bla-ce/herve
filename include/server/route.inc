@@ -376,6 +376,17 @@ add_model_routes:
   cmp   rax, 0
   jl    .error
 
+  ; PATCH -> model_patch
+  mov   rdi, [rsp]
+  mov   rsi, PATCH
+  mov   rdx, model_route_id
+  mov   rcx, model_patch
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
   ; DELETE -> model_update
   mov   rdi, [rsp]
   mov   rsi, DELETE

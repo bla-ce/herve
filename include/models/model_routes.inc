@@ -184,20 +184,20 @@ model_read_many:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_read_single:
-  sub   rsp, 0x38
+  sub   rsp, 0x30
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
-  ; [rsp+0x10]  -> instance id
-  ; [rsp+0x18]  -> pointer to the linked list of instances
-  ; [rsp+0x20]  -> json object of the instance
-  ; [rsp+0x28]  -> pointer to the response message
-  ; [rsp+0x30]  -> json object of the response
+  ; [rsp+0x10]  -> pointer to the instance
+  ; [rsp+0x18]  -> json object of the instance
+  ; [rsp+0x20]  -> pointer to the response message
+  ; [rsp+0x28]  -> json object of the response
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -223,43 +223,58 @@ model_read_single:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  model_get_instance_by_id
+  cmp   rax, 0
+  jl    .error
+  je    .not_found
+
   mov   [rsp+0x10], rax
 
-  ; get instances linked list
+  ; add instance to json
   mov   rdi, [rsp+0x8]
-  call  model_get_instances
+  mov   rsi, [rsp+0x10]
+  call  model_instance_to_json
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x18], rax
 
-.loop:
-  cmp   qword [rsp+0x18], 0
-  je    .loop_end
-
-  ; get id of this instance
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x18]
-  mov   rdx, id_field_name
-  call  model_instance_get
+  ; create json response
+  mov   rdi, TRUE
+  xor   rsi, rsi
+  mov   rdx, [rsp+0x18]
+  call  create_json_response
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x10]
-  cmp   rax, rdi
-  je    .return_object
+  mov   [rsp+0x28], rax
 
-  ; get next instance
+  ; send json
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, [rsp+0x28]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json response
+  mov   rdi, [rsp+0x28]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  ; free json object
   mov   rdi, [rsp+0x18]
-  call  model_instance_get_next
+  call  json_array_free
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   rax, SUCCESS_CODE
+  jmp   .return
 
-  jmp   .loop
-
-.loop_end:
+.not_found:
   ; get model name
   mov   rdi, [rsp+0x8]
   call  model_get_name
@@ -273,93 +288,50 @@ model_read_single:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x28], rax
+  mov   [rsp+0x20], rax
 
   ; create json response
   mov   rdi, FALSE
-  mov   rsi, [rsp+0x28]
+  mov   rsi, [rsp+0x20]
   xor   rdx, rdx
   call  create_json_response
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x30], rax
+  mov   [rsp+0x28], rax
 
   mov   rdi, [rsp]
   mov   rsi, NOT_FOUND
-  mov   rdx, [rsp+0x30]
+  mov   rdx, [rsp+0x28]
   call  send_JSON
   cmp   rax, 0
   jl    .error
 
   ; free message
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x20]
   call  free
   cmp   rax, 0
   jl    .error
 
   ; free json
-  mov   rdi, [rsp+0x30]
+  mov   rdi, [rsp+0x28]
   call  json_free
   cmp   rax, 0
   jl    .error
 
   mov   rax, SUCCESS_CODE
 
-  jmp   .return
-
-.return_object:
-  ; add instance to json
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x18]
-  call  model_instance_to_json
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
-  ; create json response
-  mov   rdi, TRUE
-  xor   rsi, rsi
-  mov   rdx, [rsp+0x20]
-  call  create_json_response
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x30], rax
-
-  ; send json
-  mov   rdi, [rsp]
-  mov   rsi, OK
-  mov   rdx, [rsp+0x30]
-  call  send_JSON
-  cmp   rax, 0
-  jl    .error
-
-  ; free json response
-  mov   rdi, [rsp+0x30]
-  call  json_free
-  cmp   rax, 0
-  jl    .error
-
-  ; free json object
-  mov   rdi, [rsp+0x20]
-  call  json_array_free
-  cmp   rax, 0
-  jl    .error
-
-  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x20]
   test  rdi, rdi
   jz    .free_json
 
   call  free
 
 .free_json:
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x18]
   test  rdi, rdi
   jz    .no_free
 
@@ -374,17 +346,17 @@ model_read_single:
   cmp   rax, 0
   jl    .no_response
 
-  mov   [rsp+0x30], rax
+  mov   [rsp+0x28], rax
 
   mov   rdi, [rsp]
   mov   rsi, INTERNAL_SERVER_ERROR
-  mov   rdx, [rsp+0x30]
+  mov   rdx, [rsp+0x28]
   call  send_JSON
   cmp   rax, 0
   jl    .no_response
 
   ; free json
-  mov   rdi, [rsp+0x30]
+  mov   rdi, [rsp+0x28]
   call  json_free
   cmp   rax, 0
   jl    .no_response
@@ -393,10 +365,74 @@ model_read_single:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x30
   ret
 
 model_update:
+  ret
+
+; update an instance of a model
+; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the model struct
+; @return rax: return code
+model_patch:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the model struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get context request
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jle   .error
+
+  ; get id from param
+  mov   rdi, rax
+  mov   rsi, id_field_name
+  call  get_dynamic_param
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  stoi
+  cmp   rax, 0
+  jl    .error
+
+  ; get the instance of the model from the id
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  model_get_instance_by_id
+  cmp   rax, 0
+  jl    .error
+
+  ; get fields
+
+  ; update each field of the instance
+
+  ; send json
+
+  ; clean up resources
+
+  mov   rdi, [rsp]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; TODO: accept json, requires the parser to be implemented

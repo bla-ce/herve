@@ -741,3 +741,74 @@ create_json_response:
 .return:
   add   rsp, 0x20
   ret
+
+; returns an instance of a model by ID
+; @param  rdi: pointer to the model struct
+; @param  rsi: id of the instance
+; @return rax:
+;   - pointer to the instance
+;   - or 0 if does not exist
+;   - or -1 if error
+model_get_instance_by_id:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> id of the instance
+  ; [rsp+0x10]  -> linked list of the instances
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+
+  ; get linked list of instances
+  mov   rdi, [rsp]
+  call  model_get_instances
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; loop over the instances and check the id
+.loop:
+  cmp   qword [rsp+0x10], 0
+  je    .loop_end
+
+  ; get id of this instance
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, id_field_name
+  call  model_instance_get
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, [rsp+0x8]
+  je    .loop_end
+
+  ; get next instance
+  mov   rdi, [rsp+0x10]
+  call  model_instance_get_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  jmp   .loop
+
+.loop_end:
+  mov   rax, [rsp+0x10]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret

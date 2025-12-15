@@ -19,7 +19,7 @@ INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS) $(SRC_DIRS)
 DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
 
-echo:
+models:
 	mkdir -p $(BUILD_DIR) $(BIN_DIR)
 	nasm -o $(BUILD_DIR)/$(EXEC).o $(SRC_DIR)/$(EXEC).s \
 		$(INCLUDE_FLAGS) $(DEBUG_FLAGS) $(BASE_FLAGS)
