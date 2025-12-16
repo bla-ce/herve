@@ -22,3 +22,26 @@ help:
 	@echo "Example: make echo"
 
 .PHONY: help test-models test-echo test-static-content test-utils test-all wrk echo static-content models proxy groups
+
+echo:
+	$(MAKE) -C examples/echo
+	$(MAKE) -C examples/echo run
+
+static-content:
+	$(MAKE) -C examples/static-content
+	$(MAKE) -C examples/static-content run
+
+models:
+	$(MAKE) -C examples/models
+	$(MAKE) -C examples/models run
+
+groups:
+	$(MAKE) -C examples/groups
+	$(MAKE) -C examples/groups run
+
+proxy:
+	$(MAKE) -C examples/proxy
+	$(MAKE) -C examples/proxy run-server1&
+	$(MAKE) -C examples/proxy run-server2&
+	$(MAKE) -C examples/proxy run-server3&
+	$(MAKE) -C examples/proxy run-proxy
