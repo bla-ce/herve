@@ -33,7 +33,7 @@ jobs:
 
       - name: Run wrk benchmark
         run: |
-          wrk -t1 -c1 -d30s --latency http://localhost:1337/
+          wrk -t1 -c1 -d30s --latency http://localhost:1337/example
 
       - name: Stop echo server
         run: kill $(cat examples/echo/server.pid)
