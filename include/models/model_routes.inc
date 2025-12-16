@@ -1,7 +1,8 @@
 section .data
 
-model_not_found_err       db " model: instance not found", NULL_CHAR
-model_internal_server_err db " model: An unexpected error occured", NULL_CHAR
+model_not_found_err             db " model: instance not found", NULL_CHAR
+model_internal_server_err       db " model: An unexpected error occured", NULL_CHAR
+model_unprocessable_entity_err  db " model: unable to process this content", NULL_CHAR
 
 message_key db "message", NULL_CHAR
 data_key    db "data", NULL_CHAR
@@ -15,7 +16,7 @@ section .text
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_read_many:
-  sub   rsp, 0x38
+  sub   rsp, 0x30
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
@@ -24,13 +25,11 @@ model_read_many:
   ; [rsp+0x18]  -> pointer to the json object
   ; [rsp+0x20]  -> pointer to nested json object
   ; [rsp+0x28]  -> pointer to current instance
-  ; [rsp+0x30]  -> pointer to json response object
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
-  mov   qword [rsp+0x30], 0
 
   cmp   rdi, 0
   jle   .error
@@ -108,8 +107,7 @@ model_read_many:
   mov   r8, [rsp+0x18]
   mov   r9, TRUE
   call  model_http_response
-  cmp   rax, 0
-  jl    .error
+  ; no need to check the error here
 
   mov   rax, SUCCESS_CODE
 
@@ -141,7 +139,7 @@ model_read_many:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x30
   ret
 
 ; returns an instance of the model from its id
@@ -149,7 +147,7 @@ model_read_many:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_read_single:
-  sub   rsp, 0x30
+  sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
@@ -157,7 +155,6 @@ model_read_single:
   ; [rsp+0x10]  -> pointer to the instance
   ; [rsp+0x18]  -> json object of the instance
   ; [rsp+0x20]  -> pointer to the response message
-  ; [rsp+0x28]  -> json object of the response
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -206,83 +203,27 @@ model_read_single:
 
   mov   [rsp+0x18], rax
 
-  ; create json response
-  mov   rdi, TRUE
-  xor   rsi, rsi
-  mov   rdx, [rsp+0x18]
-  call  create_json_response
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
-
-  ; send json
   mov   rdi, [rsp]
-  mov   rsi, OK
-  mov   rdx, [rsp+0x28]
-  call  send_JSON
-  cmp   rax, 0
-  jl    .error
-
-  ; free json response
-  mov   rdi, [rsp+0x28]
-  call  json_free
-  cmp   rax, 0
-  jl    .error
-
-  ; free json object
-  mov   rdi, [rsp+0x18]
-  call  json_array_free
-  cmp   rax, 0
-  jl    .error
+  mov   rsi, [rsp+0x8]
+  mov   rdx, OK
+  xor   rcx, rcx
+  mov   r8, [rsp+0x18]
+  mov   r9, TRUE
+  call  model_http_response
 
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .not_found:
-  ; get model name
-  mov   rdi, [rsp+0x8]
-  call  model_get_name
-  cmp   rax, 0
-  jl    .error
-
-  ; create message
-  mov   rdi, rax
-  mov   rsi, model_not_found_err
-  call  strcat
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
-  ; create json response
-  mov   rdi, FALSE
-  mov   rsi, [rsp+0x20]
-  xor   rdx, rdx
-  call  create_json_response
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
-
   mov   rdi, [rsp]
-  mov   rsi, NOT_FOUND
-  mov   rdx, [rsp+0x28]
-  call  send_JSON
-  cmp   rax, 0
-  jl    .error
+  mov   rsi, [rsp+0x8]
+  mov   rdx, NOT_FOUND
+  mov   rcx, model_not_found_err
+  xor   r8, r8
+  mov   r9, FALSE
+  call  model_http_response
 
-  ; free message
-  mov   rdi, [rsp+0x20]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free json
-  mov   rdi, [rsp+0x28]
-  call  json_free
-  cmp   rax, 0
-  jl    .error
+  ; TODO: log?
 
   mov   rax, SUCCESS_CODE
 
@@ -303,34 +244,20 @@ model_read_single:
   call  json_free
 
 .no_free:
-  ; create json response
-  mov   rdi, FALSE
-  mov   rsi, model_internal_server_err
-  xor   rdx, rdx
-  call  create_json_response
-  cmp   rax, 0
-  jl    .no_response
-
-  mov   [rsp+0x28], rax
-
   mov   rdi, [rsp]
-  mov   rsi, INTERNAL_SERVER_ERROR
-  mov   rdx, [rsp+0x28]
-  call  send_JSON
-  cmp   rax, 0
-  jl    .no_response
+  mov   rsi, [rsp+0x8]
+  mov   rdx, INTERNAL_SERVER_ERROR
+  mov   rcx, model_internal_server_err
+  xor   r8, r8
+  mov   r9, FALSE
+  call  model_http_response
 
-  ; free json
-  mov   rdi, [rsp+0x28]
-  call  json_free
-  cmp   rax, 0
-  jl    .no_response
+  ; TODO: log?
 
-.no_response:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x28
   ret
 
 model_update:
@@ -407,7 +334,7 @@ model_patch:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_post:
-  sub   rsp, 0x48
+  sub   rsp, 0x40
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
@@ -418,13 +345,11 @@ model_post:
   ; [rsp+0x28]  -> pointer to the new instance
   ; [rsp+0x30]  -> dynamic pointer
   ; [rsp+0x38]  -> json of the instance
-  ; [rsp+0x40]  -> json response
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x28], 0
   mov   qword [rsp+0x38], 0
-  mov   qword [rsp+0x40], 0
 
   cmp   rdi, 0
   jle   .error
@@ -518,46 +443,31 @@ model_post:
 
   mov   [rsp+0x38], rax
 
-  ; create json response
-  mov   rdi, TRUE
-  xor   rsi, rsi
-  mov   rdx, [rsp+0x38]
-  call  create_json_response
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x40], rax
-
-  ; send json
   mov   rdi, [rsp]
-  mov   rsi, CREATED
-  mov   rdx, [rsp+0x40]
-  call  send_JSON
-  cmp   rax, 0
-  jl    .error
-
-  ; free json response
-  mov   rdi, [rsp+0x40]
-  call  json_free
-  cmp   rax, 0
-  jl    .error
-
-  ; free json instance
-  mov   rdi, [rsp+0x38]
-  call  json_free
-  cmp   rax, 0
-  jl    .error
+  mov   rsi, [rsp+0x8]
+  mov   rdx, CREATED
+  xor   rcx, rcx
+  mov   r8, [rsp+0x38]
+  mov   r9, TRUE
+  call  model_http_response
 
   mov   rax, SUCCESS_CODE
   jmp   .return
 
 .internal_server_error:
-  ; TODO: return 500
-  jmp   .error
+  mov   rdx, INTERNAL_SERVER_ERROR
+  mov   rcx, model_internal_server_err
 
 .unprocessable_entity:
-  ; TODO: return 422
-  jmp   .error
+  ; TODO: specify why
+  mov   rdx, UNPROCESSABLE_ENTITY
+  mov   rcx, model_unprocessable_entity_err
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  xor   r8, r8
+  mov   r9, FALSE
+  call  model_http_response
 
 .error:
   mov   rdi, [rsp+0x28]
@@ -569,13 +479,6 @@ model_post:
 .free_json_instance:
   mov   rdi, [rsp+0x38]
   test  rdi, rdi
-  jz    .free_json
-
-  call  json_free
-
-.free_json:
-  mov   rdi, [rsp+0x40]
-  test  rdi, rdi
   jz    .no_free
 
   call  json_free
@@ -584,7 +487,7 @@ model_post:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x48
+  add   rsp, 0x40
   ret
 
 ; removes an instance of the model from its id
@@ -592,7 +495,7 @@ model_post:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_delete:
-  sub   rsp, 0x30
+  sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
@@ -600,12 +503,10 @@ model_delete:
   ; [rsp+0x10]  -> instance id
   ; [rsp+0x18]  -> pointer to the linked list of instances
   ; [rsp+0x20]  -> pointer to the response message
-  ; [rsp+0x28]  -> json response
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x20], 0
-  mov   qword [rsp+0x28], 0
 
   cmp   rdi, 0
   jle   .error
@@ -668,13 +569,13 @@ model_delete:
   jmp   .loop
 
 .loop_end:
-  ; TODO: send JSON
-
   mov   rdi, [rsp]
-  mov   rsi, NOT_FOUND
-  call  send_no_content
-  cmp   rax, 0
-  jl    .error
+  mov   rsi, [rsp+0x8]
+  mov   rdx, NOT_FOUND
+  mov   rcx, model_not_found_err
+  xor   r8, r8
+  mov   r9, FALSE
+  call  model_http_response
 
   ; return not found
   mov   rax, SUCCESS_CODE
@@ -702,35 +603,13 @@ model_delete:
 
   mov   [rsp+0x20], rax
 
-  ; create json response
-  mov   rdi, TRUE
-  mov   rsi, [rsp+0x20]
-  xor   rdx, rdx
-  call  create_json_response
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
-
-  ; send json
   mov   rdi, [rsp]
-  mov   rsi, OK
-  mov   rdx, [rsp+0x28]
-  call  send_JSON
-  cmp   rax, 0
-  jl    .error
-
-  ; free message
-  mov   rdi, [rsp+0x20]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free json
-  mov   rdi, [rsp+0x28]
-  call  json_free
-  cmp   rax, 0
-  jl    .error
+  mov   rsi, [rsp+0x8]
+  mov   rdx, OK
+  mov   rcx, model_deleted_msg
+  xor   r8, r8
+  mov   r9, TRUE
+  call  model_http_response
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -743,15 +622,23 @@ model_delete:
   call  free
 
 .no_free:
-  ; TODO: return http response
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, INTERNAL_SERVER_ERROR
+  mov   rcx, model_internal_server_err
+  xor   r8, r8
+  mov   r9, FALSE
+  call  model_http_response
+
+  ; TODO: log?
 
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x28
   ret
 
-; TODO: function description
+; sends json response to client with optional message and object
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: pointer to the model struct
 ; @param  rdx: status code
