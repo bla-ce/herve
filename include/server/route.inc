@@ -23,6 +23,8 @@ section .data
   model_route_root  db "/", NULL_CHAR
   model_route_id    db "/:id", NULL_CHAR
 
+  health_check_url  db "/healthcheck", NULL_CHAR
+
 section .text
 ; logs the route "METHOD  URL"
 ; @param  rdi: pointer to the route
@@ -1336,4 +1338,28 @@ get_dynamic_param:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; adds a health check endpoint to return server status and memory
+; stats
+; @param  rdi: pointer to the server struct
+; @return rax: return code
+add_healthcheck_route:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rdi, [rsp]
+  mov   rsi, GET
+  mov   rdx, health_check_url
+  mov   rcx, health_check
+  xor   r8, r8
+  xor   r9, r9
+  call  add_route
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret

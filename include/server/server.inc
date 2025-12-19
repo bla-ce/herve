@@ -35,6 +35,12 @@ section .data
   server_init_msg db "Herve started listening on port ", NULL_CHAR
   routes_msg      db LINE_FEED, "Routes available:", NULL_CHAR
 
+  ; healthcheck
+  ok_msg      db "ok", NULL_CHAR
+  mallocd_key db "mallocd (bytes) ", NULL_CHAR
+  mmapd_key   db "mmapd (bytes)", NULL_CHAR
+  freed_key   db "freed (bytes)", NULL_CHAR
+
   STR_PORT_MAX_LENGTH equ 6
 
 section .text
@@ -424,6 +430,17 @@ server_init:
   cmp   rax, 0
   jl    .error
 
+  ; create the healthcheck endpoint
+  mov   rdi, [rsp]
+  mov   rsi, GET
+  mov   rdx, health_check_url
+  mov   rcx, health_check
+  xor   r8, r8
+  xor   r9, r9
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, [rsp]
 
   jmp   .return
@@ -683,4 +700,92 @@ set_404_handler:
   mov   rax, FAILURE_CODE
 
 .return:
+  ret
+
+; returns 200 OK and amount of memory mallocd, freed and mmapd
+; @param  rdi: pointer to the context struct
+health_check:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the context struct
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; create json
+  call  json_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, message_key
+  mov   rdx, ok_msg
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, mallocd_key
+  mov   rdx, qword [mallocd]
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, freed_key
+  mov   rdx, qword [freed]
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, mmapd_key
+  mov   rdx, qword [mmapd]
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, [rsp+0x8]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
