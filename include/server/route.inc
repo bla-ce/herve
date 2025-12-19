@@ -369,7 +369,7 @@ add_model_routes:
   mov   rdi, [rsp]
   mov   rsi, PUT
   mov   rdx, model_route_id
-  mov   rcx, model_update
+  mov   rcx, model_put
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
   call  add_route

@@ -260,10 +260,20 @@ model_read_single:
   add   rsp, 0x28
   ret
 
-model_update:
+; update an instance of a model
+; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the model struct
+; @return rax: return code
+model_put:
+  mov   rdx, NOT_IMPLEMENTED
+  xor   rcx, rcx
+  xor   r8, r8
+  mov   r9, FALSE
+  call  model_http_response
+
   ret
 
-; update an instance of a model
+; patch an instance of a model
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
