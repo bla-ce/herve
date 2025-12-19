@@ -2,6 +2,7 @@ help:
 	@echo "HERVE - Available make targets:"
 	@echo ""
 	@echo "Examples:"
+	@echo "	hello-world: Run hello world server"
 	@echo "	echo: Run echo server"
 	@echo "	static-content: Run example serving static content"
 	@echo "	models: Run example with models"
@@ -21,7 +22,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo "Example: make echo"
 
-.PHONY: help test-models test-echo test-static-content test-utils test-all wrk echo static-content models proxy groups
+.PHONY: help test-models test-echo test-static-content test-utils test-all wrk echo static-content models proxy groups hello-world
 
 echo:
 	$(MAKE) -C examples/echo
@@ -38,6 +39,10 @@ models:
 groups:
 	$(MAKE) -C examples/groups
 	$(MAKE) -C examples/groups run
+
+hello-world:
+	$(MAKE) -C examples/hello-world
+	$(MAKE) -C examples/hello-world run
 
 proxy:
 	$(MAKE) -C examples/proxy
