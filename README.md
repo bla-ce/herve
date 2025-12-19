@@ -33,5 +33,20 @@ After one year and ~20,000 lines of Assembly code, we are still far away from a 
 
 ### Prerequisites
 
-- [nasm](https://www.nasm.us/pub/nasm/releasebuilds/)
-- make
+#### Required
+
+- **NASM** (Netwide Assembler)
+  - [Download NASM](https://www.nasm.us/pub/nasm/releasebuilds/)
+- **GNU Make** - Build automation tool
+  - Usually pre-installed on Linux systems
+- **GNU Linker (ld)** - Part of GNU binutils
+  - Usually pre-installed on Linux systems
+
+#### Optional
+
+- **wrk** - HTTP benchmarking tool (for performance testing)
+  - [wrk GitHub repository](https://github.com/wg/wrk)
+
+#### System Requirements
+
+- Linux x86-64 system

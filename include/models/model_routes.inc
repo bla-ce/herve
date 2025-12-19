@@ -109,6 +109,12 @@ model_read_many:
   call  model_http_response
   ; no need to check the error here
 
+  ; free array
+  mov   rdi, [rsp+0x18]
+  call  json_array_free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -210,6 +216,11 @@ model_read_single:
   mov   r8, [rsp+0x18]
   mov   r9, TRUE
   call  model_http_response
+
+  mov   rdi, [rsp+0x18]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -413,6 +424,12 @@ model_patch:
   mov   r9, TRUE
   call  model_http_response
 
+  ; free list of keys
+  mov   rdi, [rsp+0x28]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -569,6 +586,12 @@ model_post:
   mov   r8, [rsp+0x38]
   mov   r9, TRUE
   call  model_http_response
+
+  ; free list of keys
+  mov   rdi, [rsp+0x20]
+  call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
