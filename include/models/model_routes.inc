@@ -274,6 +274,11 @@ model_patch:
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the instance of the model
+  ; [rsp+0x18]  -> form data in a hash table
+  ; [rsp+0x20]  -> length of the hash table
+  ; [rsp+0x28]  -> pointer to the array of keys
+  ; [rsp+0x30]  -> dynamic pointer
+  ; [rsp+0x38]  -> json of the instance
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
