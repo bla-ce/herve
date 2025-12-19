@@ -45,3 +45,5 @@ proxy:
 	$(MAKE) -C examples/proxy run-server2&
 	$(MAKE) -C examples/proxy run-server3&
 	$(MAKE) -C examples/proxy run-proxy
+
+# TODO: define the other targets

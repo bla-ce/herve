@@ -268,11 +268,12 @@ model_update:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_patch:
-  sub   rsp, 0x10
+  sub   rsp, 0x40
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
+  ; [rsp+0x10]  -> pointer to the instance of the model
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -308,24 +309,127 @@ model_patch:
   cmp   rax, 0
   jl    .error
 
-  ; get fields
+  mov   [rsp+0x10], rax
 
-  ; update each field of the instance
+  ; get fields from the body
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .error
 
-  ; send json
+  ; get form data
+  mov   rdi, rax
+  call  parse_form_data
+  cmp   rax, 0
+  jl    .error
 
-  ; clean up resources
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x18]
+  call  ht_get_length
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; get list of fields
+  mov   rdi, [rsp+0x18]
+  call  ht_get_keys
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  ; update each field
+.loop:
+  dec   qword [rsp+0x20]
+  cmp   qword [rsp+0x20], 0
+  jl    .loop_end
+
+  mov   rsi, [rsp+0x28]
+
+  mov   r9, qword [rsp+0x20]
+
+  ; go to the key
+  mov   rax, [rsi+r9*8]
+
+  mov   [rsp+0x30], rax
+
+  ; check if the key exists
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x30]
+  call  model_field_exist
+  cmp   rax, 0
+  jl    .internal_server_error
+  cmp   rax, TRUE
+  jne   .unprocessable_entity
+
+  ; get the value
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x30]
+  call  ht_get
+
+  ; set field value
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, [rsp+0x30]
+  mov   rcx, rax
+  call  model_instance_set
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  jmp   .loop
+
+.loop_end:
+  ; add instance to json
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  call  model_instance_to_json
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x38], rax
 
   mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, OK
+  xor   rcx, rcx
+  mov   r8, [rsp+0x38]
+  mov   r9, TRUE
+  call  model_http_response
 
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
+.internal_server_error:
+  mov   rdx, INTERNAL_SERVER_ERROR
+  mov   rcx, model_internal_server_err
+
+.unprocessable_entity:
+  ; TODO: specify why
+  mov   rdx, UNPROCESSABLE_ENTITY
+  mov   rcx, model_unprocessable_entity_err
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  xor   r8, r8
+  mov   r9, FALSE
+  call  model_http_response
+
 .error:
+  mov   rdi, [rsp+0x38]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x40
   ret
+
 
 ; TODO: accept json, requires the parser to be implemented
 ; TODO: check for variable types
