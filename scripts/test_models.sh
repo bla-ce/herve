@@ -5,7 +5,8 @@ URL="http://localhost:1337"
 
 declare -A EXPECT_USER_0=( ["id"]=0 ["username"]="user1" ["password"]="pass1" )
 declare -A EXPECT_USER_1=( ["id"]=1 ["username"]="user2" ["password"]="pass2" )
-declare -A EXPECT_POST_USER=( ["id"]=2 ["username"]="user3" ["password"]="pass3" ["age"]=18 )
+declare -A EXPECT_POST_USER=( ["id"]=2 ["username"]="user3" ["password"]="pass3" )
+declare -A EXPECT_PATCH_USER=( ["id"]=0 ["username"]="user1" ["password"]="pass4" )
 
 check_success() {
     local json="$1"
@@ -107,5 +108,18 @@ resp=$(request GET /user)
 check_success "$resp" true
 validate_user_list "$resp" EXPECT_USER_0 EXPECT_USER_1
 echo "Delete list OK"
+
+echo "PATCH user 0"
+resp=$(curl -sS -X PATCH "$URL/user/0" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "password=pass4")
+
+check_success "$resp" true
+validate_user_fields "$resp" EXPECT_PATCH_USER
+
+resp=$(request GET /user)
+check_success "$resp" true
+validate_user_list "$resp" EXPECT_PATCH_USER EXPECT_USER_1
+echo "PATCH user OK"
 
 echo "ALL TESTS PASSED"
