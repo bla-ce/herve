@@ -2,7 +2,7 @@
 set -euo pipefail
 
 URL="http://localhost:1337/"
-DIR="examples/static_content/public"
+DIR="examples/static-content/public"
 
 # check if the directory exists
 if [ ! -d "$DIR" ]; then
