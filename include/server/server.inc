@@ -37,9 +37,18 @@ section .data
 
   ; healthcheck
   ok_msg      db "ok", NULL_CHAR
-  mallocd_key db "mallocd (bytes) ", NULL_CHAR
+  mallocd_key db "mallocd (bytes)", NULL_CHAR
   mmapd_key   db "mmapd (bytes)", NULL_CHAR
   freed_key   db "freed (bytes)", NULL_CHAR
+
+  ; messages
+  message_key db "message", NULL_CHAR
+  success_key db "success", NULL_CHAR
+  error_key   db "error", NULL_CHAR
+
+  memory_corrupted_msg  db "memory is corrupted, freed memory ",
+                        db "is greater than allocated ",
+                        db "memory", NULL_CHAR
 
   STR_PORT_MAX_LENGTH equ 6
 
@@ -722,6 +731,12 @@ health_check:
 
   mov   [rsp+0x8], rax
 
+  mov   rax, qword [mallocd]
+  mov   rbx, qword [freed]
+
+  cmp   rax, rbx
+  jl    .failed_healthcheck
+
   mov   rdi, [rsp+0x8]
   mov   rsi, message_key
   mov   rdx, ok_msg
@@ -772,8 +787,73 @@ health_check:
   cmp   rax, 0
   jl    .error
 
+  ; free json
+  mov   rdi, [rsp+0x8]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SUCCESS_CODE
 
+  jmp   .return
+
+.failed_healthcheck:
+  mov   rdi, [rsp+0x8]
+  mov   rsi, error_key
+  mov   rdx, memory_corrupted_msg
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, mallocd_key
+  mov   rdx, qword [mallocd]
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, freed_key
+  mov   rdx, qword [freed]
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, mmapd_key
+  mov   rdx, qword [mmapd]
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  mov   rdx, [rsp+0x8]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:

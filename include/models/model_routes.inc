@@ -4,9 +4,7 @@ model_not_found_err             db " model: instance not found", NULL_CHAR
 model_internal_server_err       db " model: An unexpected error occured", NULL_CHAR
 model_unprocessable_entity_err  db " model: unable to process this content", NULL_CHAR
 
-message_key db "message", NULL_CHAR
 data_key    db "data", NULL_CHAR
-success_key db "success", NULL_CHAR
 
 model_deleted_msg db " model: instance has been deleted", NULL_CHAR
 
