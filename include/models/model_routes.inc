@@ -274,12 +274,191 @@ model_read_single:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_put:
-  mov   rdx, NOT_IMPLEMENTED
+  sub   rsp, 0x38
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the model struct
+  ; [rsp+0x10]  -> pointer to the instance of the model
+  ; [rsp+0x18]  -> pointer to form data (hash table)
+  ; [rsp+0x20]  -> pointer to fields linked list of the model
+  ; [rsp+0x28]  -> name of the current field
+  ; [rsp+0x30]  -> pointer to the json of the instance
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x30], 0
+
+  cmp   rdi, 0
+  jl    .internal_server_error
+
+  cmp   rsi, 0
+  jl    .internal_server_error
+
+  ; get request
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; get id from param
+  mov   rdi, rax
+  mov   rsi, id_field_name
+  call  get_dynamic_param
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   rdi, rax
+  call  stoi
+  cmp   rax, 0
+  jl    .create_instance
+
+  ; get the instance of the model from the id
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  model_get_instance_by_id
+  cmp   rax, 0
+  jl    .internal_server_error
+  je    .create_instance
+
+  mov   [rsp+0x10], rax
+
+  jmp   .populate_fields
+
+.create_instance:
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  model_post
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  jmp   .return
+
+.populate_fields:
+  ; get fields from the body
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; get form data
+  mov   rdi, rax
+  call  parse_form_data
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   [rsp+0x18], rax
+
+  ; get list of model fields
+  mov   rdi, [rsp+0x8]
+  call  model_get_fields
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   [rsp+0x20], rax
+
+.loop:
+  mov   rdi, [rsp+0x20]
+  call  field_get_name
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   [rsp+0x28], rax
+
+  ; get value
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x28]
+  call  ht_get
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, [rsp+0x28]
+  mov   rcx, rax
+  call  model_instance_set
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; go to next field
+  mov   rsi, [rsp+0x20]
+  mov   rdi, qword [rsi+FIELD_OFF_NEXT]
+  mov   [rsp+0x20], rdi
+
+  test  rdi, rdi
+  jz    .loop_end
+
+  jmp   .loop
+
+.loop_end:
+  ; add instance to json
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  call  model_instance_to_json
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   [rsp+0x30], rax
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, OK
   xor   rcx, rcx
+  mov   r8, [rsp+0x30]
+  mov   r9, TRUE
+  call  model_http_response
+
+  mov   rdi, [rsp+0x18]
+  call  ht_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x30]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.internal_server_error:
+  mov   rdx, INTERNAL_SERVER_ERROR
+  mov   rcx, model_internal_server_err
+  jmp   .send_response
+
+.unprocessable_entity:
+  ; TODO: specify why
+  mov   rdx, UNPROCESSABLE_ENTITY
+  mov   rcx, model_unprocessable_entity_err
+
+.send_response:
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
   xor   r8, r8
   mov   r9, FALSE
   call  model_http_response
 
+.error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_json
+
+  call  ht_free
+
+.free_json:
+  mov   rdi, [rsp+0x30]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x38
   ret
 
 ; patch an instance of a model
@@ -434,12 +613,14 @@ model_patch:
 .internal_server_error:
   mov   rdx, INTERNAL_SERVER_ERROR
   mov   rcx, model_internal_server_err
+  jmp   .send_response
 
 .unprocessable_entity:
   ; TODO: specify why
   mov   rdx, UNPROCESSABLE_ENTITY
   mov   rcx, model_unprocessable_entity_err
 
+.send_response:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   xor   r8, r8
