@@ -46,6 +46,9 @@ free_response:
   cmp   rdi, 0
   jl    .error
 
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the response struct
+
   mov   [rsp], rdi
 
 .free_headers:

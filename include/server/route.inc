@@ -23,7 +23,7 @@ section .data
   model_route_root  db "/", NULL_CHAR
   model_route_id    db "/:id", NULL_CHAR
 
-  health_check_url  db "/healthcheck", NULL_CHAR
+  health_check_url  db "/health", NULL_CHAR
 
 section .text
 ; logs the route "METHOD  URL"
@@ -1131,10 +1131,21 @@ handle_dynamic_route:
   cmp   rax, 0
   jl    .error
 
+  ; free hash table
+  mov   rdi, [rsp+0x38]
+  call  ht_free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, TRUE
   jmp   .return
 
 .not_equal:
+  mov   rdi, [rsp+0x38]
+  call  ht_free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, FALSE
   jmp   .return
 
