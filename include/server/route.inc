@@ -1131,12 +1131,6 @@ handle_dynamic_route:
   cmp   rax, 0
   jl    .error
 
-  ; free hash table
-  mov   rdi, [rsp+0x38]
-  call  ht_free
-  cmp   rax, 0
-  jl    .error
-
   mov   rax, TRUE
   jmp   .return
 
