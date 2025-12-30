@@ -392,6 +392,19 @@ model_put:
   jmp   .loop
 
 .loop_end:
+  ; updated_at field
+  call  now
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, updated_at_field_name
+  mov   rcx, rax
+  call  model_instance_set
+  cmp   rax, 0
+  jl    .internal_server_error
+
   ; add instance to json
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
@@ -584,6 +597,19 @@ model_patch:
   jmp   .loop
 
 .loop_end:
+  ; updated_at field
+  call  now
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, updated_at_field_name
+  mov   rcx, rax
+  call  model_instance_set
+  cmp   rax, 0
+  jl    .internal_server_error
+
   ; add instance to json
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
