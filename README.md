@@ -30,23 +30,3 @@ No, I want developers to be able to spin up a webserver with 70 lines of Assembl
 After one year and ~20,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
 
 (of course, this library is also intended to show off).
-
-### Prerequisites
-
-#### Required
-
-- **NASM** (Netwide Assembler)
-  - [Download NASM](https://www.nasm.us/pub/nasm/releasebuilds/)
-- **GNU Make** - Build automation tool
-  - Usually pre-installed on Linux systems
-- **GNU Linker (ld)** - Part of GNU binutils
-  - Usually pre-installed on Linux systems
-
-#### Optional
-
-- **wrk** - HTTP benchmarking tool (for performance testing)
-  - [wrk GitHub repository](https://github.com/wg/wrk)
-
-#### System Requirements
-
-- Linux x86-64 system

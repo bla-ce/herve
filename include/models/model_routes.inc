@@ -584,6 +584,8 @@ model_patch:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x30]
   call  ht_get
+  cmp   rax, 0
+  jl    .error
 
   ; set field value
   mov   rdi, [rsp+0x8]
