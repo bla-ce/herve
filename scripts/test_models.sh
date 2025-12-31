@@ -5,7 +5,7 @@ URL="http://localhost:1337"
 
 declare -A EXPECT_USER_0=( ["id"]=0 ["username"]="user1" ["password"]="pass1" )
 declare -A EXPECT_USER_1=( ["id"]=1 ["username"]="user2" ["password"]="pass2" )
-declare -A EXPECT_POST_USER=( ["id"]=2 ["username"]="user3" ["password"]="pass3" )
+declare -A EXPECT_POST_USER=( ["id"]=2 ["username"]="user3" ["password"]="pass3" ["age"]="18")
 declare -A EXPECT_PATCH_USER=( ["id"]=0 ["username"]="user1" ["password"]="pass4" )
 
 check_success() {

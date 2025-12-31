@@ -240,3 +240,63 @@ field_free:
 .return:
   add   rsp, 0x8
   ret
+
+; converts the value of the field depending on its type
+; @param  rdi: pointer to the field struct
+; @param  rsi: value
+; @return rax: converted value
+field_convert_value:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the field struct
+  ; [rsp+0x8] -> value
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; get type of the field
+  mov   rdi, [rsp]
+  call  field_get_type
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, FIELD_TYPE_INTEGER
+  je    .to_integer
+
+  cmp   rax, FIELD_TYPE_STRING
+  je    .to_string
+
+  cmp   rax, FIELD_TYPE_BOOL
+  je    .to_bool
+
+  ; unknown / not implemented type
+  jmp   .error
+
+.to_integer:
+  mov   rdi, [rsp+0x8]
+  call  stoi
+
+  jmp   .return
+
+.to_bool:
+  mov   rdi, [rsp+0x8]
+  call  string_to_bool
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.to_string:
+  mov   rax, [rsp+0x8]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret

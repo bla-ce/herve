@@ -577,8 +577,7 @@ model_patch:
   call  model_field_exist
   cmp   rax, 0
   jl    .internal_server_error
-  cmp   rax, TRUE
-  jne   .unprocessable_entity
+  je    .unprocessable_entity
 
   ; get the value
   mov   rdi, [rsp+0x18]
@@ -677,7 +676,7 @@ model_patch:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_post:
-  sub   rsp, 0x40
+  sub   rsp, 0x48
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
@@ -687,12 +686,13 @@ model_post:
   ; [rsp+0x20]  -> array of ht keys
   ; [rsp+0x28]  -> pointer to the new instance
   ; [rsp+0x30]  -> dynamic pointer
-  ; [rsp+0x38]  -> json of the instance
+  ; [rsp+0x38]  -> pointer to the current field struct
+  ; [rsp+0x40]  -> json of the instance
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x28], 0
-  mov   qword [rsp+0x38], 0
+  mov   qword [rsp+0x40], 0
 
   cmp   rdi, 0
   jle   .error
@@ -757,13 +757,22 @@ model_post:
   call  model_field_exist
   cmp   rax, 0
   jl    .internal_server_error
-  cmp   rax, TRUE
-  jne   .unprocessable_entity
+  je    .unprocessable_entity
+
+  ; save field structure on the stack
+  mov   [rsp+0x38], rax
 
   ; get the value
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x30]
   call  ht_get
+
+  ; convert the value to the right type
+  mov   rdi, [rsp+0x38]
+  mov   rsi, rax
+  call  field_convert_value
+  cmp   rax, 0
+  jl    .error
 
   ; set field value
   mov   rdi, [rsp+0x8]
@@ -784,13 +793,13 @@ model_post:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x38], rax
+  mov   [rsp+0x40], rax
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, CREATED
   xor   rcx, rcx
-  mov   r8, [rsp+0x38]
+  mov   r8, [rsp+0x40]
   mov   r9, TRUE
   call  model_http_response
 
@@ -826,7 +835,7 @@ model_post:
   call  free
 
 .free_json_instance:
-  mov   rdi, [rsp+0x38]
+  mov   rdi, [rsp+0x40]
   test  rdi, rdi
   jz    .no_free
 
@@ -836,7 +845,7 @@ model_post:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x40
+  add   rsp, 0x48
   ret
 
 ; removes an instance of the model from its id

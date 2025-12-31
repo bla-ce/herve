@@ -599,7 +599,9 @@ model_field_exist:
   jmp   .return
 
 .exist:
-  mov   rax, TRUE
+  mov   rdi, [rsp+0x10]
+
+  mov   rax, [rdi]
   jmp   .return
 
 .error:

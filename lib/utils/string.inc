@@ -9,6 +9,9 @@ section .data
 
   CASE_DIFFERENCE equ LOWERCASE_A - UPPERCASE_A
 
+  str_true  db "true", NULL_CHAR
+  str_false db "false", NULL_CHAR
+
 section .text
 ; returns if a string starts with a substring
 ; @param  rdi: string
@@ -953,6 +956,7 @@ strcat:
   ret
 
 ; converts a string to uppercase
+; WARNING: this method edits the string
 ; @param  rdi: pointer to the string
 ; @return rax: string to uppercase or -1 on error
 to_upper:
@@ -1001,6 +1005,7 @@ to_upper:
   ret
 
 ; converts a string to lowercase
+; WARNING: this method edits the string
 ; @param  rdi: pointer to the string
 ; @return rax: string to lowercase or -1 on error
 to_lower:
@@ -1047,7 +1052,61 @@ to_lower:
   ret
 
 ; converts a string
+; WARNING: the to_lower method inside this method replaces the
+; string and does not copy it.
 ; @param  rdi: pointer to a string
 ; @return rax: string converted to a boolean
 string_to_bool:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the string
+  ; [rsp+0x8] -> pointer to the lowercase string
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; convert string to lowercase
+  mov   rdi, [rsp]
+  call  to_lower
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, str_true
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .true
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, str_false
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .false
+
+  jmp   .error
+
+.true:
+  mov   rax, TRUE
+  jmp   .return
+
+.false:
+  mov   rax, FALSE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret

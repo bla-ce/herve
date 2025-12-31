@@ -183,10 +183,7 @@ model_instance_set:
   mov   rsi, [rsp+0x10]
   call  model_field_exist
   cmp   rax, 0
-  jl    .error
-
-  cmp   rax, TRUE
-  jne   .error
+  jle   .error
 
   ; get hash table
   mov   rdi, [rsp+0x8]
@@ -243,10 +240,7 @@ model_instance_get:
   mov   rsi, [rsp+0x10]
   call  model_field_exist
   cmp   rax, 0
-  jl    .error
-
-  cmp   rax, TRUE
-  jne   .error
+  jle   .error
 
   mov   rdi, [rsp+0x8]
   call  model_instance_get_ht
