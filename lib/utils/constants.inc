@@ -15,4 +15,7 @@ STDERR_FILENO equ 2
 
 BUFSIZ equ 1024
 
+; default arguments
+NO_ARG equ 0
+
 %endif

@@ -7,6 +7,8 @@ section .data
 
   TO_STRING_MAX_STR_SIZE equ 22
 
+  CASE_DIFFERENCE equ LOWERCASE_A - UPPERCASE_A
+
 section .text
 ; returns if a string starts with a substring
 ; @param  rdi: string
@@ -948,4 +950,104 @@ strcat:
 
 .return:
   add   rsp, 0x28
+  ret
+
+; converts a string to uppercase
+; @param  rdi: pointer to the string
+; @return rax: string to uppercase or -1 on error
+to_upper:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the string
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+.loop:
+  xor   rax, rax
+  mov   al, byte [rdi]
+
+  cmp   al, NULL_CHAR
+  je    .loop_end
+
+  ; make sure it's valid character
+  cmp   al, LOWERCASE_A
+  jl    .skip
+
+  cmp   al, LOWERCASE_Z
+  jg    .skip
+
+.to_upper:
+  ; is lower
+  sub   byte [rdi], CASE_DIFFERENCE
+
+.skip:
+  inc   rdi
+  jmp   .loop
+
+.loop_end:
+  mov   rax, [rsp]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; converts a string to lowercase
+; @param  rdi: pointer to the string
+; @return rax: string to lowercase or -1 on error
+to_lower:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp] -> pointer to the string
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+.loop:
+  xor   rax, rax
+  mov   al, byte [rdi]
+
+  cmp   al, NULL_CHAR
+  je    .loop_end
+
+  cmp   al, UPPERCASE_Z
+  jg    .skip
+
+  cmp   al, UPPERCASE_A
+  jl    .skip
+
+.to_lower:
+  add   byte [rdi], CASE_DIFFERENCE
+
+.skip:
+  inc   rdi
+  jmp   .loop
+
+.loop_end:
+  mov   rax, [rsp]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; converts a string
+; @param  rdi: pointer to a string
+; @return rax: string converted to a boolean
+string_to_bool:
   ret

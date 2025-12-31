@@ -128,6 +128,12 @@ jobs:
           make
           ./bin/array_test
 
+      - name: Run string tests
+        working-directory: lib/utils/tests
+        run: |
+          make
+          ./bin/string_test
+
       - name: Run ht tests
         working-directory: lib/utils/tests
         run: |
