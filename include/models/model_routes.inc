@@ -479,7 +479,7 @@ model_put:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_patch:
-  sub   rsp, 0x40
+  sub   rsp, 0x48
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
@@ -489,10 +489,12 @@ model_patch:
   ; [rsp+0x20]  -> length of the hash table
   ; [rsp+0x28]  -> pointer to the array of keys
   ; [rsp+0x30]  -> dynamic pointer
-  ; [rsp+0x38]  -> json of the instance
+  ; [rsp+0x38]  -> pointer to the current field struct
+  ; [rsp+0x40]  -> json of the instance
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x40], 0
 
   cmp   rdi, 0
   jle   .error
@@ -524,6 +526,7 @@ model_patch:
   call  model_get_instance_by_id
   cmp   rax, 0
   jl    .error
+  je    .not_found
 
   mov   [rsp+0x10], rax
 
@@ -579,12 +582,21 @@ model_patch:
   jl    .internal_server_error
   je    .unprocessable_entity
 
+  mov   [rsp+0x38], rax
+
   ; get the value
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x30]
   call  ht_get
   cmp   rax, 0
   jl    .error
+
+  ; convert the value to the right type
+  mov   rdi, [rsp+0x38]
+  mov   rsi, rax
+  call  field_convert_value
+  cmp   rax, 0
+  jl    .internal_server_error
 
   ; set field value
   mov   rdi, [rsp+0x8]
@@ -618,19 +630,24 @@ model_patch:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x38], rax
+  mov   [rsp+0x40], rax
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, OK
   xor   rcx, rcx
-  mov   r8, [rsp+0x38]
+  mov   r8, [rsp+0x40]
   mov   r9, TRUE
   call  model_http_response
 
   ; free list of keys
   mov   rdi, [rsp+0x28]
   call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x40]
+  call  json_free
   cmp   rax, 0
   jl    .error
 
@@ -646,6 +663,11 @@ model_patch:
   ; TODO: specify why
   mov   rdx, UNPROCESSABLE_ENTITY
   mov   rcx, model_unprocessable_entity_err
+  jmp   .send_response
+
+.not_found:
+  mov   rdx, NOT_FOUND
+  mov   rcx, model_not_found_err
 
 .send_response:
   mov   rdi, [rsp]
@@ -655,7 +677,7 @@ model_patch:
   call  model_http_response
 
 .error:
-  mov   rdi, [rsp+0x38]
+  mov   rdi, [rsp+0x40]
   test  rdi, rdi
   jz    .no_free
 
@@ -665,7 +687,7 @@ model_patch:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x40
+  add   rsp, 0x48
   ret
 
 
