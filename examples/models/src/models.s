@@ -27,6 +27,7 @@ create_user_model:
   mov   rsi, field_username
   mov   rdx, FIELD_TYPE_STRING
   mov   rcx, 32
+  mov   r8, TRUE
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -35,6 +36,7 @@ create_user_model:
   mov   rsi, field_password
   mov   rdx, FIELD_TYPE_STRING
   mov   rcx, 128
+  mov   r8, TRUE
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -42,6 +44,7 @@ create_user_model:
   mov   rdi, [rsp]
   mov   rsi, field_age
   mov   rdx, FIELD_TYPE_INTEGER
+  mov   r8, TRUE
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -49,6 +52,7 @@ create_user_model:
   mov   rdi, [rsp]
   mov   rsi, field_active
   mov   rdx, FIELD_TYPE_BOOL
+  mov   r8, TRUE
   call  model_insert_field
   cmp   rax, 0
   jl    .error

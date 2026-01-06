@@ -1,10 +1,11 @@
 section .bss
 
 field_t:
-  _field_name  resq 1  ; pointer to the name of the field
-  _field_type  resq 1  ; field type
-  _field_arg   resq 1  ; specific argument for the field
-  _field_next  resq 1  ; next field
+  _field_name  resq 1     ; pointer to the name of the field
+  _field_type  resq 1     ; field type
+  _field_arg   resq 1     ; specific argument for the field
+  _field_required resq 1  ; whether the field is required for POST
+  _field_next  resq 1     ; next field
 field_t_end:
 
 section .data
@@ -14,10 +15,11 @@ FIELD_NAME_MAX_LEN  equ 0xFF
 FIELD_T_LEN equ field_t_end - field_t
 
 ; offsets
-FIELD_OFF_NAME  equ 0
-FIELD_OFF_TYPE  equ FIELD_OFF_NAME + 0x8
-FIELD_OFF_ARG   equ FIELD_OFF_TYPE + 0x8
-FIELD_OFF_NEXT  equ FIELD_OFF_ARG + 0x8
+FIELD_OFF_NAME      equ 0
+FIELD_OFF_TYPE      equ FIELD_OFF_NAME + 0x8
+FIELD_OFF_ARG       equ FIELD_OFF_TYPE + 0x8
+FIELD_OFF_REQUIRED  equ FIELD_OFF_ARG + 0x8
+FIELD_OFF_NEXT      equ FIELD_OFF_REQUIRED + 0x8
 
 ; field types
 FIELD_TYPE_INTEGER  equ 0
@@ -34,20 +36,23 @@ section .text
 ; @param  rdi: pointer to the name of the field
 ; @param  rsi: field type
 ; @param  rdx: arg
+; @param  rcx: whether the field is required
 ; @return rax: pointer to the field struct
 field_create:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the name of the field
   ; [rsp+0x8]   -> field type
   ; [rsp+0x10]  -> arg
-  ; [rsp+0x18]  -> pointer to the field struct
+  ; [rsp+0x18]  -> whether the field is required
+  ; [rsp+0x20]  -> pointer to the field struct
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
-  mov   qword [rsp+0x18], 0
+  mov   [rsp+0x18], rcx
+  mov   qword [rsp+0x20], 0
 
   cmp   rdi, 0
   jle   .error
@@ -55,7 +60,7 @@ field_create:
   cmp   rsi, 0
   jl    .error
 
-  cmp   rsi, 2
+  cmp   rsi, FIELD_TYPE_FLOAT
   jg    .error
 
   mov   rdi, FIELD_T_LEN
@@ -63,32 +68,38 @@ field_create:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp]
   call  field_set_name
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x8]
   call  field_set_type
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x10]
   call  field_set_arg
   cmp   rax, 0
   jl    .error
 
-  mov   rax, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x18]
+  call  field_set_required
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x20]
 
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   test  rdi, rdi
   jz    .no_free
 
@@ -98,7 +109,7 @@ field_create:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; sets the type of the field
@@ -131,6 +142,45 @@ field_get_type:
   jle   .error
 
   mov   rax, [rdi+FIELD_OFF_TYPE]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the required flag of the field
+; @param  rdi: pointer to the field struct
+; @param  rsi: whether the field is required
+; @return rax: return code
+field_set_required:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+FIELD_OFF_REQUIRED], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the required flag of the field
+; @param  rdi: pointer to the field struct
+; @return rax: whether the field is required
+field_get_required:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+FIELD_OFF_REQUIRED]
 
   jmp   .return
 

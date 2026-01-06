@@ -233,20 +233,23 @@ model_get_n_fields:
 ; @param  rsi: field name
 ; @param  rdx: field type
 ; @param  rcx: field spec arg
+; @param  r8: field is required
 ; @return rax: return code
 model_insert_field:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the field name
   ; [rsp+0x10]  -> field type
   ; [rsp+0x18]  -> field spec arg
+  ; [rsp+0x20]  -> field spec required
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rcx
+  mov   [rsp+0x20], rcx
 
   cmp   rdi, 0
   jle   .error
@@ -281,12 +284,14 @@ model_insert_field:
   jmp   .create_field
 
 .insert_bool:
+  ; TODO: validate boolean
   jmp   .create_field
 
 .create_field:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x18]
+  mov   rcx, [rsp+0x20]
   call  field_create
   cmp   rax, 0
   jl    .error
@@ -310,7 +315,7 @@ model_insert_field:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; appends a field struct to the linked list of field
@@ -405,6 +410,8 @@ model_create:
   mov   rdi, [rsp+0x8]
   mov   rsi, id_field_name
   mov   rdx, FIELD_TYPE_INTEGER
+  xor   rcx, rcx
+  mov   r8, TRUE
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -413,6 +420,9 @@ model_create:
   mov   rdi, [rsp+0x8]
   mov   rsi, created_at_field_name
   mov   rdx, FIELD_TYPE_INTEGER
+  xor   rcx, rcx
+  ; this field is not required when creating/updating instance
+  mov   r8, FALSE
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -421,6 +431,9 @@ model_create:
   mov   rdi, [rsp+0x8]
   mov   rsi, updated_at_field_name
   mov   rdx, FIELD_TYPE_INTEGER
+  xor   rcx, rcx
+  ; this field is not required when creating/updating instance
+  mov   r8, FALSE
   call  model_insert_field
   cmp   rax, 0
   jl    .error

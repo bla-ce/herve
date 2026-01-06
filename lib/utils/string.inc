@@ -1051,7 +1051,7 @@ to_lower:
   add   rsp, 0x8
   ret
 
-; converts a string
+; converts a string to a boolean
 ; WARNING: the to_lower method inside this method replaces the
 ; string and does not copy it.
 ; @param  rdi: pointer to a string
