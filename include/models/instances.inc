@@ -16,6 +16,73 @@ INSTANCE_OFF_NEXT equ INSTANCE_OFF_HT + 0x8
 INSTANCE_OFF_PREV equ INSTANCE_OFF_NEXT + 0x8
 
 section .text
+; validates and saves an instance to the model
+; if strict mode is not set, the validation will be skipped
+; @param  rdi: pointer the model struct
+; @param  rsi: pointer to the instance
+; @param  rdx: strict mode
+; @return rax: return code
+model_instance_save:
+; TODO: not implemented
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the instance
+  ; [rsp+0x10]  -> strict mode flag
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; TODO: validate boolean argument
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  cmp   qword [rsp+0x10], FALSE
+  je    .skip_validation
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  model_instance_validate
+  cmp   rax, 0
+  jl    .error
+
+.skip_validation:
+  ; add the instance to linked list
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  model_add_instance
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; validates an instance of a particular model
+; @param  rdi: pointer the model struct
+; @param  rsi: pointer to the instance
+; @return rax:
+  ; TRUE: instance is valid
+  ; FALSE: instance is invalid
+  ; -1 if an error occurs
+model_instance_validate:
+  ; TODO: not implemented
+  mov   rax, SUCCESS_CODE
+  ret
+
 ; creates a new instance of the new model
 ; @param  rdi: pointer to the model struct
 ; @return rax: new instance of the model
@@ -114,13 +181,6 @@ model_instance_create:
   mov   rdx, updated_at_field_name
   xor   rcx, rcx
   call  model_instance_set
-  cmp   rax, 0
-  jl    .error
-
-  ; add the instance to linked list
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
-  call  model_add_instance
   cmp   rax, 0
   jl    .error
 

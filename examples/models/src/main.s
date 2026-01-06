@@ -68,6 +68,21 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; save instances
+  mov   rdi, [person_model]
+  mov   rsi, [instance1]
+  mov   rdx, TRUE
+  call  model_instance_save
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [person_model]
+  mov   rsi, [instance2]
+  mov   rdx, TRUE
+  call  model_instance_save
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [server]
   mov   rsi, [person_model]
   call  add_model_routes

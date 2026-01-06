@@ -60,12 +60,28 @@ _start:
   cmp   rax, 0
   jge   .error  ; should fail
 
+  ; save instance
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, TRUE
+  call  model_instance_save
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp]
   call  model_instance_create
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x10], rax
+
+  ; save instance
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, TRUE
+  call  model_instance_save
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [rsp]
   call  free

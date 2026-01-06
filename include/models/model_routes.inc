@@ -808,6 +808,14 @@ model_post:
   jmp   .loop
 
 .loop_end:
+  ; save instance
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x28]
+  mov   rdx, TRUE
+  call  model_instance_save
+  cmp   rax, 0
+  jl    .error
+
   ; add instance to json
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x28]
