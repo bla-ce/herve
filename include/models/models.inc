@@ -249,7 +249,7 @@ model_insert_field:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rcx
-  mov   [rsp+0x20], rcx
+  mov   [rsp+0x20], r8
 
   cmp   rdi, 0
   jle   .error
