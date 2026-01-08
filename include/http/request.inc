@@ -517,8 +517,8 @@ get_query_param:
   mov   rdi, rax
   mov   rsi, [rsp+0x8]
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   jmp   .return
 
@@ -1121,8 +1121,8 @@ verify_request:
   mov   rdi, rax
   lea   rsi, [HOST_HEADER]
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   mov   rsi, [rsp+0x10]
 

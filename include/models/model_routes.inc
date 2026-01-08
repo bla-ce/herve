@@ -370,8 +370,8 @@ model_put:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x28]
   call  ht_get
-  cmp   rax, 0
-  jl    .internal_server_error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
@@ -588,8 +588,8 @@ model_patch:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x30]
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   ; convert the value to the right type
   mov   rdi, [rsp+0x38]
@@ -788,6 +788,8 @@ model_post:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x30]
   call  ht_get
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   ; convert the value to the right type
   mov   rdi, [rsp+0x38]

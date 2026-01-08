@@ -837,7 +837,7 @@ stoi:
 
 .error:
   mov   rax, FAILURE_CODE
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 .return:

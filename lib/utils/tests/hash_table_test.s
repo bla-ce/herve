@@ -66,8 +66,8 @@ _start:
   mov   rdi, [hash_table]
   mov   rsi, key1
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   mov   rdi, value1
   mov   rsi, rax
@@ -80,8 +80,8 @@ _start:
   mov   rdi, [hash_table]
   mov   rsi, key2
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   mov   rdi, value2
   mov   rsi, rax
@@ -94,8 +94,8 @@ _start:
   mov   rdi, [hash_table]
   mov   rsi, key3
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   mov   rdi, value3
   mov   rsi, rax
@@ -108,8 +108,8 @@ _start:
   mov   rdi, [hash_table]
   mov   rsi, key4
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   mov   rdi, value4
   mov   rsi, rax
@@ -122,8 +122,8 @@ _start:
   mov   rdi, [hash_table]
   mov   rsi, key5
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   cmp   [value5], rax
   jne   .error

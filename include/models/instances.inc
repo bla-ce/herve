@@ -46,11 +46,11 @@ model_instance_save:
   cmp   qword [rsp+0x10], FALSE
   je    .skip_validation
 
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
-  call  model_instance_validate
-  cmp   rax, 0
-  jl    .error
+  ; mov   rdi, [rsp]
+  ; mov   rsi, [rsp+0x8]
+  ; call  model_instance_validate
+  ; cmp   rax, 0
+  ; jl    .error
 
 .skip_validation:
   ; add the instance to linked list
@@ -79,8 +79,8 @@ model_instance_save:
   ; FALSE: instance is invalid
   ; -1 if an error occurs
 model_instance_validate:
-  ; TODO: not implemented
-  mov   rax, SUCCESS_CODE
+  ; TODO: implement
+  mov   rax, FAILURE_CODE
   ret
 
 ; creates a new instance of the new model
@@ -309,10 +309,9 @@ model_instance_get:
 
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
-  mov   rdx, [rsp+0x18]
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   jmp   .return
 

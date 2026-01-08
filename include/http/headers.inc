@@ -291,8 +291,8 @@ stringify_headers:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x18]
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   ; get value length
   mov   rdi, rax
@@ -351,15 +351,13 @@ stringify_headers:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x18]
   call  ht_get
-
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   ; load value
   mov   rdi, [rsp+0x30]
   mov   rsi, rax
   call  strcpy
-
   cmp   rax, 0
   jl    .error
 
@@ -505,8 +503,8 @@ get_header_value:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   jmp   .return
 

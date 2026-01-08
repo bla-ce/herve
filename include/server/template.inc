@@ -146,8 +146,8 @@ template_parse:
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  ht_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
 
   ; encode value
   mov   rdi, rax

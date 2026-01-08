@@ -29,6 +29,8 @@ HT_ENTRY_OFF_NEXT   equ HT_ENTRY_OFF_VALUE + 0x8
 
 HT_ENTRY_KEY_MAX_LENGTH   equ 0xFF
 
+HT_ERR_MISSING_KEY dq 0
+
 section .text
 ; returns the number of entries in the hash table
 ; @param  rdi: pointer to the hash table
@@ -139,7 +141,7 @@ ht_get_keys:
   inc   qword [rsp+0x28]
 
   ; check if the key has next populated
-.inner_loop:  ; AHHAHAHAHAHAHA O(n^2) this is not optimized
+.inner_loop:
   ; save position
   mov   rsi, [rsp+0x20]
 
@@ -334,14 +336,18 @@ ht_get:
 
   ; get value from entry
   mov   rax, [rdi+HT_ENTRY_OFF_VALUE]
+  mov   [HT_ERR_MISSING_KEY], FALSE
 
   jmp   .return
 
 .does_not_exist:
-  mov   rax, 0
+  mov   [HT_ERR_MISSING_KEY], TRUE
+
+  xor   rax, rax
   jmp   .return
 
 .error:
+  mov   [HT_ERR_MISSING_KEY], TRUE
   mov   rax, FAILURE_CODE
 
 .return:
