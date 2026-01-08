@@ -336,18 +336,18 @@ ht_get:
 
   ; get value from entry
   mov   rax, [rdi+HT_ENTRY_OFF_VALUE]
-  mov   [HT_ERR_MISSING_KEY], FALSE
+  mov   qword [HT_ERR_MISSING_KEY], FALSE
 
   jmp   .return
 
 .does_not_exist:
-  mov   [HT_ERR_MISSING_KEY], TRUE
+  mov   qword [HT_ERR_MISSING_KEY], TRUE
 
   xor   rax, rax
   jmp   .return
 
 .error:
-  mov   [HT_ERR_MISSING_KEY], TRUE
+  mov   qword [HT_ERR_MISSING_KEY], TRUE
   mov   rax, FAILURE_CODE
 
 .return:
