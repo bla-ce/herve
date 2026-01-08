@@ -15,6 +15,8 @@ INSTANCE_OFF_HT   equ 0
 INSTANCE_OFF_NEXT equ INSTANCE_OFF_HT + 0x8
 INSTANCE_OFF_PREV equ INSTANCE_OFF_NEXT + 0x8
 
+MODEL_INSTANCE_ERR dq 0
+
 section .text
 ; validates and saves an instance to the model
 ; if strict mode is not set, the validation will be skipped
@@ -46,11 +48,14 @@ model_instance_save:
   cmp   qword [rsp+0x10], FALSE
   je    .skip_validation
 
-  ; mov   rdi, [rsp]
-  ; mov   rsi, [rsp+0x8]
-  ; call  model_instance_validate
-  ; cmp   rax, 0
-  ; jl    .error
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  model_instance_validate
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, FALSE  ; instance is invalid
+  je    .error
 
 .skip_validation:
   ; add the instance to linked list
@@ -79,8 +84,81 @@ model_instance_save:
   ; FALSE: instance is invalid
   ; -1 if an error occurs
 model_instance_validate:
-  ; TODO: implement
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the instance
+  ; [rsp+0x10]  -> linked list of model fields
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get list of fields
+  call  model_get_fields
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+.loop:
+  ; check if the field is required
+  mov   rdi, [rsp+0x10]
+  call  field_get_required
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, FALSE
+  je    .not_required
+
+  ; get the name of the field
+  mov   rdi, [rsp+0x10]
+  call  field_get_name
+  cmp   rax, 0
+  jl    .error
+
+  ; check if the field is present
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, rax
+  call  model_instance_get
+  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  je    .is_invalid
+
+.not_required:
+  ; TODO: validate value
+
+  ; go to next
+  mov   rdi, [rsp+0x10]
+  call  field_get_next
+  cmp   rax, 0
+  jl    .error
+  je    .loop_end
+
+  mov   [rsp+0x10], rax
+
+  jmp   .loop
+
+.loop_end:
+
+.is_valid:
+  mov   rax, TRUE
+  jmp   .return
+
+.is_invalid:
+  mov   rax, FALSE
+  jmp   .return
+
+.error:
   mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
   ret
 
 ; creates a new instance of the new model
@@ -313,9 +391,11 @@ model_instance_get:
   cmp   qword [HT_ERR_MISSING_KEY], TRUE
   je    .error
 
+  mov   qword [MODEL_INSTANCE_ERR], FALSE
   jmp   .return
 
 .error:
+  mov   qword [MODEL_INSTANCE_ERR], TRUE
   mov   rax, FAILURE_CODE
 
 .return:
@@ -552,6 +632,8 @@ model_instance_to_json:
   mov   rsi, [rsp+0x8]
   mov   rdx, [rsp+0x28]
   call  model_instance_get
+  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  je    .error
 
   mov   [rsp+0x38], rax
 

@@ -816,7 +816,7 @@ model_post:
   mov   rdx, TRUE
   call  model_instance_save
   cmp   rax, 0
-  jl    .error
+  jl    .unprocessable_entity
 
   ; add instance to json
   mov   rdi, [rsp+0x8]
@@ -941,8 +941,8 @@ model_delete:
   mov   rsi, [rsp+0x18]
   mov   rdx, id_field_name
   call  model_instance_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  je    .error
 
   mov   rdi, [rsp+0x10]
   cmp   rax, rdi

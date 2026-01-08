@@ -1,11 +1,11 @@
 section .bss
 
 field_t:
-  _field_name  resq 1     ; pointer to the name of the field
-  _field_type  resq 1     ; field type
-  _field_arg   resq 1     ; specific argument for the field
+  _field_name     resq 1     ; pointer to the name of the field
+  _field_type     resq 1     ; field type
+  _field_arg      resq 1     ; specific argument for the field
   _field_required resq 1  ; whether the field is required for POST
-  _field_next  resq 1     ; next field
+  _field_next     resq 1     ; next field
 field_t_end:
 
 section .data
@@ -217,6 +217,45 @@ field_get_arg:
   jle   .error
 
   mov   rax, [rdi+FIELD_OFF_ARG]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the next pointer of the field
+; @param  rdi: pointer to the field struct
+; @param  rsi: pointer to the next field struct
+; @return rax: return code
+field_set_next:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+FIELD_OFF_NEXT], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns next field struct
+; @param  rdi: pointer to the field struct
+; @return rax: pointer to next field struct
+field_get_next:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+FIELD_OFF_NEXT]
 
   jmp   .return
 

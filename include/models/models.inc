@@ -800,8 +800,8 @@ model_get_instance_by_id:
   mov   rsi, [rsp+0x10]
   mov   rdx, id_field_name
   call  model_instance_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  je    .error
 
   cmp   rax, [rsp+0x8]
   je    .loop_end

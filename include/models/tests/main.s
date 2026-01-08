@@ -40,8 +40,8 @@ _start:
   mov   rsi, [rsp+0x8]
   mov   rdx, field_password
   call  model_instance_get
-  cmp   rax, 0
-  jl    .error
+  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  je    .error
 
   mov   rdi, rax
   mov   rsi, pass1
