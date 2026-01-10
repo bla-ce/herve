@@ -1,3 +1,6 @@
+%include  "fields.inc"
+%include  "instances.inc"
+
 section .bss
 
 model_t:
