@@ -1,12 +1,13 @@
-INC_DIR = ..
-INCLUDES = $(wildcard $(INC_DIR)/*.inc)
+ROOT_DIR = ../../..
+LIB_DIR = $(ROOT_DIR)/lib/malloc
+
 TESTS = $(wildcard *.s)
 
 test: $(TESTS)
 	@pass=0; fail=0; \
 	for test in $(TESTS); do \
 		echo "Running $$test..."; \
-		nasm -f elf64 -o "$${test%.s}.o" "$$test" -I$(INC_DIR)/; \
+		nasm -f elf64 -o "$${test%.s}.o" "$$test" -I$(LIB_DIR)/; \
 		ld -o "$${test%.s}" "$${test%.s}.o"; \
 		"./$${test%.s}"; \
 		ret=$$?; \
