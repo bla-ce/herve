@@ -25,7 +25,6 @@ section .text
 ; @param  rdx: strict mode
 ; @return rax: return code
 model_instance_save:
-; TODO: not implemented
   sub   rsp, 0x18
 
   ; *** STACK USAGE *** ;
@@ -81,15 +80,20 @@ model_instance_save:
 ; @param  rsi: pointer to the instance
 ; @return rax:
   ; TRUE: instance is valid
+; @return rax:
+  ; TRUE: instance is valid
+  ; FALSE: instance is invalid
+  ; -1 if an error occurs
   ; FALSE: instance is invalid
   ; -1 if an error occurs
 model_instance_validate:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance
   ; [rsp+0x10]  -> linked list of model fields
+  ; [rsp+0x18]  -> value of the field being validated
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -108,14 +112,6 @@ model_instance_validate:
   mov   [rsp+0x10], rax
 
 .loop:
-  ; check if the field is required
-  mov   rdi, [rsp+0x10]
-  call  field_get_required
-  cmp   rax, 0
-  jl    .error
-  cmp   rax, FALSE
-  je    .not_required
-
   ; get the name of the field
   mov   rdi, [rsp+0x10]
   call  field_get_name
@@ -127,12 +123,34 @@ model_instance_validate:
   mov   rsi, [rsp+0x8]
   mov   rdx, rax
   call  model_instance_get
+  ; will check global after
+
+  mov   [rsp+0x18], rax
+
+  ; check if the field is required
+  mov   rdi, [rsp+0x10]
+  call  field_get_required
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, FALSE
+  je    .not_required
+
   cmp   qword [MODEL_INSTANCE_ERR], TRUE
   je    .is_invalid
 
 .not_required:
-  ; TODO: validate value
+  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  je    .skip_validation
 
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, [rsp+0x18]
+  call  model_instance_validate_field
+  cmp   rax, 0
+  jl    .error
+  je    .is_invalid
+
+.skip_validation:
   ; go to next
   mov   rdi, [rsp+0x10]
   call  field_get_next
@@ -158,7 +176,92 @@ model_instance_validate:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
+  ret
+
+; validates a specific field of an instance
+; @param  rdi: pointer to the model of the instance
+; @param  rsi: pointer to the field struct
+; @param  rdx: value
+; @return rax:
+  ; TRUE: instance is valid
+  ; FALSE: instance is invalid
+  ; -1 if an error occurs
+model_instance_validate_field:
+  sub   rsp, 0x20
+
+  ; *** STACKE USAGE *** ;
+  ; [rsp]       -> pointer to the model of the instance
+  ; [rsp+0x8]   -> pointer to the field struct
+  ; [rsp+0x10]  -> pointer to the value
+  ; [rsp+0x18]  -> max length of the string
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get type of the field
+  mov   rdi, [rsp+0x8]
+  call  field_get_type
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, FIELD_TYPE_STRING
+  je    .is_string
+
+  cmp   rax, FIELD_TYPE_BOOL
+  je    .is_boolean
+
+  jmp   .is_valid ; valid by default
+
+.is_string:
+  ; get max length of the string
+  mov   rdi, [rsp+0x8]
+  call  field_get_arg
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; get length of the string
+  mov   rdi, [rsp+0x10]
+  call  strlen
+  cmp   rax, 0
+  jl    .is_invalid
+
+  cmp   rax, [rsp+0x18]
+  je    .is_invalid
+
+  jmp   .is_valid
+
+.is_boolean:
+  cmp   qword [rsp+0x10], TRUE
+  je    .is_valid
+
+  cmp   qword [rsp+0x10], FALSE
+  je    .is_valid
+
+  jmp   .is_invalid
+
+.is_valid:
+  mov   rax, TRUE
+  jmp   .return
+
+.is_invalid:
+  mov   rax, FALSE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
 
 ; creates a new instance of the new model
@@ -633,7 +736,7 @@ model_instance_to_json:
   mov   rdx, [rsp+0x28]
   call  model_instance_get
   cmp   qword [MODEL_INSTANCE_ERR], TRUE
-  je    .error
+  je    .go_next
 
   mov   [rsp+0x38], rax
 
