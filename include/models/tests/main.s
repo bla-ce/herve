@@ -75,13 +75,13 @@ _start:
 
   mov   [rsp+0x10], rax
 
-  ; save instance
+  ; save instance -> should fail because of validation
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
   mov   rdx, TRUE
   call  model_instance_save
   cmp   rax, 0
-  jl    .error
+  jge   .error
 
   mov   rdi, [rsp]
   call  free

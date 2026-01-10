@@ -45,7 +45,7 @@ create_user_model:
   mov   rsi, field_age
   mov   rdx, FIELD_TYPE_INTEGER
   xor   rcx, rcx
-  mov   r8, TRUE
+  mov   r8, FALSE
   call  model_insert_field
   cmp   rax, 0
   jl    .error
@@ -54,7 +54,7 @@ create_user_model:
   mov   rsi, field_active
   mov   rdx, FIELD_TYPE_BOOL
   xor   rcx, rcx
-  mov   r8, TRUE
+  mov   r8, FALSE
   call  model_insert_field
   cmp   rax, 0
   jl    .error
