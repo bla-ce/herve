@@ -560,7 +560,7 @@ model_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; check if the field exist in the model

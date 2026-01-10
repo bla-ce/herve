@@ -84,12 +84,17 @@ _start:
   jge   .error
 
   mov   rdi, [rsp]
-  call  free
+  call  model_free
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x8]
-  call  free
+  call  model_instance_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  call  model_instance_free
   cmp   rax, 0
   jl    .error
 
