@@ -14,7 +14,7 @@ boeuf_error_code_unknown_str  db "unknown error code", NULL_CHAR
 
 boeuf_errno dq 0
 
-boeuf_log_error db "[ERROR] ", NULL_CHAR
+boeuf_log_error db "[BOEUF ERROR] ", NULL_CHAR
 
 section .text
 

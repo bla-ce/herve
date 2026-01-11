@@ -1,3 +1,5 @@
+%include "config_errors.inc"
+
 section .data
 section .text
 
