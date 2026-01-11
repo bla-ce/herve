@@ -51,8 +51,6 @@ boeuf_ncreate:
   inc   rdi   ; add one for null_char
 
   call  malloc
-
-  mov   qword [boeuf_errno], BOEUF_MEMORY_ERROR
   cmp   rax, 0
   jl    .error
 
@@ -207,8 +205,6 @@ boeuf_nappend:
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  realloc
-
-  mov   qword [boeuf_errno], BOEUF_MEMORY_ERROR
   cmp   rax, 0
   jl    .error
 
@@ -246,10 +242,6 @@ boeuf_nappend:
   ; add null_char
   mov   rax, NULL_CHAR
   stosb
-
-  mov   qword [boeuf_errno], BOEUF_MEMORY_ERROR
-  cmp   rax, 0
-  jl    .error
 
   mov   rax, [rsp+0x28]
   add   rax, BOEUF_METADATA_OFF_DATA

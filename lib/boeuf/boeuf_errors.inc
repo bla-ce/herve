@@ -4,12 +4,10 @@ BOEUF_NO_ERR        equ 0
 BOEUF_INVALID_ARG   equ 1
 BOEUF_CORRUPTED_BUF equ 2
 BOEUF_BUF_TOO_LARGE equ 3
-BOEUF_MEMORY_ERROR  equ 4
 
 boeuf_invalid_arg_str         db "invalid argument", NULL_CHAR
 boeuf_corrupted_buf_str       db "corrupted buffer", NULL_CHAR
 boeuf_buf_too_large_str       db "buffer is too large", NULL_CHAR
-boeuf_memory_error_str        db "memory error", NULL_CHAR
 boeuf_error_code_unknown_str  db "unknown error code", NULL_CHAR
 
 boeuf_errno dq 0
@@ -42,17 +40,9 @@ boeuf_error_code_to_string:
 
 .check_buf_too_large:
   cmp   rdi, BOEUF_BUF_TOO_LARGE
-  jne   .check_memory_error
-
-  mov		rax, boeuf_buf_too_large_str
-
-  jmp   .return
-
-.check_memory_error:
-  cmp   rdi, BOEUF_MEMORY_ERROR
   jne   .error
 
-  mov		rax, boeuf_memory_error_str
+  mov		rax, boeuf_buf_too_large_str
 
   jmp   .return
 

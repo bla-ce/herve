@@ -28,3 +28,7 @@ The goal of this library is to provide a thorough yet simple API to allow develo
 No, I want developers to be able to spin up a webserver with 70 lines of Assembly and focus on the rest of the project.
 
 After one year and ~24,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
+
+### What am I working on?
+
+Right now, I'm working on error handling and making sure I can track all errors coming from different parts of the library, while ensuring that I clearly distinguish between how I handle library errors and server errors.

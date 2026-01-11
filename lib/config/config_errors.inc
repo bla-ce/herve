@@ -2,10 +2,8 @@ section .data
 
 CONFIG_NO_ERR        equ 0
 CONFIG_INVALID_ARG   equ 1
-CONFIG_MEMORY_ERROR  equ 2
 
 config_invalid_arg_str         db "invalid argument", NULL_CHAR
-config_memory_error_str        db "memory error", NULL_CHAR
 config_error_code_unknown_str  db "unknown error code", NULL_CHAR
 
 config_errno dq 0
@@ -22,17 +20,9 @@ config_error_code_to_string:
   jl    .error
 
   cmp   rdi, CONFIG_INVALID_ARG
-  jne   .check_memory_error
-
-  mov		rax, config_invalid_arg_str
-
-  jmp   .return
-
-.check_memory_error:
-  cmp   rdi, CONFIG_MEMORY_ERROR
   jne   .error
 
-  mov		rax, config_memory_error_str
+  mov		rax, config_invalid_arg_str
 
   jmp   .return
 
