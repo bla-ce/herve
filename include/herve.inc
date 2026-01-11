@@ -1,11 +1,6 @@
-%include "boeuf.inc"
-%include "config.inc"
-%include "logan.inc"
-%include "malloc.inc"
-%include "utils.inc"
+%include "lib.inc"
 
 %include "hv_auth.inc"
-%include "hv_encoding.inc"
 %include "hv_http.inc"
 %include "hv_middlewares.inc"
 %include "hv_models.inc"

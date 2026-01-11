@@ -1,6 +1,6 @@
 global  _start
 
-%include "herve.inc"
+%include "lib.inc"
 
 section .data
   upper_string db "HELLO, WORLD! 9", NULL_CHAR
