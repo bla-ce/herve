@@ -18,7 +18,7 @@ It supports the following log levels:
 
 ## Requirements
 
-To use Logan logger, you will need [malloc](https://github.com/bla-ce/unstack).
+To use Logan logger, you will need to import `/lib` in your projects [/lib](https://github.com/bla-ce/herve/lib)
 
 ## Usage
 
