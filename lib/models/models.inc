@@ -26,6 +26,114 @@ MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
 section .text
+; returns the json object of all instances of the model
+; caller is responsible of freeing the json object
+; @param  rdi: pointer to the model struct
+; @return rax: pointer to the json object
+model_get_all_instances_json:
+  sub   rsp, 0x28
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the linked list of instances
+  ; [rsp+0x10]  -> pointer to the json object
+  ; [rsp+0x18]  -> pointer to nested json object
+  ; [rsp+0x20]  -> pointer to current instance
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get instances linked list
+  mov   rdi, [rsp]
+  call  model_get_instances
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+  mov   [rsp+0x20], rax
+
+  ; create json array
+  call  json_array_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+.loop:
+  cmp   qword [rsp+0x20], 0
+  je    .loop_end
+
+  ; convert instance to json object
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x20]
+  call  model_instance_to_json
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; add json object
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x18]
+  call  json_array_insert_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; free json object
+  mov   rdi, [rsp+0x18]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  ; get next instance
+  mov   rdi, [rsp+0x20]
+  call  model_instance_get_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x10]
+  call  json_array_end
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_obj
+
+  call  json_free
+
+.free_obj:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_array_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x28
+  ret
+
 ; retrieves an instance by its id and removes it from the list
 ; @param  rdi: pointer to the model struct
 ; @param  rsi: id of the instance
