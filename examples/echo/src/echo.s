@@ -65,7 +65,7 @@ _start:
   mov   rsi, POST
   mov   rdx, echo_url
   mov   rcx, echo_handler
-  xor   r8, r8
+  mov		r8, NO_ARG
   call  add_route
   cmp   rax, 0
   jl    .error

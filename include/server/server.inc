@@ -125,7 +125,7 @@ server_enable_logger:
 
   ; add logger
   mov   rdi, [rsp]
-  xor   rsi, rsi
+  mov		rsi, NO_ARG
   mov   rdx, rax
   call  add_middleware
   cmp   rax, 0
@@ -396,6 +396,7 @@ get_server_routes:
 ; @param  rdi: integer
 ; @return rax: integer to network byte order
 htons:
+  xor   rax, rax
   mov   rax, rdi
   xchg  al, ah ; bswap 16-bit registers
   ret
@@ -444,8 +445,8 @@ server_init:
   mov   rsi, GET
   mov   rdx, health_check_url
   mov   rcx, health_check
-  xor   r8, r8
-  xor   r9, r9
+  mov		r8, NO_ARG
+  mov		r9, NO_ARG
   call  add_route
   cmp   rax, 0
   jl    .error

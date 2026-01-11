@@ -55,51 +55,8 @@ request_init:
 
   mov   rdi, [rsp]
   xor   rsi, rsi
-  call  set_request_body
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  xor   rsi, rsi
-  call  set_request_headers
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  xor   rsi, rsi
-  call  set_request_proto
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  xor   rsi, rsi
-  call  set_request_method
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  xor   rsi, rsi
-  call  set_request_url
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  xor   rsi, rsi
-  call  set_request_str
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  xor   rsi, rsi
-  call  set_request_query_param
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  xor   rsi, rsi
-  call  set_request_dynamic_param
-  cmp   rax, 0
-  jl    .error
+  mov   rdx, REQ_STRUCT_LEN
+  call  memset
 
   jmp   .return
 

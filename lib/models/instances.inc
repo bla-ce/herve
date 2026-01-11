@@ -360,7 +360,7 @@ model_instance_create:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, updated_at_field_name
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   call  model_instance_set
   cmp   rax, 0
   jl    .error

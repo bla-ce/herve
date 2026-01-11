@@ -44,7 +44,7 @@ create_user_model:
   mov   rdi, [rsp]
   mov   rsi, field_age
   mov   rdx, FIELD_TYPE_INTEGER
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   mov   r8, FALSE
   call  model_insert_field
   cmp   rax, 0
@@ -53,7 +53,7 @@ create_user_model:
   mov   rdi, [rsp]
   mov   rsi, field_active
   mov   rdx, FIELD_TYPE_BOOL
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   mov   r8, FALSE
   call  model_insert_field
   cmp   rax, 0

@@ -42,7 +42,7 @@ model_read_many:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, OK
-  xor   rcx, rcx
+  mov   rcx, NO_ARG
   mov   r8, [rsp+0x10]
   mov   r9, TRUE
   call  model_http_response
@@ -70,7 +70,7 @@ model_read_many:
   mov   rsi, [rsp+0x8]
   mov   rdx, INTERNAL_SERVER_ERROR
   mov   rcx, model_internal_server_err
-  xor   r8, r8
+  mov		r8, NO_ARG
   mov   r9, FALSE
   call  model_http_response
 
@@ -146,7 +146,7 @@ model_read_single:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, OK
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   mov   r8, [rsp+0x18]
   mov   r9, TRUE
   call  model_http_response
@@ -164,7 +164,7 @@ model_read_single:
   mov   rsi, [rsp+0x8]
   mov   rdx, NOT_FOUND
   mov   rcx, model_not_found_err
-  xor   r8, r8
+  mov		r8, NO_ARG
   mov   r9, FALSE
   call  model_http_response
 
@@ -193,7 +193,7 @@ model_read_single:
   mov   rsi, [rsp+0x8]
   mov   rdx, INTERNAL_SERVER_ERROR
   mov   rcx, model_internal_server_err
-  xor   r8, r8
+  mov		r8, NO_ARG
   mov   r9, FALSE
   call  model_http_response
 
@@ -353,7 +353,7 @@ model_put:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, OK
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   mov   r8, [rsp+0x30]
   mov   r9, TRUE
   call  model_http_response
@@ -385,7 +385,7 @@ model_put:
 .send_response:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  xor   r8, r8
+  mov		r8, NO_ARG
   mov   r9, FALSE
   call  model_http_response
 
@@ -571,7 +571,7 @@ model_patch:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, OK
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   mov   r8, [rsp+0x40]
   mov   r9, TRUE
   call  model_http_response
@@ -608,7 +608,7 @@ model_patch:
 .send_response:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  xor   r8, r8
+  mov		r8, NO_ARG
   mov   r9, FALSE
   call  model_http_response
 
@@ -765,7 +765,7 @@ model_post:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, CREATED
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   mov   r8, [rsp+0x40]
   mov   r9, TRUE
   call  model_http_response
@@ -790,7 +790,7 @@ model_post:
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  xor   r8, r8
+  mov		r8, NO_ARG
   mov   r9, FALSE
   call  model_http_response
 
@@ -878,7 +878,7 @@ model_delete:
   mov   rsi, [rsp+0x8]
   mov   rdx, OK
   mov   rcx, model_deleted_msg
-  xor   r8, r8
+  mov		r8, NO_ARG
   mov   r9, TRUE
   call  model_http_response
 
@@ -890,7 +890,7 @@ model_delete:
   mov   rsi, [rsp+0x8]
   mov   rdx, NOT_FOUND
   mov   rcx, model_not_found_err
-  xor   r8, r8
+  mov   r8, NO_ARG
   mov   r9, FALSE
   call  model_http_response
 
@@ -911,7 +911,7 @@ model_delete:
   mov   rsi, [rsp+0x8]
   mov   rdx, INTERNAL_SERVER_ERROR
   mov   rcx, model_internal_server_err
-  xor   r8, r8
+  mov		r8, NO_ARG
   mov   r9, FALSE
   call  model_http_response
 

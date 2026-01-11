@@ -18,13 +18,13 @@ section .text
 mmap:
   mov   rsi, rdi
   mov   rax, SYS_MMAP
-  xor   rdi, rdi
+  mov		rdi, NO_ARG
   mov   rdx, PROT_READ
   or    rdx, PROT_WRITE
   mov   r10, MAP_SHARED
   or    r10, MAP_ANONYMOUS
-  xor   r8, r8
-  xor   r9, r9
+  mov		r8, NO_ARG
+  mov		r9, NO_ARG
   syscall
 
   ret

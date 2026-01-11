@@ -40,9 +40,9 @@ _start:
 
   ; create middleware
   mov   rdi, public_handler
-  xor   rsi, rsi
-  xor   rdx, rdx
-  xor   rcx, rcx
+  mov		rsi, NO_ARG
+  mov		rdx, NO_ARG
+  mov		rcx, NO_ARG
   mov   r9, FALSE
   call  create_middleware
   cmp   rax, 0
@@ -66,9 +66,9 @@ _start:
   mov   [internal_group], rax
 
   mov   rdi, internal_handler
-  xor   rsi, rsi
-  xor   rdx, rdx
-  xor   rcx, rcx
+  mov		rsi, NO_ARG
+  mov		rdx, NO_ARG
+  mov		rcx, NO_ARG
   mov   r9, FALSE
   call  create_middleware
   cmp   rax, 0

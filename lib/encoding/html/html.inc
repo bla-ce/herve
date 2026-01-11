@@ -90,6 +90,7 @@ escape_html:
   ; get escaped character
   mov   rsi, [rsp]
   add   rsi, [rsp+0x18]
+
   xor   rdi, rdi
   mov   dil, byte [rsi]
   call  get_html_esc_char

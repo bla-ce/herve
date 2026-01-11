@@ -286,21 +286,21 @@ response_init:
 
   ; set body to 0
   mov   rdi, [rsp]
-  xor   rsi, rsi
+  mov   rsi, NO_ARG
   call  set_response_body
   cmp   rax, 0
   jl    .error
 
   ; set response content length to 0
   mov   rdi, [rsp]
-  xor   rsi, rsi
+  mov   rsi, NO_ARG
   call  set_response_content_len
   cmp   rax, 0
   jl    .error
 
   ; set response str to 0
   mov   rdi, [rsp]
-  xor   rsi, rsi
+  mov   rsi, NO_ARG
   call  set_response_str
   cmp   rax, 0
   jl    .error

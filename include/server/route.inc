@@ -490,7 +490,7 @@ add_dir_route:
   lea   rsi, [GET]
   mov   rdx, [rsp+0x18]
   mov   rcx, serve_dir
-  xor   r8, r8
+  mov		r8, NO_ARG
   call  add_route
   cmp   rax, 0
   jl    .error
@@ -1253,7 +1253,7 @@ save_parameter:
 
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
-  xor   rdx, rdx        ; we don't free the ht here
+  mov		rdx, NO_ARG
   call  free_kv_dyn_param
 
   mov   rax, SUCCESS_CODE
@@ -1263,7 +1263,7 @@ save_parameter:
 .error:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
-  xor   rdx, rdx        ; we don't free the ht here
+  mov		rdx, NO_ARG
   call  free_kv_dyn_param
 
   mov   rax, FAILURE_CODE
@@ -1357,8 +1357,8 @@ add_healthcheck_route:
   mov   rsi, GET
   mov   rdx, health_check_url
   mov   rcx, health_check
-  xor   r8, r8
-  xor   r9, r9
+  mov		r8, NO_ARG
+  mov		r9, NO_ARG
   call  add_route
 
   jmp   .return

@@ -564,7 +564,7 @@ model_create:
   mov   rdi, [rsp+0x8]
   mov   rsi, id_field_name
   mov   rdx, FIELD_TYPE_INTEGER
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   mov   r8, TRUE
   call  model_insert_field
   cmp   rax, 0
@@ -574,7 +574,7 @@ model_create:
   mov   rdi, [rsp+0x8]
   mov   rsi, created_at_field_name
   mov   rdx, FIELD_TYPE_INTEGER
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   ; this field is not required when creating/updating instance
   mov   r8, FALSE
   call  model_insert_field
@@ -585,7 +585,7 @@ model_create:
   mov   rdi, [rsp+0x8]
   mov   rsi, updated_at_field_name
   mov   rdx, FIELD_TYPE_INTEGER
-  xor   rcx, rcx
+  mov		rcx, NO_ARG
   ; this field is not required when creating/updating instance
   mov   r8, FALSE
   call  model_insert_field

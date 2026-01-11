@@ -137,7 +137,7 @@ open_file:
 ; @return rax: number of bytes read
 send_file:
   mov   r9, rdx
-  xor   rdx, rdx
+  mov		rdx, NO_ARG
   ; rest of the registers are already populated
   syscall
 
@@ -235,9 +235,9 @@ close_file:
 receive_from_file:
   mov   rax, SYS_RECVFROM
   ; rdi, rsi and rdx already populated
-  xor   r10, r10
-  xor   r9, r9
-  xor   r8, r8
+  mov		r10, NO_ARG
+  mov		r9, NO_ARG
+  mov		r8, NO_ARG
   syscall
 
   ret

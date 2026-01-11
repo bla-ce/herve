@@ -161,7 +161,7 @@ proxy_middleware:
   jl    .skip_reset_idx
 
   mov   rdi, [rsp+0x8]
-  xor   rsi, rsi
+  mov		rsi, NO_ARG
   call  proxy_middleware_set_curr_idx
   cmp   rax, 0
   jl    .error

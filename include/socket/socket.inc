@@ -139,7 +139,6 @@ bind_socket:
   mov   [rsp+0x10], rdx
 
   ; convert port to network port
-  xor   rax, rax
   mov   rdi, qword [rsp+0x8]
   call  htons
 
@@ -393,9 +392,9 @@ read_select:
   mov   rdi, MAX_CONNECT
   inc   rdi
   ; rsi is already populated
-  xor   rdx, rdx
-  xor   r10, r10
-  xor   r8, r8
+  mov		rdx, NO_ARG
+  mov		r10, NO_ARG
+  mov		r8, NO_ARG
   syscall
 
   ret
