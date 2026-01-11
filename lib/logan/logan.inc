@@ -1,14 +1,14 @@
 section .bss
 
-logan_struct:
-  logan_output  resq 1  ; file descriptor of the output
-  logan_level   resq 1  ; minimum level to be printed
-  logan_format  resb 1  ; pointer to the format struct
-logan_struct_end:
+logan_t:
+  .logan_output resq 1  ; file descriptor of the output
+  .logan_level  resq 1  ; minimum level to be printed
+  .logan_format resb 1  ; pointer to the format struct
+logan_t_end:
 
 section .data
 
-LOGAN_STRUCT_LEN  equ logan_struct_end - logan_struct
+LOGAN_STRUCT_LEN  equ logan_t_end - logan_t
 
 ; logan offsets
 LOGAN_OFF_OUT equ 0x0

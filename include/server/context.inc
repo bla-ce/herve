@@ -1,18 +1,18 @@
 section .bss
-ctx_struct:
-  ctx_client      resq 1
-  ctx_server      resq 1
-  ctx_proto       resq 1
-  ctx_request     resq 1
-  ctx_response    resq 1
-  ctx_start_time  resq 1
-  ctx_end_time    resq 1
-  ctx_aborted     resq 1
-  ctx_done        resq 1
-ctx_struct_end:
+context_t:
+  .client     resq 1
+  .server     resq 1
+  .proto      resq 1
+  .request    resq 1
+  .response   resq 1
+  .start_time resq 1
+  .end_time   resq 1
+  .aborted    resq 1
+  .done       resq 1
+context_t_end:
 
 section .data
-  CTX_STRUCT_LEN equ ctx_struct_end - ctx_struct
+  CTX_STRUCT_LEN equ context_t_end - context_t
 
   CTX_OFF_CLIENT      equ 0x0
   CTX_OFF_SERVER      equ CTX_OFF_CLIENT + 0x8

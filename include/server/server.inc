@@ -1,13 +1,13 @@
 section .bss
-server_struct:
-  server_sockfd       resq 1  ; socket file descriptor
-  server_logger       resq 1  ; pointer to the logger
-  server_routes       resq 1  ; pointer to linked list of routes
-  server_404_handler  resq 1  ; pointer to the 404 handler
-  server_sockaddr     resq 1  ; pointer to sockaddr struct
-  server_groups       resq 1  ; pointer to groups linked list
-  server_port         resw 1  ; port
-server_struct_end:
+server_t:
+  .sockfd       resq 1  ; socket file descriptor
+  .logger       resq 1  ; pointer to the logger
+  .routes       resq 1  ; pointer to linked list of routes
+  .404_handler  resq 1  ; pointer to the 404 handler
+  .sockaddr     resq 1  ; pointer to sockaddr struct
+  .groups       resq 1  ; pointer to groups linked list
+  .port         resw 1  ; port
+server_t_end:
 
 section .data
   N_CLIENTS equ 10
@@ -21,7 +21,7 @@ section .data
   DEFAULT_PORT equ 1337
   PORT_MAX     equ 0xffff
 
-  SERVER_STRUCT_LEN equ server_struct_end - server_struct
+  SERVER_STRUCT_LEN equ server_t_end - server_t
 
   ; offsets
   SERVER_OFF_SOCKFD       equ 0x0

@@ -5,18 +5,19 @@
 %include "realloc.inc"
 
 section .bss
-  heap_start  resq 1
 
-  chunk_metadata_struct:
-    chunk_magic_value   resq 1
-    chunk_size          resq 1
-    chunk_inuse         resq 1
-    chunk_next          resq 1
-    chunk_prev          resq 1
-  chunk_metadata_struct_end:
+chunk_metadata_t:
+  .chunk_magic_value  resq 1
+  .chunk_size         resq 1
+  .chunk_inuse        resq 1
+  .chunk_next         resq 1
+  .chunk_prev         resq 1
+chunk_metadata_t_end:
 
 section .data
-  CHUNK_METADATA_LEN  equ chunk_metadata_struct_end - chunk_metadata_struct
+  heap_start  dq 0
+
+  CHUNK_METADATA_LEN  equ chunk_metadata_t_end - chunk_metadata_t
 
   CHUNK_OFFSET_MAGIC  equ 0
   CHUNK_OFFSET_SIZE   equ CHUNK_OFFSET_MAGIC + 0x8
@@ -27,7 +28,7 @@ section .data
 
   ; magic value on top of each header making sure the heap is not
   ; corrupted
-  MAGIC_VAL_HEAP_CORRUPT        equ 0xC0FFEE
+  MAGIC_VAL_HEAP_CORRUPT        equ 0xBEEFEE
 
   ; min size is 8 bytes which gives a result of 3 with 'bsr'
   ; instruction.

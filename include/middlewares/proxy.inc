@@ -1,21 +1,21 @@
 section .bss
-proxy_target_struct:
-  _proxy_target_ip     resq 1
-  _proxy_target_port   resq 1
-  _proxy_target_weight resq 1
-proxy_target_struct_end:
+proxy_target_t:
+  .ip     resq 1
+  .port   resq 1
+  .weight resq 1
+proxy_target_t_end:
 
 ; keep track of the next target to serve
-proxy_middleware_struct:
-  _proxy_middleware_curr_idx     resq 1
-  _proxy_middleware_curr_weight  resq 1
-  _proxy_middleware_targets      resq 1
-proxy_middleware_struct_end:
+proxy_middleware_t:
+  .curr_idx     resq 1
+  .curr_weight  resq 1
+  .targets      resq 1
+proxy_middleware_t_end:
 
 section .data
-PROXY_TARGET_STRUCT_LEN equ proxy_target_struct_end - proxy_target_struct
+PROXY_TARGET_STRUCT_LEN equ proxy_target_t_end - proxy_target_t
 
-PROXY_MIDDLEWARE_STRUCT_LEN equ proxy_middleware_struct_end - proxy_middleware_struct
+PROXY_MIDDLEWARE_STRUCT_LEN equ proxy_middleware_t_end - proxy_middleware_t
 
 PROXY_TARGET_OFF_IP      equ 0x0
 PROXY_TARGET_OFF_PORT    equ PROXY_TARGET_OFF_IP + 0x8

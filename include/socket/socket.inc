@@ -1,11 +1,11 @@
 section .bss
-sockaddr_struct:
-  sockaddr_sin_family  resw 1
-  sockaddr_sin_port    resw 1
-  sockaddr_sin_addr    resd 1
-  sockaddr_sa_zero     resq 1
-  sockaddr_addrlen     resq 1
-sockaddr_struct_end:
+sockaddr_t:
+  .sin_family resw 1
+  .sin_port   resw 1
+  .sin_addr   resd 1
+  .sa_zero    resq 1
+  .addrlen    resq 1
+sockaddr_t_end:
 
 section .data
   ; socket constants
@@ -23,9 +23,9 @@ section .data
 
   BYTE_MAX    equ 255
 
-  SOCKADDR_STRUCT_LEN equ sockaddr_struct_end - sockaddr_struct
+  SOCKADDR_STRUCT_LEN equ sockaddr_t_end - sockaddr_t
 
-  addrlen dq sockaddr_addrlen - sockaddr_sin_family
+  addrlen dq sockaddr_t.addrlen - sockaddr_t.sin_family
 
   SOCKADDR_OFF_SIN_FAMILY  equ 0x0
   SOCKADDR_OFF_SIN_PORT    equ SOCKADDR_OFF_SIN_FAMILY + 0x2

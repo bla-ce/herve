@@ -4,11 +4,11 @@
 section .bss
 
 model_t:
-  _model_name       resq 1  ; pointer to the name of the field
-  _model_fields     resq 1  ; linked list of field struct
-  _model_curr_idx   resq 1  ; next index for the next instance
-  _model_n_fields   resq 1  ; number of fields
-  _model_instances  resq 1  ; linked list of instances
+  .model_name       resq 1  ; pointer to the name of the field
+  .model_fields     resq 1  ; linked list of field struct
+  .model_curr_idx   resq 1  ; next index for the next instance
+  .model_n_fields   resq 1  ; number of fields
+  .model_instances  resq 1  ; linked list of instances
                             ; models are saved in memory for now
 model_t_end:
 

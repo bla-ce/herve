@@ -1,9 +1,9 @@
 section .bss
 
 instance_t:
-  _instance_ht    resq 1  ; pointer to the hash table
-  _instance_next  resq 1  ; pointer to the next instance
-  _instance_prev  resq 1  ; pointer to the prev instance
+  .instance_ht    resq 1  ; pointer to the hash table
+  .instance_next  resq 1  ; pointer to the next instance
+  .instance_prev  resq 1  ; pointer to the prev instance
 instance_t_end:
 
 section .data

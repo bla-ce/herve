@@ -1,16 +1,18 @@
 section .bss
-  fd_set_struct:
-    fds_bits  resd bits_len
-  fd_set_struct_end:
+
+fd_set_t:
+  .fds_bits resd bits_len
+fd_set_t_end:
 
 section .data
-  FD_SETSIZE equ 1024
 
-  MAX_CONNECT equ 20
+FD_SETSIZE equ 1024
 
-  bits_len equ FD_SETSIZE / 8 / UNSIGNED_LONG_MAX_STR_SIZE
+MAX_CONNECT equ 20
 
-  FD_SET_STRUCT_LEN equ fd_set_struct_end - fd_set_struct
+bits_len equ FD_SETSIZE / 8 / UNSIGNED_LONG_MAX_STR_SIZE
+
+FD_SET_STRUCT_LEN equ fd_set_t_end - fd_set_t
 
 section .text
 

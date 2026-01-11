@@ -1,11 +1,15 @@
-section .data
-  boeuf_metadata_struct:
-    boeuf_magic_value dq 0xC0FFEE
-    boeuf_size        dq 0
-    boeuf_length      dq 0
-  boeuf_metadata_struct_end:
+section .bss
 
-  BOEUF_METADATA_LEN equ boeuf_metadata_struct_end - boeuf_metadata_struct
+boeuf_metadata_t:
+  .boeuf_magic_value  resq 1
+  .boeuf_size         resq 1
+  .boeuf_length       resq 1
+boeuf_metadata_t_end:
+
+section .data
+  BOEUF_MAGIC_VALUE dq 0xC0FFEE
+
+  BOEUF_METADATA_LEN equ boeuf_metadata_t_end - boeuf_metadata_t
 
   ; offsets
   BOEUF_METADATA_OFF_MAGIC_VALUE  equ 0
@@ -65,7 +69,7 @@ boeuf_ncreate:
   jl    .error
 
   ; init metadata
-  mov   rbx, qword [boeuf_magic_value]
+  mov   rbx, qword [BOEUF_MAGIC_VALUE]
   mov   qword [rax+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
 
   mov   rbx, qword [rsp+0x8]
@@ -168,7 +172,7 @@ boeuf_nappend:
 
   ; make sure of the integrity of the boeuf buffer
   sub   rdi, BOEUF_METADATA_LEN
-  mov   rbx, qword [boeuf_magic_value]
+  mov   rbx, qword [BOEUF_MAGIC_VALUE]
 
   mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
@@ -221,7 +225,7 @@ boeuf_nappend:
   mov   [rsp+0x28], rax
 
   ; populate metadata of new boeuf buffer
-  mov   rbx, qword [boeuf_magic_value]
+  mov   rbx, qword [BOEUF_MAGIC_VALUE]
   mov   qword [rax+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
 
   ; add size of the boeuf buffer
@@ -340,7 +344,7 @@ boeuf_free:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rbx, qword [boeuf_magic_value]
+  mov   rbx, qword [BOEUF_MAGIC_VALUE]
 
   mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
@@ -372,7 +376,7 @@ boeuf_reset:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rbx, qword [boeuf_magic_value]
+  mov   rbx, qword [BOEUF_MAGIC_VALUE]
   mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
   jne   .error
@@ -400,7 +404,7 @@ boeuf_len:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rbx, qword [boeuf_magic_value]
+  mov   rbx, qword [BOEUF_MAGIC_VALUE]
   mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
   jne   .error
@@ -439,7 +443,7 @@ boeuf_set_len:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rbx, qword [boeuf_magic_value]
+  mov   rbx, qword [BOEUF_MAGIC_VALUE]
   mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
   jne   .error

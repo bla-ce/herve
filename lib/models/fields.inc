@@ -1,11 +1,11 @@
 section .bss
 
 field_t:
-  _field_name     resq 1     ; pointer to the name of the field
-  _field_type     resq 1     ; field type
-  _field_arg      resq 1     ; specific argument for the field
-  _field_required resq 1  ; whether the field is required for POST
-  _field_next     resq 1     ; next field
+  .field_name     resq 1     ; pointer to the name of the field
+  .field_type     resq 1     ; field type
+  .field_arg      resq 1     ; specific argument for the field
+  .field_required resq 1  ; whether the field is required for POST
+  .field_next     resq 1     ; next field
 field_t_end:
 
 section .data

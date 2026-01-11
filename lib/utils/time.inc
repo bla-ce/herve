@@ -1,26 +1,26 @@
 section .bss
   ; dt struct
-  _dt_struct:
-    dt_year    resq 1
-    dt_month   resq 1
-    dt_day     resq 1
-    dt_hour    resq 1
-    dt_minute  resq 1
-    dt_second  resq 1
-  _dt_struct_end:
+dt_t:
+  .year   resq 1
+  .month  resq 1
+  .day    resq 1
+  .hour   resq 1
+  .minute resq 1
+  .second resq 1
+dt_t_end:
 
-  timespec_struct:
-    tv_sec    resq 1
-    tv_nsec   resq 1
-  timespec_struct_end:
+timespec_t:
+  .tv_sec   resq 1
+  .tv_nsec  resq 1
+timespec_t_end:
 
 section .data
-  TIMESPEC_STRUCT_LEN equ timespec_struct_end - timespec_struct
+  TIMESPEC_STRUCT_LEN equ timespec_t_end - timespec_t
 
   TIMESPEC_OFF_TV_SEC  equ 0x0
   TIMESPEC_OFF_TV_NSEC equ TIMESPEC_OFF_TV_SEC + 0x8
 
-  DT_STRUCT_LEN equ _dt_struct_end - _dt_struct
+  DT_STRUCT_LEN equ dt_t_end - dt_t
 
   ; offsets
   DT_STRUCT_YEAR    equ 0
@@ -74,7 +74,7 @@ unix_to_date_time:
   mov   rbx, SECONDS_IN_MINUTE
   div   rbx
 
-  mov   qword [dt_second], rdx
+  mov   qword [dt_t.second], rdx
 
   ; timestamp /= seconds in minute
   mov   qword [rsp], rax
@@ -84,7 +84,7 @@ unix_to_date_time:
   mov   rbx, SECONDS_IN_MINUTE
   div   rbx
 
-  mov   qword [dt_minute], rdx
+  mov   qword [dt_t.minute], rdx
 
   ; timestamp /= seconds_in_minute
   mov   qword [rsp], rax
@@ -94,17 +94,17 @@ unix_to_date_time:
   mov   rbx, HOURS_IN_DAY
   div   rbx
 
-  mov   qword [dt_hour], rdx
+  mov   qword [dt_t.hour], rdx
 
   ; timestamp /= 24
   mov   qword [rsp], rax
 
-  mov   qword [dt_year], EPOCH_YEAR
+  mov   qword [dt_t.year], EPOCH_YEAR
 
   ; calculate current year
 .curr_year:
   ; check if year is leap_year
-  mov   rdi, qword [dt_year]
+  mov   rdi, qword [dt_t.year]
   call  is_leap_year
 
   ; check if n_days is 366 or 365
@@ -122,45 +122,45 @@ unix_to_date_time:
   sub   qword [rsp], rbx
 
   ; inc year
-  inc   qword [dt_year]
+  inc   qword [dt_t.year]
 
   jmp   .curr_year
 
 .curr_month:
-  mov   qword [dt_month], 0
+  mov   qword [dt_t.month], 0
 
 .loop:
   ; calculate current month
   ; get n_days in month
-  mov   rdi, qword [dt_month]
-  mov   rsi, qword [dt_year]
+  mov   rdi, qword [dt_t.month]
+  mov   rsi, qword [dt_t.year]
   call  days_in_month
 
   cmp   qword [rsp], rax
   jle   .loop_end
 
   sub   qword [rsp], rax
-  inc   qword [dt_month]
+  inc   qword [dt_t.month]
 
   jmp   .loop
 .loop_end:
   mov   rax, qword [rsp]
-  mov   qword [dt_day], rax
+  mov   qword [dt_t.day], rax
 
   ; populate the struct
   mov   rdi, [rsp+0x8]
 
-  mov   rax, qword [dt_year]
+  mov   rax, qword [dt_t.year]
   mov   [rdi+DT_STRUCT_YEAR], rax
-  mov   rax, qword [dt_month]
+  mov   rax, qword [dt_t.month]
   mov   [rdi+DT_STRUCT_MONTH], rax
-  mov   rax, qword [dt_day]
+  mov   rax, qword [dt_t.day]
   mov   [rdi+DT_STRUCT_DAY], rax
-  mov   rax, qword [dt_hour]
+  mov   rax, qword [dt_t.hour]
   mov   [rdi+DT_STRUCT_HOUR], rax
-  mov   rax, qword [dt_minute]
+  mov   rax, qword [dt_t.minute]
   mov   [rdi+DT_STRUCT_MINUTE], rax
-  mov   rax, qword [dt_second]
+  mov   rax, qword [dt_t.second]
   mov   [rdi+DT_STRUCT_SECOND], rax
 
   ; return

@@ -1,17 +1,17 @@
 section .bss
-cookie_struct:
-  cookie_name      resq 1
-  cookie_value     resq 1
-  cookie_max_age   resq 1
-  cookie_http_only resq 1
-  cookie_secure    resq 1
-  cookie_domain    resq 1
-  cookie_path      resq 1
-  cookie_samesite  resq 1
-cookie_struct_end:
+cookie_t:
+  .cookie_name      resq 1
+  .cookie_value     resq 1
+  .cookie_max_age   resq 1
+  .cookie_http_only resq 1
+  .cookie_secure    resq 1
+  .cookie_domain    resq 1
+  .cookie_path      resq 1
+  .cookie_samesite  resq 1
+cookie_t_end:
 
 section .data
-COOKIE_STRUCT_LEN equ cookie_struct_end - cookie_struct
+COOKIE_STRUCT_LEN equ cookie_t_end - cookie_t
 
 ; cookie struct offsets
 COOKIE_OFF_NAME       equ 0x0

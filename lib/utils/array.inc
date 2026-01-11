@@ -1,10 +1,10 @@
 section .bss
 
 array_t:
-  elements  resq 1
-  size      resq 1
-  el_size   resq 1
-  index     resq 1
+  .elements  resq 1
+  .size      resq 1
+  .el_size   resq 1
+  .index     resq 1
 array_t_end:
 
 section .data

@@ -1,16 +1,16 @@
 section .bss
 
-group_struct:
-  group_routes      resq 1
-  group_middlewares resq 1
-  group_prefix      resq 1
-  group_is_root     resq 1
-  group_next        resq 1
-group_struct_end:
+group_t:
+  .routes       resq 1
+  .middlewares  resq 1
+  .prefix       resq 1
+  .is_root      resq 1
+  .next         resq 1
+group_t_end:
 
 section .data
 
-GRP_STRUCT_LEN equ group_struct_end - group_struct
+GRP_STRUCT_LEN equ group_t_end - group_t
 
 ; offsets
 GRP_STRUCT_OFF_ROUTES       equ 0x0

@@ -1,13 +1,13 @@
 section .bss
-client_struct:
-  client_fd       resq 1
-  client_sockaddr resq 1
-  client_ip       resq 1
-client_struct_end:
+client_t:
+  .fd       resq 1
+  .sockaddr resq 1
+  .ip       resq 1
+client_t_end:
 
 section .data
 
-  CLIENT_STRUCT_LEN equ client_struct_end - client_struct
+  CLIENT_STRUCT_LEN equ client_t_end - client_t
 
   CLIENT_OFF_CLIENT_FD  equ 0x0
   CLIENT_OFF_SOCKADDR   equ CLIENT_OFF_CLIENT_FD + 0x8

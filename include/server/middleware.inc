@@ -1,15 +1,15 @@
 section .bss
-middleware_struct:
-  middleware_addr     resq 1
-  middleware_arg1     resq 1
-  middleware_arg2     resq 1
-  middleware_arg3     resq 1
-  middleware_next     resq 1
-  middleware_post_req resq 1
-middleware_struct_end:
+middleware_t:
+  .addr     resq 1
+  .arg1     resq 1
+  .arg2     resq 1
+  .arg3     resq 1
+  .next     resq 1
+  .post_req resq 1
+middleware_t_end:
 
 section .data
-  MIDDLEWARE_STRUCT_LEN equ middleware_struct_end - middleware_struct
+  MIDDLEWARE_STRUCT_LEN equ middleware_t_end - middleware_t
 
   MIDDLEWARE_OFF_ADDR     equ 0x0
   MIDDLEWARE_OFF_ARG1     equ MIDDLEWARE_OFF_ADDR + 0x8

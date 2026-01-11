@@ -1,18 +1,18 @@
 section .bss
-response_struct:
-  res_str             resq 1
-  res_client          resq 1
-  res_len             resq 1
-  res_proto           resq 1
-  res_headers         resq 1
-  res_body            resq 1
-  res_content_len     resq 1
-  res_content_len_str resq 1
-  res_status_code     resq 1
-end_response_struct:
+response_t:
+  .str              resq 1
+  .client           resq 1
+  .len              resq 1
+  .proto            resq 1
+  .headers          resq 1
+  .body             resq 1
+  .content_len      resq 1
+  .content_len_str  resq 1
+  .status_code      resq 1
+end_response_t:
 
 section .data
-  RESPONSE_STRUCT_LEN equ end_response_struct - response_struct
+  RESPONSE_STRUCT_LEN equ end_response_t - response_t
 
   RESPONSE_MAX_LEN equ 0x8000
 

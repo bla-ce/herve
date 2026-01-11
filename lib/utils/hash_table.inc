@@ -1,27 +1,29 @@
 ; NOTE: this hash table implementation only supports strings as
 ; keys
 
+section .bss
+
+hash_table_t:
+  .ht_n_bucket  resq 1
+  .ht_n_entries resq 1
+  .ht_table     resq 1  ; table is an array of addresses pointing to an entry
+hash_table_t_end:
+
+ht_entry_t:
+  .ht_entry_key   resq 1
+  .ht_entry_value resq 1
+  .ht_entry_next  resq 1
+ht_entry_t_end:
+
 section .data
 
-hash_table_struct:
-  ht_n_bucket  dq 0
-  ht_n_entries dq 0
-  ht_table     dq 0  ; table is an array of addresses pointing to an entry
-hash_table_struct_end:
-
-ht_entry_struct:
-  ht_entry_key   dq 0
-  ht_entry_value dq 0
-  ht_entry_next  dq 0
-ht_entry_struct_end:
-
-HT_STRUCT_LEN   equ hash_table_struct_end - hash_table_struct
+HT_STRUCT_LEN   equ hash_table_t_end - hash_table_t
 
 HT_OFF_NBUCKET  equ 0
 HT_OFF_NENTRY   equ HT_OFF_NBUCKET + 0x8
 HT_OFF_TABLE    equ HT_OFF_NENTRY + 0x8
 
-HT_ENTRY_STRUCT_LEN equ ht_entry_struct_end - ht_entry_struct
+HT_ENTRY_STRUCT_LEN equ ht_entry_t_end - ht_entry_t
 
 HT_ENTRY_OFF_KEY    equ 0
 HT_ENTRY_OFF_VALUE  equ HT_ENTRY_OFF_KEY + 0x8

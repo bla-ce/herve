@@ -1,15 +1,15 @@
 section .bss
-route_struct:
-  _route_method   resq 1
-  _route_url      resq 1
-  _route_callback resq 1
-  _route_group    resq 1
-  _route_arg1     resq 1
-  _route_next     resq 1
-route_struct_end:
+route_t:
+  .method   resq 1
+  .url      resq 1
+  .callback resq 1
+  .group    resq 1
+  .arg1     resq 1
+  .next     resq 1
+route_t_end:
 
 section .data
-  ROUTE_STRUCT_LEN equ route_struct_end - route_struct
+  ROUTE_STRUCT_LEN equ route_t_end - route_t
 
   ROUTE_OFF_METHOD    equ 0x0
   ROUTE_OFF_URL       equ ROUTE_OFF_METHOD + 0x8

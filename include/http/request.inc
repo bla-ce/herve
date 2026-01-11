@@ -1,19 +1,19 @@
 section .bss
-request_struct:
-  req_client      resq 1
-  req_len         resq 1
-  req_method      resq 1
-  req_url         resq 1
-  req_proto       resq 1
-  req_headers     resq 1
-  req_body        resq 1
-  req_content_len resq 1
-  req_host        resq 1
-  req_str         resq 1
-  req_query_param resq 1
-  req_dyn_param   resq 1
-  req_close       resq 1
-request_struct_end:
+request_t:
+  .client       resq 1
+  .len          resq 1
+  .method       resq 1
+  .url          resq 1
+  .proto        resq 1
+  .headers      resq 1
+  .body         resq 1
+  .content_len  resq 1
+  .host         resq 1
+  .str          resq 1
+  .query_param  resq 1
+  .dyn_param    resq 1
+  .close        resq 1
+request_t_end:
 
 section .data
   ; constants
@@ -24,7 +24,7 @@ section .data
   BODY_MAX_LEN    equ 0x2000
   REQUEST_MAX_LEN equ 0x2000
 
-  REQ_STRUCT_LEN equ request_struct_end - request_struct
+  REQ_STRUCT_LEN equ request_t_end - request_t
 
   ; offsets
   REQ_OFF_CLIENT      equ 0x0
