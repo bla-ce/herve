@@ -1,3 +1,5 @@
+%include "boeuf_errors.inc"
+
 section .bss
 
 boeuf_metadata_t:
@@ -7,32 +9,18 @@ boeuf_metadata_t:
 boeuf_metadata_t_end:
 
 section .data
-  BOEUF_MAGIC_VALUE dq 0xC0FFEE
 
-  BOEUF_METADATA_LEN equ boeuf_metadata_t_end - boeuf_metadata_t
+BOEUF_MAGIC_VALUE dq 0xC0FFEE
 
-  ; offsets
-  BOEUF_METADATA_OFF_MAGIC_VALUE  equ 0
-  BOEUF_METADATA_OFF_SIZE         equ BOEUF_METADATA_OFF_MAGIC_VALUE + 0x8
-  BOEUF_METADATA_OFF_LENGTH       equ BOEUF_METADATA_OFF_SIZE + 0x8
-  BOEUF_METADATA_OFF_DATA         equ BOEUF_METADATA_OFF_LENGTH + 0x8
+BOEUF_METADATA_LEN equ boeuf_metadata_t_end - boeuf_metadata_t
 
-  MAX_BOEUF_BUF_SIZE equ 1000000 ; 1MB
+; offsets
+BOEUF_METADATA_OFF_MAGIC_VALUE  equ 0
+BOEUF_METADATA_OFF_SIZE         equ BOEUF_METADATA_OFF_MAGIC_VALUE + 0x8
+BOEUF_METADATA_OFF_LENGTH       equ BOEUF_METADATA_OFF_SIZE + 0x8
+BOEUF_METADATA_OFF_DATA         equ BOEUF_METADATA_OFF_LENGTH + 0x8
 
-  BOEUF_INVALID_ARG   equ 0
-  BOEUF_CORRUPTED_BUF equ 1
-  BOEUF_BUF_TOO_LARGE equ 2
-  BOEUF_MEMORY_ERROR  equ 3
-
-  boeuf_invalid_arg_str         db "invalid argument", NULL_CHAR
-  boeuf_corrupted_buf_str       db "corrupted buffer", NULL_CHAR
-  boeuf_buf_too_large_str       db "buffer is too large", NULL_CHAR
-  boeuf_memory_error_str        db "memory error", NULL_CHAR
-  boeuf_error_code_unknown_str  db "unknown error code", NULL_CHAR
-
-  boeuf_errno dq 0
-
-  boeuf_log_error db "[ERROR] ", NULL_CHAR
+MAX_BOEUF_BUF_SIZE equ 1000000 ; 1MB
 
 section .text
 ; creates a growing buffer, specifying the number of bytes to copy
@@ -93,8 +81,9 @@ boeuf_ncreate:
   mov   rax, NULL_CHAR
   stosb
 
-  mov   rax, [rsp+0x10]
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
 
+  mov   rax, [rsp+0x10]
   jmp   .return
 
 .error:
@@ -131,6 +120,7 @@ boeuf_create:
   mov   rsi, rax
   call  boeuf_ncreate
 
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
   jmp   .return
 
 .error:
@@ -264,6 +254,7 @@ boeuf_nappend:
   mov   rax, [rsp+0x28]
   add   rax, BOEUF_METADATA_OFF_DATA
 
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
   jmp   .return
 
 .no_grow:
@@ -283,6 +274,8 @@ boeuf_nappend:
   mov   rax, NULL_CHAR
   stosb
 
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
+
   mov   rax, [rsp]
   jmp   .return
 
@@ -292,7 +285,6 @@ boeuf_nappend:
 .return:
   add   rsp, 0x30
   ret
-
 
 ; appends string to a buffer
 ; @param  rdi: pointer to the boeuf buffer
@@ -328,6 +320,7 @@ boeuf_append:
   mov   rdx, rax
   call  boeuf_nappend
 
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
   jmp   .return
 
 .error:
@@ -352,6 +345,7 @@ boeuf_free:
 
   call  free
 
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
   jmp   .return
 
 .error:
@@ -384,6 +378,8 @@ boeuf_reset:
   ; set length to 0
   mov   qword [rdi+BOEUF_METADATA_OFF_LENGTH], 0
 
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -409,8 +405,9 @@ boeuf_len:
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
   jne   .error
 
-  mov   rax, qword [rdi+BOEUF_METADATA_OFF_LENGTH]
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
 
+  mov   rax, qword [rdi+BOEUF_METADATA_OFF_LENGTH]
   jmp   .return
 
 .error:
@@ -448,6 +445,7 @@ boeuf_set_len:
   cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
   jne   .error
 
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
   cmp   rsi, qword [rdi+BOEUF_METADATA_OFF_LENGTH]
   jge   .return
 
@@ -458,6 +456,8 @@ boeuf_set_len:
   mov   rax, NULL_CHAR
   stosb
 
+  mov   qword [boeuf_errno], BOEUF_NO_ERR
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -466,63 +466,4 @@ boeuf_set_len:
 
 .return:
   add   rsp, 0x10
-  ret
-
-; converts error code into a string
-; @param  rdi: error code
-; @return rax: pointer to the string
-boeuf_error_code_to_string:
-  cmp   rdi, 0
-  jl    .error
-
-  cmp   rdi, BOEUF_INVALID_ARG
-  jne   .check_corrupted_buf
-
-  lea   rax, [boeuf_invalid_arg_str]
-
-  jmp   .return
-
-.check_corrupted_buf:
-  cmp   rdi, BOEUF_CORRUPTED_BUF
-  jne   .check_buf_too_large
-
-  lea   rax, [boeuf_corrupted_buf_str]
-
-  jmp   .return
-
-.check_buf_too_large:
-  cmp   rdi, BOEUF_BUF_TOO_LARGE
-  jne   .check_memory_error
-
-  lea   rax, [boeuf_buf_too_large_str]
-
-  jmp   .return
-
-.check_memory_error:
-  cmp   rdi, BOEUF_MEMORY_ERROR
-  jne   .error
-
-  lea   rax, [boeuf_memory_error_str]
-
-  jmp   .return
-
-.error:
-  lea   rax, [boeuf_error_code_unknown_str]
-
-.return:
-  ret
-
-; prints the error message from the error code
-; @return rax: return code
-boeuf_perror:
-  lea   rdi, [boeuf_log_error]
-  call  print
-
-  mov   rdi, qword [boeuf_errno]
-  call  boeuf_error_code_to_string
-  ; ^ this function returns a string even on error
-
-  mov   rdi, rax
-  call  println
-
   ret
