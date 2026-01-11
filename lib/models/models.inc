@@ -26,6 +26,49 @@ MODEL_OFF_N_FIELDS  equ MODEL_OFF_CURR_IDX + 0x8
 MODEL_OFF_INSTANCES equ MODEL_OFF_N_FIELDS + 0x8
 
 section .text
+; retrieves an instance by its id and removes it from the list
+; @param  rdi: pointer to the model struct
+; @param  rsi: id of the instance
+; @return rax: return code
+model_remove_instance_by_id:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]   -> pointer to the model struct
+  ; [rsp+0x8] -> id of the instance
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; get instance by its id
+  call  model_get_instance_by_id
+  cmp   rax, 0
+  jl    .error
+
+  ; deletes it
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  model_remove_instance
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; removes an instance from the linked list of the model
 ; @param  rdi: pointer to the model struct
 ; @param  rsi: pointer to the instance struct

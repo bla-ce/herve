@@ -885,18 +885,16 @@ model_post:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 model_delete:
-  sub   rsp, 0x28
+  sub   rsp, 0x18
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
-  ; [rsp+0x10]  -> instance id
-  ; [rsp+0x18]  -> pointer to the linked list of instances
-  ; [rsp+0x20]  -> pointer to the response message
+  ; [rsp+0x10]  -> pointer to the response message
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x10], 0
 
   cmp   rdi, 0
   jle   .error
@@ -922,61 +920,9 @@ model_delete:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
-  ; get instances linked list
   mov   rdi, [rsp+0x8]
-  call  model_get_instances
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-.loop:
-  cmp   qword [rsp+0x18], 0
-  je    .loop_end
-
-  ; get id of this instance
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x18]
-  mov   rdx, id_field_name
-  call  model_instance_get
-  cmp   qword [MODEL_INSTANCE_ERR], TRUE
-  je    .error
-
-  mov   rdi, [rsp+0x10]
-  cmp   rax, rdi
-  je    .remove_instance
-
-  ; get next instance
-  mov   rdi, [rsp+0x18]
-  call  model_instance_get_next
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  jmp   .loop
-
-.loop_end:
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
-  mov   rdx, NOT_FOUND
-  mov   rcx, model_not_found_err
-  xor   r8, r8
-  mov   r9, FALSE
-  call  model_http_response
-
-  ; return not found
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.remove_instance:
-  ; add instance to json
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x18]
-  call  model_remove_instance
+  mov   rsi, rax
+  call  model_remove_instance_by_id
   cmp   rax, 0
   jl    .error
 
@@ -991,7 +937,7 @@ model_delete:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x10], rax
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
@@ -1004,8 +950,22 @@ model_delete:
   mov   rax, SUCCESS_CODE
   jmp   .return
 
+.not_found:
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, NOT_FOUND
+  mov   rcx, model_not_found_err
+  xor   r8, r8
+  mov   r9, FALSE
+  call  model_http_response
+
+  ; return not found
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
 .error:
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x10]
   test  rdi, rdi
   jz    .no_free
 
@@ -1025,7 +985,7 @@ model_delete:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x18
   ret
 
 ; sends json response to client with optional message and object
