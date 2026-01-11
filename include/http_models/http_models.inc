@@ -1038,3 +1038,96 @@ model_http_response:
 .return:
   add   rsp, 0x40
   ret
+
+; creates a json response with success, message and object
+; user is responsible of freeing the json object
+; @param  rdi: success (bool)
+; @param  rsi: pointer to the message or 0
+; @param  rdx: pointer to the object or 0
+; @return rax: pointer to the json response object
+create_json_response:
+  sub   rsp, 0x20
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> success
+  ; [rsp+0x8]   -> pointer to the message
+  ; [rsp+0x10]  -> pointer to the object
+  ; [rsp+0x18]  -> pointer to the response object
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
+
+  cmp   rdi, FALSE
+  jl    .error
+  cmp   rdi, TRUE
+  jg    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  cmp   rdx, 0
+  jl    .error
+
+  call  json_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, success_key
+  mov   rdx, [rsp]
+  call  json_insert_bool
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdx, [rsp+0x8]
+  test  rdx, rdx
+  jz    .skip_message
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, message_key
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+.skip_message:
+  mov   rdx, [rsp+0x10]
+  test  rdx, rdx
+  jz    .skip_data
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, data_key
+  call  json_insert_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+.skip_data:
+  mov   rdi, [rsp+0x18]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret

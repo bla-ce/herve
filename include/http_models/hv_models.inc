@@ -1,1 +1,1 @@
-%include "model_routes.inc"
+%include "http_models.inc"
