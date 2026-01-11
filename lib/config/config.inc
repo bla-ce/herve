@@ -19,6 +19,8 @@ parse_cli:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
+  mov   qword [config_errno], CONFIG_INVALID_ARG
+
   cmp   rdi, 0
   jl    .error
   je    .null
@@ -30,6 +32,8 @@ parse_cli:
   mov   rdi, [rsp]
   mov   rsi, 8
   call  calloc
+
+  mov   qword [config_errno], CONFIG_MEMORY_ERROR
   cmp   rax, 0
   jl    .error
 
@@ -52,11 +56,14 @@ parse_cli:
   jmp   .loop
 
 .end_loop:
-  mov   rax, [rsp+0x10]
+  mov   qword [config_errno], CONFIG_NO_ERR
 
+  mov   rax, [rsp+0x10]
   jmp   .return
 
 .null:
+  mov   qword [config_errno], CONFIG_NO_ERR
+
   xor   rax, rax
   jmp   .return
 
