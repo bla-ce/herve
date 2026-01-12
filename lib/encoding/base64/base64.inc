@@ -1,3 +1,5 @@
+%include "base64_errors.inc"
+
 section .data
   base64_table:
     db 0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80
@@ -35,10 +37,24 @@ section .text
 base64_decode:
   sub   rsp, 0x48
 
-  cmp   rdi, 0
-  jle   .error
+  mov   qword [base64_errno], BASE64_INVALID_ARG
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> length of the string
+  ; [rsp+0x10]  -> pointer to the allocated encoded string
+  ; [rsp+0x18]  -> dynamic pointer of the above
+  ; [rsp+0x20]  -> dynamic first 6-bit
+  ; [rsp+0x28]  -> dynamic second 6-bit
+  ; [rsp+0x30]  -> dynamic third 6-bit
+  ; [rsp+0x38]  -> dynamic fourth 6-bit
+  ; [rsp+0x40]  -> decoded character
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x10], 0
+
+  cmp   rdi, 0
+  jle   .error
 
   ; get length of the string
   mov   rdi, [rsp]
@@ -51,12 +67,11 @@ base64_decode:
   ; malloc same length string
   mov   rdi, rax
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x10], rax
-  mov   [rsp+0x18], rax ; dynamic pointer
+  mov   [rsp+0x18], rax
 
   xor   r9, r9
 
@@ -73,6 +88,7 @@ base64_decode:
   ; get 6 bit representation
   call  decode_base64_char
 
+  mov   qword [base64_errno], BASE64_DECODING_ERR
   cmp   rax, 0
   jl    .error
 
@@ -92,6 +108,7 @@ base64_decode:
   ; get 6 bit representation
   call  decode_base64_char
 
+  mov   qword [base64_errno], BASE64_DECODING_ERR
   cmp   rax, 0
   jl    .error
 
@@ -110,6 +127,8 @@ base64_decode:
 
   ; get 6 bit representation
   call  decode_base64_char
+
+  mov   qword [base64_errno], BASE64_DECODING_ERR
   cmp   rax, 0
   jl    .error
 
@@ -129,6 +148,7 @@ base64_decode:
   ; get 6 bit representation
   call  decode_base64_char
 
+  mov   qword [base64_errno], BASE64_DECODING_ERR
   cmp   rax, 0
   jl    .error
 
@@ -246,9 +266,18 @@ base64_decode:
   stosb
 
   mov   rax, [rsp+0x10]
+
+  mov   qword [base64_errno], BASE64_NO_ERR
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
@@ -259,6 +288,8 @@ base64_decode:
 ; @param  rdi: char
 ; @return rax: 6bit
 decode_base64_char:
+  mov   qword [base64_errno], BASE64_INVALID_CHAR
+
   cmp   rdi, 0
   jl    .error
 
@@ -269,6 +300,7 @@ decode_base64_char:
   mov   al, byte [base64_table+rdi]
   movzx rax, al
 
+  mov   qword [base64_errno], BASE64_NO_ERR
   jmp   .return
 
 .error:
@@ -281,6 +313,8 @@ decode_base64_char:
 ; @param  rdi: 6bit
 ; @return rax: char
 encode_base64_char:
+  mov   qword [base64_errno], BASE64_INVALID_CHAR
+
   cmp   rdi, 0
   jl    .error
 
@@ -290,10 +324,13 @@ encode_base64_char:
   mov   al, byte [base64_enc_table+rdi]
   movzx rax, al
 
+  mov   qword [base64_errno], BASE64_NO_ERR
   jmp   .return
 
 .equal:
   mov   rax, EQUAL_SIGN
+
+  mov   qword [base64_errno], BASE64_NO_ERR
   jmp   .return
 
 .error:
@@ -302,19 +339,33 @@ encode_base64_char:
 .return:
   ret
 
-; encodes base64 string, developer is responsible of freeing the string
+; encodes base64 string
+; developer is responsible of freeing the string
 ; @param  rdi: pointer to null-terminated string
 ; @return rax: pointer to encoded string
 base64_encode:
   sub   rsp, 0x40
 
-  cmp   rdi, 0
-  jle   .error
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> length of the string
+  ; [rsp+0x10]  -> pointer to the allocated encoded string
+  ; [rsp+0x18]  -> dynamic pointer of the above
+  ; [rsp+0x20]  -> dynamic first character
+  ; [rsp+0x28]  -> dynamic second character
+  ; [rsp+0x30]  -> dynamic third character
+  ; [rsp+0x38]  -> encoded character
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x20], NULL_CHAR
   mov   qword [rsp+0x28], NULL_CHAR
   mov   qword [rsp+0x30], NULL_CHAR
+
+  mov   qword [base64_errno], BASE64_INVALID_ARG
+
+  cmp   rdi, 0
+  jle   .error
 
   ; get length of the string
   mov   rdi, [rsp]
@@ -394,6 +445,8 @@ base64_encode:
   and   rax, 0x3F
   mov   rdi, rax
   call  encode_base64_char
+
+  mov   qword [base64_errno], BASE64_ENCODING_ERR
   cmp   rax, 0
   jl    .error
 
@@ -407,6 +460,8 @@ base64_encode:
   and   rax, 0x3F
   mov   rdi, rax
   call  encode_base64_char
+
+  mov   qword [base64_errno], BASE64_ENCODING_ERR
   cmp   rax, 0
   jl    .error
 
@@ -423,6 +478,8 @@ base64_encode:
   and   rax, 0x3F
   mov   rdi, rax
   call  encode_base64_char
+
+  mov   qword [base64_errno], BASE64_ENCODING_ERR
   cmp   rax, 0
   jl    .error
 
@@ -438,6 +495,8 @@ base64_encode:
 
   mov   rdi, rax
   call  encode_base64_char
+
+  mov   qword [base64_errno], BASE64_ENCODING_ERR
   cmp   rax, 0
   jl    .error
 
@@ -473,11 +532,19 @@ base64_encode:
   mov   rax, NULL_CHAR
   stosb
 
+  mov   qword [base64_errno], BASE64_NO_ERR
   mov   rax, [rsp+0x10]
 
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
