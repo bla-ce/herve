@@ -71,11 +71,7 @@ _start:
 
   mov   rdi, value1
   mov   rsi, rax
-  call  strcmp
-  cmp   rax, 0
-  jl    .error
-  cmp   rax, TRUE
-  jne   .error
+  call  assert_string_equal
 
   mov   rdi, [hash_table]
   mov   rsi, key2
@@ -85,11 +81,7 @@ _start:
 
   mov   rdi, value2
   mov   rsi, rax
-  call  strcmp
-  cmp   rax, 0
-  jl    .error
-  cmp   rax, TRUE
-  jne   .error
+  call  assert_string_equal
 
   mov   rdi, [hash_table]
   mov   rsi, key3
@@ -99,11 +91,7 @@ _start:
 
   mov   rdi, value3
   mov   rsi, rax
-  call  strcmp
-  cmp   rax, 0
-  jl    .error
-  cmp   rax, TRUE
-  jne   .error
+  call  assert_string_equal
 
   mov   rdi, [hash_table]
   mov   rsi, key4
@@ -113,11 +101,7 @@ _start:
 
   mov   rdi, value4
   mov   rsi, rax
-  call  strcmp
-  cmp   rax, 0
-  jl    .error
-  cmp   rax, TRUE
-  jne   .error
+  call  assert_string_equal
 
   mov   rdi, [hash_table]
   mov   rsi, key5
