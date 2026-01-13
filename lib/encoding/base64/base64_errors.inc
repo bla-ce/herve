@@ -7,6 +7,9 @@ BASE64_DECODING_ERR  equ 3
 BASE64_ENCODING_ERR  equ 4
 
 base64_invalid_arg_str         db "invalid argument", NULL_CHAR
+base64_invalid_char_str        db "invalid character", NULL_CHAR
+base64_decoding_err_str        db "decoding error", NULL_CHAR
+base64_encoding_err_str        db "encoding error", NULL_CHAR
 base64_error_code_unknown_str  db "unknown error code", NULL_CHAR
 
 base64_errno dq 0
@@ -23,9 +26,27 @@ base64_error_code_to_string:
   jl    .error
 
   cmp   rdi, BASE64_INVALID_ARG
-  jne   .error
+  jne   .invalid_char
 
   mov		rax, base64_invalid_arg_str
+
+.invalid_char:
+  cmp   rdi, BASE64_INVALID_CHAR
+  jne   .decoding_err
+
+  mov		rax, base64_invalid_char_str
+
+.decoding_err:
+  cmp   rdi, BASE64_DECODING_ERR
+  jne   .encoding_err
+
+  mov		rax, base64_decoding_err_str
+
+.encoding_err:
+  cmp   rdi, BASE64_ENCODING_ERR
+  jne   .error
+
+  mov		rax, base64_encoding_err_str
 
   jmp   .return
 
