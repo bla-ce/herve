@@ -1,3 +1,5 @@
+%include "html_errors.inc"
+
 section .data
 
 char_to_esc db DOUBLE_QUOTES,
@@ -34,6 +36,8 @@ escape_html:
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
 
+  mov   qword [html_errno], HTML_INVALID_ARG
+
   cmp   rdi, 0
   jle   .error
 
@@ -44,7 +48,6 @@ escape_html:
   xor   rdi, rdi
   mov   dil, byte [rsi+rax]
   call  char_needs_html_escaping
-
   cmp   rax, FALSE
   je    .no_escaping
 
@@ -189,6 +192,8 @@ escape_html:
 
   mov   rax, [rsp+0x10]
 
+  mov   qword [html_errno], HTML_NO_ERR
+
   jmp   .return
 
 .error:
@@ -261,6 +266,11 @@ get_html_esc_char:
   cmp   dil, LESS_THAN
   je    .less_than
 
+  mov   qword [html_errno], HTML_INVALID_CHAR
+
+  ; invalid character
+  jmp   .error
+
 .ampersand:
   mov   rax, ampersand_esc
   jmp   .return
@@ -283,10 +293,8 @@ get_html_esc_char:
 
 .error:
   mov   rax, FAILURE_CODE
-
-.return:
   ret
 
-; returns a NEW allocated url encoded
-escape_url:
+.return:
+  mov   qword [html_errno], HTML_NO_ERR
   ret
