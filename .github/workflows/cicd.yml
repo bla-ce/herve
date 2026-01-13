@@ -122,6 +122,10 @@ jobs:
         working-directory: tests/unit/encoding/html
         run: make
 
+      - name: Run Base64 encoding tests
+        working-directory: tests/unit/encoding/base64
+        run: make
+
       - name: Run array tests
         working-directory: tests/unit/utils
         run: |
