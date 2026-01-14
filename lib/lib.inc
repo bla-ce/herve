@@ -3,6 +3,6 @@
 %include "encoding.inc"
 %include "logan.inc"
 %include "malloc.inc"
-%include "models.inc"
+%include "model.inc"
 %include "test.inc"
 %include "utils.inc"

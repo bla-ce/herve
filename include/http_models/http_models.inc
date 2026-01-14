@@ -1,3 +1,5 @@
+%include "model_json.inc"
+
 section .data
 
 model_not_found_err             db " model: instance not found", NULL_CHAR
@@ -32,7 +34,7 @@ model_read_many:
   jle   .error
 
   mov   rdi, [rsp+0x8]
-  call  model_get_all_instances_json
+  call  model_instances_to_json
   cmp   rax, 0
   jl    .error
 
@@ -313,7 +315,7 @@ model_put:
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x28]
   mov   rcx, rax
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -337,7 +339,7 @@ model_put:
   mov   rsi, [rsp+0x10]
   mov   rdx, updated_at_field_name
   mov   rcx, rax
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -539,7 +541,7 @@ model_patch:
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x30]
   mov   rcx, rax
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -555,7 +557,7 @@ model_patch:
   mov   rsi, [rsp+0x10]
   mov   rdx, updated_at_field_name
   mov   rcx, rax
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -738,7 +740,7 @@ model_post:
   mov   rsi, [rsp+0x28]
   mov   rdx, [rsp+0x30]
   mov   rcx, rax
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .internal_server_error
 

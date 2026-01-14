@@ -33,7 +33,7 @@ _start:
   mov   rsi, [instance1]
   mov   rdx, field_username
   mov   rcx, user1
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .error
 
@@ -41,7 +41,7 @@ _start:
   mov   rsi, [instance1]
   mov   rdx, field_password
   mov   rcx, pass1
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .error
 
@@ -56,7 +56,7 @@ _start:
   mov   rsi, [instance2]
   mov   rdx, field_username
   mov   rcx, user2
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .error
 
@@ -64,7 +64,7 @@ _start:
   mov   rsi, [instance2]
   mov   rdx, field_password
   mov   rcx, pass2
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .error
 
