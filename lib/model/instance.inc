@@ -18,9 +18,120 @@ INSTANCE_OFF_PREV equ INSTANCE_OFF_NEXT + 0x8
 MODEL_INSTANCE_ERR dq 0
 
 section .text
+; updates an instance of the model
+; non existent field are ignored for now
+; TODO: warn or error on the above?
+; @param  rdi: pointer to the model struct
+; @param  rsi: pointer to the instance to update
+; @param  rdx: hash table containing the updates
+; @param  rcx: values need to be converted from str (bool)
+; @return rax: return code
+model_instance_update:
+  sub   rsp, 0x30
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the model struct
+  ; [rsp+0x8]   -> pointer to the instance to update
+  ; [rsp+0x10]  -> hash table containing the updates
+  ; [rsp+0x18]  -> values need to be converted from string
+  ; [rsp+0x20]  -> pointer to the fields linked list
+  ; [rsp+0x28]  -> pointer to the name of the field
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; TODO: validate bool arg
+
+  mov   rdi, [rsp]
+  call  model_get_fields
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+.loop:
+  mov   rdi, [rsp+0x20]
+  call  field_get_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x28]
+  call  ht_get
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je   .skip_update
+
+  cmp   qword [rsp+0x20], FALSE
+  je    .skip_conversion
+
+  ; convert the value to the right type
+  mov   rdi, [rsp+0x20]
+  mov   rsi, rax
+  call  field_convert_value
+  cmp   rax, 0
+  jl    .error
+
+.skip_conversion:
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, [rsp+0x28]
+  mov   rcx, rax
+  call  model_instance_set_value
+  cmp   rax, 0
+  jl    .error
+
+.skip_update:
+  ; go to next field
+  mov   rsi, [rsp+0x20]
+  mov   rdi, qword [rsi+FIELD_OFF_NEXT]
+  mov   [rsp+0x20], rdi
+
+  test  rdi, rdi
+  jz    .loop_end
+
+  jmp   .loop
+
+.loop_end:
+  ; updated_at field
+  call  now
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, updated_at_field_name
+  mov   rcx, rax
+  call  model_instance_set_value
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x30
+  ret
+
 ; validates and saves an instance to the model
 ; if strict mode is not set, the validation will be skipped
-; @param  rdi: pointer the model struct
+; @param  rdi: pointer to the model struct
 ; @param  rsi: pointer to the instance
 ; @param  rdx: strict mode
 ; @return rax: return code

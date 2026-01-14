@@ -290,58 +290,11 @@ http_model_put:
 
   mov   [rsp+0x18], rax
 
-  ; get list of model fields
-  mov   rdi, [rsp+0x8]
-  call  model_get_fields
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  mov   [rsp+0x20], rax
-
-.loop:
-  mov   rdi, [rsp+0x20]
-  call  field_get_name
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  mov   [rsp+0x28], rax
-
-  ; get value
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x28]
-  call  ht_get
-  cmp   qword [HT_ERR_MISSING_KEY], TRUE
-  je    .error
-
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
-  mov   rdx, [rsp+0x28]
-  mov   rcx, rax
-  call  model_instance_set_value
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  ; go to next field
-  mov   rsi, [rsp+0x20]
-  mov   rdi, qword [rsi+FIELD_OFF_NEXT]
-  mov   [rsp+0x20], rdi
-
-  test  rdi, rdi
-  jz    .loop_end
-
-  jmp   .loop
-
-.loop_end:
-  ; updated_at field
-  call  now
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
-  mov   rdx, updated_at_field_name
-  mov   rcx, rax
-  call  model_instance_set_value
+  mov   rdx, [rsp+0x18]
+  mov   rcx, TRUE
+  call  model_instance_update
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -419,22 +372,19 @@ http_model_put:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 http_model_patch:
-  sub   rsp, 0x48
+  sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the instance of the model
   ; [rsp+0x18]  -> form data in a hash table
-  ; [rsp+0x20]  -> length of the hash table
-  ; [rsp+0x28]  -> pointer to the array of keys
-  ; [rsp+0x30]  -> dynamic pointer
-  ; [rsp+0x38]  -> pointer to the current field struct
-  ; [rsp+0x40]  -> json of the instance
+  ; [rsp+0x20]  -> json of the instance
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x40], 0
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
 
   cmp   rdi, 0
   jle   .error
@@ -484,82 +434,11 @@ http_model_patch:
 
   mov   [rsp+0x18], rax
 
-  mov   rdi, [rsp+0x18]
-  call  ht_get_length
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
-  ; get list of fields
-  mov   rdi, [rsp+0x18]
-  call  ht_get_keys
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
-
-  ; update each field
-.loop:
-  dec   qword [rsp+0x20]
-  cmp   qword [rsp+0x20], 0
-  jl    .loop_end
-
-  mov   rsi, [rsp+0x28]
-
-  mov   r9, qword [rsp+0x20]
-
-  ; go to the key
-  mov   rax, [rsi+r9*8]
-
-  mov   [rsp+0x30], rax
-
-  ; check if the key exists
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x30]
-  call  model_field_exist
-  cmp   rax, 0
-  jl    .internal_server_error
-  je    .unprocessable_entity
-
-  mov   [rsp+0x38], rax
-
-  ; get the value
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x30]
-  call  ht_get
-  cmp   qword [HT_ERR_MISSING_KEY], TRUE
-  je    .error
-
-  ; convert the value to the right type
-  mov   rdi, [rsp+0x38]
-  mov   rsi, rax
-  call  field_convert_value
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  ; set field value
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
-  mov   rdx, [rsp+0x30]
-  mov   rcx, rax
-  call  model_instance_set_value
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  jmp   .loop
-
-.loop_end:
-  ; updated_at field
-  call  now
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
-  mov   rdx, updated_at_field_name
-  mov   rcx, rax
-  call  model_instance_set_value
+  mov   rdx, [rsp+0x18]
+  mov   rcx, TRUE
+  call  model_instance_update
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -570,26 +449,21 @@ http_model_patch:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x40], rax
+  mov   [rsp+0x20], rax
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, OK
   mov		rcx, NO_ARG
-  mov   r8, [rsp+0x40]
+  mov   r8, [rsp+0x20]
   mov   r9, TRUE
   call  model_http_response
 
-  ; free list of keys
-  mov   rdi, [rsp+0x28]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x40]
+  mov   rdi, [rsp+0x20]
   call  json_free
-  cmp   rax, 0
-  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  call  ht_free
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -617,7 +491,14 @@ http_model_patch:
   call  model_http_response
 
 .error:
-  mov   rdi, [rsp+0x40]
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_json
+
+  call  ht_free
+
+.free_json:
+  mov   rdi, [rsp+0x20]
   test  rdi, rdi
   jz    .no_free
 
@@ -627,7 +508,7 @@ http_model_patch:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x48
+  add   rsp, 0x28
   ret
 
 ; TODO: accept json, requires the parser to be implemented
