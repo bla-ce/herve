@@ -20,8 +20,8 @@ section .data
 
   log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
-  model_route_root  db "/", NULL_CHAR
-  model_route_id    db "/:id", NULL_CHAR
+  http_model_route_root db "/", NULL_CHAR
+  http_model_route_id   db "/:id", NULL_CHAR
 
   health_check_url  db "/health", NULL_CHAR
 
@@ -334,66 +334,66 @@ add_model_routes:
   mov   [rsp+0x18], rax
 
   ; create routes
-  ; GET -> model_read_many
+  ; GET -> http_model_read_many
   mov   rdi, [rsp]
   mov   rsi, GET
-  mov   rdx, model_route_root
-  mov   rcx, model_read_many
+  mov   rdx, http_model_route_root
+  mov   rcx, http_model_read_many
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
 
-  ; GET -> model_read_single
+  ; GET -> http_model_read_single
   mov   rdi, [rsp]
   mov   rsi, GET
-  mov   rdx, model_route_id
-  mov   rcx, model_read_single
+  mov   rdx, http_model_route_id
+  mov   rcx, http_model_read_single
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
 
-  ; POST -> model_post
+  ; POST -> http_model_post
   mov   rdi, [rsp]
   mov   rsi, POST
-  mov   rdx, model_route_root
-  mov   rcx, model_post
+  mov   rdx, http_model_route_root
+  mov   rcx, http_model_post
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
 
-  ; PUT -> model_update
+  ; PUT -> http_model_update
   mov   rdi, [rsp]
   mov   rsi, PUT
-  mov   rdx, model_route_id
-  mov   rcx, model_put
+  mov   rdx, http_model_route_id
+  mov   rcx, http_model_put
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
 
-  ; PATCH -> model_patch
+  ; PATCH -> http_model_patch
   mov   rdi, [rsp]
   mov   rsi, PATCH
-  mov   rdx, model_route_id
-  mov   rcx, model_patch
+  mov   rdx, http_model_route_id
+  mov   rcx, http_model_patch
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
   call  add_route
   cmp   rax, 0
   jl    .error
 
-  ; DELETE -> model_update
+  ; DELETE -> http_model_update
   mov   rdi, [rsp]
   mov   rsi, DELETE
-  mov   rdx, model_route_id
-  mov   rcx, model_delete
+  mov   rdx, http_model_route_id
+  mov   rcx, http_model_delete
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
   call  add_route
