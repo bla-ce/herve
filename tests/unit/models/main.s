@@ -24,7 +24,7 @@ _start:
   mov   rsi, [rsp+0x8]
   mov   rdx, field_username
   mov   rcx, user1
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .error
 
@@ -32,14 +32,14 @@ _start:
   mov   rsi, [rsp+0x8]
   mov   rdx, field_password
   mov   rcx, pass1
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, field_password
-  call  model_instance_get
+  call  model_instance_get_value
   cmp   qword [MODEL_INSTANCE_ERR], TRUE
   je    .error
 
@@ -56,7 +56,7 @@ _start:
   mov   rsi, [rsp+0x8]
   mov   rdx, pass1
   mov   rcx, pass1
-  call  model_instance_set
+  call  model_instance_set_value
   cmp   rax, 0
   jge   .error  ; should fail
 

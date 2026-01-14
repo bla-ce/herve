@@ -28,7 +28,7 @@ create_user_model:
   mov   rdx, FIELD_TYPE_STRING
   mov   rcx, 32
   mov   r8, TRUE
-  call  model_insert_field
+  call  model_add_field
   cmp   rax, 0
   jl    .error
 
@@ -37,7 +37,7 @@ create_user_model:
   mov   rdx, FIELD_TYPE_STRING
   mov   rcx, 128
   mov   r8, TRUE
-  call  model_insert_field
+  call  model_add_field
   cmp   rax, 0
   jl    .error
 
@@ -46,7 +46,7 @@ create_user_model:
   mov   rdx, FIELD_TYPE_INTEGER
   mov		rcx, NO_ARG
   mov   r8, FALSE
-  call  model_insert_field
+  call  model_add_field
   cmp   rax, 0
   jl    .error
 
@@ -55,7 +55,7 @@ create_user_model:
   mov   rdx, FIELD_TYPE_BOOL
   mov		rcx, NO_ARG
   mov   r8, FALSE
-  call  model_insert_field
+  call  model_add_field
   cmp   rax, 0
   jl    .error
 
