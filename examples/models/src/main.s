@@ -45,6 +45,14 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; save instances
+  mov   rdi, [person_model]
+  mov   rsi, [instance1]
+  mov   rdx, TRUE
+  call  model_instance_save
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [person_model]
   call  model_instance_create
   cmp   rax, 0
@@ -65,14 +73,6 @@ _start:
   mov   rdx, field_password
   mov   rcx, pass2
   call  model_instance_set_value
-  cmp   rax, 0
-  jl    .error
-
-  ; save instances
-  mov   rdi, [person_model]
-  mov   rsi, [instance1]
-  mov   rdx, TRUE
-  call  model_instance_save
   cmp   rax, 0
   jl    .error
 

@@ -175,6 +175,21 @@ model_instance_save:
   cmp   rax, 0
   jl    .error
 
+  ; increase current id
+  mov   rdi, [rsp]
+  call  model_get_curr_idx
+  cmp   rax, 0
+  jl    .error
+
+  inc   rax
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  model_set_curr_idx
+  cmp   rax, 0
+  jl    .error
+
+
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -436,20 +451,6 @@ model_instance_create:
   mov   rdx, id_field_name
   mov   rcx, rax
   call  model_instance_set_value
-  cmp   rax, 0
-  jl    .error
-
-  ; increase current id
-  mov   rdi, [rsp]
-  call  model_get_curr_idx
-  cmp   rax, 0
-  jl    .error
-
-  inc   rax
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  model_set_curr_idx
   cmp   rax, 0
   jl    .error
 

@@ -744,7 +744,7 @@ http_model_delete:
   mov   rsi, rax
   call  model_remove_instance_by_id
   cmp   rax, 0
-  jl    .error
+  jl    .not_found
 
   mov   rdi, [rsp+0x8]
   call  model_get_name

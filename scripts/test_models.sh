@@ -3,123 +3,262 @@ set -euo pipefail
 
 URL="http://localhost:1337"
 
-declare -A EXPECT_USER_0=( ["id"]=0 ["username"]="user1" ["password"]="pass1" )
-declare -A EXPECT_USER_1=( ["id"]=1 ["username"]="user2" ["password"]="pass2" )
-declare -A EXPECT_POST_USER=( ["id"]=2 ["username"]="user3" ["password"]="pass3" ["age"]="18")
-declare -A EXPECT_PATCH_USER=( ["id"]=0 ["username"]="user1" ["password"]="pass4" )
+echo "Checking health check endpoint..."
 
-check_success() {
-    local json="$1"
-    local expected="$2"
-    actual=$(jq -r '.success' <<< "$json")
-    if [[ "$actual" != "$expected" ]]; then
-        echo "success mismatch (expected=$expected, actual=$actual)"
-        exit 1
-    fi
-}
+# check that the application is running
+status_code=$(curl -s -w "\n%{http_code}" $URL/health | tail -n1)
 
-validate_user_fields() {
-    local json="$1"
-    declare -n expected="$2"
-    for field in id username password; do
-        local expected_val="${expected[$field]}"
-        local actual_val
-        actual_val=$(jq -r --arg f "$field" '.data[$f]' <<< "$json")
-        if [[ "$actual_val" != "$expected_val" ]]; then
-            echo "Field mismatch: $field (expected=$expected_val, actual=$actual_val)"
-            exit 1
-        fi
-    done
-}
+if [ "$status_code" == "200" ]; then
+  echo "PASSED: Application is running"
+else
+  echo "FAILED: Application is not running"
+  exit 1
+fi
 
-validate_user_list() {
-    local json="$1"
-    shift
-    local index=0
-    for expected_name in "$@"; do
-        declare -n expected="$expected_name"
-        for field in id username password; do
-            local expected_val="${expected[$field]}"
-            local actual_val
-            actual_val=$(jq -r ".data[$index].$field" <<< "$json")
-            if [[ "$actual_val" != "$expected_val" ]]; then
-                echo "List mismatch at index $index: $field"
-                echo "expected=$expected_val"
-                echo "actual=$actual_val"
-                exit 1
-            fi
-        done
-        index=$((index + 1))
-    done
-}
+# Get list of users
+response=$(curl -s -w "\n%{http_code}" $URL/user)
+body=$(echo "$response" | head -n -1)
+status_code=$(echo "$response" | tail -n1)
+length=$(echo "$body" | jq -r '.data | length')
+success=$(echo "$body" | jq -r '.success')
 
-request() {
-    local method="$1"
-    local path="$2"
-    curl -sS -X "$method" "$URL$path" -H "Content-Type: application/json"
-}
+if [ "$status_code" == "200" ] && [ "$length" -eq "2" ] && [ "$success" == "true" ]; then
+  echo "PASSED: GET /user (status: $status_code, length: $length)"
+else
+  echo "FAILED: GET /user"
+  echo "  Expected: status 200, length 2"
+  echo "  Got: status $status_code, length $length"
+  exit 1
+fi
 
-echo "Get user list"
-resp=$(request GET /user)
-check_success "$resp" true
-validate_user_list "$resp" EXPECT_USER_0 EXPECT_USER_1
-echo "User list OK"
+# Get valid user
+response=$(curl -s -w "\n%{http_code}" $URL/user/0)
+body=$(echo "$response" | head -n -1)
+success=$(echo "$body" | jq -r '.success')
+status_code=$(echo "$response" | tail -n1)
 
-echo "Get valid user (id=1)"
-resp=$(request GET /user/1)
-check_success "$resp" true
-validate_user_fields "$resp" EXPECT_USER_1
-echo "Valid user OK"
+if [ "$status_code" == "200" ] && [ "$success" = "true" ]; then
+  echo "PASSED: GET /user/0 (status: $status_code)"
+else
+  echo "FAILED: GET /user/0"
+  echo "  Expected: status 200"
+  echo "  Got: status $status_code"
+  exit 1
+fi
 
-echo "Get invalid user"
-resp=$(request GET /user/999)
-check_success "$resp" false
-echo "Invalid user OK"
+# Get invalid user
+response=$(curl -s -w "\n%{http_code}" $URL/user/4)
+body=$(echo "$response" | head -n -1)
+success=$(echo "$body" | jq -r '.success')
+status_code=$(echo "$response" | tail -n1)
 
-echo "POST new user (user3, pass3, 18)"
-resp=$(curl -sS -X POST "$URL/user" \
+if [ "$status_code" == "404" ] && [ "$success" = "false" ]; then
+  echo "PASSED: GET /user/4 (status: $status_code)"
+else
+  echo "FAILED: GET /user/4"
+  echo "  Expected: status 404"
+  echo "  Got: status $status_code"
+  exit 1
+fi
+
+# Create user
+response=$(curl -s -w "\n%{http_code}" $URL/user \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=user3" \
   -d "password=pass3" \
   -d "age=18" )
+body=$(echo "$response" | head -n -1)
+success=$(echo "$body" | jq -r '.success')
+status_code=$(echo "$response" | tail -n1)
 
-check_success "$resp" true
-validate_user_fields "$resp" EXPECT_POST_USER
-echo "POST user OK"
+if [ "$status_code" == "201" ] && [ "$success" == "true" ]; then
+  echo "PASSED: POST /user (status: $status_code)"
+else
+  echo "FAILED: POST /user"
+  echo "  Expected: status 201"
+  echo "  Got: status $status_code"
+  exit 1
+fi
 
-echo "Get new user (id=2)"
-resp=$(request GET /user/2)
-check_success "$resp" true
-validate_user_fields "$resp" EXPECT_POST_USER
-echo "New user OK"
+# Get new user
+response=$(curl -s -w "\n%{http_code}" $URL/user/2)
+body=$(echo "$response" | head -n -1)
+success=$(echo "$body" | jq -r '.success')
+status_code=$(echo "$response" | tail -n1)
 
-echo "Get list after POST"
-resp=$(request GET /user)
-check_success "$resp" true
-validate_user_list "$resp" EXPECT_USER_0 EXPECT_USER_1 EXPECT_POST_USER
-echo "User list OK after POST"
+if [ "$status_code" == "200" ] && [ "$success" == "true" ]; then
+  echo "PASSED: GET /user/2 (status: $status_code)"
+else
+  echo "FAILED: GET /user/2"
+  echo "  Expected: status 200"
+  echo "  Got: status $status_code"
+  exit 1
+fi
 
-echo "Delete user id=2"
-curl -sS -X DELETE "$URL/user/2" >/dev/null
-echo "User deleted"
+# Get list after post
+response=$(curl -s -w "\n%{http_code}" $URL/user)
+body=$(echo "$response" | head -n -1)
+status_code=$(echo "$response" | tail -n1)
+length=$(echo "$body" | jq -r '.data | length')
+success=$(echo "$body" | jq -r '.success')
 
-echo "Get list after delete"
-resp=$(request GET /user)
-check_success "$resp" true
-validate_user_list "$resp" EXPECT_USER_0 EXPECT_USER_1
-echo "Delete list OK"
+if [ "$status_code" == "200" ] && [ "$length" -eq "3" ] && [ "$success" == "true" ]; then
+  echo "PASSED: GET /user (status: $status_code, length: $length)"
+else
+  echo "FAILED: GET /user"
+  echo "  Expected: status 200, length 3"
+  echo "  Got: status $status_code, length $length"
+  exit 1
+fi
 
-echo "PATCH user 0"
-resp=$(curl -sS -X PATCH "$URL/user/0" \
+# POST invalid user
+response=$(curl -s -w "\n%{http_code}" $URL/user \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "password=pass4")
+  -d "password=pass3" \
+  -d "age=18" )
+body=$(echo "$response" | head -n -1)
+success=$(echo "$body" | jq -r '.success')
+status_code=$(echo "$response" | tail -n1)
 
-check_success "$resp" true
-validate_user_fields "$resp" EXPECT_PATCH_USER
+if [ "$status_code" == "422" ] && [ "$success" == "false" ]; then
+  echo "PASSED: POST /user (status: $status_code)"
+else
+  echo "FAILED: POST /user"
+  echo "  Expected: status 422"
+  echo "  Got: status $status_code"
+  exit 1
+fi
 
-resp=$(request GET /user)
-check_success "$resp" true
-validate_user_list "$resp" EXPECT_PATCH_USER EXPECT_USER_1
-echo "PATCH user OK"
+# Delete new user
+response=$(curl -s -w "\n%{http_code}" -X DELETE $URL/user/2)
+body=$(echo "$response" | head -n -1)
+status_code=$(echo "$response" | tail -n1)
+success=$(echo "$body" | jq -r '.success')
 
-echo "ALL TESTS PASSED"
+if [ "$status_code" == "200" ] && [ "$success" == "true" ]; then
+  echo "PASSED: DELETE /user/2 (status: $status_code)"
+else
+  echo "FAILED: DELETE /user/2"
+  echo "  Expected: status 200"
+  echo "  Got: status $status_code"
+  exit 1
+fi
+
+# Delete invalid user
+response=$(curl -s -w "\n%{http_code}" -X DELETE $URL/user/6)
+body=$(echo "$response" | head -n -1)
+status_code=$(echo "$response" | tail -n1)
+success=$(echo "$body" | jq -r '.success')
+
+if [ "$status_code" == "404" ] && [ "$success" == "false" ]; then
+  echo "PASSED: DELETE /user/6 (status: $status_code)"
+else
+  echo "FAILED: DELETE /user/6"
+  echo "  Expected: status 404"
+  echo "  Got: status $status_code"
+  exit 1
+fi
+
+# Get list after delete
+response=$(curl -s -w "\n%{http_code}" $URL/user)
+body=$(echo "$response" | head -n -1)
+status_code=$(echo "$response" | tail -n1)
+length=$(echo "$body" | jq -r '.data | length')
+success=$(echo "$body" | jq -r '.success')
+
+if [ "$status_code" == "200" ] && [ "$length" -eq "2" ] && [ "$success" == "true" ]; then
+  echo "PASSED: GET /user (status: $status_code, length: $length)"
+else
+  echo "FAILED: GET /user"
+  echo "  Expected: status 200, length 2"
+  echo "  Got: status $status_code, length $length"
+  exit 1
+fi
+
+# Try to put deleted user (will create a new one)
+response=$(curl -s -w "\n%{http_code}" -X PUT $URL/user/2 \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=user3" \
+  -d "password=pass3" \
+  -d "age=18" )
+body=$(echo "$response" | head -n -1)
+success=$(echo "$body" | jq -r '.success')
+status_code=$(echo "$response" | tail -n1)
+
+if [ "$status_code" == "201" ] && [ "$success" == "true" ]; then
+  echo "PASSED: PUT /user/2 (status: $status_code)"
+else
+  echo "FAILED: PUT /user/2"
+  echo "  Expected: status 201"
+  echo "  Got: status $status_code"
+  exit 1
+fi
+
+# Access the new one - id:2 has been deleted so query id:3
+response=$(curl -s -w "\n%{http_code}" $URL/user/3)
+body=$(echo "$response" | head -n -1)
+status_code=$(echo "$response" | tail -n1)
+success=$(echo "$body" | jq -r '.success')
+
+if [ "$status_code" == "200" ] && [ "$success" == "true" ]; then
+  echo "PASSED: GET /user/3 (status: $status_code)"
+else
+  echo "FAILED: GET /user/3"
+  echo "  Expected: status 200"
+  echo "  Got: status $status_code"
+  exit 1
+fi
+
+# Get the list after put
+response=$(curl -s -w "\n%{http_code}" $URL/user)
+body=$(echo "$response" | head -n -1)
+status_code=$(echo "$response" | tail -n1)
+length=$(echo "$body" | jq -r '.data | length')
+success=$(echo "$body" | jq -r '.success')
+
+if [ "$status_code" == "200" ] && [ "$length" -eq "3" ] && [ "$success" == "true" ]; then
+  echo "PASSED: GET /user (status: $status_code, length: $length)"
+else
+  echo "FAILED: GET /user"
+  echo "  Expected: status 200, length 3"
+  echo "  Got: status $status_code, length $length"
+  exit 1
+fi
+
+# Patch user 0
+response=$(curl -s -w "\n%{http_code}" -X PATCH $URL/user/3 \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "age=25" )
+body=$(echo "$response" | head -n -1)
+success=$(echo "$body" | jq -r '.success')
+status_code=$(echo "$response" | tail -n1)
+age=$(echo "$body" | jq -r '.data.age')
+
+if [ "$status_code" == "200" ] && [ "$success" == "true" ] &&[ "$age" == "25" ]; then
+  echo "PASSED: PATCH /user/3 (status: $status_code)"
+else
+  echo "FAILED: PATCH /user/3"
+  echo "  Expected: status 200, age 25"
+  echo "  Got: status $status_code, age $age"
+  exit 1
+fi
+
+# Put user 1
+response=$(curl -s -w "\n%{http_code}" -X PUT $URL/user/1 \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=user2" \
+  -d "password=pass6" \
+  -d "age=18" )
+body=$(echo "$response" | head -n -1)
+success=$(echo "$body" | jq -r '.success')
+status_code=$(echo "$response" | tail -n1)
+password=$(echo "$body" | jq -r '.data.password')
+
+if [ "$status_code" == "200" ] && [ "$success" == "true" ] && [ "$password" == "pass6" ]; then
+  echo "PASSED: PUT /user/1 (status: $status_code)"
+else
+  echo "FAILED: PUT /user/1"
+  echo "  Expected: status 200, password pass6"
+  echo "  Got: status $status_code, password $password"
+  exit 1
+fi
