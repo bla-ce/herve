@@ -96,7 +96,7 @@ jobs:
       - name: Stop echo server
         run: kill $(cat examples/echo/server.pid)
 
-  utils-tests:
+  lib-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
