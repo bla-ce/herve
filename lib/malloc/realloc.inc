@@ -26,6 +26,7 @@ realloc:
   jl    .error
   je    .free
 
+  mov   rdi, [rsp]
   call  get_chunk_header
   cmp   rax, 0
   jl    .error

@@ -350,6 +350,7 @@ malloc:
   mov   qword [rax+CHUNK_OFFSET_INUSE], 1
 
   mov   rbx, qword [rax+CHUNK_OFFSET_SIZE]
+
   add   qword [mallocd], rbx
 
   add   rax, CHUNK_OFFSET_DATA

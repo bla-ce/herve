@@ -109,8 +109,18 @@ _start:
   cmp   qword [HT_ERR_MISSING_KEY], TRUE
   je    .error
 
-  cmp   [value5], rax
-  jne   .error
+  mov   rdi, qword [value5]
+  mov   rsi, rax
+  call  assert_equal
+
+  mov   rdi, [hash_table]
+  call  ht_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [mallocd]
+  mov   rsi, [freed]
+  call  assert_equal
 
   mov   rdi, SUCCESS_CODE
   call  exit

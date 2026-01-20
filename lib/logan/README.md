@@ -2,8 +2,6 @@
 
 Logan is a logger for Assembly applications.
 
-It can be used outside this library by copying and pasting the `logan.inc` file.
-
 It supports the following log levels:
 
 * TRACE

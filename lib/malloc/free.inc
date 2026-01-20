@@ -220,13 +220,14 @@ free:
   cmp   rbx, MAGIC_VAL_HEAP_CORRUPT
   jne   .error
 
-  mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
-  add   qword [freed], rbx
-
   ; make sure the chunk needs to be freed
   mov   rax, qword [rdi+CHUNK_OFFSET_INUSE]
   cmp   rax, FALSE
   je    .return
+
+  mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
+
+  add   qword [freed], rbx
 
   mov   [rsp], rdi
 

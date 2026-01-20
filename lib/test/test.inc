@@ -2,14 +2,15 @@ section .bss
 
 section .data
 
-assert_str_equal_msg  db "[FAILED]: strings are not equal", NULL_CHAR
-assert_equal_msg      db "[FAILED]: values are not equal", NULL_CHAR
+assert_msg:
+  .str_equal  db "[FAILED]: strings are not equal", NULL_CHAR
+  .equal      db "[FAILED]: values are not equal", NULL_CHAR
 
-assert_str_not_equal_msg  db "[FAILED]: strings are equal", NULL_CHAR
-assert_not_equal_msg      db "[FAILED]: values are equal", NULL_CHAR
+  .str_not_equal  db "[FAILED]: strings are equal", NULL_CHAR
+  .not_equal      db "[FAILED]: values are equal", NULL_CHAR
 
-assert_is_zero_msg      db "[FAILED]: value is not zero", NULL_CHAR
-assert_is_not_zero_msg  db "[FAILED]: value is zero", NULL_CHAR
+  .is_zero      db "[FAILED]: value is not zero", NULL_CHAR
+  .is_not_zero  db "[FAILED]: value is zero", NULL_CHAR
 
 section .text
 ; tests that first and second values are not equal
@@ -26,7 +27,7 @@ assert_not_equal:
   jmp   .return
 
 .error:
-  mov   rdi, assert_not_equal_msg
+  mov   rdi, assert_msg.not_equal
   call  println
 
   mov   rdi, FAILURE_CODE
@@ -49,7 +50,7 @@ assert_equal:
   jmp   .return
 
 .error:
-  mov   rdi, assert_equal_msg
+  mov   rdi, assert_msg.equal
   call  println
 
   mov   rdi, FAILURE_CODE
@@ -84,7 +85,7 @@ assert_string_equal:
   jmp   .return
 
 .error:
-  mov   rdi, assert_str_equal_msg
+  mov   rdi, assert_msg.str_equal
   call  println
 
   mov   rdi, [rsp]
@@ -127,7 +128,7 @@ assert_string_not_equal:
   jmp   .return
 
 .error:
-  mov   rdi, assert_str_not_equal_msg
+  mov   rdi, assert_msg.str_not_equal
   call  println
 
   mov   rdi, [rsp]
@@ -153,7 +154,7 @@ assert_is_zero:
   jmp   .return
 
 .error:
-  mov   rdi, assert_is_zero_msg
+  mov   rdi, assert_msg.is_zero
   call  println
 
   mov   rdi, FAILURE_CODE
@@ -173,7 +174,7 @@ assert_is_not_zero:
   jmp   .return
 
 .error:
-  mov   rdi, assert_is_not_zero_msg
+  mov   rdi, assert_msg.is_not_zero
   call  println
 
   mov   rdi, FAILURE_CODE

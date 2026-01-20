@@ -373,7 +373,7 @@ parse_query_param:
   cmp   rax, 0
   jl    .error
 
-  ; free key and value
+  ; free key
   mov   rdi, [rsp+0x20]
   call  free
   cmp   rax, 0
