@@ -5,9 +5,7 @@ LIB_DIR = $(ROOT_DIR)/lib
 BIN_DIR = bin
 BUILD_DIR = build
 
-TEST_FILES = $(wildcard *.s)
-
-TARGETS := $(patsubst %.s,%,$(TEST_FILES))
+TEST_PATH = $(program)
 
 INCLUDE_DIRS = \
 	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')
@@ -19,15 +17,12 @@ INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS)
 DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all
 
-all: $(TARGETS)
-
-$(TARGETS): %: $(BUILD_DIR)/%.o
-	mkdir -p $(BIN_DIR)
-	ld -o $(BIN_DIR)/$@ $<
-
-$(BUILD_DIR)/%.o: %.s
-	mkdir -p $(BUILD_DIR)
-	nasm -o $@ $< $(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
+all:
+	mkdir -p $(BIN_DIR) $(BUILD_DIR)
+	nasm -o $(BUILD_DIR)/$(TEST_PATH).o $(TEST_PATH).s \
+		$(BASE_FLAGS) $(INCLUDE_FLAGS) $(DEBUG_FLAGS)
+	ld -o $(BIN_DIR)/$(TEST_PATH) $(BUILD_DIR)/$(TEST_PATH).o
+	./$(BIN_DIR)/$(TEST_PATH)
 
 clean:
 	rm -rf $(BIN_DIR) $(BUILD_DIR)

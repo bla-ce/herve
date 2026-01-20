@@ -133,19 +133,19 @@ jobs:
       - name: Run array tests
         working-directory: tests/unit/utils
         run: |
-          make
+          make program=array_test
           ./bin/array_test
 
       - name: Run string tests
         working-directory: tests/unit/utils
         run: |
-          make
+          make program=string_test
           ./bin/string_test
 
       - name: Run ht tests
         working-directory: tests/unit/utils
         run: |
-          make
+          make program=hash_table_test
           ./bin/hash_table_test
 
   models-tests:
