@@ -31,4 +31,4 @@ After one year and ~24,000 lines of Assembly code, we are still far away from a 
 
 ### What am I working on?
 
-Right now, I'm working on error handling and making sure I can track all errors coming from different parts of the library, while ensuring that I clearly distinguish between how I handle library errors and server errors.
+Right now, I'm fixing the boeuf buffers. I found a problem when appending a string to an existing boeuf buffer: the implementation always resizes the buffer, even when it's not necessary. I'm also adding tests to this implementation, because it's always satisfying to see the green check mark on GitHub.
