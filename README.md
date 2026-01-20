@@ -27,8 +27,8 @@ The goal of this library is to provide a thorough yet simple API to allow develo
 
 No, I want developers to be able to spin up a webserver with 70 lines of Assembly and focus on the rest of the project.
 
-After one year and ~24,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
+After one year and ~25,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
 
 ### What am I working on?
 
-Right now, I'm fixing the boeuf buffers. I found a problem when appending a string to an existing boeuf buffer: the implementation always resizes the buffer, even when it's not necessary. I'm also adding tests to this implementation, because it's always satisfying to see the green check mark on GitHub.
+Right now, I'm fixing a memory leak that is happening somewhere (not helpful, yep but I'll figure that out). My first assumption comes from the way I use hash tables. I malloc a string for the value of a specific key in a for loop, I use this hash table, and when I want to free it later, I know that I need to free the key because it was previously allocated but I can't know if the value is a previously allocated value, which results in a memory leak. First guess, would be to keep track of these values to free them later, the ht implementation should probably not be responsible for freeing the value.
