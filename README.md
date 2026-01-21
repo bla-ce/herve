@@ -29,6 +29,4 @@ No, I want developers to be able to spin up a webserver with 70 lines of Assembl
 
 After one year and ~25,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
 
-### What am I working on?
-
-Right now, I'm fixing a memory leak that is happening somewhere (not helpful, yep but I'll figure that out). My first assumption comes from the way I use hash tables. I malloc a string for the value of a specific key in a for loop, I use this hash table, and when I want to free it later, I know that I need to free the key because it was previously allocated but I can't know if the value is a previously allocated value, which results in a memory leak. First guess, would be to keep track of these values to free them later, the ht implementation should probably not be responsible for freeing the value.
+And because apparently, now, it has to be mentioned, absolutely no AI was used, but this project probably served to train AI :)

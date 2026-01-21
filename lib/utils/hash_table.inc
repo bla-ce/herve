@@ -487,7 +487,7 @@ ht_del:
 ; @param  rdx: value
 ; @return rax: return value
 ht_insert:
-  sub   rsp, 0x48
+  sub   rsp, 0x38
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the hash table
@@ -497,15 +497,11 @@ ht_insert:
   ; [rsp+0x20]  -> hash value of the key
   ; [rsp+0x28]  -> index of the entry
   ; [rsp+0x30]  -> pointer to the array of entry at the index
-  ; [rsp+0x38]  -> pointer to the duplicated key
-  ; [rsp+0x40]  -> pointer to the duplicated value
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
-  mov   qword [rsp+0x38], 0
-  mov   qword [rsp+0x40], 0
 
   cmp   rdi, 0
   jle   .error
@@ -522,42 +518,13 @@ ht_insert:
   cmp   rax, HT_ENTRY_KEY_MAX_LENGTH
   jg    .error
 
-  ; dup and store key
   mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call  strndup
+  mov   rsi, [rsp+0x10]
+  call  ht_create_entry
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x38], rax
-
-  ; dup and store value
-  mov   rdi, [rsp+0x10]
-  call  strdup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x40], rax
-
-  ; create ht_entry
-  ; malloc entry
-  mov   rdi, HT_ENTRY_STRUCT_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  ; save entry
   mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x18]
-  mov   rax, [rsp+0x38]
-  mov   [rdi+HT_ENTRY_OFF_KEY], rax
-
-  mov   rax, [rsp+0x40]
-  mov   [rdi+HT_ENTRY_OFF_VALUE], rax
-
-  ; set next as 0
-  mov   qword [rdi+HT_ENTRY_OFF_NEXT], 0
 
   ; hash string
   mov   rdi, [rsp+0x8]
@@ -644,13 +611,6 @@ ht_insert:
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x38]
-  test  rdi, rdi
-  jz    .no_free_key
-
-  call  free
-
-.no_free_key:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
   jz    .no_free
@@ -661,7 +621,7 @@ ht_insert:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x48
+  add   rsp, 0x38
   ret
 
 ; returns a hash table of n buckets
@@ -782,22 +742,9 @@ ht_free:
   ; save position
   mov   [rsp+0x18], rsi
 
-  ; free the key
-  mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free the value
-  mov   rsi, [rsp+0x18]
-  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
   ; free the entry
   mov   rdi, [rsp+0x18]
-  call  free
+  call  ht_free_entry
   cmp   rax, 0
   jl    .error
 
@@ -817,22 +764,9 @@ ht_free:
   ; save new position
   mov   [rsp+0x18], rax
 
-  ; free the key
-  mov   rdi, [rax+HT_ENTRY_OFF_KEY]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free the value
-  mov   rsi, [rsp+0x18]
-  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
   ; free the entry
   mov   rdi, [rsp+0x18]
-  call  free
+  call  ht_free_entry
   cmp   rax, 0
   jl    .error
 
@@ -879,4 +813,143 @@ ht_free:
 
 .return:
   add   rsp, 0x28
+  ret
+
+; frees the hash table entry and related resources
+; @param  rdi: pointer to the entry
+; @return rax: return code
+ht_free_entry:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]   -> pointer to the entry
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+
+  ; free the key
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free the value
+  mov   rsi, [rsp]
+  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free the entry
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; creates a ht entry
+; @param  rdi: pointer to the key
+; @param  rdi: pointer to the value
+; @return rax: pointer to the entry struct
+ht_create_entry:
+  sub   rsp, 0x28
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the key
+  ; [rsp+0x8]   -> pointer to the value
+  ; [rsp+0x10]  -> pointer to the dup key
+  ; [rsp+0x18]  -> pointer to the dup value
+  ; [rsp+0x20]  -> pointer to the entry struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; duplicate the key
+  mov   rdi, [rsp]
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; duplicate the value
+  mov   rdi, [rsp+0x8]
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; malloc entry
+  mov   rdi, HT_ENTRY_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; populate entry
+  mov   rdi, [rsp+0x10]
+  mov   [rax+HT_ENTRY_OFF_KEY], rdi
+
+  mov   rdi, [rsp+0x18]
+  mov   [rax+HT_ENTRY_OFF_VALUE], rdi
+
+  ; set next as 0
+  mov   qword [rax+HT_ENTRY_OFF_NEXT], 0
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .free_value
+
+  call  free
+
+.free_value:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_key
+
+  call  free
+
+.free_key:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x28
+  ret
+
+; adds a ht entry to the hash table
+ht_add_entry:
   ret
