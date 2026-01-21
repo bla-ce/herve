@@ -583,12 +583,13 @@ model_instance_set_value:
 ; @param  rdx: pointer to the name of the field
 ; @return rax: value
 model_instance_get_value:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the model
   ; [rsp+0x8]   -> pointer to the instance
   ; [rsp+0x10]  -> pointer to the name of the field
+  ; [rsp+0x18]  -> pointer to the field struct
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -610,6 +611,8 @@ model_instance_get_value:
   cmp   rax, 0
   jle   .error
 
+  mov   [rsp+0x18], rax
+
   mov   rdi, [rsp+0x8]
   call  model_instance_get_ht
   cmp   rax, 0
@@ -621,6 +624,13 @@ model_instance_get_value:
   cmp   qword [HT_ERR_MISSING_KEY], TRUE
   je    .error
 
+  ; this value is a string, convert back to the field type
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  field_convert_str_to_value
+  cmp   rax, 0
+  jl    .error
+
   mov   qword [MODEL_INSTANCE_ERR], FALSE
   jmp   .return
 
@@ -629,7 +639,7 @@ model_instance_get_value:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; frees an instance of the model
