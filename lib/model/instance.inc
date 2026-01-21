@@ -80,7 +80,7 @@ model_instance_update:
   ; convert the value to the right type
   mov   rdi, [rsp+0x20]
   mov   rsi, rax
-  call  field_convert_value
+  call  field_convert_str_to_value
   cmp   rax, 0
   jl    .error
 
@@ -538,6 +538,15 @@ model_instance_set_value:
   cmp   rax, 0
   jle   .error
 
+  ; convert value to string for ht
+  mov   rdi, rax
+  mov   rsi, [rsp+0x18]
+  call  field_convert_value_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
   ; get hash table
   mov   rdi, [rsp+0x8]
   call  model_instance_get_ht
@@ -548,6 +557,12 @@ model_instance_set_value:
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x18]
   call  ht_insert
+  cmp   rax, 0
+  jl    .error
+
+  ; free the value
+  mov   rdi, [rsp+0x18]
+  call  free
   cmp   rax, 0
   jl    .error
 

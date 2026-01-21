@@ -482,7 +482,7 @@ serialize_cookie:
   mov   rdi, qword [rsi+COOKIE_OFF_MAX_AGE]
   lea   rsi, [rsp+0x20]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 

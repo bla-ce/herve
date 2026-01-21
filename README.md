@@ -21,7 +21,7 @@ Herve is a high-performance HTTP Server Library written entirely in Assembly for
 
 To gain a deeper knowledge of computer architecture, networking and how the CPU works at the instruction level, I wanted to build projects in Assembly.
 
-But let's be real, spending hours to just write basic functions like `to_string` or `strlen` is not the most exciting or rewarding thing.
+But let's be real, spending hours to just write basic functions like `itoa` or `strlen` is not the most exciting or rewarding thing.
 
 The goal of this library is to provide a thorough yet simple API to allow developers to write exciting Assembly projects with a webserver without spending months building the underlying webserver and network operations.
 

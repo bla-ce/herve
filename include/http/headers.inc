@@ -164,8 +164,14 @@ parse_headers:
   cmp   rax, 0
   jl    .error
 
-  ; free key and value
+  ; free key
   mov   rdi, [rsp+0x18]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free value
+  mov   rdi, [rsp+0x20]
   call  free
   cmp   rax, 0
   jl    .error

@@ -159,7 +159,7 @@ ip_to_str:
 
   lea   rsi, [rsp+0x28]
   mov   rdx, 4  ; add one for null char
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 

@@ -138,11 +138,94 @@ field_free:
   add   rsp, 0x8
   ret
 
-; converts the value of the field depending on its type
+; converts the value of a field to string
+; user is responsible for freeing the value
+; @param  rdi: pointer to the field
+; @param  rsi: value
+; @return rax: pointer to the allocated string
+field_convert_value_to_str:
+  sub   rsp, 0x10
+  sub   rsp, TO_STRING_MAX_STR_SIZE
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the field
+  ; [rsp+0x8]   -> value
+  ; [rsp+0x10]  -> buffer for itoa if value is integer
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; get type of the field
+  mov   rdi, [rsp]
+  call  field_get_type
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, FIELD_TYPE_INTEGER
+  je    .from_integer
+
+  cmp   rax, FIELD_TYPE_STRING
+  je    .from_string
+
+  cmp   rax, FIELD_TYPE_BOOL
+  je    .from_bool
+
+  ; unknown / not implemented type
+  jmp   .error
+
+.from_integer:
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [rsp+0x10]
+  mov   rdx, TO_STRING_MAX_STR_SIZE
+  call  itoa
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.from_bool:
+  mov   rdi, [rsp+0x8]
+  call  bool_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.from_string:
+  mov   rdi, [rsp+0x8]
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, TO_STRING_MAX_STR_SIZE
+  add   rsp, 0x10
+  ret
+
+; converts the string representation of the value
+; depending on its type
 ; @param  rdi: pointer to the field struct
 ; @param  rsi: value
 ; @return rax: converted value
-field_convert_value:
+field_convert_str_to_value:
   sub   rsp, 0x10
 
   ; *** STACK USAGE *** ;

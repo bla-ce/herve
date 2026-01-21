@@ -347,7 +347,7 @@ time_to_str:
   mov   rdi, [rsi+DT_STRUCT_YEAR]
   lea   rsi, [rsp+0x18]
   mov   rdx, 5
-  call  to_string
+  call  itoa
 
   cmp   rax, 0
   jl    .error
@@ -382,7 +382,7 @@ time_to_str:
   mov   rdi, [rsi+DT_STRUCT_MONTH]
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
-  call  to_string
+  call  itoa
 
   cmp   rax, 0
   jl    .error
@@ -416,7 +416,7 @@ time_to_str:
   mov   rdi, [rsi+DT_STRUCT_DAY]
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
-  call  to_string
+  call  itoa
 
   cmp   rax, 0
   jl    .error
@@ -450,7 +450,7 @@ time_to_str:
   mov   rdi, [rsi+DT_STRUCT_HOUR]
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
-  call  to_string
+  call  itoa
 
   cmp   rax, 0
   jl    .error
@@ -484,7 +484,7 @@ time_to_str:
   mov   rdi, [rsi+DT_STRUCT_MINUTE]
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
-  call  to_string
+  call  itoa
 
   cmp   rax, 0
   jl    .error
@@ -518,7 +518,7 @@ time_to_str:
   mov   rdi, [rsi+DT_STRUCT_SECOND]
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
-  call  to_string
+  call  itoa
 
   cmp   rax, 0
   jl    .error

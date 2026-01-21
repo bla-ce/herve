@@ -715,7 +715,7 @@ send_JSON:
   mov   rdi, qword [rsp+0x30]
   lea   rsi, [rsp+0x38]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 
@@ -850,7 +850,7 @@ send_HTML:
   mov   rdi, qword [rsp+0x30]
   lea   rsi, [rsp+0x38]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 
@@ -983,7 +983,7 @@ send_string:
   mov   rdi, qword [rsp+0x30]
   lea   rsi, [rsp+0x38]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 
@@ -1255,7 +1255,7 @@ send_static_file:
   mov   rdi, rax
   lea   rsi, [rsp+0x40]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
 
   cmp   rax, 0
   jl    .error

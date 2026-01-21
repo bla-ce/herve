@@ -159,7 +159,7 @@ json_insert_integer:
   mov   rdi, [rsp+0x10]
   lea   rsi, [rsp+0x18]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 
@@ -393,7 +393,7 @@ json_insert_float:
   cvttsd2si rdi, [rsp+0x10]
   lea   rsi, [rsp+0x28]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 
@@ -442,7 +442,7 @@ json_insert_float:
   mov   rdi, rdx
   lea   rsi, [rsp+0x28]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 
@@ -556,7 +556,7 @@ json_array_insert_float:
   cvttsd2si rdi, [rsp+0x8]
   lea   rsi, [rsp+0x20]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 
@@ -605,7 +605,7 @@ json_array_insert_float:
   mov   rdi, rdx
   lea   rsi, [rsp+0x20]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 
@@ -654,7 +654,7 @@ json_array_insert_integer:
   mov   rdi, [rsp+0x8]
   lea   rsi, [rsp+0x10]
   mov   rdx, SIGNED_LONG_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .error
 

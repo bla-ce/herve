@@ -614,7 +614,7 @@ http_model_post:
   ; convert the value to the right type
   mov   rdi, [rsp+0x38]
   mov   rsi, rax
-  call  field_convert_value
+  call  field_convert_str_to_value
   cmp   rax, 0
   jl    .internal_server_error
 

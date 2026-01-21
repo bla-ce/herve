@@ -218,7 +218,7 @@ log_server_init:
   mov   rdi, rax
   lea   rsi, [rsp+0x10]
   mov   rdx, STR_PORT_MAX_LENGTH
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jl    .return
 

@@ -29,7 +29,7 @@ section .text
 ; check if the field exist in the model
 ; @param  rdi: pointer to the model
 ; @param  rsi: pointer to the name of the field
-; @return rax: model exist (bool)
+; @return rax: pointer to the field if true, otherwise FALSE
 model_field_exist:
   sub   rsp, 0x18
 

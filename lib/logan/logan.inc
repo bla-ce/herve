@@ -509,7 +509,7 @@ _log:
   mov   rdi, rax
   lea   rsi, [rsp+0x40]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
-  call  to_string
+  call  itoa
   cmp   rax, 0
   jle   .log_message
 

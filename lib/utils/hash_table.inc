@@ -1,5 +1,5 @@
 ; NOTE: this hash table implementation only supports strings as
-; keys
+; keys and values
 
 section .bss
 
@@ -487,7 +487,7 @@ ht_del:
 ; @param  rdx: value
 ; @return rax: return value
 ht_insert:
-  sub   rsp, 0x40
+  sub   rsp, 0x48
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the hash table
@@ -498,12 +498,14 @@ ht_insert:
   ; [rsp+0x28]  -> index of the entry
   ; [rsp+0x30]  -> pointer to the array of entry at the index
   ; [rsp+0x38]  -> pointer to the duplicated key
+  ; [rsp+0x40]  -> pointer to the duplicated value
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x38], 0
+  mov   qword [rsp+0x40], 0
 
   cmp   rdi, 0
   jle   .error
@@ -529,6 +531,14 @@ ht_insert:
 
   mov   [rsp+0x38], rax
 
+  ; dup and store value
+  mov   rdi, [rsp+0x10]
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x40], rax
+
   ; create ht_entry
   ; malloc entry
   mov   rdi, HT_ENTRY_STRUCT_LEN
@@ -543,7 +553,7 @@ ht_insert:
   mov   rax, [rsp+0x38]
   mov   [rdi+HT_ENTRY_OFF_KEY], rax
 
-  mov   rax, [rsp+0x10]
+  mov   rax, [rsp+0x40]
   mov   [rdi+HT_ENTRY_OFF_VALUE], rax
 
   ; set next as 0
@@ -651,7 +661,7 @@ ht_insert:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x40
+  add   rsp, 0x48
   ret
 
 ; returns a hash table of n buckets
@@ -778,6 +788,13 @@ ht_free:
   cmp   rax, 0
   jl    .error
 
+  ; free the value
+  mov   rsi, [rsp+0x18]
+  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   ; free the entry
   mov   rdi, [rsp+0x18]
   call  free
@@ -802,6 +819,13 @@ ht_free:
 
   ; free the key
   mov   rdi, [rax+HT_ENTRY_OFF_KEY]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free the value
+  mov   rsi, [rsp+0x18]
+  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
   call  free
   cmp   rax, 0
   jl    .error

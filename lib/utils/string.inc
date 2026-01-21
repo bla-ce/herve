@@ -360,7 +360,7 @@ strcpy:
 ; @param  rsi: string
 ; @param  rdx: size
 ; @return rax: pointer to str(int)
-to_string:
+itoa:
   sub   rsp, 0x18
   sub   rsp, TO_STRING_MAX_STR_SIZE
 
@@ -1109,4 +1109,31 @@ string_to_bool:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; converts a boolean to a string
+; @param  rdi: boolean
+; @return rax: string value
+bool_to_str:
+  cmp   rdi, TRUE
+  je    .true
+
+  cmp   rdi, FALSE
+  je    .false
+
+  jmp   .error
+
+.true:
+  mov   rax, str_false
+  jmp   .return
+
+.false:
+  mov   rax, str_false
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret

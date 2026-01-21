@@ -14,7 +14,7 @@ value1  db "localhost:1337", NULL_CHAR
 value2  db "curl/7.88.1", NULL_CHAR
 value3  db "*/*", NULL_CHAR
 value4  db "application/x-www-form-urlencoded", NULL_CHAR
-value5  dq 36
+value5  dq "36", NULL_CHAR
 
 hash_table dq 0
 
@@ -58,7 +58,7 @@ _start:
 
   mov   rdi, [hash_table]
   mov   rsi, key5
-  mov   rdx, [value5]
+  mov   rdx, value5
   call  ht_insert
   cmp   rax, 0
   jl    .error
@@ -109,9 +109,9 @@ _start:
   cmp   qword [HT_ERR_MISSING_KEY], TRUE
   je    .error
 
-  mov   rdi, qword [value5]
+  mov   rdi, value5
   mov   rsi, rax
-  call  assert_equal
+  call  assert_string_equal
 
   mov   rdi, [hash_table]
   call  ht_free
