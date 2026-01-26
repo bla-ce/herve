@@ -233,16 +233,45 @@ ht_hash_key:
   ret
 
 ; returns the index of the key given the hash
-; @param  rdi: hash value
-; @param  rsi: number of buckets
+; @param  rdi: pointer to the hash table struct
+; @param  rsi: hash
 ; @return rax: index of the key
 ht_get_bucket_idx_from_hash:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the hash table struct
+  ; [rsp+0x8] -> hash
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; get number of buckets
+  mov   rdi, [rsp]
+  call  ht_get_n_bucket
+  cmp   rax, 0
+  jl    .error
+
   xor   rdx, rdx
-  mov   rax, rdi
-  div   rsi
+  mov   rbx, rax
+  mov   rax, [rsp+0x8]
+  div   rbx
 
   mov   rax, rdx
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; returns the value of the associated key
@@ -274,10 +303,8 @@ ht_get:
   jl    .error
 
   ; get index from hash
-  mov   rdi, rax
-
-  mov   rax, [rsp]
-  mov   rsi, qword [rax+HT_OFF_NBUCKET]
+  mov   rdi, [rsp]
+  mov   rsi, rax
   call  ht_get_bucket_idx_from_hash
   cmp   rax, 0
   jl    .error
@@ -376,10 +403,8 @@ ht_del:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-
-  mov   rax, [rsp]
-  mov   rsi, qword [rax+HT_OFF_NBUCKET]
+  mov   rdi, [rsp]
+  mov   rsi, rax
   call  ht_get_bucket_idx_from_hash
   cmp   rax, 0
   jl    .error
@@ -562,7 +587,7 @@ ht_insert:
 
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
-  call  ht_create_entry
+  call  ht_entry_create
   cmp   rax, 0
   jl    .error
 
@@ -856,8 +881,7 @@ ht_add_entry:
 
   ; get number of bucket
   mov   rdi, [rsp]
-  mov   rsi, qword [rdi+HT_OFF_NBUCKET]
-  mov   rdi, rax
+  mov   rsi, rax
   call  ht_get_bucket_idx_from_hash
   cmp   rax, 0
   jl    .error

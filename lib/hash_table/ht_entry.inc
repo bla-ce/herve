@@ -75,7 +75,7 @@ ht_entry_free:
 ; @param  rdi: pointer to the key
 ; @param  rdi: pointer to the value
 ; @return rax: pointer to the entry struct
-ht_create_entry:
+ht_entry_create:
   sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
@@ -140,6 +140,8 @@ ht_create_entry:
   call  ht_entry_set_next
   cmp   rax, 0
   jl    .error
+
+  mov   rax, [rsp+0x20]
 
   jmp   .return
 
