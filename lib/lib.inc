@@ -1,6 +1,7 @@
 %include "boeuf.inc"
 %include "config.inc"
 %include "encoding.inc"
+%include "hash_table.inc"
 %include "logan.inc"
 %include "malloc.inc"
 %include "model.inc"

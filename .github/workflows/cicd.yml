@@ -142,11 +142,10 @@ jobs:
           make program=string_test
           ./bin/string_test
 
-      - name: Run ht tests
-        working-directory: tests/unit/utils
+      - name: Run hash table tests
+        working-directory: tests/unit/hash_table
         run: |
-          make program=hash_table_test
-          ./bin/hash_table_test
+          make
 
   models-tests:
     runs-on: ubuntu-latest

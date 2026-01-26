@@ -1,6 +1,8 @@
 ; NOTE: this hash table implementation only supports strings as
 ; keys and values
 
+%include "ht_entry.inc"
+
 section .bss
 
 hash_table_t:
@@ -9,12 +11,6 @@ hash_table_t:
   .ht_table     resq 1  ; table is an array of addresses pointing to an entry
 hash_table_t_end:
 
-ht_entry_t:
-  .ht_entry_key   resq 1
-  .ht_entry_value resq 1
-  .ht_entry_next  resq 1
-ht_entry_t_end:
-
 section .data
 
 HT_STRUCT_LEN   equ hash_table_t_end - hash_table_t
@@ -22,14 +18,6 @@ HT_STRUCT_LEN   equ hash_table_t_end - hash_table_t
 HT_OFF_NBUCKET  equ 0
 HT_OFF_NENTRY   equ HT_OFF_NBUCKET + 0x8
 HT_OFF_TABLE    equ HT_OFF_NENTRY + 0x8
-
-HT_ENTRY_STRUCT_LEN equ ht_entry_t_end - ht_entry_t
-
-HT_ENTRY_OFF_KEY    equ 0
-HT_ENTRY_OFF_VALUE  equ HT_ENTRY_OFF_KEY + 0x8
-HT_ENTRY_OFF_NEXT   equ HT_ENTRY_OFF_VALUE + 0x8
-
-HT_ENTRY_KEY_MAX_LENGTH   equ 0xFF
 
 HT_ERR_MISSING_KEY dq 0
 
@@ -827,141 +815,6 @@ ht_bucket_free:
   add   rsp, 0x18
   ret
 
-; frees the hash table entry and related resources
-; @param  rdi: pointer to the entry
-; @return rax: return code
-ht_entry_free:
-  sub   rsp, 0x8
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]   -> pointer to the entry
-
-  cmp   rdi, 0
-  jle   .error
-
-  mov   [rsp], rdi
-
-  ; free the key
-  mov   rsi, [rsp]
-  mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free the value
-  mov   rsi, [rsp]
-  mov   rdi, [rsi+HT_ENTRY_OFF_VALUE]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; free the entry
-  mov   rdi, [rsp]
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x8
-  ret
-
-; creates a ht entry
-; @param  rdi: pointer to the key
-; @param  rdi: pointer to the value
-; @return rax: pointer to the entry struct
-ht_create_entry:
-  sub   rsp, 0x28
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the key
-  ; [rsp+0x8]   -> pointer to the value
-  ; [rsp+0x10]  -> pointer to the dup key
-  ; [rsp+0x18]  -> pointer to the dup value
-  ; [rsp+0x20]  -> pointer to the entry struct
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x10], 0
-  mov   qword [rsp+0x18], 0
-  mov   qword [rsp+0x20], 0
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  ; duplicate the key
-  mov   rdi, [rsp]
-  call  strdup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-
-  ; duplicate the value
-  mov   rdi, [rsp+0x8]
-  call  strdup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  ; malloc entry
-  mov   rdi, HT_ENTRY_STRUCT_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
-  ; populate entry
-  mov   rdi, [rsp+0x10]
-  mov   [rax+HT_ENTRY_OFF_KEY], rdi
-
-  mov   rdi, [rsp+0x18]
-  mov   [rax+HT_ENTRY_OFF_VALUE], rdi
-
-  ; set next as 0
-  mov   qword [rax+HT_ENTRY_OFF_NEXT], 0
-
-  jmp   .return
-
-.error:
-  mov   rdi, [rsp+0x20]
-  test  rdi, rdi
-  jz    .free_value
-
-  call  free
-
-.free_value:
-  mov   rdi, [rsp+0x18]
-  test  rdi, rdi
-  jz    .free_key
-
-  call  free
-
-.free_key:
-  mov   rdi, [rsp+0x10]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x28
-  ret
-
 ; adds a ht entry to the hash table
 ; @param  rdi: pointer to the hash table
 ; @param  rsi: pointer to the entry
@@ -1075,63 +928,6 @@ ht_add_entry:
 
 .return:
   add   rsp, 0x38
-  ret
-
-; sets the next entry of a ht entry
-; @param  rdi: pointer to the ht entry
-; @param  rsi: pointer to next
-; @return rax: return code
-ht_entry_set_next:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   [rdi+HT_ENTRY_OFF_NEXT], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the next entry of a ht entry
-; @param  rdi: pointer to the ht entry
-; @return rax: pointer to next
-ht_entry_get_next:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+HT_ENTRY_OFF_NEXT]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the key of a ht entry
-; @param  rdi: pointer to the ht entry
-; @return rax: pointer to the key
-ht_entry_get_key:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+HT_ENTRY_OFF_KEY]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
   ret
 
 ; returns the number of buckets in the hash table
