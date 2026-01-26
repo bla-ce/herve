@@ -211,7 +211,7 @@ ht_get_keys:
 ; hash function to map values to key
 ; @param  rdi: pointer to hash
 ; @return rax: hash value
-hash_string_key:
+ht_hash_key:
   sub   rsp, 0x10
 
   cmp   rdi, 0
@@ -248,7 +248,7 @@ hash_string_key:
 ; @param  rdi: hash value
 ; @param  rsi: number of buckets
 ; @return rax: index of the key
-get_index_from_hash:
+ht_get_bucket_idx_from_hash:
   xor   rdx, rdx
   mov   rax, rdi
   div   rsi
@@ -281,7 +281,7 @@ ht_get:
 
   ; hash string key
   mov   rdi, [rsp+0x8]
-  call  hash_string_key
+  call  ht_hash_key
   cmp   rax, 0
   jl    .error
 
@@ -290,7 +290,7 @@ ht_get:
 
   mov   rax, [rsp]
   mov   rsi, qword [rax+HT_OFF_NBUCKET]
-  call  get_index_from_hash
+  call  ht_get_bucket_idx_from_hash
   cmp   rax, 0
   jl    .error
 
@@ -384,7 +384,7 @@ ht_del:
 
   ; get index from string
   mov   rdi, [rsp+0x8]
-  call  hash_string_key
+  call  ht_hash_key
   cmp   rax, 0
   jl    .error
 
@@ -392,7 +392,7 @@ ht_del:
 
   mov   rax, [rsp]
   mov   rsi, qword [rax+HT_OFF_NBUCKET]
-  call  get_index_from_hash
+  call  ht_get_bucket_idx_from_hash
   cmp   rax, 0
   jl    .error
 
@@ -997,7 +997,7 @@ ht_add_entry:
 
   ; hash string
   mov   rdi, [rsp+0x10]
-  call  hash_string_key
+  call  ht_hash_key
   cmp   rax, 0
   jl   .error
 
@@ -1005,7 +1005,7 @@ ht_add_entry:
   mov   rdi, [rsp]
   mov   rsi, qword [rdi+HT_OFF_NBUCKET]
   mov   rdi, rax
-  call  get_index_from_hash
+  call  ht_get_bucket_idx_from_hash
   cmp   rax, 0
   jl    .error
 
