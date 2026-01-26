@@ -727,16 +727,14 @@ ht_free:
 
 .loop:
   ; get table
-  mov   rdi, [rsp+0x10]
-
-  ; get offset of the bucket we want to free
-  xor   rdx, rdx
-  mov   rax, [rsp+0x18]
-  mov   rbx, 8
-  mul   rbx
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x18]
+  call  ht_get_bucket_by_index
+  cmp   rax, 0
+  jl    .error
 
   ; go to bucket address
-  add   rdi, rax
+  mov   rdi, rax
   call  ht_bucket_free
   cmp   rax, 0
   jl    .error
@@ -845,16 +843,15 @@ ht_bucket_free:
 ; @param  rsi: pointer to the entry
 ; @return rax: return code
 ht_add_entry:
-  sub   rsp, 0x38
+  sub   rsp, 0x30
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the hash table struct
   ; [rsp+0x8]   -> pointer to the entry
   ; [rsp+0x10]  -> key of the entry
-  ; [rsp+0x18]  -> index of the entry
-  ; [rsp+0x20]  -> pointer to the hash table elements
-  ; [rsp+0x28]  -> address where the entry will be stored
-  ; [rsp+0x30]  -> pointer to the entry
+  ; [rsp+0x18]  -> pointer to the hash table elements
+  ; [rsp+0x20]  -> address where the entry will be stored
+  ; [rsp+0x28]  -> pointer to the entry
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -886,47 +883,35 @@ ht_add_entry:
   cmp   rax, 0
   jl    .error
 
-  ; store index
-  mov   [rsp+0x18], rax
-
-  ; get table
   mov   rdi, [rsp]
-  call  ht_get_table
+  mov   rsi, rax
+  call  ht_get_bucket_by_index
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
-
-  ; go to the address where the first entry is stored
-  xor   rdx, rdx
-  mov   rax, [rsp+0x18]
-  mov   rbx, 8
-  mul   rbx
-
-  mov   rdi, [rsp+0x20]
-  add   rdi, rax
+  mov   rdi, rax
 
   ; [rdi] points to the first address or is null
   ; we need to save rdi because it will be the pointer where we
   ; will store the entry
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x20], rdi
   cmp   qword [rdi], 0
   je    .loop_end
 
   ; store the pointer to the entry
   mov   rax, qword [rdi]
-  mov   [rsp+0x30], rax
+  mov   [rsp+0x28], rax
 
   ; we need to go to the end of the linked list
 .loop:
   ; save the new address where the entry would be saved
-  mov   rdi, [rsp+0x30]
+  mov   rdi, [rsp+0x28]
   add   rdi, HT_ENTRY_OFF_NEXT
 
-  mov   [rsp+0x28], rdi
+  mov   [rsp+0x20], rdi
 
   mov   rax, [rdi]
-  mov   [rsp+0x30], rax
+  mov   [rsp+0x28], rax
 
   test  rax, rax
   jz    .loop_end
@@ -935,7 +920,7 @@ ht_add_entry:
 
 .loop_end:
   ; store entry
-  mov   rdi, [rsp+0x28]
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x8]
   mov   [rdi], rsi
 
@@ -951,7 +936,7 @@ ht_add_entry:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x30
   ret
 
 ; returns the number of buckets in the hash table
