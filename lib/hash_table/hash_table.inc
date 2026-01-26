@@ -19,8 +19,6 @@ HT_OFF_NBUCKET  equ 0
 HT_OFF_NENTRY   equ HT_OFF_NBUCKET + 0x8
 HT_OFF_TABLE    equ HT_OFF_NENTRY + 0x8
 
-HT_ERR_MISSING_KEY dq 0
-
 section .text
 ; returns the number of entries in the hash table
 ; @param  rdi: pointer to the hash table
@@ -355,18 +353,14 @@ ht_get:
 
   ; get value from entry
   mov   rax, [rdi+HT_ENTRY_OFF_VALUE]
-  mov   qword [HT_ERR_MISSING_KEY], FALSE
 
   jmp   .return
 
 .does_not_exist:
-  mov   qword [HT_ERR_MISSING_KEY], TRUE
-
   xor   rax, rax
   jmp   .return
 
 .error:
-  mov   qword [HT_ERR_MISSING_KEY], TRUE
   mov   rax, FAILURE_CODE
 
 .return:
@@ -597,8 +591,8 @@ ht_insert:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   call  ht_get
-  cmp   qword [HT_ERR_MISSING_KEY], TRUE
-  je    .no_delete
+  cmp   rax, 0
+  jl    .no_delete
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]

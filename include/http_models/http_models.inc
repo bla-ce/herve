@@ -608,8 +608,8 @@ http_model_post:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x30]
   call  ht_get
-  cmp   qword [HT_ERR_MISSING_KEY], TRUE
-  je    .unprocessable_entity
+  cmp   rax, 0
+  jl    .unprocessable_entity
 
   ; convert the value to the right type
   mov   rdi, [rsp+0x38]

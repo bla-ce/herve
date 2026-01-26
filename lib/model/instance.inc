@@ -71,8 +71,8 @@ model_instance_update:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x28]
   call  ht_get
-  cmp   qword [HT_ERR_MISSING_KEY], TRUE
-  je   .skip_update
+  cmp   rax, 0
+  jl    .skip_update
 
   cmp   qword [rsp+0x20], FALSE
   je    .skip_conversion
@@ -621,8 +621,8 @@ model_instance_get_value:
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
   call  ht_get
-  cmp   qword [HT_ERR_MISSING_KEY], TRUE
-  je    .error
+  cmp   rax, 0
+  jl    .error
 
   ; this value is a string, convert back to the field type
   mov   rdi, [rsp+0x18]
