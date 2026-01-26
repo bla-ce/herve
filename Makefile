@@ -10,11 +10,7 @@ help:
 	@echo "	groups: Run example with groups"
 	@echo ""
 	@echo "Tests:"
-	@echo "	test-models: Run models tests"
-	@echo "	test-echo: Run echo tests"
-	@echo "	test-static-content: Run static content tests"
-	@echo "	test-utils: Run utils tests"
-	@echo "	test-all: Run all tests"
+	@echo "	test-unit: Run all unit tests"
 	@echo ""
 	@echo "Benchmark:"
 	@echo "	wrk: Run \`wrk\` benchmark"
@@ -50,5 +46,16 @@ proxy:
 	$(MAKE) -C examples/proxy run-server2&
 	$(MAKE) -C examples/proxy run-server3&
 	$(MAKE) -C examples/proxy run-proxy
+
+test-unit:
+	$(MAKE) -C tests/unit/boeuf
+	$(MAKE) -C tests/unit/encoding/base64
+	$(MAKE) -C tests/unit/encoding/html
+	$(MAKE) -C tests/unit/encoding/json
+	$(MAKE) -C tests/unit/hash_table
+	$(MAKE) -C tests/unit/malloc
+	$(MAKE) -C tests/unit/models
+	$(MAKE) -C tests/unit/utils program=array_test
+	$(MAKE) -C tests/unit/utils program=string_test
 
 # TODO: define the other targets
