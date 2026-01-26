@@ -114,6 +114,35 @@ _start:
   call  assert_string_equal
 
   mov   rdi, [hash_table]
+  mov   rsi, key1
+  mov   rdx, value2
+  call  ht_insert
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [hash_table]
+  mov   rsi, key1
+  call  ht_get
+  cmp   qword [HT_ERR_MISSING_KEY], TRUE
+  je    .error
+
+  mov   rdi, value2
+  mov   rsi, rax
+  call  assert_string_equal
+
+  mov   rdi, [hash_table]
+  mov   rsi, key1
+  call  ht_del
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [hash_table]
+  mov   rsi, key1
+  call  ht_get
+  cmp   qword [HT_ERR_MISSING_KEY], FALSE
+  je    .error
+
+  mov   rdi, [hash_table]
   call  ht_free
   cmp   rax, 0
   jl    .error

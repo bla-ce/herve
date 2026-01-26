@@ -12,3 +12,4 @@ MODELS.md
 ERROR.md
 venv/
 .venv/
+extract_functions.sh
