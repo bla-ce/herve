@@ -321,7 +321,7 @@ ht_get:
 
   ; if rdi is 0, this key does not exist
   cmp   rdi, 0
-  je    .error
+  je    .does_not_exist
 
   ; save entry
   mov   [rsp+0x18], rdi
@@ -592,7 +592,7 @@ ht_insert:
   mov   rsi, [rsp+0x8]
   call  ht_get
   cmp   rax, 0
-  jl    .no_delete
+  je    .no_delete
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]

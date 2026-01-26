@@ -609,7 +609,7 @@ http_model_post:
   mov   rsi, [rsp+0x30]
   call  ht_get
   cmp   rax, 0
-  jl    .unprocessable_entity
+  jle   .unprocessable_entity
 
   ; convert the value to the right type
   mov   rdi, [rsp+0x38]

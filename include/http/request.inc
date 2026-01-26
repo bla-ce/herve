@@ -487,7 +487,7 @@ get_query_param:
   mov   rsi, [rsp+0x8]
   call  ht_get
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   jmp   .return
 
@@ -1091,7 +1091,7 @@ verify_request:
   lea   rsi, [HOST_HEADER]
   call  ht_get
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   mov   rsi, [rsp+0x10]
 

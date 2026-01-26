@@ -147,7 +147,7 @@ template_parse:
   mov   rsi, rax
   call  ht_get
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   ; encode value
   mov   rdi, rax

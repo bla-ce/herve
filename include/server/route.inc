@@ -1334,7 +1334,7 @@ get_dynamic_param:
   mov   rsi, [rsp+0x8]
   call  ht_get
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   jmp   .return
 

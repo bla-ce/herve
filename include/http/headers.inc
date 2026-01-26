@@ -298,7 +298,7 @@ stringify_headers:
   mov   rsi, [rsp+0x18]
   call  ht_get
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   ; get value length
   mov   rdi, rax
@@ -358,7 +358,7 @@ stringify_headers:
   mov   rsi, [rsp+0x18]
   call  ht_get
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   ; load value
   mov   rdi, [rsp+0x30]
@@ -510,7 +510,7 @@ get_header_value:
   mov   rsi, [rsp+0x8]
   call  ht_get
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   jmp   .return
 

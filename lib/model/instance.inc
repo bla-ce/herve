@@ -72,7 +72,7 @@ model_instance_update:
   mov   rsi, [rsp+0x28]
   call  ht_get
   cmp   rax, 0
-  jl    .skip_update
+  jle   .skip_update
 
   cmp   qword [rsp+0x20], FALSE
   je    .skip_conversion
@@ -622,7 +622,7 @@ model_instance_get_value:
   mov   rsi, [rsp+0x10]
   call  ht_get
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
   ; this value is a string, convert back to the field type
   mov   rdi, [rsp+0x18]
