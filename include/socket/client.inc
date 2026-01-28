@@ -20,7 +20,7 @@ section .text
 ; @param  rdi: pointer to the client
 ; @param  rsi: file descriptor
 ; @return rax: return code
-set_client_fd:
+client_set_fd:
   cmp   rdi, 0
   jle   .error
 
@@ -41,7 +41,7 @@ set_client_fd:
 ; returns the file descriptor of the client
 ; @param  rdi: pointer to the client
 ; @return rax: file descriptor
-get_client_fd:
+client_get_fd:
   cmp   rdi, 0
   jle   .error
 
@@ -59,7 +59,7 @@ get_client_fd:
 ; @param  rdi: pointer to the client struct
 ; @param  rsi: pointer to the ip
 ; @return rax: return code
-set_client_ip:
+client_set_ip:
   cmp   rdi, 0
   jle   .error
 
@@ -81,7 +81,7 @@ set_client_ip:
 ; returns the ip from the client struct
 ; @param  rdi: pointer to the client struct
 ; @return rax: pointer to the ip
-get_client_ip:
+client_get_ip:
   cmp   rdi, 0
   jle   .error
 
@@ -124,7 +124,7 @@ ip_to_str:
 
   ; get client fd
   mov   rdi, [rsp]
-  call  get_client_fd
+  call  client_get_fd
   cmp   rax, 0
   jl    .error
 
@@ -136,7 +136,6 @@ ip_to_str:
   lea   rsi, [rsp+0x38]
   lea   rdx, [addrlen]
   syscall
-
   cmp   rax, 0
   jl    .error
 
@@ -203,7 +202,7 @@ ip_to_str:
 ; free the client struct and associated resources
 ; @param  rdi: pointer to the client struct
 ; @return rax: return code
-free_client:
+client_free:
   sub   rsp, 0x8
 
   ; *** STACK USAGE *** ;
@@ -216,7 +215,7 @@ free_client:
 
   ; free the client ip string
   mov   rdi, [rsp]
-  call  get_client_ip
+  call  client_get_ip
   cmp   rax, 0
   jle   .free_struct
 
@@ -248,7 +247,7 @@ free_client:
 ; @param  rsi: pointer to the main FD_SET
 ; @param  rdx: current number of connections
 ; @return rax: return code
-clear_client_connection:
+client_clear_connection:
   sub   rsp, 0x18
 
   ; *** STACK USAGE *** ;
@@ -288,7 +287,7 @@ clear_client_connection:
 
   ; free client struct
   mov   rdi, rax
-  call  free_client
+  call  client_free
   cmp   rax, 0
   jl    .error
 

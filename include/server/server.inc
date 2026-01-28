@@ -613,7 +613,7 @@ server_run:
   jl    .close_server ; TODO: is it an error?
 
   mov   rdi, [rsp+0x28]
-  call  get_client_fd
+  call  client_get_fd
   cmp   rax, 0
   jl    .error
 
@@ -661,7 +661,7 @@ server_run:
   mov   rdi, qword [rsp+0x18]
   mov   rsi, [rsp+0x8]
   mov   rdx, qword [rsp+0x20]
-  call  clear_client_connection
+  call  client_clear_connection
   cmp   rax, 0
   jl    .error ; TODO: error?
 

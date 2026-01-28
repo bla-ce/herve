@@ -256,7 +256,7 @@ accept_connection:
 
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x18]
-  call  set_client_ip
+  call  client_set_ip
   cmp   rax, 0
   jl    .error
 

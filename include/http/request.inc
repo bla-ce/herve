@@ -690,7 +690,6 @@ receive_request:
   ; get request struct
   mov   rdi, [rsp]
   call  get_ctx_request
-
   cmp   rax, 0
   jl    .error
 
@@ -699,14 +698,12 @@ receive_request:
   ; get client
   mov   rdi, [rsp]
   call  get_ctx_client
-
   cmp   rax, 0
   jl    .error
 
   ; get client fd
   mov   rdi, rax
-  call  get_client_fd
-
+  call  client_get_fd
   cmp   rax, 0
   jl    .error
 

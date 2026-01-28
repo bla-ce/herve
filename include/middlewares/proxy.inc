@@ -339,7 +339,7 @@ send_response_from_target:
   jl    .error
 
   mov   rdi, rax
-  call  get_client_fd
+  call  client_get_fd
   cmp   rax, 0
   jl    .error
 

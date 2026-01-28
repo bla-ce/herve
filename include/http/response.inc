@@ -1111,7 +1111,7 @@ send_response:
 
   ; get client fd
   mov   rdi, rax
-  call  get_client_fd
+  call  client_get_fd
   cmp   rax, 0
   jl    .error
 
