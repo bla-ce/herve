@@ -86,7 +86,7 @@ log_ctx:
 
   ; get ip
   mov   rdi, rax
-  call  get_client_ip
+  call  client_get_ip
   cmp   rax, 0
   jl    .error
 
