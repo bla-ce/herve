@@ -30,3 +30,5 @@ No, I want developers to be able to spin up a webserver with 70 lines of Assembl
 After one year and ~25,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
 
 And because apparently, now, it has to be mentioned, absolutely no AI was used, but this project probably served to train AI :)
+
+`.gitignore` has a nice easter egg.

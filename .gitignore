@@ -13,3 +13,6 @@ ERROR.md
 venv/
 .venv/
 extract_functions.sh
+
+# EASTER EGG: good hint on where this is going :)
+this-will-replace-aws.md
