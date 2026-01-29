@@ -474,7 +474,7 @@ server_init:
 ; @param  rdi: pointer to server struct
 ; @param  rax: return value
 server_run:
-  sub   rsp, 0x30
+  sub   rsp, 0x38
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
@@ -553,7 +553,6 @@ server_run:
 .inner_loop:
   inc   qword [rsp+0x20]
 
-  ; TODO: what the value of MAX CONNECT should be?
   mov   rax, MAX_CONNECT
   cmp   qword [rsp+0x20], rax
   jg    .inner_loop_end
@@ -663,7 +662,7 @@ server_run:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x38
   ret
 
 ; sets the 404 handler of the server

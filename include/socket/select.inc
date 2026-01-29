@@ -323,62 +323,6 @@ remove_client_from_array:
   add   rsp, 0x10
   ret
 
-; returns the client struct with the file descriptor
-; or return 0 if does not exist
-; @param  rdi: file descriptor
-; @param  rsi: current number of active connections
-; @return rax: pointer to the user struct or null
-get_client_by_fd:
-  sub   rsp, 0x10
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]     -> file descriptor
-  ; [rsp+0x8] -> current number of active connections
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  cmp   rdi, 0
-  jl    .error
-
-  xor   rax, rax        ; index
-  mov   rbx, [rsp]      ; store fd in rbx
-  mov   rsi, clients
-
-.loop:
-  mov   rdi, [rsi]
-  cmp   rdi, 0
-  je    .null_struct
-
-  cmp   qword [rdi+CLIENT_OFF_FD], rbx
-  je    .loop_end
-
-.null_struct:
-  ; move to next struct
-  add   rsi, 8
-
-  inc   rax
-  cmp   rax, qword [rsp+0x8]
-  jg    .does_not_exist
-
-  jmp   .loop
-
-.loop_end:
-
-  mov   rax, rdi
-  jmp   .return
-
-.does_not_exist:
-  mov   rax, 0
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x10
-  ret
-
 ; allocates memory for the main fd set and initialises it
 ; user is responsible for freeing the memory
 ; @return rax: pointer to the fd set
