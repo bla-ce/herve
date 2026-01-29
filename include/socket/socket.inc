@@ -182,31 +182,22 @@ listen_socket:
   ret
 
 ; accepts a connection and returns the client fd
-; @param  rdi: pointer to server struct
-; @param  rsi: pointer to client struct
-; @return rax: pointer to the client struct
+; @param  rdi: listening socket
+; @return rax: file descriptor of the client
 accept_connection:
-  sub   rsp, 0x20
+  sub   rsp, 0x8
   sub   rsp, SOCKADDR_STRUCT_LEN
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to server struct
-  ; [rsp+0x8]   -> client fd
-  ; [rsp+0x10]  -> pointer to the client struct
-  ; [rsp+0x18]  -> pointer to the string for the ip
-  ; [rsp+0x20]  -> sockaddr struct
+  ; [rsp+0x8]   -> sockaddr struct
 
   mov   [rsp], rdi
-  mov   [rsp+0x10], rsi
-  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, 0
-  jle   .error
-
-  lea   rax, [rsp+0x20]
+  lea   rax, [rsp+0x8]
 
   mov   word [rax+SOCKADDR_OFF_SIN_FAMILY], AF_INET
   mov   word [rax+SOCKADDR_OFF_SIN_PORT], 0
@@ -216,67 +207,22 @@ accept_connection:
   mov   rbx, qword [addrlen]
   mov   qword [rax+SOCKADDR_OFF_ADDRLEN], rbx
 
-  ; get server from context
   mov   rdi, [rsp]
-  call  server_get_sockfd
-
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
   mov   rax, SYS_ACCEPT
-  lea   rsi, [rsp+0x20]
+  lea   rsi, [rsp+0x8]
   lea   rdx, [addrlen]
   syscall
-
   cmp   rax, 0
   jl    .error
-
-  mov   qword [rsp+0x8], rax
-
-  mov   rax, [rsp+0x10]
-  mov   rbx, qword [rsp+0x8]
-  mov   qword [rax+CLIENT_OFF_CLIENT_FD], rbx
-  mov   qword [rax+CLIENT_OFF_SOCKADDR], 0
-  mov   qword [rax+CLIENT_OFF_IP], 0
-
-  ; get client ip
-  mov   rdi, IPV4_MAX_LENGTH
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x10]
-  mov   rsi, rax
-  call  ip_to_str
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x18]
-  call  client_set_ip
-  cmp   rax, 0
-  jl    .error
-
-  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x18]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, SOCKADDR_STRUCT_LEN
-  add   rsp, 0x20
+  add   rsp, 0x8
   ret
 
 ; converts the IP address from text to binary form
@@ -379,22 +325,4 @@ connect_fd:
   mov   rax, FAILURE_CODE
 
 .return:
-  ret
-
-
-; wait until a file descriptor from the set is ready for I/O
-; @param  rdi: max number of fd
-; @param  rsi: set of file descriptors to be read
-; @return rax: return code
-; @return rax: return code
-read_select:
-  mov   rax, SYS_SELECT
-  mov   rdi, MAX_CONNECT
-  inc   rdi
-  ; rsi is already populated
-  mov		rdx, NO_ARG
-  mov		r10, NO_ARG
-  mov		r8, NO_ARG
-  syscall
-
   ret

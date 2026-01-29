@@ -478,17 +478,19 @@ server_run:
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
-  ; [rsp+0x8]   -> pointer to main FD_SET
-  ; [rsp+0x10]  -> pointer to read FD_SET
-  ; [rsp+0x18]  -> current file descriptor
-  ; [rsp+0x20]  -> number of active connections
-  ; [rsp+0x28]  -> pointer to the client struct
+  ; [rsp+0x8]   -> file descriptor of the server
+  ; [rsp+0x10]  -> pointer to main FD_SET
+  ; [rsp+0x18]  -> pointer to read FD_SET
+  ; [rsp+0x20]  -> current file descriptor
+  ; [rsp+0x28]  -> number of active connections
+  ; [rsp+0x30]  -> pointer to the client struct
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
   mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x28], 0
+  mov   qword [rsp+0x30], 0
 
   cmp   rdi, 0
   jle   .error
@@ -504,19 +506,14 @@ server_run:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  server_set_sockfd
-  cmp   rax, 0
-  jl    .error
+  mov   [rsp+0x8], rax
 
   ; malloc main set of file descriptors
-  mov   rdi, FD_SET_STRUCT_LEN
-  call  malloc
+  call  fd_set_init
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  mov   [rsp+0x10], rax
 
   ; malloc read set of file descriptors
   mov   rdi, FD_SET_STRUCT_LEN
@@ -524,23 +521,11 @@ server_run:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
-  ; init fd set
-  mov   rdi, [rsp+0x8]
-  call  FD_ZERO
-  cmp   rax, 0
-  jl    .error
-
-  ; get the server file descriptor
-  mov   rdi, [rsp]
-  call  server_get_sockfd
-  cmp   rax, 0
-  jl    .error
+  mov   [rsp+0x18], rax
 
   ; set server fd
-  mov   rdi, rax
-  mov   rsi, [rsp+0x8]
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
   call  FD_SET
   cmp   rax, 0
   jl    .error
@@ -552,83 +537,74 @@ server_run:
 
 .loop:
   ; back up main fd set
-  mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x8]
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x10]
   mov   rcx, FD_SET_STRUCT_LEN
   rep   movsb
 
   mov   rdi, MAX_CONNECT
-  mov   rsi, [rsp+0x10]
+  mov   rsi, [rsp+0x18]
   call  read_select
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x18], -1 ; it is incremented at the beginning of the inner loop
+  mov   qword [rsp+0x20], -1 ; it is incremented at the beginning of the inner loop
 
 .inner_loop:
-  inc   qword [rsp+0x18]
+  inc   qword [rsp+0x20]
 
   ; TODO: what the value of MAX CONNECT should be?
   mov   rax, MAX_CONNECT
-  cmp   qword [rsp+0x18], rax
+  cmp   qword [rsp+0x20], rax
   jg    .inner_loop_end
 
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, qword [rsp+0x10]
+  mov   rdi, qword [rsp+0x20]
+  mov   rsi, qword [rsp+0x18]
   call  FD_ISSET
   cmp   rax, 0
   jl    .error
   je   .inner_loop
 
-  ; get the server file descriptor
-  mov   rdi, [rsp]
-  call  server_get_sockfd
-  cmp   rax, 0
-  jl    .error
+  ; get the file descriptor of the server
+  mov   rax, [rsp+0x8]
 
-  cmp   qword [rsp+0x18], rax
+  cmp   qword [rsp+0x20], rax
   jne   .handle_ctx
 
   ; creating a new connection
-  mov   rbx, qword [rsp+0x20]
+  mov   rbx, qword [rsp+0x28]
   inc   rbx
   cmp   rbx, MAX_CONNECT
   jg    .inner_loop
 
-  inc   qword [rsp+0x20]
-
-  ; malloc client struct
-  mov   rdi, CLIENT_STRUCT_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
+  inc   qword [rsp+0x28]
 
   ; accept connection
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x28]
+  mov   rdi, [rsp+0x8]
   call  accept_connection
   cmp   rax, 0
   jl    .close_server ; TODO: is it an error?
 
-  mov   rdi, [rsp+0x28]
-  call  client_get_fd
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x18], rax
+  mov   qword [rsp+0x20], rax
 
   ; set the file descriptor
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, qword [rsp+0x8]
+  mov   rdi, qword [rsp+0x20]
+  mov   rsi, qword [rsp+0x10]
   call  FD_SET
   cmp   rax, 0
   jl    .error
 
+  ; init a new client
+  mov   rdi, [rsp+0x20]
+  call  client_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
   ; get client position in the array
   xor   rdx, rdx
-  mov   rax, qword [rsp+0x20]
+  mov   rax, qword [rsp+0x28]
   dec   rax
   mov   rbx, 8
   mul   rbx
@@ -636,21 +612,21 @@ server_run:
   ; add client to the array
   mov   rdi, clients
   add   rdi, rax
-  mov   rsi, [rsp+0x28]
+  mov   rsi, [rsp+0x30]
   mov   [rdi], rsi
 
 .handle_ctx:
   ; get the client struct from the array
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, qword [rsp+0x20]
+  mov   rdi, qword [rsp+0x20]
+  mov   rsi, qword [rsp+0x28]
   call  get_client_by_fd
   cmp   rax, 0
   jle   .clear_fd
 
-  mov   [rsp+0x28], rax
+  mov   [rsp+0x30], rax
 
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x28]
+  mov   rsi, [rsp+0x30]
   call  handle_ctx
   cmp   rax, 0
   jl    .clear_fd
@@ -658,15 +634,15 @@ server_run:
   jmp   .inner_loop
 
 .clear_fd:
-  mov   rdi, qword [rsp+0x18]
-  mov   rsi, [rsp+0x8]
-  mov   rdx, qword [rsp+0x20]
+  mov   rdi, qword [rsp+0x20]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, qword [rsp+0x28]
   call  client_clear_connection
   cmp   rax, 0
   jl    .error ; TODO: error?
 
   ; decrease the number of active connections
-  dec   qword [rsp+0x20]
+  dec   qword [rsp+0x28]
 
   jmp   .inner_loop
 

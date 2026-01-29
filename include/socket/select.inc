@@ -294,7 +294,7 @@ remove_client_from_array:
   cmp   rdi, 0
   je    .null_struct
 
-  cmp   qword [rdi+CLIENT_OFF_CLIENT_FD], rbx
+  cmp   qword [rdi+CLIENT_OFF_FD], rbx
   je    .loop_end
 
 .null_struct:
@@ -342,7 +342,7 @@ get_client_by_fd:
   jl    .error
 
   xor   rax, rax        ; index
-  mov   rbx, rdi        ; store fd in rbx
+  mov   rbx, [rsp]      ; store fd in rbx
   mov   rsi, clients
 
 .loop:
@@ -350,7 +350,7 @@ get_client_by_fd:
   cmp   rdi, 0
   je    .null_struct
 
-  cmp   qword [rdi+CLIENT_OFF_CLIENT_FD], rbx
+  cmp   qword [rdi+CLIENT_OFF_FD], rbx
   je    .loop_end
 
 .null_struct:
@@ -377,4 +377,60 @@ get_client_by_fd:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; allocates memory for the main fd set and initialises it
+; user is responsible for freeing the memory
+; @return rax: pointer to the fd set
+fd_set_init:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]   -> pointer to the fd set
+
+  mov   rdi, FD_SET_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  mov   rdi, [rsp]
+  call  FD_ZERO
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; wait until a file descriptor from the set is ready for I/O
+; @param  rdi: max number of fd
+; @param  rsi: set of file descriptors to be read
+; @return rax: return code
+; @return rax: return code
+read_select:
+  mov   rax, SYS_SELECT
+  mov   rdi, MAX_CONNECT
+  inc   rdi
+  ; rsi is already populated
+  mov		rdx, NO_ARG
+  mov		r10, NO_ARG
+  mov		r8, NO_ARG
+  syscall
+
   ret
