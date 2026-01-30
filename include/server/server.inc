@@ -462,7 +462,7 @@ server_init:
 ; @param  rdi: pointer to server struct
 ; @param  rax: return value
 server_run:
-  sub   rsp, 0x38
+  sub   rsp, 0x40
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
@@ -470,14 +470,14 @@ server_run:
   ; [rsp+0x10]  -> file descriptor of the epoll instance
   ; [rsp+0x18]  -> pointer to array of events
   ; [rsp+0x20]  -> number of events from epoll_wait
-  ; [rsp+0x28]  -> number of active connections
-  ; [rsp+0x30]  -> pointer to the client struct
+  ; [rsp+0x28]  -> counter
+  ; [rsp+0x30]  -> file descriptor of the connection
+  ; [rsp+0x38]  -> pointer to the client struct
 
   mov   [rsp], rdi
   mov   qword [rsp+0x18], 0
-  mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x28], 0
-  mov   qword [rsp+0x30], 0
+  mov   qword [rsp+0x38], 0
 
   cmp   rdi, 0
   jle   .error
@@ -533,83 +533,90 @@ server_run:
 
   mov   [rsp+0x20], rax
 
+  mov   qword [rsp+0x28], 0
+
 .inner_loop:
-  inc   qword [rsp+0x20]
+  ; check counter
+  mov   rax, [rsp+0x28]
+  cmp   rax, [rsp+0x20]
+  jge   .inner_loop_end
 
-  mov   rax, MAX_CONNECT
-  cmp   qword [rsp+0x20], rax
-  jg    .inner_loop_end
+  ; get the event corresponding to the current fd
+  xor   rdx, rdx
+  mov   rax, EPOLL_EVENT_STRUCT_LEN
+  mov   rbx, [rsp+0x28]
+  mul   rbx
 
-  mov   rdi, qword [rsp+0x20]
-  mov   rsi, qword [rsp+0x18]
-  call  FD_ISSET
-  cmp   rax, 0
-  jl    .error
-  je   .inner_loop
+  mov   rdi, [rsp+0x18]
+  add   rdi, rbx
 
-  ; get the file descriptor of the server
-  mov   rax, [rsp+0x8]
+  ; get the file descriptor of this event
+  mov   rax, qword [rdi+EPOLL_EVENT_OFF_DATA]
 
-  cmp   qword [rsp+0x20], rax
+  mov   [rsp+0x30], rax
+
+  ; compare it with the fd of the server
+  cmp   qword [rsp+0x8], rax
   jne   .handle_ctx
 
-  ; creating a new connection
-  mov   rbx, qword [rsp+0x28]
-  inc   rbx
-  cmp   rbx, MAX_CONNECT
-  jg    .inner_loop
-
-  inc   qword [rsp+0x28]
-
-  ; accept connection
+  ; accept new connection
   mov   rdi, [rsp+0x8]
   call  accept_connection
   cmp   rax, 0
   jl    .close_server ; TODO: is it an error?
 
-  mov   qword [rsp+0x20], rax
+  ; file descriptor of the new connection
+  mov   [rsp+0x30], rax
 
-  ; set the file descriptor
-  mov   rdi, qword [rsp+0x20]
-  mov   rsi, qword [rsp+0x10]
-  call  FD_SET
+  ; mark socket as non blocking
+  mov   rdi, [rsp+0x30]
+  call  socket_set_non_blocking
   cmp   rax, 0
   jl    .error
 
-  ; init a new client
-  mov   rdi, [rsp+0x20]
+  ; add to epoll instance interest list
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x30]
+  call  epoll_add_fd_to_instance
+  cmp   rax, 0
+  jl    .error
+
+  inc   qword [rsp+0x28]
+
+  jmp   .inner_loop
+
+.handle_ctx:
+  ; create a new client
+  mov   rdi, [rsp+0x30]
   call  client_init
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x30], rax
-
-  ; get client position in the array
-  xor   rdx, rdx
-  mov   rax, qword [rsp+0x28]
-  dec   rax
-  mov   rbx, 8
-  mul   rbx
-
-  ; add client to the array
-  mov   rdi, clients
-  add   rdi, rax
-  mov   rsi, [rsp+0x30]
-  mov   [rdi], rsi
-
-.handle_ctx:
-  ; TODO
+  mov   [rsp+0x38], rax
 
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x30]
+  mov   rsi, [rsp+0x38]
   call  handle_ctx
   cmp   rax, 0
   jl    .clear_fd
+
+  ; free client
+  mov   rdi, [rsp+0x38]
+  call  client_free
+  cmp   rax, 0
+  jl    .error
+
+  ; reset pointer
+  mov   qword [rsp+0x38], 0
+
+  inc   qword [rsp+0x28]
 
   jmp   .inner_loop
 
 .clear_fd:
   ; TODO
+
+  inc   qword [rsp+0x28]
 
   jmp   .inner_loop
 
@@ -627,9 +634,16 @@ server_run:
 .error:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
-  jz    .no_free
+  jz    .free_client
 
   call  free
+
+.free_client:
+  mov   rdi, [rsp+0x38]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  client_free
 
   ; TODO: free other allocated resources
 
@@ -637,7 +651,7 @@ server_run:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x40
   ret
 
 ; sets the 404 handler of the server
