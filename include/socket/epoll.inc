@@ -86,11 +86,45 @@ epoll_init:
   add   rsp, 0x10
   ret
 
+; waits for events on the epoll instance
+; @param  rdi: file descriptor of the epoll instance
+; @param  rsi: pointer to array of events
+; @param  rdx: max events to wait for
+; @param  rcx: timeout
+; @return rax: number of events
 epoll_wait:
+  mov   rax, SYS_EPOLL_WAIT
+  mov   r10, rcx
+  syscall
+
   ret
 
 epoll_create1:
   ret
 
+; add, modify, or remove entries in the interest list of the epoll
+; instance
+; @param  rdi: file descriptor of the epoll instance
+; @param  rsi: operation to perform
+; @param  rdx: target file descriptor
+; @param  rcx: events to wait for
+; @return rax: return code
 epoll_ctl:
+  sub   rsp, EPOLL_EVENT_STRUCT_LEN
+
+  lea   rax, [rsp]
+  mov   [rax+EPOLL_EVENT_OFF_EVENT], rcx
+  mov   [rax+EPOLL_EVENT_OFF_DATA], rdx
+
+  mov   r10, rax
+  mov   rax, SYS_EPOLL_CTL
+  syscall
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, EPOLL_EVENT_STRUCT_LEN
   ret
