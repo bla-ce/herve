@@ -501,6 +501,7 @@ server_run:
   cmp   rax, 0
   jl    .error
 
+  ; initialiase the server socket
   mov   rdi, rax
   call  socket_init
   cmp   rax, 0

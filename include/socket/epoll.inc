@@ -53,6 +53,7 @@ epoll_init:
   jl    .error
 
   ; creates epoll instance
+  mov   rdi, NO_ARG
   call  epoll_create1
   cmp   rax, 0
   jl    .error
@@ -61,7 +62,7 @@ epoll_init:
 
   ; populate event struct
   lea   rdi, [rsp+0x10]
-  mov   [rdi+EPOLL_EVENT_OFF_EVENT], EPOLLIN
+  mov   dword [rdi+EPOLL_EVENT_OFF_EVENT], EPOLLIN
 
   mov   rax, [rsp]
   mov   [rdi+EPOLL_EVENT_OFF_DATA], rax
@@ -99,7 +100,13 @@ epoll_wait:
 
   ret
 
+; creates a new epoll instance
+; @param  rdi: flags
+; @return rax: file descriptor of the epoll instance
 epoll_create1:
+  mov   rax, SYS_EPOLL_CREATE1
+  syscall
+
   ret
 
 ; add, modify, or remove entries in the interest list of the epoll
@@ -107,24 +114,11 @@ epoll_create1:
 ; @param  rdi: file descriptor of the epoll instance
 ; @param  rsi: operation to perform
 ; @param  rdx: target file descriptor
-; @param  rcx: events to wait for
+; @param  rcx: pointer to event struct
 ; @return rax: return code
 epoll_ctl:
-  sub   rsp, EPOLL_EVENT_STRUCT_LEN
-
-  lea   rax, [rsp]
-  mov   [rax+EPOLL_EVENT_OFF_EVENT], rcx
-  mov   [rax+EPOLL_EVENT_OFF_DATA], rdx
-
-  mov   r10, rax
   mov   rax, SYS_EPOLL_CTL
+  mov   r10, rcx
   syscall
 
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, EPOLL_EVENT_STRUCT_LEN
   ret
