@@ -5,5 +5,6 @@
 %include "logan.inc"
 %include "malloc.inc"
 %include "model.inc"
+%include "net.inc"
 %include "test.inc"
 %include "utils.inc"

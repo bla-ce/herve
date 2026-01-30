@@ -8,6 +8,7 @@ sockaddr_t:
 sockaddr_t_end:
 
 section .data
+DEFAULT_BACKLOG         equ 10
 
 ; socket constants
 INADDR_ANY          equ 0
@@ -40,6 +41,15 @@ F_GETFL equ 3
 F_SETFL equ 4
 
 section .text
+; converts a integer from host byte order to network byte order (big-endian).
+; @param  rdi: integer
+; @return rax: integer to network byte order
+htons:
+  xor   rax, rax
+  mov   rax, rdi
+  xchg  al, ah ; bswap 16-bit registers
+  ret
+
 ; initialise the socket (create, bind and listen)
 ; @param  rdi: port the socket will be listening to
 ; @return rax: file descriptor of the socket

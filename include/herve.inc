@@ -5,7 +5,6 @@
 %include "hv_middlewares.inc"
 %include "hv_models.inc"
 %include "hv_server.inc"
-%include "hv_socket.inc"
 
 section .bss
 section .data

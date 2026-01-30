@@ -6,12 +6,12 @@ client_t_end:
 
 section .data
 
-  CLIENT_STRUCT_LEN equ client_t_end - client_t
+CLIENT_STRUCT_LEN equ client_t_end - client_t
 
-  CLIENT_OFF_FD  equ 0x0
-  CLIENT_OFF_IP         equ CLIENT_OFF_FD + 0x8
+CLIENT_OFF_FD  equ 0x0
+CLIENT_OFF_IP         equ CLIENT_OFF_FD + 0x8
 
-  IPV4_MAX_LENGTH equ 0x10
+IPV4_MAX_LENGTH equ 0x10
 
 section .text
 ; sets the file descriptor of the client
@@ -232,65 +232,6 @@ client_free:
   add   rsp, 0x8
   ret
 
-; close the connection and clear fd from the set
-; @param  rdi: pointer to the file descriptor of the client
-; @param  rsi: pointer to the main FD_SET
-; @param  rdx: current number of connections
-; @return rax: return code
-client_clear_connection:
-  sub   rsp, 0x18
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]       -> pointer to the fd of the client
-  ; [rsp+0x8]   -> pointer to the main FD_SET
-  ; [rsp+0x10]  -> current number of connections
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
-
-  cmp   rdi, 0
-  jl    .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
-  jle   .error
-
-  ; close connection
-  mov   rdi, qword [rsp]
-  call  close_file
-
-  ; clear the file descriptor from the set
-  mov   rdi, qword [rsp]
-  mov   rsi, [rsp+0x8]
-  call  FD_CLR
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, qword [rsp]
-  mov   rsi, qword [rsp+0x10]
-  call  get_client_by_fd
-  cmp   rax, 0
-  jle   .error
-
-  ; free client struct
-  mov   rdi, rax
-  call  client_free
-  cmp   rax, 0
-  jl    .error
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x18
-  ret
-
 ; initialises a new client struct
 ; @param  rdi: file descriptor of the client
 ; @return rax: pointer to the client struct
@@ -366,60 +307,4 @@ client_init:
 
 .return:
   add   rsp, 0x18
-  ret
-
-; returns the client struct with the file descriptor
-; or return 0 if does not exist
-; @param  rdi: file descriptor
-; @param  rsi: current number of active connections
-; @return rax: pointer to the user struct or null
-get_client_by_fd:
-  sub   rsp, 0x10
-
-  ; *** STACK USAGE *** ;
-  ; [rsp]     -> file descriptor
-  ; [rsp+0x8] -> current number of active connections
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  cmp   rdi, 0
-  jl    .error
-
-  xor   rax, rax        ; index
-  mov   rbx, [rsp]      ; store fd in rbx
-  mov   rsi, clients
-
-.loop:
-  mov   rdi, [rsi]
-  cmp   rdi, 0
-  je    .null_struct
-
-  cmp   qword [rdi+CLIENT_OFF_FD], rbx
-  je    .loop_end
-
-.null_struct:
-  ; move to next struct
-  add   rsi, 8
-
-  inc   rax
-  cmp   rax, qword [rsp+0x8]
-  jg    .does_not_exist
-
-  jmp   .loop
-
-.loop_end:
-
-  mov   rax, rdi
-  jmp   .return
-
-.does_not_exist:
-  mov   rax, 0
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x10
   ret
