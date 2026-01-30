@@ -14,9 +14,6 @@ section .data
 
   clients times N_CLIENTS dq 0
 
-  ; server constants
-  DEFAULT_BACKLOG         equ 10
-
   PORT_MIN     equ 0x1
   DEFAULT_PORT equ 1337
   PORT_MAX     equ 0xffff
@@ -392,15 +389,6 @@ get_server_routes:
 .return:
   ret
 
-; converts a integer from host byte order to network byte order (big-endian).
-; @param  rdi: integer
-; @return rax: integer to network byte order
-htons:
-  xor   rax, rax
-  mov   rax, rdi
-  xchg  al, ah ; bswap 16-bit registers
-  ret
-
 ; initialise server
 ; @return rax: pointer to server struct | error
 server_init:
@@ -479,14 +467,13 @@ server_run:
   ; *** STACK USAGE *** ;
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> file descriptor of the server
-  ; [rsp+0x10]  -> pointer to main FD_SET
-  ; [rsp+0x18]  -> pointer to read FD_SET
-  ; [rsp+0x20]  -> current file descriptor
+  ; [rsp+0x10]  -> file descriptor of the epoll instance
+  ; [rsp+0x18]  -> pointer to array of events
+  ; [rsp+0x20]  -> number of events from epoll_wait
   ; [rsp+0x28]  -> number of active connections
   ; [rsp+0x30]  -> pointer to the client struct
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x28], 0
@@ -514,27 +501,21 @@ server_run:
   cmp   rax, 0
   jl    .error
 
-  ; malloc main set of file descriptors
-  call  fd_set_init
+  mov   rdi, [rsp+0x8]
+  call  epoll_init
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x10], rax
 
-  ; malloc read set of file descriptors
-  mov   rdi, FD_SET_STRUCT_LEN
-  call  malloc
+  ; allocate memory of events
+  mov   rdi, EPOLL_EVENT_STRUCT_LEN
+  mov   rsi, MAX_EVENTS
+  call  calloc
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x18], rax
-
-  ; set server fd
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
-  call  FD_SET
-  cmp   rax, 0
-  jl    .error
 
   mov   rdi, [rsp]
   call  log_server_init
@@ -542,19 +523,15 @@ server_run:
   jl    .error
 
 .loop:
-  ; back up main fd set
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x10]
-  mov   rcx, FD_SET_STRUCT_LEN
-  rep   movsb
-
-  mov   rdi, MAX_CONNECT
+  mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x18]
-  call  read_select
+  mov   rdx, MAX_EVENTS
+  mov   rcx, -1
+  call  epoll_wait
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x20], -1 ; it is incremented at the beginning of the inner loop
+  mov   [rsp+0x20], rax
 
 .inner_loop:
   inc   qword [rsp+0x20]
@@ -621,14 +598,7 @@ server_run:
   mov   [rdi], rsi
 
 .handle_ctx:
-  ; get the client struct from the array
-  mov   rdi, qword [rsp+0x20]
-  mov   rsi, qword [rsp+0x28]
-  call  get_client_by_fd
-  cmp   rax, 0
-  jle   .clear_fd
-
-  mov   [rsp+0x30], rax
+  ; TODO
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x30]
@@ -639,15 +609,7 @@ server_run:
   jmp   .inner_loop
 
 .clear_fd:
-  mov   rdi, qword [rsp+0x20]
-  mov   rsi, [rsp+0x10]
-  mov   rdx, qword [rsp+0x28]
-  call  client_clear_connection
-  cmp   rax, 0
-  jl    .error ; TODO: error?
-
-  ; decrease the number of active connections
-  dec   qword [rsp+0x28]
+  ; TODO
 
   jmp   .inner_loop
 
@@ -663,8 +625,15 @@ server_run:
   syscall
 
 .error:
-  ; TODO: free allocated resources
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
 
+  call  free
+
+  ; TODO: free other allocated resources
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
