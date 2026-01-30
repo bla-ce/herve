@@ -21,6 +21,7 @@ SYS_FORK          equ 57
 SYS_VFORK         equ 58
 SYS_EXIT          equ 60
 SYS_WAIT4         equ 61
+SYS_FCNTL         equ 72
 SYS_GETDENTS      equ 78
 SYS_CLOCK_GETTIME equ 228
 SYS_EPOLL_WAIT    equ 232

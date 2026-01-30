@@ -36,6 +36,9 @@ SOCKADDR_OFF_ADDRLEN     equ SOCKADDR_OFF_SA_ZERO + 0x8
 
 O_NONBLOCK equ 2048
 
+F_GETFL equ 3
+F_SETFL equ 4
+
 section .text
 ; initialise the socket (create, bind and listen)
 ; @param  rdi: port the socket will be listening to
@@ -346,14 +349,14 @@ socket_set_non_blocking:
 
   mov   rax, SYS_FCNTL
   mov   rdi, [rsp]
-  mov   rsi, F_GETFL 
+  mov   rsi, F_GETFL
   syscall
 
   mov   rdx, rax
   or    rdx, O_NONBLOCK
   mov   rax, SYS_FCNTL
   mov   rdi, [rsp]
-  mov   rsi, F_SETFL 
+  mov   rsi, F_SETFL
   syscall
 
   jmp   .return

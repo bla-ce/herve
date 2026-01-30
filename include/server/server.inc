@@ -509,6 +509,11 @@ server_run:
 
   mov   [rsp+0x8], rax
 
+  mov   rdi, [rsp+0x8]
+  call  socket_set_non_blocking
+  cmp   rax, 0
+  jl    .error
+
   ; malloc main set of file descriptors
   call  fd_set_init
   cmp   rax, 0
