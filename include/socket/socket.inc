@@ -8,30 +8,33 @@ sockaddr_t:
 sockaddr_t_end:
 
 section .data
-  ; socket constants
-  INADDR_ANY          equ 0
-  SOCK_STREAM         equ 1
-  SOL_SOCKET          equ 1
-  SO_REUSEADDR        equ 2
-  AF_INET             equ 2
-  STATUS_CODE_LEN     equ 3
-  MAX_ROUTES_COUNT    equ 20
-  SO_REUSEPORT        equ 15
-  MSG_TRUNC           equ 0x20
 
-  enable  dw 1
+; socket constants
+INADDR_ANY          equ 0
+SOCK_STREAM         equ 1
+SOL_SOCKET          equ 1
+SO_REUSEADDR        equ 2
+AF_INET             equ 2
+STATUS_CODE_LEN     equ 3
+MAX_ROUTES_COUNT    equ 20
+SO_REUSEPORT        equ 15
+MSG_TRUNC           equ 0x20
 
-  BYTE_MAX    equ 255
+enable  dw 1
 
-  SOCKADDR_STRUCT_LEN equ sockaddr_t_end - sockaddr_t
+BYTE_MAX    equ 255
 
-  addrlen dq sockaddr_t.addrlen - sockaddr_t.sin_family
+SOCKADDR_STRUCT_LEN equ sockaddr_t_end - sockaddr_t
 
-  SOCKADDR_OFF_SIN_FAMILY  equ 0x0
-  SOCKADDR_OFF_SIN_PORT    equ SOCKADDR_OFF_SIN_FAMILY + 0x2
-  SOCKADDR_OFF_SIN_ADDR    equ SOCKADDR_OFF_SIN_PORT + 0x2
-  SOCKADDR_OFF_SA_ZERO     equ SOCKADDR_OFF_SIN_ADDR + 0x4
-  SOCKADDR_OFF_ADDRLEN     equ SOCKADDR_OFF_SA_ZERO + 0x8
+addrlen dq sockaddr_t.addrlen - sockaddr_t.sin_family
+
+SOCKADDR_OFF_SIN_FAMILY  equ 0x0
+SOCKADDR_OFF_SIN_PORT    equ SOCKADDR_OFF_SIN_FAMILY + 0x2
+SOCKADDR_OFF_SIN_ADDR    equ SOCKADDR_OFF_SIN_PORT + 0x2
+SOCKADDR_OFF_SA_ZERO     equ SOCKADDR_OFF_SIN_ADDR + 0x4
+SOCKADDR_OFF_ADDRLEN     equ SOCKADDR_OFF_SA_ZERO + 0x8
+
+O_NONBLOCK equ 2048
 
 section .text
 ; initialise the socket (create, bind and listen)
@@ -325,4 +328,39 @@ connect_fd:
   mov   rax, FAILURE_CODE
 
 .return:
+  ret
+
+; mark the socket a non blocking
+; @param  rdi: file descriptor of the socket
+; @return rax: return code
+socket_set_non_blocking:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]   -> file descriptor of the socket
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jl    .error
+
+  mov   rax, SYS_FCNTL
+  mov   rdi, [rsp]
+  mov   rsi, F_GETFL 
+  syscall
+
+  mov   rdx, rax
+  or    rdx, O_NONBLOCK
+  mov   rax, SYS_FCNTL
+  mov   rdi, [rsp]
+  mov   rsi, F_SETFL 
+  syscall
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
