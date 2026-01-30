@@ -107,7 +107,8 @@ client_get_ip_from_fd:
   ; [rsp+0x10]  -> dynamic pointer for the string
   ; [rsp+0x18]  -> dynamic pointer sockaddr_addrin
   ; [rsp+0x20]  -> tmp str to store int to str (8 bytes is enough)
-  ; [rsp+0x28]  -> sockaddr struct
+  ; [rsp+0x28]  -> counter
+  ; [rsp+0x30]  -> sockaddr struct
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -337,9 +338,12 @@ client_init:
   jl    .error
 
   mov   rdi, [rsp+0x8]
-  mov   [rdi+CLIENT_OFF_IP], rax
+  mov   rsi, [rsp+0x10]
+  call  client_set_ip
+  cmp   rax, 0
+  jl    .error
 
-  mov   rax, rdi
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 
