@@ -34,7 +34,7 @@ EPOLLET     equ 0x80000000
 
 section .text
 
-; creates an epoll instance and adds the listening socket to its 
+; creates an epoll instance and adds the listening socket to its
 ; interest list
 ; @param  rdi: file descriptor of the listening socket
 ; @return rax: file descriptor of the epoll instance
@@ -57,7 +57,7 @@ epoll_init:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax 
+  mov   [rsp+0x8], rax
 
   ; populate event struct
   lea   rdi, [rsp+0x10]
@@ -74,7 +74,7 @@ epoll_init:
   call  epoll_ctl
   cmp   rax, 0
   jl    .error
-  
+
   mov   rax, [rsp+0x8]
   jmp   .return
 
