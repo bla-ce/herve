@@ -33,7 +33,7 @@ section .text
 model_field_exist:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model
   ; [rsp+0x8]   -> pointer to the name of the field
   ; [rsp+0x10]  -> pointer to the fields
@@ -97,7 +97,7 @@ model_field_exist:
 model_get_instance_by_id:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> id of the instance
   ; [rsp+0x10]  -> linked list of the instances
@@ -165,7 +165,7 @@ model_get_instance_by_id:
 model_remove_instance_by_id:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]   -> pointer to the model struct
   ; [rsp+0x8] -> id of the instance
 
@@ -208,7 +208,7 @@ model_remove_instance_by_id:
 model_remove_instance:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance struct
   ; [rsp+0x10]  -> pointer to the prev instance
@@ -293,7 +293,7 @@ model_remove_instance:
 model_add_instance:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance struct
   ; [rsp+0x10]  -> pointer to the linked list
@@ -358,7 +358,7 @@ model_add_instance:
 model_add_field:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the field name
   ; [rsp+0x10]  -> field type
@@ -445,7 +445,7 @@ model_add_field:
 _model_add_field_to_list:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the field struct
   ; [rsp+0x10]  -> pointer to the linked list
@@ -496,7 +496,7 @@ _model_add_field_to_list:
 model_create:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the name of the model
   ; [rsp+0x8] -> pointer to the model struct
 
@@ -582,7 +582,7 @@ model_create:
 model_free:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the model struct
   ; [rsp+0x8] -> pointer to the fields linked list
 

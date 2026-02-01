@@ -46,7 +46,7 @@ free_response:
   cmp   rdi, 0
   jl    .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the response struct
 
   mov   [rsp], rdi
@@ -412,7 +412,7 @@ stringify_response:
   sub   rsp, 0x18
   sub   rsp, HEADERS_MAX_LEN
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the response struct
   ; [rsp+0x8]   -> pointer to the boeuf holding the stringified response
   ; [rsp+0x10]  -> pointer to the response body
@@ -563,7 +563,7 @@ send_no_content:
   cmp   rsi, 0
   cmove rsi, rax
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> status code
   ; [rsp+0x10]  -> pointer to the response
@@ -636,7 +636,7 @@ send_no_content:
 send_JSON:
   sub   rsp, 0x40
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to context struct
   ; [rsp+0x8]   -> status code
   ; [rsp+0x10]  -> pointer to the json object
@@ -771,7 +771,7 @@ send_JSON:
 send_HTML:
   sub   rsp, 0x40
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to context struct
   ; [rsp+0x8]   -> status code
   ; [rsp+0x10]  -> pointer to the html string
@@ -904,7 +904,7 @@ send_HTML:
 send_string:
   sub   rsp, 0x40
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to context struct
   ; [rsp+0x8]   -> status code
   ; [rsp+0x10]  -> pointer to string to send
@@ -1036,7 +1036,7 @@ send_string:
 send_response:
   sub   rsp, 0x30
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> status code (int)
   ; [rsp+0x10]  -> pointer to the context response
@@ -1155,7 +1155,7 @@ send_response:
 send_static_file:
   sub   rsp, 0x50
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to context struct
   ; [rsp+0x8]   -> pointer to file path string
   ; [rsp+0x10]  -> pointer to content type header
@@ -1391,7 +1391,7 @@ serve_dir:
 create_json_response:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> success
   ; [rsp+0x8]   -> pointer to the message
   ; [rsp+0x10]  -> pointer to the object

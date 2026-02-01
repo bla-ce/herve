@@ -85,7 +85,7 @@ write_file:
 write_cstring_file:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> file descriptor
   ; [rsp+0x8] -> pointer to the string
 
@@ -175,7 +175,7 @@ read_file:
 get_file_length:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> file descriptor
   ; [rsp+0x8] -> size of the file
 

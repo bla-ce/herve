@@ -66,7 +66,7 @@ assert_equal:
 assert_string_equal:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the first string
   ; [rsp+0x8] -> pointer to the second string
 
@@ -109,7 +109,7 @@ assert_string_equal:
 assert_string_not_equal:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the first string
   ; [rsp+0x8] -> pointer to the second string
 

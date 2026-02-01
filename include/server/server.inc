@@ -49,6 +49,12 @@ section .data
 
   STR_PORT_MAX_LENGTH equ 6
 
+  events_msg:
+    .waiting_for  db "waiting for events...", NULL_CHAR
+    .accepting    db "accepting a new connection...", NULL_CHAR
+    .client_init  db "init new client. FD=", NULL_CHAR
+    .client_close db "closing client...", NULL_CHAR
+
 section .text
 ; returns the root group of the server
 ; @param  rdi: pointer to the server
@@ -56,7 +62,7 @@ section .text
 server_get_root_group:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the server struct
 
   mov   [rsp], rdi
@@ -108,7 +114,7 @@ server_get_root_group:
 server_enable_logger:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the server struct
 
   mov   [rsp], rdi
@@ -147,7 +153,7 @@ log_server_init:
   sub   rsp, 0x10
   sub   rsp, STR_PORT_MAX_LENGTH
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to route linked list
   ; [rsp+0x10]  -> temporary buffer for listening port
@@ -394,7 +400,7 @@ get_server_routes:
 server_init:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]  -> pointer to the server struct
 
   mov   qword [rsp], 0
@@ -464,7 +470,7 @@ server_init:
 server_run:
   sub   rsp, 0x40
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> file descriptor of the server
   ; [rsp+0x10]  -> file descriptor of the epoll instance
@@ -523,6 +529,9 @@ server_run:
   jl    .error
 
 .loop:
+  mov   rdi, events_msg.waiting_for
+  call  println
+
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x18]
   mov   rdx, MAX_EVENTS
@@ -559,6 +568,9 @@ server_run:
   cmp   qword [rsp+0x8], rax
   jne   .handle_ctx
 
+  mov   rdi, events_msg.accepting
+  call  println
+
   ; accept new connection
   mov   rdi, [rsp+0x8]
   call  accept_connection
@@ -586,6 +598,20 @@ server_run:
   jmp   .inner_loop
 
 .handle_ctx:
+  mov   rdi, events_msg.client_init
+  call  print
+
+  mov   rdi, 10
+  call  malloc
+
+  mov   rdi, [rsp+0x30]
+  mov   rsi, rax
+  mov   rdx, 10
+  call  itoa
+
+  mov   rdi, rax
+  call  println
+
   ; create a new client
   mov   rdi, [rsp+0x30]
   call  client_init
@@ -614,7 +640,28 @@ server_run:
   jmp   .inner_loop
 
 .clear_fd:
-  ; TODO
+  mov   rdi, events_msg.client_close
+  call  println
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x30]
+  call  epoll_remove_fd_from_instance
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x30]
+  call  close_file
+  cmp   rax, 0
+  jl    .error
+
+  ; free client
+  mov   rdi, [rsp+0x38]
+  call  client_free
+  cmp   rax, 0
+  jl    .error
+
+  ; reset pointer
+  mov   qword [rsp+0x38], 0
 
   inc   qword [rsp+0x28]
 
@@ -681,7 +728,7 @@ set_404_handler:
 health_check:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the context struct
 
   mov   [rsp], rdi

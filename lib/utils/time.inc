@@ -55,7 +55,7 @@ section .text
 unix_to_date_time:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> timestamp
   ; [rsp+0x8] -> pointer to the dt struct
 
@@ -327,7 +327,7 @@ get_curr_ns:
 time_to_str:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to dt struct
   ; [rsp+0x8]   -> pointer to the mallocd string
   ; [rsp+0x10]  -> dynamic pointer

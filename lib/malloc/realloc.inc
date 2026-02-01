@@ -9,7 +9,7 @@ section .text
 realloc:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the memory chunk
   ; [rsp+0x8]   -> new size of the memory chunk
   ; [rsp+0x10]  -> old size of the memory chunk

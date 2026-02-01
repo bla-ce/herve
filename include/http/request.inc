@@ -77,7 +77,7 @@ handle_request:
   cmp   rdi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the context struct
   ; [rsp+0x8] -> request string
 
@@ -222,7 +222,7 @@ set_request_body:
 parse_form_data:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the request struct
 
   mov   [rsp], rdi
@@ -279,7 +279,7 @@ parse_form_data:
 parse_query_param:
   sub   rsp, 0x30
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the encoded data
   ; [rsp+0x8]   -> dynamic pointer
   ; [rsp+0x10]  -> number of parameter
@@ -767,7 +767,7 @@ receive_request:
 parse_request:
   sub   rsp, 0x30
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the request struct
   ; [rsp+0x10]  -> pointer to the request string
@@ -1041,7 +1041,7 @@ parse_request:
 verify_request:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the server struct
   ; [rsp+0x10]  -> pointer to the array of routes

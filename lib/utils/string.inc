@@ -63,7 +63,7 @@ starts_with:
 strdup:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]   -> pointer to the string
 
   mov   [rsp], rdi
@@ -104,7 +104,7 @@ strdup:
 strndup:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> number of bytes to be copied
   ; [rsp+0x10]  -> pointer to the duplicated string
@@ -152,7 +152,7 @@ strndup:
 count_char:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> character to find
   ; [rsp+0x10]  -> counter
@@ -226,7 +226,7 @@ is_ascii:
 strcmp:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> pointer to the substring
   ; [rsp+0x10]  -> length of the string
@@ -321,7 +321,7 @@ strncmp:
 strcpy:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the destination string
   ; [rsp+0x8] -> pointer to the source string
 
@@ -364,7 +364,7 @@ itoa:
   sub   rsp, 0x18
   sub   rsp, TO_STRING_MAX_STR_SIZE
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the number to be converted
   ; [rsp+0x8]   -> pointer to the final string
   ; [rsp+0x10]  -> size of the string
@@ -453,7 +453,7 @@ itoa:
 find_next_char:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> count
 
   mov   qword [rsp], 0
@@ -496,7 +496,7 @@ find_next_char:
 strnpos:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> pointer to the substring
   ; [rsp+0x10]  -> length of the string
@@ -566,7 +566,7 @@ strnpos:
 strpos:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the string
   ; [rsp+0x8] -> pointer to the substring
 
@@ -638,7 +638,7 @@ strlen:
 print:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the string to print
 
   mov   [rsp], rdi
@@ -762,7 +762,7 @@ print_char:
 stoi:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp+0x8]   -> number is negative
   ; [rsp+0x10]  -> length of the string
   ; [rsp+0x18]  -> int value
@@ -881,7 +881,7 @@ ascii_to_int:
 strcat:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the first string
   ; [rsp+0x8]   -> pointer to the second string
   ; [rsp+0x10]  -> length of the first string
@@ -962,7 +962,7 @@ strcat:
 to_upper:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the string
 
   mov   [rsp], rdi
@@ -1011,7 +1011,7 @@ to_upper:
 to_lower:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the string
 
   mov   [rsp], rdi
@@ -1059,7 +1059,7 @@ to_lower:
 string_to_bool:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the string
   ; [rsp+0x8] -> pointer to the lowercase string
 

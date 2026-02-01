@@ -9,7 +9,7 @@ section .text
 echo_handler:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the context struct
 
   mov   [rsp], rdi

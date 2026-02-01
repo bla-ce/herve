@@ -34,7 +34,7 @@ section .text
 handle_ctx:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the client struct
   ; [rsp+0x10]  -> pointer to the context struct

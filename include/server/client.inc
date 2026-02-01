@@ -101,7 +101,7 @@ client_get_ip_from_fd:
   sub   rsp, 0x30
   sub   rsp, SOCKADDR_STRUCT_LEN
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> client fd
   ; [rsp+0x8]   -> pointer to the string representation of the ip
   ; [rsp+0x10]  -> dynamic pointer for the string
@@ -195,7 +195,7 @@ client_get_ip_from_fd:
 client_free:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the client struct
 
   mov   [rsp], rdi
@@ -238,7 +238,7 @@ client_free:
 client_init:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> file descriptor of the client
   ; [rsp+0x8]   -> pointer to the client struct
   ; [rsp+0x10]  -> pointer to the str ip

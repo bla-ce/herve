@@ -41,7 +41,7 @@ section .text
 field_create:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the name of the field
   ; [rsp+0x8]   -> field type
   ; [rsp+0x10]  -> arg
@@ -118,7 +118,7 @@ field_create:
 field_free:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]   -> pointer to the field struct
 
   mov   [rsp], rdi
@@ -147,7 +147,7 @@ field_convert_value_to_str:
   sub   rsp, 0x10
   sub   rsp, TO_STRING_MAX_STR_SIZE
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the field
   ; [rsp+0x8]   -> value
   ; [rsp+0x10]  -> buffer for itoa if value is integer
@@ -228,7 +228,7 @@ field_convert_value_to_str:
 field_convert_str_to_value:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the field struct
   ; [rsp+0x8] -> value
 

@@ -44,7 +44,7 @@ ht_get_length:
 ht_get_keys:
   sub   rsp, 0x30
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> number of entries
   ; [rsp+0x10]  -> pointer to the array of keys
@@ -237,7 +237,7 @@ ht_hash_key:
 ht_get_bucket_idx_from_hash:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the hash table struct
   ; [rsp+0x8] -> hash
 
@@ -279,7 +279,7 @@ ht_get_bucket_idx_from_hash:
 ht_get:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> hash value of the key
@@ -374,7 +374,7 @@ ht_get:
 ht_del:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> pointer to the previous entry
@@ -494,7 +494,7 @@ ht_del:
 ht_get_bucket_by_index:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the ht struct
   ; [rsp+0x8] -> index of the bucket
 
@@ -550,7 +550,7 @@ ht_get_bucket_by_index:
 ht_insert:
   sub   rsp, 0x38
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> value
@@ -630,7 +630,7 @@ ht_insert:
 ht_create:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> number of buckets
   ; [rsp+0x8] -> pointer to the hash table
 
@@ -692,7 +692,7 @@ ht_create:
 ht_free:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> number of buckets
   ; [rsp+0x10]  -> pointer to the table
@@ -839,7 +839,7 @@ ht_bucket_free:
 ht_add_entry:
   sub   rsp, 0x30
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the hash table struct
   ; [rsp+0x8]   -> pointer to the entry
   ; [rsp+0x10]  -> key of the entry

@@ -398,7 +398,7 @@ _log:
   sub   rsp, 0x40
   sub   rsp, UNSIGNED_LONG_MAX_STR_SIZE
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the logan struct
   ; [rsp+0x8]   -> pointer to the message
   ; [rsp+0x10]  -> log level constant

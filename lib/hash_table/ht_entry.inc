@@ -24,7 +24,7 @@ section .text
 ht_entry_free:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]   -> pointer to the entry
 
   cmp   rdi, 0
@@ -78,7 +78,7 @@ ht_entry_free:
 ht_entry_create:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the key
   ; [rsp+0x8]   -> pointer to the value
   ; [rsp+0x10]  -> pointer to the dup key

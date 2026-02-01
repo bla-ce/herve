@@ -13,7 +13,7 @@ section .text
 create_user_model:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the user model
 
   mov   rdi, model_name

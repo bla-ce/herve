@@ -20,7 +20,7 @@ section .text
 http_model_read_many:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the json object
@@ -93,7 +93,7 @@ http_model_read_many:
 http_model_read_single:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the instance
@@ -216,7 +216,7 @@ http_model_read_single:
 http_model_put:
   sub   rsp, 0x38
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the instance of the model
@@ -374,7 +374,7 @@ http_model_put:
 http_model_patch:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the instance of the model
@@ -520,7 +520,7 @@ http_model_patch:
 http_model_post:
   sub   rsp, 0x48
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the form data (hash table)
@@ -707,7 +707,7 @@ http_model_post:
 http_model_delete:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the response message
@@ -820,7 +820,7 @@ http_model_delete:
 model_http_response:
   sub   rsp, 0x40
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> status code

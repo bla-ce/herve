@@ -24,7 +24,7 @@ section .text
 json_create:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the json object
 
   mov   rdi, JSON_BEGIN
@@ -48,7 +48,7 @@ json_create:
 json_insert_key:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
 
@@ -133,7 +133,7 @@ json_insert_integer:
   sub   rsp, 0x18
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> integer
@@ -188,7 +188,7 @@ json_insert_integer:
 json_insert_object:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> pointer to the json object to insert
@@ -238,7 +238,7 @@ json_insert_object:
 json_insert_string:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> pointer to the value
@@ -302,7 +302,7 @@ json_insert_string:
 json_insert_bool:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> TRUE (1) | FALSE (0)
@@ -363,7 +363,7 @@ json_insert_float:
   sub   rsp, 0x28
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> float value
@@ -469,7 +469,7 @@ json_insert_float:
 json_insert_null:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
 
@@ -511,7 +511,7 @@ json_insert_null:
 json_array_create:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the json object
 
   mov   rdi, JSON_ARRAY_BEGIN
@@ -538,7 +538,7 @@ json_array_insert_float:
   sub   rsp, 0x20
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json array
   ; [rsp+0x8]  -> float value
   ; [rsp+0x10]  -> precision
@@ -640,7 +640,7 @@ json_array_insert_integer:
   sub   rsp, 0x10
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json array
   ; [rsp+0x8]   -> integer
   ; [rsp+0x10]  -> tmp string for holding the number
@@ -691,7 +691,7 @@ json_array_insert_integer:
 json_array_insert_object:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the json object
   ; [rsp+0x8] -> pointer to the json object to insert
 
@@ -735,7 +735,7 @@ json_array_insert_object:
 json_array_insert_string:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the json object
   ; [rsp+0x8] -> pointer to the value
 
@@ -793,7 +793,7 @@ json_array_insert_string:
 json_array_insert_bool:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the json object
   ; [rsp+0x8] -> TRUE (1) | FALSE (0)
 
@@ -845,7 +845,7 @@ json_array_insert_bool:
 json_array_insert_null:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the json object
 
   mov   [rsp], rdi
@@ -885,7 +885,7 @@ json_array_insert_null:
 json_insert_array:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> pointer to the array
@@ -933,7 +933,7 @@ json_insert_array:
 json_array_end:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]   -> pointer to the json array
 
   mov   [rsp], rdi

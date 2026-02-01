@@ -17,7 +17,7 @@ template_parse:
   cmp   rsi, 0  ; hash table can be null
   jl    .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the file path
   ; [rsp+0x8]   -> pointer to the hash table
   ; [rsp+0x10]  -> file descriptor of the file

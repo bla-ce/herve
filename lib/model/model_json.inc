@@ -6,7 +6,7 @@ section .text
 model_instances_to_json:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the linked list of instances
   ; [rsp+0x10]  -> pointer to the json object
@@ -115,7 +115,7 @@ model_instances_to_json:
 model_instance_to_json:
   sub   rsp, 0x40
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the pointer to the model
   ; [rsp+0x8]   -> pointer to the pointer to the instance
   ; [rsp+0x10]  -> pointer to the json object

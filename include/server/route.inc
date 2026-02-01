@@ -32,7 +32,7 @@ section .text
 log_route:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the route
 
   mov   [rsp], rdi
@@ -156,7 +156,7 @@ compare_route:
   cmp   rsi, 0
   jl    .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to request struct
   ; [rsp+0x8]   -> pointer to server route
   ; [rsp+0x10]  -> pointer to request url
@@ -289,7 +289,7 @@ add_model_routes:
   sub   rsp, 0x20
   sub   rsp, BUFSIZ
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the model struct
   ; [rsp+0x10]  -> pointer to the model name
@@ -419,7 +419,7 @@ add_model_routes:
 add_dir_route:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the dir path
   ; [rsp+0x10]  -> length of the dir path
@@ -527,7 +527,7 @@ add_dir_route:
 route_exist:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the method
   ; [rsp+0x10]  -> pointer to the url
@@ -623,7 +623,7 @@ route_exist:
 add_route:
   sub   rsp, 0x50
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the method of the route
   ; [rsp+0x10]  -> pointer to the url of the route
@@ -943,7 +943,7 @@ is_wildcard_route:
 cmp_wildcard:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the route struct
   ; [rsp+0x8] -> pointer to the current url
 
@@ -989,7 +989,7 @@ cmp_wildcard:
 handle_dynamic_route:
   sub   rsp, 0x40
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the route struct
   ; [rsp+0x8]   -> pointer to the request struct
   ; [rsp+0x10]  -> pointer to the request url
@@ -1165,7 +1165,7 @@ handle_dynamic_route:
 save_parameter:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the route url
   ; [rsp+0x10]  -> pointer to the request url

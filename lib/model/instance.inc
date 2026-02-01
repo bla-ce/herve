@@ -29,7 +29,7 @@ section .text
 model_instance_update:
   sub   rsp, 0x30
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance to update
   ; [rsp+0x10]  -> hash table containing the updates
@@ -138,7 +138,7 @@ model_instance_update:
 model_instance_save:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance
   ; [rsp+0x10]  -> strict mode flag
@@ -215,7 +215,7 @@ model_instance_save:
 model_instance_validate:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance
   ; [rsp+0x10]  -> linked list of model fields
@@ -396,7 +396,7 @@ _model_instance_validate_field:
 model_instance_create:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance struct
   ; [rsp+0x10]  -> pointer to the hash table
@@ -511,7 +511,7 @@ model_instance_create:
 model_instance_set_value:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model
   ; [rsp+0x8]   -> pointer to the instance
   ; [rsp+0x10]  -> pointer to the name of the field
@@ -585,7 +585,7 @@ model_instance_set_value:
 model_instance_get_value:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the model
   ; [rsp+0x8]   -> pointer to the instance
   ; [rsp+0x10]  -> pointer to the name of the field

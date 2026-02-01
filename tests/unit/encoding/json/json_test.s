@@ -7,7 +7,7 @@ section .text
 _start:
   sub   rsp, 0x30
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the nested json object
   ; [rsp+0x10]  -> pointer to the children array

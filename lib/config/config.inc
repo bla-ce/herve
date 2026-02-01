@@ -11,7 +11,7 @@ section .text
 parse_cli:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> argc
   ; [rsp+0x8]   -> pointer to argv[0]
   ; [rsp+0x10]  -> array of pointers

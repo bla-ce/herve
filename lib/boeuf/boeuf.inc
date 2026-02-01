@@ -37,7 +37,7 @@ boeuf_ncreate:
   cmp   rsi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> length of the string
   ; [rsp+0x10]  -> pointer to the boeuf buffer
@@ -101,7 +101,7 @@ boeuf_create:
   cmp   rdi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the string
 
   mov   [rsp], rdi
@@ -136,7 +136,7 @@ boeuf_create:
 boeuf_nappend:
   sub   rsp, 0x48
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the boeuf buffer
   ; [rsp+0x8]   -> pointer to the string
   ; [rsp+0x10]  -> number of bytes to append
@@ -273,7 +273,7 @@ boeuf_append:
   cmp   rsi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the boeuf buffer
   ; [rsp+0x8]   -> pointer to the string
 
@@ -403,7 +403,7 @@ boeuf_set_len:
   cmp   rsi, 0
   jl    .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the boeuf buffer
   ; [rsp+0x8] -> new size of the boeuf buffer
 

@@ -64,7 +64,7 @@ section .text
 set_cookie:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the cookie struct
   ; [rsp+0x10]  -> pointer to the serialized cookie struct
@@ -135,7 +135,7 @@ is_cookie_key_valid:
   cmp   rdi, 0
   jl    .false
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the key
   ; [rsp+0x8] -> key length
 
@@ -184,7 +184,7 @@ is_cookie_key_valid:
 create_cookie:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the name
   ; [rsp+0x8]   -> pointer to the value
   ; [rsp+0x10]  -> pointer to the cookie struct
@@ -360,7 +360,7 @@ serialize_cookie:
   sub   rsp, 0x20
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the cookie struct
   ; [rsp+0x8]   -> pointer to the serialized cookie (boeuf buffer)
   ; [rsp+0x10]  -> pointer to the string

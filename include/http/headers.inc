@@ -47,7 +47,7 @@ section .text
 parse_headers:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the header strings
   ; [rsp+0x8]   -> pointer to the hash table structure
   ; [rsp+0x10]  -> dynamic pointer traversing the string
@@ -229,7 +229,7 @@ parse_headers:
 stringify_headers:
   sub   rsp, 0x38
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to headers hash table
   ; [rsp+0x8]   -> headers count
   ; [rsp+0x10]  -> array of keys

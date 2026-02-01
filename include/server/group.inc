@@ -30,7 +30,7 @@ section .text
 add_group:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the prefix
   ; [rsp+0x10]  -> group is root
@@ -113,7 +113,7 @@ add_group:
 add_group_struct_to_server:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the server struct
   ; [rsp+0x8] -> pointer to the group struct
 
@@ -172,7 +172,7 @@ add_group_struct_to_server:
 group_exist:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the group prefix
   ; [rsp+0x10]  -> pointer to groups linked list
@@ -281,7 +281,7 @@ get_group_prefix:
 get_group_from_ctx:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the context struct
   ; [rsp+0x10]  -> pointer to the groups linked list
@@ -385,7 +385,7 @@ get_group_from_ctx:
 free_group:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the group struct
   ; [rsp+0x8] -> next pointer
 

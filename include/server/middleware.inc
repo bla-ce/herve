@@ -30,7 +30,7 @@ section .text
 create_middleware:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the function
   ; [rsp+0x8]   -> arg1
   ; [rsp+0x10]  -> arg2
@@ -82,7 +82,7 @@ create_middleware:
 add_middleware:
   sub   rsp, 0x18
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the group or 0 if root
   ; [rsp+0x10]  -> pointer to a middleware struct
@@ -159,7 +159,7 @@ add_middleware:
 run_middlewares:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the group struct
   ; [rsp+0x8]   -> pointer to the context struct
   ; [rsp+0x10]  -> run post middlewares (bool)

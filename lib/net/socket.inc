@@ -56,7 +56,7 @@ htons:
 socket_init:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> port the socket will be listening to
   ; [rsp+0x8] -> file descriptor
 
@@ -141,7 +141,7 @@ bind_socket:
   sub   rsp, 0x18
   sub   rsp, SOCKADDR_STRUCT_LEN
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> socket fd
   ; [rsp+0x8]   -> port
   ; [rsp+0x10]  -> family
@@ -204,7 +204,7 @@ accept_connection:
   sub   rsp, 0x8
   sub   rsp, SOCKADDR_STRUCT_LEN
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to server struct
   ; [rsp+0x8]   -> sockaddr struct
 
@@ -250,7 +250,7 @@ inet_addr:
   cmp   rdi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to ip address string
   ; [rsp+0x8]   -> index to go over the digits
   ; [rsp+0x10]  -> binary form
@@ -349,7 +349,7 @@ connect_fd:
 socket_set_non_blocking:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]   -> file descriptor of the socket
 
   mov   [rsp], rdi

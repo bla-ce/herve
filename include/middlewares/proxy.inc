@@ -53,7 +53,7 @@ proxy_middleware:
   cmp   rcx, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to an array of proxy target
   ; [rsp+0x10]  -> load balancer algorithm
@@ -185,7 +185,7 @@ proxy_middleware:
 handle_proxy_request:
   sub   rsp, 0x30
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> file descriptor of the upstream server
   ; [rsp+0x10]  -> pointer to the server response
@@ -323,7 +323,7 @@ send_response_from_target:
   cmp   rdx, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the response
   ; [rsp+0x10]  -> response length
@@ -373,7 +373,7 @@ send_request_to_server:
   cmp   rsi, 0
   jl    .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> file descriptor of the proxy
   ; [rsp+0x10]  -> pointer to request struct
@@ -431,7 +431,7 @@ connect_proxy:
   cmp   rsi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the proxy struct
   ; [rsp+0x10]  -> file descriptor
@@ -537,7 +537,7 @@ connect_proxy:
 proxy_target_create:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> listening port of the target
   ; [rsp+0x8]   -> pointer to the ip of the target
   ; [rsp+0x10]  -> weight of the target

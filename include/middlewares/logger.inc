@@ -46,7 +46,7 @@ get_logger_middleware:
 log_ctx:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the logan struct
   ; [rsp+0x10]  -> flags

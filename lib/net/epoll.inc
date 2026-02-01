@@ -33,6 +33,54 @@ EPOLLRDHUP  equ 0x2000
 EPOLLET     equ 0x80000000
 
 section .text
+; removes a file descriptor from the epoll instance interest list
+; @param  rdi: file descriptor of the epoll instance
+; @param  rsi: file descriptor of the new connection
+; @return rax: return code
+epoll_remove_fd_from_instance:
+  sub   rsp, 0x10
+  sub   rsp, EPOLL_EVENT_STRUCT_LEN
+
+  ; *** STACK USAGE  *** ;
+  ; [rsp]       -> file descriptor of the epoll instance
+  ; [rsp+0x8]   -> file descriptor of the new connection
+  ; [rsp+0x10]  -> epoll event struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  lea   rax, [rsp+0x10]
+
+  mov   qword [rax+EPOLL_EVENT_OFF_EVENT], 0
+
+  mov   rbx, [rsp+0x8]
+  mov   [rax+EPOLL_EVENT_OFF_DATA], rbx
+
+  mov   rdi, [rsp]
+  mov   rsi, EPOLL_CTL_DEL
+  mov   rdx, [rsp+0x8]
+  lea   rcx, [rsp+0x10]
+  call  epoll_ctl
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  add   rsp, EPOLL_EVENT_STRUCT_LEN
+  ret
 
 ; adds a file descriptor to the epoll instance interest list
 ; @param  rdi: file descriptor of the epoll instance
@@ -94,7 +142,7 @@ epoll_init:
   sub   rsp, 0x10
   sub   rsp, EPOLL_EVENT_STRUCT_LEN
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> file descriptor of the listening socket
   ; [rsp+0x8] -> file descriptor of the epoll instance
   ; [rsp+0x8] -> pointer to the epoll event struct

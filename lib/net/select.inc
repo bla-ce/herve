@@ -29,7 +29,7 @@ FD_CLR:
   cmp   rsi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> file descriptor to remove
   ; [rsp+0x8]   -> pointer to file descriptors set
   ; [rsp+0x10]  -> 8 * sizeof(long)
@@ -128,7 +128,7 @@ FD_SET:
   cmp   rsi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> file descriptor to add
   ; [rsp+0x8]   -> pointer to file descriptors set
   ; [rsp+0x10]  -> 8 * sizeof(long)
@@ -204,7 +204,7 @@ FD_ISSET:
   cmp   rsi, 0
   jle   .error
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> file descriptor to add
   ; [rsp+0x8]   -> pointer to file descriptors set
   ; [rsp+0x10]  -> 8 * sizeof(long)

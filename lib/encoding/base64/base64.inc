@@ -37,7 +37,7 @@ section .text
 base64_encode:
   sub   rsp, 0x40
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> length of the string
   ; [rsp+0x10]  -> pointer to the allocated encoded string
@@ -252,7 +252,7 @@ base64_decode:
 
   mov   qword [base64_errno], BASE64_INVALID_ARG
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> length of the string
   ; [rsp+0x10]  -> pointer to the allocated encoded string

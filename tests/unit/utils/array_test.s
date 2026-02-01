@@ -15,7 +15,7 @@ section .text
 _start:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]   -> pointer to the array struct
 
   mov   rdi, 4

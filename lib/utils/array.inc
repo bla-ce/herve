@@ -26,7 +26,7 @@ section .text
 array_create:
   sub   rsp, 0x20
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> number of elements
   ; [rsp+0x8]   -> size of elements
   ; [rsp+0x10]  -> pointer to the array
@@ -102,7 +102,7 @@ array_create:
 array_free:
   sub   rsp, 0x8
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp] -> pointer to the array struct
 
   mov   [rsp], rdi
@@ -140,7 +140,7 @@ array_free:
 array_push:
   sub   rsp, 0x28
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]       -> pointer to the array struct
   ; [rsp+0x8]   -> pointer to the new element
   ; [rsp+0x10]  -> old size of the array
@@ -290,7 +290,7 @@ array_pop:
 array_get:
   sub   rsp, 0x10
 
-  ; *** STACK USAGE *** ;
+  ; STACK USAGE
   ; [rsp]     -> pointer to the array struct
   ; [rsp+0x8] -> index of the element to get
 
