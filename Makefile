@@ -48,14 +48,14 @@ proxy:
 	$(MAKE) -C examples/proxy run-proxy
 
 test-unit:
-	$(MAKE) -C tests/unit/boeuf
-	$(MAKE) -C tests/unit/encoding/base64
-	$(MAKE) -C tests/unit/encoding/html
-	$(MAKE) -C tests/unit/encoding/json
-	$(MAKE) -C tests/unit/hash_table
-	$(MAKE) -C tests/unit/malloc
-	$(MAKE) -C tests/unit/models
-	$(MAKE) -C tests/unit/utils program=array_test
-	$(MAKE) -C tests/unit/utils program=string_test
+	$(MAKE) -C tests/lib/boeuf
+	$(MAKE) -C tests/lib/encoding/base64
+	$(MAKE) -C tests/lib/encoding/html
+	$(MAKE) -C tests/lib/encoding/json
+	$(MAKE) -C tests/lib/hash_table
+	$(MAKE) -C tests/lib/malloc
+	$(MAKE) -C tests/lib/models
+	$(MAKE) -C tests/lib/utils program=array_test
+	$(MAKE) -C tests/lib/utils program=string_test
 
 # TODO: define the other targets

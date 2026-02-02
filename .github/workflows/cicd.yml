@@ -107,43 +107,43 @@ jobs:
           sudo apt-get install -y nasm
 
       - name: Run malloc tests
-        working-directory: tests/unit/malloc
+        working-directory: tests/lib/malloc
         run: make
 
       - name: Run JSON encoding tests
-        working-directory: tests/unit/encoding/json
+        working-directory: tests/lib/encoding/json
         run: make
 
       - name: Run models tests
-        working-directory: tests/unit/models
+        working-directory: tests/lib/models
         run: make
 
       - name: Run HTML encoding tests
-        working-directory: tests/unit/encoding/html
+        working-directory: tests/lib/encoding/html
         run: make
 
       - name: Run boeuf tests
-        working-directory: tests/unit/boeuf
+        working-directory: tests/lib/boeuf
         run: make
 
       - name: Run Base64 encoding tests
-        working-directory: tests/unit/encoding/base64
+        working-directory: tests/lib/encoding/base64
         run: make
 
       - name: Run array tests
-        working-directory: tests/unit/utils
+        working-directory: tests/lib/utils
         run: |
           make program=array_test
           ./bin/array_test
 
       - name: Run string tests
-        working-directory: tests/unit/utils
+        working-directory: tests/lib/utils
         run: |
           make program=string_test
           ./bin/string_test
 
       - name: Run hash table tests
-        working-directory: tests/unit/hash_table
+        working-directory: tests/lib/hash_table
         run: |
           make
 
