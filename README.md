@@ -15,7 +15,7 @@ If you have any feature ideas, feel free to create issues on GitHub.
 
 ### What is Herve?
 
-Herve is a high-performance HTTP Server Library written entirely in Assembly for x86 systems.
+Herve is a high-performance single-threaded (concurrency not yet available) HTTP Server Library written entirely in Assembly for x86 systems.
 
 ### Why Herve has been built and why would you use it?
 
