@@ -176,7 +176,6 @@ compare_route:
   mov   rdx, [rsp+0x8]
   mov   rsi, [rdx+ROUTE_OFF_METHOD]
   call  strcmp
-
   cmp   rax, 0
   jl    .error
   je    .not_the_same

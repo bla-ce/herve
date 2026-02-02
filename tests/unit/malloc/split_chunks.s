@@ -7,7 +7,6 @@ section .text
 _start:
   mov   rdi, 128
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -15,10 +14,11 @@ _start:
 
   mov   rdi, [p1]
   call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, 64
   call  malloc
-
   cmp   rax, 0
   jl    .error
 

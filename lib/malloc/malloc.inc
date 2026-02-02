@@ -282,7 +282,6 @@ malloc:
   ; call mmap
   mov   rdi, qword [rsp]
   call  request_from_os
-
   cmp   rax, 0
   jl    .error
 
@@ -295,6 +294,8 @@ malloc:
   ; if request from os, size needs to be page aligned
   mov   rsi, PAGE_SIZE
   call  _align
+  cmp   rax, 0
+  jl    .error
 
   mov   rsi, [rsp+0x8]
 

@@ -204,7 +204,6 @@ get_file_length:
   mov   rsi, 0
   mov   rdx, SEEK_SET
   syscall
-
   cmp   rax, 0
   jl    .error
 

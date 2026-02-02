@@ -8,7 +8,6 @@ _start:
   ; [ /56, 4040 ]
   mov   rdi, 16
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -17,7 +16,6 @@ _start:
   ; [ /56, /72, 3968 ]
   mov   rdi,  32
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -26,7 +24,6 @@ _start:
   ; [ /56, /72, /104, 3864 ]
   mov   rdi,  64
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -35,6 +32,8 @@ _start:
   ; [ 56, /72, /104, 3864 ]
   mov   rdi, [p1]
   call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [p1]
   sub   rax, CHUNK_METADATA_LEN
@@ -44,6 +43,8 @@ _start:
   ; [ 56, 72, /104, 3864 ]
   mov   rdi, [p2]
   call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [p2]
   sub   rax, CHUNK_METADATA_LEN
@@ -53,6 +54,8 @@ _start:
   ; [ /56, 72, /104, 3864 ]
   mov   rdi, 16
   call  malloc
+  cmp   rax, 0
+  jl    .error
 
   mov   [p4], rax
 
@@ -69,6 +72,8 @@ _start:
   ; [ 128, /104, 3864 ]
   mov   rdi, [p4]
   call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [p4]
   sub   rax, CHUNK_METADATA_LEN
@@ -81,7 +86,6 @@ _start:
   ; [ /128, /104, 3864 ]
   mov   rdi, 88
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -107,7 +111,6 @@ _start:
   ; [ /128, /104, /3864 ]
   mov   rdi, 3824
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -129,7 +132,6 @@ _start:
   ; [ /128, /104, /3864, /4040 ]
   mov   rdi, 4000
   call  malloc
-
   cmp   rax, 0
   jl    .error
 

@@ -31,14 +31,12 @@ redirect:
   ; get response
   mov   rdi, [rsp]
   call  get_ctx_response
-
   cmp   rax, 0
   jl    .error
 
   ; get response headers
   mov   rdi, rax
   call  get_response_headers
-
   cmp   rax, 0
   jl    .error
 
@@ -47,7 +45,6 @@ redirect:
   lea   rsi, [LOCATION_HEADER]
   mov   rdx, [rsp+0x10]
   call  set_header
-
   cmp   rax, 0
   jl    .error
 

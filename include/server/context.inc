@@ -303,7 +303,6 @@ ctx_init:
   ; malloc ctx
   mov   rdi, CTX_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -312,7 +311,6 @@ ctx_init:
   ; malloc request
   mov   rdi, REQ_STRUCT_LEN
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -326,7 +324,6 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x18]
   call  set_ctx_request
-
   cmp   rax, 0
   jl    .error
 
@@ -334,7 +331,6 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
   call  set_ctx_client
-
   cmp   rax, 0
   jl    .error
 
@@ -348,7 +344,6 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x20]
   call  set_ctx_response
-
   cmp   rax, 0
   jl    .error
 
@@ -356,7 +351,6 @@ ctx_init:
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp]
   call  set_ctx_server
-
   cmp   rax, 0
   jl    .error
 

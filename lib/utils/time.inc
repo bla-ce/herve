@@ -279,7 +279,6 @@ now:
   mov   rdi, CLOCK_REALTIME
   lea   rsi, [rsp]
   syscall
-
   cmp   rax, 0
   jl    .error
 
@@ -304,7 +303,6 @@ get_curr_ns:
   mov   rdi, CLOCK_REALTIME
   lea   rsi, [rsp]
   syscall
-
   cmp   rax, 0
   jl    .error
 
@@ -348,7 +346,6 @@ time_to_str:
   lea   rsi, [rsp+0x18]
   mov   rdx, 5
   call  itoa
-
   cmp   rax, 0
   jl    .error
 
@@ -383,7 +380,6 @@ time_to_str:
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
   call  itoa
-
   cmp   rax, 0
   jl    .error
 
@@ -417,7 +413,6 @@ time_to_str:
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
   call  itoa
-
   cmp   rax, 0
   jl    .error
 
@@ -451,7 +446,6 @@ time_to_str:
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
   call  itoa
-
   cmp   rax, 0
   jl    .error
 
@@ -485,7 +479,6 @@ time_to_str:
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
   call  itoa
-
   cmp   rax, 0
   jl    .error
 
@@ -519,7 +512,6 @@ time_to_str:
   lea   rsi, [rsp+0x18]
   mov   rdx, 3
   call  itoa
-
   cmp   rax, 0
   jl    .error
 

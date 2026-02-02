@@ -7,7 +7,6 @@ section .text
 _start:
   mov   rdi, 16
   call  malloc
-
   cmp   rax, 0
   jl    .error
 

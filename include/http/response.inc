@@ -87,7 +87,6 @@ free_response:
   ; free response struct
   mov   rdi, [rsp]
   call  free
-
   cmp   rax, 0
   jl    .error
 
@@ -476,7 +475,6 @@ stringify_response:
   ; get headers
   mov   rdi, [rsp]
   call  get_response_headers
-
   cmp   rax, 0
   jl    .error
 
@@ -1121,7 +1119,6 @@ send_response:
   mov   rsi, [rsp+0x18]
   mov   rdx, qword [rsp+0x20]
   syscall
-
   cmp   rax, 0
   jl    .error
 

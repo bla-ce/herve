@@ -513,7 +513,6 @@ connect_proxy:
   mov   rsi, BAD_GATEWAY
   lea   rdx, [bad_gateway_message]
   call  send_string
-
   cmp   rax, 0
   jl    .error
 

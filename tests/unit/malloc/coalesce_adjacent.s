@@ -7,7 +7,6 @@ section .text
 _start:
   mov   rdi, 16
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -15,7 +14,6 @@ _start:
 
   mov   rdi, 16
   call  malloc
-
   cmp   rax, 0
   jl    .error
 
@@ -23,12 +21,18 @@ _start:
 
   mov   rdi, 32
   call  malloc
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [p2]
   call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [p1]
   call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [p1]
   sub   rax, CHUNK_METADATA_LEN

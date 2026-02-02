@@ -172,7 +172,6 @@ bind_socket:
   mov   rdi, qword [rsp]
   mov   rdx, qword [addrlen]
   syscall
-
   cmp   rax, 0
   jl    .error
 
