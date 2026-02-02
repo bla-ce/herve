@@ -49,12 +49,6 @@ section .data
 
   STR_PORT_MAX_LENGTH equ 6
 
-  events_msg:
-    .waiting_for  db "waiting for events...", NULL_CHAR
-    .accepting    db "accepting a new connection...", NULL_CHAR
-    .client_init  db "init new client. FD=", NULL_CHAR
-    .client_close db "closing client...", NULL_CHAR
-
 section .text
 ; returns the root group of the server
 ; @param  rdi: pointer to the server
@@ -529,9 +523,6 @@ server_run:
   jl    .error
 
 .loop:
-  mov   rdi, events_msg.waiting_for
-  call  println
-
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x18]
   mov   rdx, MAX_EVENTS
@@ -568,9 +559,6 @@ server_run:
   cmp   qword [rsp+0x8], rax
   jne   .handle_ctx
 
-  mov   rdi, events_msg.accepting
-  call  println
-
   ; accept new connection
   mov   rdi, [rsp+0x8]
   call  accept_connection
@@ -598,20 +586,6 @@ server_run:
   jmp   .inner_loop
 
 .handle_ctx:
-  mov   rdi, events_msg.client_init
-  call  print
-
-  mov   rdi, 10
-  call  malloc
-
-  mov   rdi, [rsp+0x30]
-  mov   rsi, rax
-  mov   rdx, 10
-  call  itoa
-
-  mov   rdi, rax
-  call  println
-
   ; create a new client
   mov   rdi, [rsp+0x30]
   call  client_init
@@ -640,9 +614,6 @@ server_run:
   jmp   .inner_loop
 
 .clear_fd:
-  mov   rdi, events_msg.client_close
-  call  println
-
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x30]
   call  epoll_remove_fd_from_instance

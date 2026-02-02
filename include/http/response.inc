@@ -1178,7 +1178,6 @@ send_static_file:
   ; get file ext
   mov   rdi, rsi
   call  get_content_type
-
   cmp   rax, 0
   jl    .error_open
 
@@ -1187,7 +1186,6 @@ send_static_file:
   ; get context response
   mov   rdi, [rsp]
   call  get_ctx_response
-
   cmp   rax, 0
   jl    .error
 
@@ -1196,7 +1194,6 @@ send_static_file:
   ; get response headers
   mov   rdi, [rsp+0x18]
   call  get_response_headers
-
   cmp   rax, 0
   jl    .error
 
@@ -1207,7 +1204,6 @@ send_static_file:
   lea   rsi, [CONTENT_TYPE_HEADER]
   mov   rdx, [rsp+0x10]
   call  set_header
-
   cmp   rax, 0
   jl    .error
 
@@ -1216,7 +1212,6 @@ send_static_file:
   mov   rsi, O_RDONLY
   mov   rdx, 0
   call  open_file
-
   cmp   rax, 0
   jl    .error_open
 
@@ -1256,7 +1251,6 @@ send_static_file:
   lea   rsi, [rsp+0x40]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  itoa
-
   cmp   rax, 0
   jl    .error
 
@@ -1265,7 +1259,6 @@ send_static_file:
   mov   rdi, [rsp+0x20]
   lea   rsi, [CONTENT_LENGTH_HEADER]
   call  set_header
-
   cmp   rax, 0
   jl    .error
 
@@ -1273,7 +1266,6 @@ send_static_file:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x30]
   call  set_response_body
-
   cmp   rax, 0
   jl    .error
 
@@ -1281,7 +1273,6 @@ send_static_file:
   mov   rdi, [rsp]
   mov   rsi, OK
   call  send_response
-
   cmp   rax, 0
   jl    .error
 
@@ -1303,7 +1294,10 @@ send_static_file:
   mov   rdi, [rsp]
   call  ctx_abort
 
-  jmp   .error
+  ; this is not an error
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
 
 .error_read:
   ; load 500
@@ -1339,13 +1333,11 @@ serve_dir:
   ; get context request
   mov   rdi, [rsp]
   call  get_ctx_request
-
   cmp   rax, 0
   jl    .error
 
   mov   rdi, rax
   call  get_request_url
-
   cmp   rax, 0
   jl    .error
 

@@ -414,7 +414,7 @@ add_model_routes:
 
 ; create a route serving files located in a specified dir
 ; @param  rdi: pointer to server struct
-; @param  rsi: path
+; @param  rsi: pointer to the root url
 ; @return rax: return code
 add_dir_route:
   sub   rsp, 0x20
@@ -654,6 +654,22 @@ add_route:
   cmp   rdx, 0
   jle   .error
 
+  ; check if dir path ends with '/', if yes, trim it
+  mov   rdi, [rsp+0x10]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  add   rdi, rax
+  dec   rdi
+  cmp   byte [rdi], SLASH
+  jne   .no_trim
+
+  mov   rax, NULL_CHAR
+  stosb
+
+.no_trim:
   ; if group is not null, concatenate group prefix and route url
   mov   rdi, [rsp+0x20]
   test  rdi, rdi
