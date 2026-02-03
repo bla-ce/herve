@@ -14,9 +14,9 @@ section .data
 
   clients times N_CLIENTS dq 0
 
-  PORT_MIN     equ 0x1
-  DEFAULT_PORT equ 1337
-  PORT_MAX     equ 0xffff
+  HV_DEFAULT_PORT equ 1337
+  PORT_MIN        equ 0x1
+  PORT_MAX        equ 0xffff
 
   SERVER_STRUCT_LEN equ server_t_end - server_t
 
@@ -402,10 +402,11 @@ server_init:
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
 
-  cmp   qword [rsp], 0
-  jle   .default_port
+  cmp   qword [rsp], PORT_MIN
+  jl    .default_port
 
-  ; TODO: check server boundary
+  cmp   qword [rsp], PORT_MAX
+  jg    .default_port
 
   jmp   .malloc_server
 
