@@ -13,22 +13,10 @@ If you have any feature ideas, feel free to create issues on GitHub.
 
 ## Overview
 
-### What is Herve?
+To gain a deeper knowledge of computer architecture, networking and how the CPU works at the instruction level, I wanted to build projects in Assembly, so I decided to write a server library.
 
-Herve is a high-performance single-threaded (concurrency not yet available) HTTP Server Library written entirely in Assembly for x86 systems.
+The goal of this library was to provide a thorough yet simple API to allow developers to write exciting Assembly projects with a webserver without spending months building the underlying webserver and network operations.
 
-### Why Herve has been built and why would you use it?
-
-To gain a deeper knowledge of computer architecture, networking and how the CPU works at the instruction level, I wanted to build projects in Assembly.
-
-But let's be real, spending hours to just write basic functions like `itoa` or `strlen` is not the most exciting or rewarding thing.
-
-The goal of this library is to provide a thorough yet simple API to allow developers to write exciting Assembly projects with a webserver without spending months building the underlying webserver and network operations.
-
-No, I want developers to be able to spin up a webserver with 70 lines of Assembly and focus on the rest of the project.
-
-After one year and ~25,000 lines of Assembly code, we are still far away from a production ready state, but we'll get there.
+After one year and ~25,000 lines of Assembly code, we are still far away from a production ready state, and I decided to move away from a library to an actual project because it's far more interesting. Because, I am always going way too far in project ideas, I've decided to create a cloud platform in x86 to compete (lol) against AWS, GCP, Azure and so on. More on that later, so watch this space.
 
 And because apparently, now, it has to be mentioned, absolutely no AI was used, but this project probably served to train AI :)
-
-`.gitignore` has a nice easter egg.
