@@ -389,23 +389,37 @@ get_server_routes:
 .return:
   ret
 
-; initialise server
+; initialises server with /health route
+; @param  rdi: server port
 ; @return rax: pointer to server struct | error
 server_init:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   ; STACK USAGE
-  ; [rsp]  -> pointer to the server struct
+  ; [rsp]     -> port the server will be listening to
+  ; [rsp+0x8] -> pointer to the server struct
 
-  mov   qword [rsp], 0
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
 
+  cmp   qword [rsp], 0
+  jle   .default_port
+
+  ; TODO: check server boundary
+
+  jmp   .malloc_server
+
+.default_port:
+  mov   qword [rsp], DEFAULT_PORT
+
+.malloc_server:
   ; malloc server struct
   mov   rdi, SERVER_STRUCT_LEN
   call  malloc
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
+  mov   [rsp+0x8], rax
 
   ; set default values
   mov   qword [rax+SERVER_OFF_ROUTES], 0
@@ -414,14 +428,14 @@ server_init:
   mov   qword [rax+SERVER_OFF_GROUPS], 0
 
   ; add port to server struct
-  mov   rdi, [rsp]
-  mov   rsi, DEFAULT_PORT
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp]
   call  server_set_port
   cmp   rax, 0
   jl    .error
 
   ; create root group
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   mov   rsi, ROOT_GRP_PREFIX
   mov   rdx, TRUE
   call  add_group
@@ -429,7 +443,7 @@ server_init:
   jl    .error
 
   ; create the healthcheck endpoint
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   mov   rsi, GET
   mov   rdx, health_check_url
   mov   rcx, health_check
@@ -439,13 +453,13 @@ server_init:
   cmp   rax, 0
   jl    .error
 
-  mov   rax, [rsp]
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 
 .error:
   ; free server struct
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   test  rdi, rdi
   jz    .no_free
 
@@ -455,7 +469,7 @@ server_init:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; runs the server

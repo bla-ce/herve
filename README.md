@@ -9,7 +9,7 @@ Take a look at the models one, I'm proud of this one even though it's still unde
 If you have any feature ideas, feel free to create issues on GitHub.
 
 > [!WARNING]
-> This library is intended for educational purposes only and is not yet ready for production use.
+> This project is intended for educational purposes only and is not yet ready for production use. It's Assembly, not sure what you were expecting to be honest.
 
 ## Overview
 

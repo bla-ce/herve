@@ -49,6 +49,7 @@ echo_handler:
   ret
 
 _start:
+  mov   rdi, NO_ARG
   call  server_init
   cmp   rax, 0
   jl    .error

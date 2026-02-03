@@ -4,13 +4,28 @@ global _start
 
 section .data
 
-hello_world db "Hello, World, AWS :)", NULL_CHAR
+herve dq 0
+
+PORT equ 5000
 
 section .text
 
 _start:
-  mov   rdi, hello_world
-  call  println
+  ; init server
+  mov   rdi, PORT
+  call  server_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   [herve], rax
+
+  mov   rdi, [herve]
+  call  server_enable_logger
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [herve]
+  call  server_run
   cmp   rax, 0
   jl    .error
 
