@@ -1,3 +1,5 @@
+%include "lib.inc"
+
 %include "hv_auth.inc"
 %include "hv_http.inc"
 %include "hv_middlewares.inc"

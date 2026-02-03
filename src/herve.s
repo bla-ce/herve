@@ -1,4 +1,3 @@
-%include "lib.inc"
 %include "herve.inc"
 
 global _start
