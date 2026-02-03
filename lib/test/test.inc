@@ -19,6 +19,8 @@ section .text
 ; @param  rsi: value 2
 ; @return rax: return code
 assert_not_equal:
+  sub   rsp, 0x8
+
   cmp   rdi, rsi
   je    .error
 

@@ -9,6 +9,6 @@ repos:
   hooks:
     - id: unit-test
       name: unit-test
-      entry: bash -c 'make test-unit'
+      entry: bash -c 'cd tests && make test-unit'
       language: system
       pass_filenames: false
