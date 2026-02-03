@@ -10,11 +10,7 @@ server_t:
 server_t_end:
 
 section .data
-  N_CLIENTS equ 10
-
-  clients times N_CLIENTS dq 0
-
-  HV_DEFAULT_PORT equ 1337
+  DEFAULT_PORT    equ 1337
   PORT_MIN        equ 0x1
   PORT_MAX        equ 0xffff
 
