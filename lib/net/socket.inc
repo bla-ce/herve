@@ -264,7 +264,7 @@ inet_addr:
 
 .loop:
   cmp   qword [rsp+0x8], 3
-  jg    .end_loop
+  jg    .loop_end
   je    .check_null
 
 .check_dot:
@@ -305,7 +305,7 @@ inet_addr:
   inc   qword [rsp+0x8]
   jmp   .loop
 
-.end_loop:
+.loop_end:
   xor   rax, rax
   mov   eax, dword [rsp+0x10]
 

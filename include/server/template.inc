@@ -89,7 +89,7 @@ template_parse:
   mov   rsi, DELIMITER
   call  strpos
   cmp   rax, 0
-  jl    .end_loop
+  jl    .loop_end
 
   mov   qword [rsp+0x30], rax    ; save delimiter position
 
@@ -187,7 +187,7 @@ template_parse:
 
   jmp   .loop
 
-.end_loop:
+.loop_end:
   ; append end of the file
   mov   rdi, [rsp+0x38]
   mov   rsi, [rsp+0x28]

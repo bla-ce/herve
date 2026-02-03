@@ -24,12 +24,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop1
+  je    .loop_end1
 
 .jump1:
   inc   rax
   jmp   .loop1
-.end_loop1:
+.loop_end1:
   ; 8th bin should contain a 4040 bytes chunk with null pointers
   mov   rdi, qword [seg_free_list+0x8*0x8]
   cmp   rdi, 0
@@ -66,12 +66,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop2
+  je    .loop_end2
 
 .jump2:
   inc   rax
   jmp   .loop2
-.end_loop2:
+.loop_end2:
   ; 8th bin should contain a 3968 bytes chunk with null pointers
   mov   rdi, qword [seg_free_list+0x8*0x8]
   cmp   rdi, 0
@@ -108,12 +108,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop3
+  je    .loop_end3
 
 .jump3:
   inc   rax
   jmp   .loop3
-.end_loop3:
+.loop_end3:
   ; 8th bin should contain a 3864 bytes chunk with null pointers
   mov   rdi, qword [seg_free_list+0x8*0x8]
   cmp   rdi, 0
@@ -151,12 +151,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop4
+  je    .loop_end4
 
 .jump4:
   inc   rax
   jmp   .loop4
-.end_loop4:
+.loop_end4:
   ; 8th bin should contain a 3864 bytes chunk with null pointers
   mov   rdi, qword [seg_free_list+0x8*0x8]
   cmp   rdi, 0
@@ -224,12 +224,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop5
+  je    .loop_end5
 
 .jump5:
   inc   rax
   jmp   .loop5
-.end_loop5:
+.loop_end5:
   ; 1st bin should contain a 56 bytes chunk with null pointers
   mov   rdi, qword [seg_free_list+0x8*0x1]
   cmp   rdi, 0
@@ -313,12 +313,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop6
+  je    .loop_end6
 
 .jump6:
   inc   rax
   jmp   .loop6
-.end_loop6:
+.loop_end6:
   ; 2nd bin should contain a 72 bytes chunk with null pointers
   mov   rdi, qword [seg_free_list+0x8*0x2]
   cmp   rdi, 0
@@ -381,12 +381,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop7
+  je    .loop_end7
 
 .jump7:
   inc   rax
   jmp   .loop7
-.end_loop7:
+.loop_end7:
   ; 3rd bin should contain a 128 bytes chunk with null pointers
   mov   rdi, qword [seg_free_list+0x8*0x3]
   cmp   rdi, 0
@@ -457,12 +457,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop8
+  je    .loop_end8
 
 .jump8:
   inc   rax
   jmp   .loop8
-.end_loop8:
+.loop_end8:
   ; 8th bin should contain a 3864 bytes chunk with null pointers
   mov   rdi, qword [seg_free_list+0x8*0x8]
   cmp   rdi, 0
@@ -493,12 +493,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop
+  je    .loop_end
 
   inc   rax
   jmp   .loop
 
-.end_loop:
+.loop_end:
   ; [ /128, /104, /3864, /4040 ]
   mov   rdi, 4000
   call  malloc

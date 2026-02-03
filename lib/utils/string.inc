@@ -411,7 +411,7 @@ itoa:
   cmp   rax, 0
   jne   .loop
 
-.end_loop:
+.loop_end:
   cmp   qword [rsp], 0
   jge   .skip_hyphen
 

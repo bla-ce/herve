@@ -641,7 +641,7 @@ server_run:
 .inner_loop_end:
   jmp   .loop
 
-.end_loop:
+.loop_end:
 
 .close_server:
   ; shutdown server

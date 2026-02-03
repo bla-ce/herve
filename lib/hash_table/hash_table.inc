@@ -168,11 +168,11 @@ ht_get_keys:
   mov   rax, qword [rdi+HT_OFF_NBUCKET]
 
   cmp   r9, rax
-  jge   .end_loop
+  jge   .loop_end
 
   jmp   .loop
 
-.end_loop:
+.loop_end:
   mov   rax, [rsp+0x10]
   jmp   .return
 
@@ -212,13 +212,13 @@ ht_hash_key:
   movzx rax, al
 
   cmp   rax, 0
-  je    .end_loop
+  je    .loop_end
 
   add   qword [rsp+0x8], rax
   inc   rdi
 
   jmp   .loop
-.end_loop:
+.loop_end:
 
   mov   rax, qword [rsp+0x8]
   jmp   .return

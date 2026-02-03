@@ -123,12 +123,12 @@ _start:
   jne   .error
 
   cmp   rax, N_BINS-1
-  je    .end_loop
+  je    .loop_end
 
   inc   rax
   jmp   .loop
 
-.end_loop:
+.loop_end:
   ; [ /128, /104, /3864, /4040 ]
   mov   rdi, 4000
   call  malloc

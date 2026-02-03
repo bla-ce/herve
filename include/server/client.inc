@@ -144,7 +144,7 @@ client_get_ip_from_fd:
   mov   [rsp+0x18], rax
 
   cmp   qword [rsp+0x28], 0
-  jl   .end_loop
+  jl   .loop_end
 
   lea   rsi, [rsp+0x20]
   mov   rdx, 4  ; add one for null char
@@ -170,7 +170,7 @@ client_get_ip_from_fd:
 
   jmp   .loop
 
-.end_loop:
+.loop_end:
   ; ip has an extra dot, go back one and add null char
   mov   rdi, [rsp+0x10]
   dec   rdi

@@ -153,7 +153,7 @@ is_cookie_key_valid:
 
 .loop:
   cmp   r9, qword [rsp+0x8]
-  jge   .end_loop
+  jge   .loop_end
 
   xor   rax, rax
   mov   al, byte [rdi+r9]
@@ -163,7 +163,7 @@ is_cookie_key_valid:
 
   inc   r9
   jmp   .loop
-.end_loop:
+.loop_end:
 
 .true:
   mov   rax, TRUE

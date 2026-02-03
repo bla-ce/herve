@@ -43,7 +43,7 @@ parse_cli:
 
 .loop:
   cmp   r9, [rsp]
-  jge   .end_loop
+  jge   .loop_end
 
   mov   rax, [rsi]
   mov   [rdi+r9*8], rax
@@ -53,7 +53,7 @@ parse_cli:
 
   jmp   .loop
 
-.end_loop:
+.loop_end:
   mov   qword [config_errno], CONFIG_NO_ERR
 
   mov   rax, [rsp+0x10]

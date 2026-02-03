@@ -49,7 +49,7 @@ model_field_exist:
 .loop:
   mov   rax, [rsp+0x10]
   cmp   qword [rax], 0
-  je    .end_loop
+  je    .loop_end
 
   ; compare fields
   mov   rsi, [rax]
@@ -70,7 +70,7 @@ model_field_exist:
 
   jmp   .loop
 
-.end_loop:
+.loop_end:
   mov   rax, FALSE
   jmp   .return
 

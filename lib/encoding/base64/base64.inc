@@ -87,7 +87,7 @@ base64_encode:
   movzx rdi, dil
 
   test  rdi, rdi
-  jz    .end_loop    ; padding 2
+  jz    .loop_end    ; padding 2
 
   mov   [rsp+0x20], rdi
   inc   r9
@@ -211,7 +211,7 @@ base64_encode:
   rep   stosb
   mov   [rsp+0x18], rdi
 
-  jmp   .end_loop
+  jmp   .loop_end
 
 .padding_1:
   mov   rdi, [rsp+0x18]
@@ -219,7 +219,7 @@ base64_encode:
   stosb
   mov   [rsp+0x18], rdi
 
-.end_loop:
+.loop_end:
   ; make sure the string is NULL terminated
   mov   rdi, [rsp+0x18]
   mov   rax, NULL_CHAR
@@ -298,7 +298,7 @@ base64_decode:
   movzx rdi, dil
 
   test  rdi, rdi
-  jz    .end_loop
+  jz    .loop_end
 
   ; get 6 bit representation
   call  decode_base64_char
@@ -318,7 +318,7 @@ base64_decode:
   movzx rdi, dil
 
   test  rdi, rdi
-  jz    .end_loop
+  jz    .loop_end
 
   ; get 6 bit representation
   call  decode_base64_char
@@ -338,7 +338,7 @@ base64_decode:
   movzx rdi, dil
 
   test  rdi, rdi
-  jz    .end_loop
+  jz    .loop_end
 
   ; get 6 bit representation
   call  decode_base64_char
@@ -358,7 +358,7 @@ base64_decode:
   movzx rdi, dil
 
   test  rdi, rdi
-  jz    .end_loop
+  jz    .loop_end
 
   ; get 6 bit representation
   call  decode_base64_char
@@ -460,7 +460,7 @@ base64_decode:
 
   mov   [rsp+0x18], rdi
 
-  jmp   .end_loop
+  jmp   .loop_end
 
 .padding_2:
   ; extract first 8-bit char
@@ -474,9 +474,9 @@ base64_decode:
 
   mov   [rsp+0x18], rdi
 
-  jmp   .end_loop
+  jmp   .loop_end
 
-.end_loop:
+.loop_end:
   mov   rdi, [rsp+0x18]
   mov   rax, NULL_CHAR
   stosb

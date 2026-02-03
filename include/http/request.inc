@@ -1100,7 +1100,7 @@ verify_request:
   call  compare_route
   cmp   rax, 0
   jl    .error
-  jg    .end_loop ; route is valid
+  jg    .loop_end ; route is valid
 
   ; go to next route
   mov   rdx, [rsp+0x20]
@@ -1110,7 +1110,7 @@ verify_request:
   je    .not_found
 
   jmp   .loop
-.end_loop:
+.loop_end:
 
   mov   rax, [rsp+0x20]
   jmp   .return

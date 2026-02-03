@@ -91,7 +91,7 @@ parse_headers:
   call  find_next_char
   cmp   rax, 0
   jl    .error
-  je    .end_loop ; TODO: is it an error?
+  je    .loop_end ; TODO: is it an error?
 
   ; go to after the colon
   mov   rdi, [rsp+0x10]
@@ -178,7 +178,7 @@ parse_headers:
 
   mov   rdi, [rsp+0x10]
   cmp   byte [rdi], NULL_CHAR
-  je    .end_loop
+  je    .loop_end
 
   ; add two to go after CRLF
   add   rdi, 2
@@ -186,7 +186,7 @@ parse_headers:
 
   jmp   .loop
 
-.end_loop:
+.loop_end:
   mov   rax, [rsp+0x8]
 
   jmp   .return
@@ -273,7 +273,7 @@ stringify_headers:
   ; get total length of the headers
 .loop:
   cmp   r9, qword [rsp+0x8]
-  jge   .end_loop
+  jge   .loop_end
 
   ; get array of keys
   mov   rsi, [rsp+0x10]
@@ -313,7 +313,7 @@ stringify_headers:
   inc   r9
 
   jmp   .loop
-.end_loop:
+.loop_end:
 
   mov   rax, [rsp+0x28]
   mov   [rsp+0x30], rax
@@ -323,7 +323,7 @@ stringify_headers:
   ; for each key
 .loop2:
   cmp   r9, qword [rsp+0x8]
-  jge   .end_loop2
+  jge   .loop_end2
 
   ; get array of keys
   mov   rsi, [rsp+0x10]
@@ -381,7 +381,7 @@ stringify_headers:
   mov   [rsp+0x30], rdi
 
   jmp   .loop2
-.end_loop2:
+.loop_end2:
 
   ; load post headers
   mov   rdi, [rsp+0x30]
