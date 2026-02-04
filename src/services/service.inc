@@ -2,6 +2,7 @@ section .bss
 service_t:
   .name   resq 1
   .status resq 1
+  .port   resq 1
   .next   resq 1
 service_t_end:
 
@@ -11,11 +12,13 @@ SERVICE_STRUCT_LEN equ service_t_end - service_t
 
 SERVICE_OFF_NAME    equ 0x0
 SERVICE_OFF_STATUS  equ SERVICE_OFF_NAME + 0x8
-SERVICE_OFF_NEXT    equ SERVICE_OFF_STATUS + 0x8
+SERVICE_OFF_PORT    equ SERVICE_OFF_STATUS + 0x8
+SERVICE_OFF_NEXT    equ SERVICE_OFF_PORT + 0x8
 
 service_key:
   .name   db "name", NULL_CHAR
   .status db "status", NULL_CHAR
+  .port   db "port", NULL_CHAR
 
 service_status:
   .NOT_STARTED  db "NOT STARTED", NULL_CHAR
@@ -93,6 +96,22 @@ service_register:
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  service_set_name
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; get port of the service
+  mov   rdi, [rsp+0x10]
+  mov   rsi, service_key.port
+  call  ht_get
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   rdi, rax
+  call  stoi
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  service_set_port
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -206,6 +225,20 @@ service_list:
   mov   rsi, service_key.status
   mov   rdx, rax
   call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x10]
+  call  service_get_port
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, service_key.port
+  mov   rdx, rax
+  call  json_insert_integer
   cmp   rax, 0
   jl    .error
 
@@ -346,6 +379,45 @@ service_set_status:
   jle   .error
 
   mov   [rdi+SERVICE_OFF_STATUS], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the port of the service
+; @param  rdi: pointer to the service struct
+; @return rax: port of the service
+service_get_port:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_PORT]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the port of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: port of the service
+; @return rax: return code
+service_set_port:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+SERVICE_OFF_PORT], rsi
 
   mov   rax, SUCCESS_CODE
 
