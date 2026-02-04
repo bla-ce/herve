@@ -3,6 +3,7 @@
 %include "ascii.inc"
 %include "constants.inc"
 %include "file.inc"
+%include "linked_list.inc"
 %include "os.inc"
 %include "string.inc"
 %include "syscall.inc"

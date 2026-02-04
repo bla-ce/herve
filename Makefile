@@ -24,6 +24,10 @@ herve:
 	ld -o $(BIN_DIR)/$(MAIN_PATH) $(BUILD_DIR)/$(MAIN_PATH).o
 
 run:
+	mkdir -p $(BUILD_DIR) $(BIN_DIR)
+	nasm -o $(BUILD_DIR)/$(MAIN_PATH).o $(SRC_DIR)/$(MAIN_PATH).s \
+		$(INCLUDE_FLAGS) $(DEBUG_FLAGS) $(BASE_FLAGS)
+	ld -o $(BIN_DIR)/$(MAIN_PATH) $(BUILD_DIR)/$(MAIN_PATH).o
 	./$(BIN_DIR)/$(MAIN_PATH)
 
 .PHONY: clean

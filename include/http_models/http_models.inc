@@ -668,11 +668,14 @@ http_model_post:
   mov   rdx, INTERNAL_SERVER_ERROR
   mov   rcx, http_model_err.internal_server
 
+  jmp   .send_response
+
 .unprocessable_entity:
   ; TODO: specify why
   mov   rdx, UNPROCESSABLE_ENTITY
   mov   rcx, http_model_err.unprocessable_entity
 
+.send_response:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov		r8, NO_ARG

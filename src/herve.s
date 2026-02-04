@@ -33,7 +33,7 @@ _start:
   mov   rdi, [herve]
   mov   rsi, POST
   mov   rdx, register_url
-  mov   rcx, register_service
+  mov   rcx, service_register
   mov   r8, NO_ARG
   call  add_route
   cmp   rax, 0
@@ -42,7 +42,7 @@ _start:
   mov   rdi, [herve]
   mov   rsi, POST
   mov   rdx, unregister_url
-  mov   rcx, unregister_service
+  mov   rcx, service_unregister
   mov   r8, NO_ARG
   call  add_route
   cmp   rax, 0
