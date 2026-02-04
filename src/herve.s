@@ -9,10 +9,6 @@ herve dq 0
 
 PORT equ 5000
 
-; endpoints
-register_url    db "/service/register", NULL_CHAR
-unregister_url  db "/service/unregister", NULL_CHAR
-
 section .text
 
 _start:
@@ -32,7 +28,7 @@ _start:
   ; create service endpoints
   mov   rdi, [herve]
   mov   rsi, POST
-  mov   rdx, register_url
+  mov   rdx, service_url.register
   mov   rcx, service_register
   mov   r8, NO_ARG
   call  add_route
@@ -41,8 +37,17 @@ _start:
 
   mov   rdi, [herve]
   mov   rsi, POST
-  mov   rdx, unregister_url
+  mov   rdx, service_url.unregister
   mov   rcx, service_unregister
+  mov   r8, NO_ARG
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [herve]
+  mov   rsi, GET
+  mov   rdx, service_url.list
+  mov   rcx, service_list
   mov   r8, NO_ARG
   call  add_route
   cmp   rax, 0
