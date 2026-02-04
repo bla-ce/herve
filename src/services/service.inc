@@ -1,7 +1,7 @@
 section .bss
 service_t:
   .name   resq 1
-  .status resw 1
+  .status resq 1
   .next   resq 1
 service_t_end:
 
@@ -11,27 +11,27 @@ SERVICE_STRUCT_LEN equ service_t_end - service_t
 
 SERVICE_OFF_NAME    equ 0x0
 SERVICE_OFF_STATUS  equ SERVICE_OFF_NAME + 0x8
-SERVICE_OFF_NEXT    equ SERVICE_OFF_STATUS + 0x2
+SERVICE_OFF_NEXT    equ SERVICE_OFF_STATUS + 0x8
 
 service_key:
-  .name db "name", NULL_CHAR
+  .name   db "name", NULL_CHAR
+  .status db "status", NULL_CHAR
 
 service_status:
-  .NOT_STARTED  equ 0
-  .RUNNING      equ 1
-  .PAUSED       equ 2
-  .STOPPED      equ 3
-STATUS_COUNT    equ 4
+  .NOT_STARTED  db "NOT STARTED", NULL_CHAR
+  .RUNNING      db "RUNNING", NULL_CHAR
+  .PAUSED       db "PAUSED", NULL_CHAR
+  .STOPPED      db "STOPPED", NULL_CHAR
 
 ; endpoints
 service_url:
-  .list       db "/service/list", NULL_CHAR
-  .register   db "/service/register", NULL_CHAR
-  .unregister db "/service/unregister", NULL_CHAR
+  .list       db "/services", NULL_CHAR
+  .register   db "/services/register", NULL_CHAR
+  .unregister db "/services/unregister", NULL_CHAR
 
 hv_services dq 0   ; linked list of services
 
-MAX_SERVICES equ 3
+MAX_SERVICES equ 32
 
 service_count db 0
 
@@ -151,6 +151,145 @@ service_register:
 ; returns a list of available services
 ; @param  rdi: context struct
 service_list:
+  sub   rsp, 0x20
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to json array
+  ; [rsp+0x10]  -> dynamic pointer to go through the service ll
+  ; [rsp+0x18]  -> service json
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  cmp   rdi, 0
+  jle    .error
+
+  call  json_array_create
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [hv_services]
+  mov   [rsp+0x10], rdi
+  cmp   rdi, 0
+  je    .loop_end
+
+.loop:
+  call  json_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x10]
+  call  service_get_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, service_key.name
+  mov   rdx, rax
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x10]
+  call  service_get_status
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, service_key.status
+  mov   rdx, rax
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x18]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x18]
+  call  json_array_insert_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x18]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  call  service_get_next
+  cmp   rax, 0
+  jl    .error
+  je    .loop_end
+
+  mov   [rsp+0x10], rax
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x8]
+  call  json_array_end
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, [rsp+0x8]
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  call  json_array_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.internal_server_error:
+  ; TODO: return json
+  mov   rdi, [rsp]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
+.error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_json_array
+
+  call  json_free
+
+.free_json_array:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_array_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
 
 ; unregisters an existing service and removes it from the service
@@ -186,8 +325,7 @@ service_get_status:
   cmp   rdi, 0
   jle   .error
 
-  xor   rax, rax
-  mov   ax, word [rdi+SERVICE_OFF_STATUS]
+  mov   rax, [rdi+SERVICE_OFF_STATUS]
   jmp   .return
 
 .error:
@@ -204,10 +342,10 @@ service_set_status:
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, STATUS_COUNT
-  jge   .error
+  cmp   rsi, 0
+  jle   .error
 
-  mov   word [rdi+SERVICE_OFF_STATUS], si
+  mov   [rdi+SERVICE_OFF_STATUS], rsi
 
   mov   rax, SUCCESS_CODE
 
