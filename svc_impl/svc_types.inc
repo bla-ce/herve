@@ -10,7 +10,7 @@ SVC_TYPES:
 
 section .text
 
-; initializes service function pointers based on type
+; initialises service function pointers based on type
 ; @param  rdi: pointer to service struct
 ; @param  rsi: type string
 ; @return rax: return code
@@ -39,7 +39,7 @@ svc_init_by_type:
   jne   .error
 
   mov   rdi, [rsp]
-  call  echo_svc_register
+  call  echo_svc_init
   cmp   rax, 0
   jl    .error
 

@@ -155,6 +155,14 @@ service_register:
   cmp   rax, 0
   jl    .not_found
 
+  ; register service
+  mov   rdi, [rsp+0x8]
+  mov   rax, [rdi+SERVICE_OFF_REGISTER]
+.b1:
+  call  rax
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
   mov   rdx, SERVICE_OFF_NEXT
