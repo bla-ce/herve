@@ -1,24 +1,36 @@
 section .bss
 service_t:
-  .name   resq 1
-  .status resq 1
-  .port   resq 1
-  .next   resq 1
+  .id         resq 1
+  .name       resq 1
+  .status     resq 1
+  .port       resq 1
+  .type       resq 1
+  .register   resq 1  ; ptr to the func registering the service
+  .unregister resq 1  ; ptr to the func unregistering the service
+  .start      resq 1  ; ptr to the func starting the service
+  .stop       resq 1  ; ptr to the func stopping the service
+  .next       resq 1
 service_t_end:
 
 section .data
 
 SERVICE_STRUCT_LEN equ service_t_end - service_t
 
-SERVICE_OFF_NAME    equ 0x0
-SERVICE_OFF_STATUS  equ SERVICE_OFF_NAME + 0x8
-SERVICE_OFF_PORT    equ SERVICE_OFF_STATUS + 0x8
-SERVICE_OFF_NEXT    equ SERVICE_OFF_PORT + 0x8
+SERVICE_OFF_NAME        equ 0x0
+SERVICE_OFF_STATUS      equ SERVICE_OFF_NAME + 0x8
+SERVICE_OFF_PORT        equ SERVICE_OFF_STATUS + 0x8
+SERVICE_OFF_TYPE        equ SERVICE_OFF_PORT + 0x8
+SERVICE_OFF_REGISTER    equ SERVICE_OFF_TYPE + 0x8
+SERVICE_OFF_UNREGISTER  equ SERVICE_OFF_REGISTER + 0x8
+SERVICE_OFF_START       equ SERVICE_OFF_UNREGISTER + 0x8
+SERVICE_OFF_STOP        equ SERVICE_OFF_START + 0x8
+SERVICE_OFF_NEXT        equ SERVICE_OFF_STOP + 0x8
 
 service_key:
   .name   db "name", NULL_CHAR
   .status db "status", NULL_CHAR
   .port   db "port", NULL_CHAR
+  .type   db "type", NULL_CHAR
 
 service_status:
   .NOT_STARTED  db "NOT STARTED", NULL_CHAR
@@ -126,6 +138,12 @@ service_register:
   call  service_set_next
   cmp   rax, 0
   jl    .internal_server_error
+
+  mov   rdi, [rsp+0x8]
+  mov   qword [rdi+SERVICE_OFF_REGISTER], 0
+  mov   qword [rdi+SERVICE_OFF_UNREGISTER], 0
+  mov   qword [rdi+SERVICE_OFF_START], 0
+  mov   qword [rdi+SERVICE_OFF_STOP], 0
 
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
