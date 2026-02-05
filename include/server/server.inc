@@ -102,10 +102,11 @@ server_get_root_group:
 ; @param  rdi: pointer to the server
 ; @return rax: return code
 server_enable_logger:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   ; STACK USAGE
-  ; [rsp] -> pointer to the server struct
+  ; [rsp]     -> pointer to the server struct
+  ; [rsp+0x8] -> pointer to the middleware struct
 
   mov   [rsp], rdi
 
@@ -116,10 +117,20 @@ server_enable_logger:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x8], rax
+
+  ; set server logger (first argument of middleware)
+  mov   rdi, [rsp]
+  mov   rax, [rsp+0x8]
+  mov   rsi, [rax+MIDDLEWARE_OFF_ARG1]
+  call  server_set_logger
+  cmp   rax, 0
+  jl    .error
+
   ; add logger
   mov   rdi, [rsp]
   mov		rsi, NO_ARG
-  mov   rdx, rax
+  mov   rdx, [rsp+0x8]
   call  add_middleware
   cmp   rax, 0
   jl    .error
@@ -132,7 +143,7 @@ server_enable_logger:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; once the server is initialised, prints the logo, server init

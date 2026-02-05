@@ -18,7 +18,8 @@ section .data
 
 SERVICE_STRUCT_LEN equ service_t_end - service_t
 
-SERVICE_OFF_NAME        equ 0x0
+SERVICE_OFF_ID          equ 0x0
+SERVICE_OFF_NAME        equ SERVICE_OFF_ID + 0x8
 SERVICE_OFF_STATUS      equ SERVICE_OFF_NAME + 0x8
 SERVICE_OFF_PORT        equ SERVICE_OFF_STATUS + 0x8
 SERVICE_OFF_TYPE        equ SERVICE_OFF_PORT + 0x8
@@ -156,9 +157,9 @@ service_register:
   jl    .not_found
 
   ; register service
-  mov   rdi, [rsp+0x8]
-  mov   rax, [rdi+SERVICE_OFF_REGISTER]
-.b1:
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rax, [rsi+SERVICE_OFF_REGISTER]
   call  rax
   cmp   rax, 0
   jl    .error

@@ -38,10 +38,28 @@ svc_init_by_type:
   cmp   rax, SVC_TYPES.ECHO
   jne   .error
 
+  mov   rax, echo_svc_t
+  jmp   .init_svc
+
+.init_svc:
+  ; get service
   mov   rdi, [rsp]
-  call  echo_svc_init
-  cmp   rax, 0
-  jl    .error
+
+  ; init type and function pointers
+  mov   rsi, qword [rax+SERVICE_OFF_TYPE]
+  mov   qword [rdi+SERVICE_OFF_TYPE], rsi
+
+  mov   rsi, [rax+SERVICE_OFF_REGISTER]
+  mov   qword [rdi+SERVICE_OFF_REGISTER], rsi
+
+  mov   rsi, [rax+SERVICE_OFF_UNREGISTER]
+  mov   qword [rdi+SERVICE_OFF_UNREGISTER], rsi
+
+  mov   rsi, [rax+SERVICE_OFF_START]
+  mov   qword [rdi+SERVICE_OFF_START], rsi
+
+  mov   rsi, [rax+SERVICE_OFF_STOP]
+  mov   qword [rdi+SERVICE_OFF_STOP], rsi
 
   mov   rax, SUCCESS_CODE
   jmp   .return
