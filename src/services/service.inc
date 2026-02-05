@@ -1,3 +1,5 @@
+%include "svc_types.inc"
+
 section .bss
 service_t:
   .id         resq 1
@@ -139,11 +141,19 @@ service_register:
   cmp   rax, 0
   jl    .internal_server_error
 
+  ; get the type of the service
+  mov   rdi, [rsp+0x10]
+  mov   rsi, service_key.type
+  call  ht_get
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; from the type, infer the service
   mov   rdi, [rsp+0x8]
-  mov   qword [rdi+SERVICE_OFF_REGISTER], 0
-  mov   qword [rdi+SERVICE_OFF_UNREGISTER], 0
-  mov   qword [rdi+SERVICE_OFF_START], 0
-  mov   qword [rdi+SERVICE_OFF_STOP], 0
+  mov   rsi, rax
+  call  svc_init_by_type
+  cmp   rax, 0
+  jl    .not_found
 
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
@@ -164,6 +174,13 @@ service_register:
   mov   rax, SUCCESS_CODE
 
   jmp   .return
+
+.not_found:
+  ; TODO: return json with error message
+  mov   rdi, [rsp]
+  mov   rsi, NOT_FOUND
+  call  send_no_content
+  jmp   .error
 
 .internal_server_error:
   ; TODO: return json

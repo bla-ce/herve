@@ -3,6 +3,7 @@ LIB_DIR = lib
 BUILD_DIR = build
 BIN_DIR = bin
 SRC_DIR = src
+SVC_IMPL_DIR = svc_impl
 
 MAIN_PATH = herve
 
@@ -11,8 +12,9 @@ INCLUDE_DIRS = \
 
 LIB_DIRS = $(shell find $(LIB_DIR) -type d -printf '-I$(LIB_DIR)/%P ')
 SRC_DIRS = $(shell find $(SRC_DIR) -type d -printf '-I$(SRC_DIR)/%P ')
+SVC_IMPL_DIRS = $(shell find $(SVC_IMPL_DIR) -type d -printf '-I$(SVC_IMPL_DIR)/%P ')
 
-INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS) $(SRC_DIRS)
+INCLUDE_FLAGS = $(INCLUDE_DIRS) $(LIB_DIRS) $(SRC_DIRS) $(SVC_IMPL_DIRS)
 
 DEBUG_FLAGS = -g
 BASE_FLAGS = -felf64 -w+all

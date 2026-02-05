@@ -67,13 +67,17 @@ curl -X POST http://localhost:5000/services/unregister \
 
 Custom services must implement the Herve service contract. A service is defined by:
 
-| Field  | Description                                      |
-|--------|--------------------------------------------------|
-| id     | Auto-generated service identifier                |
-| name   | Name of the service                              |
-| port   | Port the service listens on                      |
-| type   | Type of the service                              |
-| status | Current status of the service                    |
+| Field      | Description                                      |
+|------------|--------------------------------------------------|
+| id         | Auto-generated service identifier                |
+| name       | Name of the service                              |
+| port       | Port the service listens on                      |
+| type       | Type of the service                              |
+| status     | Current status of the service                    |
+| register   | Function pointer to register the service         |
+| unregister | Function pointer to unregister the service       |
+| start      | Function pointer to start the service            |
+| stop       | Function pointer to stop the service             |
 
 ## Project Structure
 
@@ -82,7 +86,7 @@ herve/
 ├── src/           # Main application source
 │   ├── herve.s    # Entry point and service manager
 │   └── services/  # Service registration logic
-├── services/      # Built-in services
+├── svc_impl/      # Built-in service implementations
 ├── include/       # Public API headers
 │   ├── server/    # Socket, routing, context
 │   ├── http/      # Request/response handling
