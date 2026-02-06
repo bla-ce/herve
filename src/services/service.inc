@@ -55,6 +55,10 @@ service_msg:
   .registered   db "The service has been successfully registered.", NULL_CHAR
   .unregisterd  db "The service has been successfully unregistered.", NULL_CHAR
 
+service_err:
+  .unknown_type db "This service type does not exist.", NULL_CHAR
+  .generic      db "An error occurred, please try again later", NULL_CHAR
+
 service_count db 0
 
 section .text
@@ -64,19 +68,17 @@ section .text
 ; @param  rdi: context struct
 ; @return rax: return code
 service_register:
-  sub   rsp, 0x28
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the service struct
   ; [rsp+0x10]  -> pointer to the form data (hash table)
-  ; [rsp+0x18]  -> pointer to the json response object
-  ; [rsp+0x20]  -> pointer to the service to json object
+  ; [rsp+0x18]  -> pointer to the service to json object
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
   mov   qword [rsp+0x18], 0
-  mov   qword [rsp+0x20], 0
 
   cmp   rdi, 0
   jle    .internal_server_error
@@ -187,33 +189,19 @@ service_register:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
-
-  mov   rdi, TRUE
-  mov   rsi, service_msg.registered
-  mov   rdx, [rsp+0x20]
-  call  create_json_response
-  cmp   rax, 0
-  jl    .error
-
   mov   [rsp+0x18], rax
 
-  ; return 201 -> TODO: return json
   mov   rdi, [rsp]
   mov   rsi, CREATED
-  mov   rdx, rax
-  call  send_JSON
-  cmp   rax, 0
-  jl    .error
-
-  ; free json response
-  mov   rdi, [rsp+0x18]
-  call  json_free
+  mov   rdx, service_msg.registered
+  mov   rcx, [rsp+0x18]
+  mov   r8, TRUE
+  call  service_return_json
   cmp   rax, 0
   jl    .error
 
   ; free service to json
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x18]
   call  json_free
   cmp   rax, 0
   jl    .error
@@ -223,17 +211,20 @@ service_register:
   jmp   .return
 
 .not_found:
-  ; TODO: return json with error message
-  mov   rdi, [rsp]
-  mov   rsi, NOT_FOUND
-  call  send_no_content
-  jmp   .error
+  mov   rsi, BAD_REQUEST
+  mov   rdx, service_err.unknown_type
+
+  jmp   .send_json
 
 .internal_server_error:
-  ; TODO: return json
-  mov   rdi, [rsp]
   mov   rsi, INTERNAL_SERVER_ERROR
-  call  send_no_content
+  mov   rdx, service_err.generic
+
+.send_json:
+  mov   rdi, [rsp]
+  mov   rcx, NO_ARG
+  mov   r8, FALSE
+  call  service_return_json
 
 .error:
   mov   rdi, [rsp+0x8]
@@ -245,13 +236,6 @@ service_register:
 .free_json_response:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
-  jz    .free_svc_json
-
-  call  json_free
-
-.free_svc_json:
-  mov   rdi, [rsp+0x20]
-  test  rdi, rdi
   jz    .no_free
 
   call  json_free
@@ -260,7 +244,7 @@ service_register:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x20
   ret
 
 ; returns a list of available services
@@ -397,6 +381,72 @@ service_unregister:
 
 .return:
   add   rsp, 0x8
+  ret
+
+; returns a service json response
+; @param  rdi: pointer to the context struct
+; @param  rsi: status code
+; @param  rdx: pointer to the message
+; @param  rcx: pointer pointer to the json object
+; @param  r8: success
+; @return rax: return code
+service_return_json:
+  sub   rsp, 0x30
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> status code
+  ; [rsp+0x10]  -> pointer to the message
+  ; [rsp+0x18]  -> pointer to the json object
+  ; [rsp+0x20]  -> success (boolean)
+  ; [rsp+0x28]  -> pointer to the json response object
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
+  mov   [rsp+0x20], r8
+  mov   qword [rsp+0x28], 0
+
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, [rsp+0x18]
+  call  create_json_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  ; return 201 -> TODO: return json
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, rax
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json response
+  mov   rdi, [rsp+0x28]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x28]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x30
   ret
 
 ; returns the type of the service
