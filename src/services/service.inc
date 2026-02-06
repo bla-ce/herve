@@ -30,6 +30,7 @@ SERVICE_OFF_STOP        equ SERVICE_OFF_START + 0x8
 SERVICE_OFF_NEXT        equ SERVICE_OFF_STOP + 0x8
 
 service_key:
+  .id     db "id", NULL_CHAR
   .name   db "name", NULL_CHAR
   .status db "status", NULL_CHAR
   .port   db "port", NULL_CHAR
@@ -59,7 +60,7 @@ service_err:
   .unknown_type db "This service type does not exist.", NULL_CHAR
   .generic      db "An error occurred, please try again later", NULL_CHAR
 
-service_count db 0
+service_count dq 0
 
 section .text
 
@@ -83,10 +84,10 @@ service_register:
   cmp   rdi, 0
   jle    .internal_server_error
 
-  mov   al, byte [service_count]
-  inc   al
+  mov   rax, qword [service_count]
+  inc   rax
 
-  cmp   al, MAX_SERVICES
+  cmp   rax, MAX_SERVICES
   jge   .internal_server_error
 
   ; malloc new service
@@ -121,6 +122,12 @@ service_register:
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  service_set_name
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, qword [service_count]
+  call  service_set_id
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -172,7 +179,7 @@ service_register:
   mov   rax, [rsi+SERVICE_OFF_REGISTER]
   call  rax
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
@@ -181,13 +188,13 @@ service_register:
   cmp   rax, 0
   jl    .internal_server_error
 
-  inc   byte [service_count]
+  inc   qword [service_count]
 
   ; service to json
   mov   rdi, [rsp+0x8]
   call  service_to_json
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   mov   [rsp+0x18], rax
 
@@ -449,6 +456,125 @@ service_return_json:
   add   rsp, 0x30
   ret
 
+; converts a service struct to JSON
+; user is responsible for freeing the json
+; @param  rdi: pointer to the service struct
+; @return rax: pointer to json
+service_to_json:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the service struct
+  ; [rsp+0x8] -> pointer to the json
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  call  json_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_id
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.id
+  mov   rdx, rax
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.name
+  mov   rdx, rax
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_status
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.status
+  mov   rdx, rax
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_port
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.port
+  mov   rdx, rax
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_type
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  svc_type_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.type
+  mov   rdx, rax
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; returns the type of the service
 ; @param  rdi: pointer to the service struct
 ; @return rax: type of the service
@@ -644,107 +770,41 @@ service_set_next:
 .return:
   ret
 
-; converts a service struct to JSON
-; user is responsible for freeing the json
+; returns the id pointer of the service
 ; @param  rdi: pointer to the service struct
-; @return rax: pointer to json
-service_to_json:
-  sub   rsp, 0x10
-
-  ; STACK USAGE
-  ; [rsp]     -> pointer to the service struct
-  ; [rsp+0x8] -> pointer to the json
-
+; @return rax: id of the service
+service_get_id:
   cmp   rdi, 0
   jle   .error
 
-  mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
+  mov   rax, [rdi+SERVICE_OFF_ID]
+  jmp   .return
 
-  call  json_create
-  cmp   rax, 0
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the id pointer of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: id of the service
+; @return rax: return code
+service_set_id:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  mov   [rdi+SERVICE_OFF_ID], rsi
 
-  mov   rdi, [rsp]
-  call  service_get_name
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, service_key.name
-  mov   rdx, rax
-  call  json_insert_string
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  mov   rdi, [rsp]
-  call  service_get_status
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, service_key.status
-  mov   rdx, rax
-  call  json_insert_string
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  mov   rdi, [rsp]
-  call  service_get_port
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, service_key.port
-  mov   rdx, rax
-  call  json_insert_integer
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  mov   rdi, [rsp]
-  call  service_get_type
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  call  svc_type_to_str
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, service_key.type
-  mov   rdx, rax
-  call  json_insert_string
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  mov   rdi, [rsp+0x8]
-  call  json_end
-  cmp   rax, 0
-  jl    .error
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x8]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  json_free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
   ret
