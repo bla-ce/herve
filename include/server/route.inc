@@ -568,19 +568,17 @@ route_exist:
   call  strcmp
   cmp   rax, 0
   jl    .error
-  je    .not_equal
+  cmp   rax, TRUE
+  jne   .not_equal
 
   mov   rdi, [rsp+0x18]
   call  get_route_method
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  strcmp
-  cmp   rax, 0
-  jl    .error
-
   cmp   rax, TRUE
   je    .equal
 
@@ -680,7 +678,6 @@ add_route:
   call  route_exist
   cmp   rax, 0
   jl    .error
-
   cmp   rax, TRUE
   je    .error
 
