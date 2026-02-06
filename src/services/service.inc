@@ -51,6 +51,10 @@ hv_services dq 0   ; linked list of services
 
 MAX_SERVICES equ 32
 
+service_msg:
+  .registered   db "The service has been successfully registered.", NULL_CHAR
+  .unregisterd  db "The service has been successfully unregistered.", NULL_CHAR
+
 service_count db 0
 
 section .text
@@ -60,15 +64,19 @@ section .text
 ; @param  rdi: context struct
 ; @return rax: return code
 service_register:
-  sub   rsp, 0x18
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the service struct
   ; [rsp+0x10]  -> pointer to the form data (hash table)
+  ; [rsp+0x18]  -> pointer to the json response object
+  ; [rsp+0x20]  -> pointer to the service to json object
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
 
   cmp   rdi, 0
   jle    .internal_server_error
@@ -173,10 +181,40 @@ service_register:
 
   inc   byte [service_count]
 
+  ; service to json
+  mov   rdi, [rsp+0x8]
+  call  service_to_json
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  mov   rdi, TRUE
+  mov   rsi, service_msg.registered
+  mov   rdx, [rsp+0x20]
+  call  create_json_response
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
   ; return 201 -> TODO: return json
   mov   rdi, [rsp]
   mov   rsi, CREATED
-  call  send_no_content
+  mov   rdx, rax
+  call  send_JSON
+  cmp   rax, 0
+  jl    .error
+
+  ; free json response
+  mov   rdi, [rsp+0x18]
+  call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  ; free service to json
+  mov   rdi, [rsp+0x20]
+  call  json_free
   cmp   rax, 0
   jl    .error
 
@@ -200,15 +238,29 @@ service_register:
 .error:
   mov   rdi, [rsp+0x8]
   test  rdi, rdi
-  jz    .no_free
+  jz    .free_json_response
 
   call  free
+
+.free_json_response:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_svc_json
+
+  call  json_free
+
+.free_svc_json:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x28
   ret
 
 ; returns a list of available services
@@ -240,56 +292,8 @@ service_list:
   je    .loop_end
 
 .loop:
-  call  json_create
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
   mov   rdi, [rsp+0x10]
-  call  service_get_name
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x18]
-  mov   rsi, service_key.name
-  mov   rdx, rax
-  call  json_insert_string
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x10]
-  call  service_get_status
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x18]
-  mov   rsi, service_key.status
-  mov   rdx, rax
-  call  json_insert_string
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x10]
-  call  service_get_port
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x18]
-  mov   rsi, service_key.port
-  mov   rdx, rax
-  call  json_insert_integer
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x18]
-  call  json_end
+  call  service_to_json
   cmp   rax, 0
   jl    .error
 
@@ -549,4 +553,90 @@ service_set_next:
   mov   rax, FAILURE_CODE
 
 .return:
+  ret
+
+; converts a service struct to JSON
+; user is responsible for freeing the json
+; @param  rdi: pointer to the service struct
+; @return rax: pointer to json
+service_to_json:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the service struct
+  ; [rsp+0x8] -> pointer to the json
+
+  cmp   rdi, 0
+  jle   .error
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  call  json_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.name
+  mov   rdx, rax
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_status
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.status
+  mov   rdx, rax
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_port
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.port
+  mov   rdx, rax
+  call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  call  json_end
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  json_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
