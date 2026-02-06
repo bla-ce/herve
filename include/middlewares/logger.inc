@@ -6,7 +6,6 @@ section .data
   LOGGER_URL_OFF          equ 00001000b
   LOGGER_METHOD_OFF       equ 00000100b
   LOGGER_IP_OFF           equ 00000010b
-  LOGGER_LATENCY_OFF      equ 00000001b ; unused yet
   ; | PAD | S | U | M | I | L |
 
 section .text
@@ -38,7 +37,7 @@ get_logger_middleware:
   ret
 
 ; logs information about a request
-; format: [INFO] timestamp | ip | status_code | method | url
+; format: [INFO] status code | ip | method | url
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: pointer to the logan struct
 ; @param  rdx: flags

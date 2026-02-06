@@ -20,79 +20,11 @@ echo_svc_msg:
 echo_url db "/echo", NULL_CHAR
 
 section .text
-; returns the content of the body
-; @param  rdi: pointer to the context struct
-; @return rax: return code
-echo_handler:
-  sub   rsp, 0x8
-
-  ; STACK USAGE
-  ; [rsp] -> pointer to the context struct
-
-  mov   [rsp], rdi
-
-  cmp   rdi, 0
-  jle   .error
-
-  ; get request
-  mov   rdi, [rsp]
-  call  get_ctx_request
-  cmp   rax, 0
-  jl    .error
-
-  ; get request body
-  mov   rdi, rax
-  call  get_request_body
-  cmp   rax, 0
-  jl    .error
-
-  ; send body
-  mov   rdi, [rsp]
-  mov   rsi, OK
-  mov   rdx, rax
-  call  send_string
-  cmp   rax, 0
-  jl    .error
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x8
-  ret
-
 ; registers a new echo service
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: pointer to the server
 ; @return rax: return code
 echo_svc_register:
-  sub   rsp, 0x8
-
-  ; get server from context
-  call  get_ctx_server
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  mov   rsi, POST
-  mov   rdx, echo_url
-  mov   rcx, echo_handler
-  mov		r8, NO_ARG
-  call  add_route
-  cmp   rax, 0
-  jl    .error
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x8
   ret
 
 echo_svc_unregister:
