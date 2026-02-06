@@ -126,7 +126,6 @@ jobs:
         working-directory: tests/lib/boeuf
         run: make
 
-
       - name: Run Base64 encoding tests
         working-directory: tests/lib/encoding/base64
         run: make
