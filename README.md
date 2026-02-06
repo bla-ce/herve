@@ -39,7 +39,8 @@ The binary will be available at `bin/herve`.
 
 By default, Herve listens on port 5000.
 
-## Service Management API (Work in Progress, don't expect them to work)
+## Service Management API
+This is a work in progress, don't expect them to work
 
 ### Register a service
 

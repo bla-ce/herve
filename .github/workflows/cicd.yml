@@ -126,6 +126,7 @@ jobs:
         working-directory: tests/lib/boeuf
         run: make
 
+
       - name: Run Base64 encoding tests
         working-directory: tests/lib/encoding/base64
         run: make
@@ -135,6 +136,12 @@ jobs:
         run: |
           make program=array_test
           ./bin/array_test
+
+      - name: Run linked list tests
+        working-directory: tests/lib/utils
+        run: |
+          make program=linked_list_test
+          ./bin/linked_list_test
 
       - name: Run string tests
         working-directory: tests/lib/utils

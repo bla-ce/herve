@@ -36,7 +36,7 @@ linked_list_add_entry:
   mov   rdi, rsi
 
 .loop:
-  ; rdi points to the address of current route
+  ; rdi points to the address of current entry
   ; go to next offset
   add   rdi, [rsp+0x10]
   cmp   qword [rdi], 0
@@ -69,4 +69,95 @@ linked_list_add_entry:
 ; @param  rdx: next offset value
 ; @return rax: return code
 linked_list_remove_entry:
+  sub   rsp, 0x20
+
+  ; STACK USAGE
+  ; [rsp]       -> linked list
+  ; [rsp+0x8]   -> address of the entry to add
+  ; [rsp+0x10]  -> next offset value
+  ; [rsp+0x18]  -> prev value
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jl    .error
+
+  ; check if linked list is empty
+  mov   rdi, [rsp]
+  cmp   qword [rdi], 0
+  je    .error
+
+  cmp   qword [rdi], rsi
+  je    .remove_head
+
+  ; load first entry
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+
+.loop:
+  ; rdi points to the address of the current entry
+  cmp   rdi, [rsp+0x8]
+  je    .remove
+
+  mov   [rsp+0x18], rdi
+
+  ; go to next
+  add   rdi, [rsp+0x10]
+
+  ; rdi contains the address of the entry
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+
+  cmp   rdi, 0
+  je    .error
+
+  jmp   .loop
+
+.remove:
+  ; rdi contains the address of the entry to remove
+  ; get current next
+  add   rdi, [rsp+0x10]
+  mov   rax, [rdi]
+
+  ; get prev
+  mov   rsi, [rsp+0x18]
+
+  ; change prev next
+  add   rsi, [rsp+0x10]
+  mov   [rsi], rax
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.remove_head:
+  ; get head
+  mov   rdi, [rsp]
+
+  mov   rax, [rsp+0x10]
+
+  ; get head next
+  mov   rbx, [rdi]
+  mov   rsi, [rbx+rax]
+
+  ; replace head
+  mov   [rdi], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
