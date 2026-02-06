@@ -399,6 +399,45 @@ service_unregister:
   add   rsp, 0x8
   ret
 
+; returns the type of the service
+; @param  rdi: pointer to the service struct
+; @return rax: type of the service
+service_get_type:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_TYPE]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the type of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: type of the service
+; @return rax: return code
+service_set_type:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+SERVICE_OFF_TYPE], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the status of the service
 ; @param  rdi: pointer to the service struct
 ; @return rax: status of the service
@@ -615,6 +654,25 @@ service_to_json:
   mov   rsi, service_key.port
   mov   rdx, rax
   call  json_insert_integer
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  service_get_type
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  svc_type_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.type
+  mov   rdx, rax
+  call  json_insert_string
   cmp   rax, 0
   jl    .error
 

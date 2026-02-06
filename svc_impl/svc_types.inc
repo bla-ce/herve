@@ -71,6 +71,34 @@ svc_init_by_type:
   add   rsp, 0x10
   ret
 
+; converts type enum value to string
+; @param rdi: type enum value
+; @return rax: type string
+svc_type_to_str:
+  sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp]   -> type enum value
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rdi, SVC_TYPES.ECHO
+  jne   .error ; unknown service
+
+  mov   rax, SVC_STR.ECHO
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
 ; converts type string to enum value
 ; @param  rdi: type string
 ; @return rax: type enum value
