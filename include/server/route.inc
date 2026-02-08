@@ -831,29 +831,11 @@ add_route_struct_to_server:
   ; get route offset to check if routes are init
   add   rdi, SERVER_OFF_ROUTES
 
-  cmp   qword [rdi], 0
-  je    .add
-
-  ; load first route
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
-.loop:
-  ; rdi points to the address of current route
-  ; go to next offset
-  add   rdi, ROUTE_OFF_NEXT
-  cmp   qword [rdi], 0
-  je    .add
-
-  ; rdi contains the address of the route
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
-  jmp   .loop
-
-.add:
   mov   rsi, [rsp+0x8]
-  mov   [rdi], rsi
+  mov   rdx, ROUTE_OFF_NEXT
+  call  linked_list_add_entry
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return

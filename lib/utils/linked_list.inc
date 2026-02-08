@@ -153,6 +153,7 @@ linked_list_remove_entry:
   mov   [rdi], rsi
 
   mov   rax, SUCCESS_CODE
+
   jmp   .return
 
 .error:
