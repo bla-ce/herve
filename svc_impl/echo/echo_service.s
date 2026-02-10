@@ -4,7 +4,6 @@ echo_svc_t:
   .id         dq 0  ; set by the central server
   .name       dq 0  ; set by the caller
   .status     dq 0  ; set by the central server
-  .port       dq 0  ; set by the central server
   .type       dq SVC_TYPES.ECHO
   .register   dq echo_svc_register
   .unregister dq echo_svc_unregister

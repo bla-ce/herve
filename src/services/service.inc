@@ -5,7 +5,6 @@ service_t:
   .id         resq 1
   .name       resq 1
   .status     resq 1
-  .port       resq 1
   .type       resq 1
   .register   resq 1  ; ptr to the func registering the service
   .unregister resq 1  ; ptr to the func unregistering the service
@@ -21,8 +20,7 @@ SERVICE_STRUCT_LEN equ service_t_end - service_t
 SERVICE_OFF_ID          equ 0x0
 SERVICE_OFF_NAME        equ SERVICE_OFF_ID + 0x8
 SERVICE_OFF_STATUS      equ SERVICE_OFF_NAME + 0x8
-SERVICE_OFF_PORT        equ SERVICE_OFF_STATUS + 0x8
-SERVICE_OFF_TYPE        equ SERVICE_OFF_PORT + 0x8
+SERVICE_OFF_TYPE        equ SERVICE_OFF_STATUS + 0x8
 SERVICE_OFF_REGISTER    equ SERVICE_OFF_TYPE + 0x8
 SERVICE_OFF_UNREGISTER  equ SERVICE_OFF_REGISTER + 0x8
 SERVICE_OFF_START       equ SERVICE_OFF_UNREGISTER + 0x8
@@ -33,7 +31,6 @@ service_key:
   .id     db "id", NULL_CHAR
   .name   db "name", NULL_CHAR
   .status db "status", NULL_CHAR
-  .port   db "port", NULL_CHAR
   .type   db "type", NULL_CHAR
 
 service_status:
@@ -128,22 +125,6 @@ service_register:
   mov   rdi, [rsp+0x8]
   mov   rsi, qword [service_count]
   call  service_set_id
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  ; get port of the service
-  mov   rdi, [rsp+0x10]
-  mov   rsi, service_key.port
-  call  ht_get
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  mov   rdi, rax
-  call  stoi
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call  service_set_port
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -522,20 +503,6 @@ service_to_json:
   mov   [rsp+0x8], rax
 
   mov   rdi, [rsp]
-  call  service_get_port
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, service_key.port
-  mov   rdx, rax
-  call  json_insert_integer
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  mov   rdi, [rsp]
   call  service_get_type
   cmp   rax, 0
   jl    .error
@@ -642,45 +609,6 @@ service_set_status:
   jle   .error
 
   mov   [rdi+SERVICE_OFF_STATUS], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the port of the service
-; @param  rdi: pointer to the service struct
-; @return rax: port of the service
-service_get_port:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVICE_OFF_PORT]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the port of the service
-; @param  rdi: pointer to the service struct
-; @param  rsi: port of the service
-; @return rax: return code
-service_set_port:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   [rdi+SERVICE_OFF_PORT], rsi
 
   mov   rax, SUCCESS_CODE
 

@@ -46,7 +46,7 @@ This is a work in progress, don't expect them to work
 
 ```bash
 curl -X POST http://localhost:5000/services/register \
-  -d "name=my-service&port=8080"
+  -d "name=my-service&type=echo"
 ```
 
 ### List services
@@ -55,7 +55,7 @@ curl -X POST http://localhost:5000/services/register \
 curl http://localhost:5000/services
 ```
 
-Returns all registered services with their name, status, and port.
+Returns all registered services with their name, and status.
 
 ### Unregister a service
 
@@ -72,7 +72,6 @@ Custom services must implement the Herve service contract. A service is defined 
 |------------|--------------------------------------------------|
 | id         | Auto-generated service identifier                |
 | name       | Name of the service                              |
-| port       | Port the service listens on                      |
 | type       | Type of the service                              |
 | status     | Current status of the service                    |
 | register   | Function pointer to register the service         |
