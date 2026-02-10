@@ -659,7 +659,7 @@ add_route:
   jz    .no_group
 
   ; get the group prefix
-  call  get_group_prefix
+  call  group_get_prefix
   cmp   rax, 0
   jl    .error
 
@@ -705,7 +705,6 @@ add_route:
   mov   rdi, [rsp+0x18]
   mov   [rax+ROUTE_OFF_CALLBACK], rdi
 
-
   ; set next to 0
   mov   qword [rax+ROUTE_OFF_NEXT], 0
 
@@ -722,6 +721,8 @@ add_route:
   jl    .error
 
   mov   rdi, rax
+
+  mov   [rsp+0x20], rdi
 
 .no_root_group:
   mov   rax, [rsp+0x28]

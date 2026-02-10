@@ -201,7 +201,7 @@ group_exist:
 .loop:
   ; check that the prefix does not already exist
   mov   rdi, [rsp+0x10]
-  call  get_group_prefix
+  call  group_get_prefix
   cmp   rax, 0
   jl    .error
 
@@ -261,7 +261,7 @@ group_get_middleware:
 ; returns the prefix of the group
 ; @param  rdi: pointer to the group struct
 ; @return rax: pointer to the prefix
-get_group_prefix:
+group_get_prefix:
   cmp   rdi, 0
   jle   .error
 
@@ -323,7 +323,7 @@ get_group_from_ctx:
 
   ; get the prefix of the group
   mov   rdi, [rsp+0x10]
-  call  get_group_prefix
+  call  group_get_prefix
   cmp   rax, 0
   jl    .error
 
