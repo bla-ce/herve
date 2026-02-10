@@ -12,19 +12,20 @@ context_t:
 context_t_end:
 
 section .data
-  CTX_STRUCT_LEN equ context_t_end - context_t
 
-  CTX_OFF_CLIENT      equ 0x0
-  CTX_OFF_SERVER      equ CTX_OFF_CLIENT + 0x8
-  CTX_OFF_PROTO       equ CTX_OFF_SERVER + 0x8
-  CTX_OFF_REQUEST     equ CTX_OFF_PROTO + 0x8
-  CTX_OFF_RESPONSE    equ CTX_OFF_REQUEST + 0x8
-  CTX_OFF_START_TIME  equ CTX_OFF_RESPONSE + 0x8
-  CTX_OFF_END_TIME    equ CTX_OFF_START_TIME + 0x8
-  CTX_OFF_ABORTED     equ CTX_OFF_END_TIME + 0x8
-  CTX_OFF_DONE        equ CTX_OFF_ABORTED + 0x8
+CTX_STRUCT_LEN equ context_t_end - context_t
 
-  HTTP_1_1 db "HTTP/1.1", NULL_CHAR
+CTX_OFF_CLIENT      equ 0x0
+CTX_OFF_SERVER      equ CTX_OFF_CLIENT + 0x8
+CTX_OFF_PROTO       equ CTX_OFF_SERVER + 0x8
+CTX_OFF_REQUEST     equ CTX_OFF_PROTO + 0x8
+CTX_OFF_RESPONSE    equ CTX_OFF_REQUEST + 0x8
+CTX_OFF_START_TIME  equ CTX_OFF_RESPONSE + 0x8
+CTX_OFF_END_TIME    equ CTX_OFF_START_TIME + 0x8
+CTX_OFF_ABORTED     equ CTX_OFF_END_TIME + 0x8
+CTX_OFF_DONE        equ CTX_OFF_ABORTED + 0x8
+
+HTTP_1_1 db "HTTP/1.1", NULL_CHAR
 
 section .text
 ; initializes and processes a new request context

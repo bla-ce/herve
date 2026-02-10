@@ -10,6 +10,7 @@ service_t:
   .unregister resq 1  ; ptr to the func unregistering the service
   .start      resq 1  ; ptr to the func starting the service
   .stop       resq 1  ; ptr to the func stopping the service
+  .group      resq 1  ; ptr to the server group with all the routes
   .next       resq 1
 service_t_end:
 
@@ -25,7 +26,8 @@ SERVICE_OFF_REGISTER    equ SERVICE_OFF_TYPE + 0x8
 SERVICE_OFF_UNREGISTER  equ SERVICE_OFF_REGISTER + 0x8
 SERVICE_OFF_START       equ SERVICE_OFF_UNREGISTER + 0x8
 SERVICE_OFF_STOP        equ SERVICE_OFF_START + 0x8
-SERVICE_OFF_NEXT        equ SERVICE_OFF_STOP + 0x8
+SERVICE_OFF_GRP         equ SERVICE_OFF_STOP + 0x8
+SERVICE_OFF_NEXT        equ SERVICE_OFF_GRP + 0x8
 
 service_key:
   .id     db "id", NULL_CHAR
@@ -67,17 +69,15 @@ section .text
 ; @param  rdi: context struct
 ; @return rax: return code
 service_register:
-  sub   rsp, 0x20
+  sub   rsp, 0x18
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the service struct
-  ; [rsp+0x10]  -> pointer to the form data (hash table)
-  ; [rsp+0x18]  -> pointer to the service to json object
+  ; [rsp+0x10]  -> pointer to the service to json object
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
-  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x10], 0
 
   cmp   rdi, 0
   jle    .internal_server_error
@@ -88,63 +88,15 @@ service_register:
   cmp   rax, MAX_SERVICES
   jge   .internal_server_error
 
-  ; malloc new service
-  mov   rdi, SERVICE_STRUCT_LEN
-  call  malloc
+  mov   rdi, [rsp]
+  call  service_init
   cmp   rax, 0
   jl    .internal_server_error
 
   mov   [rsp+0x8], rax
 
-  ; get request struct
-  mov   rdi, [rsp]
-  call  get_ctx_request
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  ; get form data
-  mov   rdi, rax
-  call  parse_form_data
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  mov   [rsp+0x10], rax
-
-  ; get name of the service
-  mov   rdi, [rsp+0x10]
-  mov   rsi, service_key.name
-  call  ht_get
-  cmp   rax, 0
-  jl    .internal_server_error
-
   mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  call  service_set_name
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, qword [service_count]
-  call  service_set_id
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  mov   rdi, [rsp+0x8]
-  mov   rsi, service_status.NOT_STARTED
-  call  service_set_status
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  mov   rdi, [rsp+0x8]
-  xor   rsi, rsi
-  call  service_set_next
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  ; get the type of the service
-  mov   rdi, [rsp+0x10]
-  mov   rsi, service_key.type
-  call  ht_get
+  call  service_get_type
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -178,19 +130,19 @@ service_register:
   cmp   rax, 0
   jl    .internal_server_error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x10], rax
 
   mov   rdi, [rsp]
   mov   rsi, CREATED
   mov   rdx, service_msg.registered
-  mov   rcx, [rsp+0x18]
+  mov   rcx, [rsp+0x10]
   mov   r8, TRUE
   call  service_return_json
   cmp   rax, 0
   jl    .error
 
   ; free service to json
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x10]
   call  json_free
   cmp   rax, 0
   jl    .error
@@ -222,8 +174,14 @@ service_register:
 
   call  free
 
+  ; remove service from ll
+  mov   rdi, hv_services
+  mov   rsi, [rsp+0x8]
+  mov   rdx, SERVICE_OFF_NEXT
+  call  linked_list_remove_entry
+
 .free_json_response:
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x10]
   test  rdi, rdi
   jz    .no_free
 
@@ -233,7 +191,100 @@ service_register:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x18
+  ret
+
+; initialises a service before registering it
+; @param  rdi: pointer to the context struct
+; @return rax: pointer to the service struct
+service_init:
+  sub   rsp, 0x18
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the context struct
+  ; [rsp+0x8] -> pointer to the service struct
+  ; [rsp+0x10]  -> pointer to the form data (hash table)
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; malloc new service
+  mov   rdi, SERVICE_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; get request struct
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .error
+
+  ; get form data
+  mov   rdi, rax
+  call  parse_form_data
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; get name of the service
+  mov   rdi, [rsp+0x10]
+  mov   rsi, service_key.name
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  service_set_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, qword [service_count]
+  call  service_set_id
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_status.NOT_STARTED
+  call  service_set_status
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  xor   rsi, rsi
+  call  service_set_next
+  cmp   rax, 0
+  jl    .error
+
+  ; get the type of the service
+  mov   rdi, [rsp+0x10]
+  mov   rsi, service_key.type
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  service_set_type
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x8]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
   ret
 
 ; returns a list of available services
@@ -508,11 +559,6 @@ service_to_json:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-  call  svc_type_to_str
-  cmp   rax, 0
-  jl    .error
-
   mov   rdi, [rsp+0x8]
   mov   rsi, service_key.type
   mov   rdx, rax
@@ -699,7 +745,7 @@ service_set_next:
 .return:
   ret
 
-; returns the id pointer of the service
+; returns the id of the service
 ; @param  rdi: pointer to the service struct
 ; @return rax: id of the service
 service_get_id:
@@ -715,7 +761,7 @@ service_get_id:
 .return:
   ret
 
-; sets the id pointer of the service
+; sets the id of the service
 ; @param  rdi: pointer to the service struct
 ; @param  rsi: id of the service
 ; @return rax: return code
@@ -727,6 +773,45 @@ service_set_id:
   jl    .error
 
   mov   [rdi+SERVICE_OFF_ID], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the server group of the service
+; @param  rdi: pointer to the service struct
+; @return rax: pointer to the server group of the service
+service_get_group:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_GRP]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the server group of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: pointer to the server group of the service
+; @return rax: return code
+service_set_group:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+SERVICE_OFF_GRP], rsi
 
   mov   rax, SUCCESS_CODE
 

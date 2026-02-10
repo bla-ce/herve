@@ -2,11 +2,8 @@
 
 section .data
 
-SVC_STR:
-  .ECHO db "echo", NULL_CHAR
-
 SVC_TYPES:
-  .ECHO   equ 0
+  .ECHO db "echo", NULL_CHAR
 
 section .text
 
@@ -71,34 +68,6 @@ svc_init_by_type:
   add   rsp, 0x10
   ret
 
-; converts type enum value to string
-; @param rdi: type enum value
-; @return rax: type string
-svc_type_to_str:
-  sub   rsp, 0x8
-
-  ; STACK USAGE
-  ; [rsp]   -> type enum value
-
-  mov   [rsp], rdi
-
-  cmp   rdi, 0
-  jl    .error
-
-  cmp   rdi, SVC_TYPES.ECHO
-  jne   .error ; unknown service
-
-  mov   rax, SVC_STR.ECHO
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x8
-  ret
-
 ; converts type string to enum value
 ; @param  rdi: type string
 ; @return rax: type enum value
@@ -114,7 +83,7 @@ svc_type_from_str:
   jle   .error
 
   mov   rdi, [rsp]
-  mov   rsi, SVC_STR.ECHO
+  mov   rsi, SVC_TYPES.ECHO
   call  strcmp
   cmp   rax, 0
   jl    .error
