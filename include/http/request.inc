@@ -1116,6 +1116,9 @@ verify_request:
   cmp   qword [rdi+ROUTE_OFF_ACTIVE], TRUE
   jne   .not_found
 
+  ; check if the group is active
+  mov   rdi, [rsp+0x8]
+
   mov   rax, [rsp+0x20]
   jmp   .return
 

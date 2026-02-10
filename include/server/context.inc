@@ -103,7 +103,12 @@ handle_ctx:
   test  rax, rax
   jz    .no_group_pre_middlewares
 
+  ; check if the group is active
   mov   rdi, rax
+  cmp   qword [rdi+GRP_OFF_ACTIVE], TRUE
+  jne   .not_found
+
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x10]
   mov   rdx, FALSE
   call  run_middlewares
@@ -149,6 +154,15 @@ handle_ctx:
   mov   rdi, [rsp+0x10]
   mov   rsi, OK
   call  send_no_content
+  jmp   .post_request_middlewares
+
+.not_found:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, NOT_FOUND
+  call  send_no_content
+
+  ; clear group to not run post middleware
+  mov   qword [rsp+0x20], 0
 
 .post_request_middlewares:
   ; set end timer
@@ -175,11 +189,11 @@ handle_ctx:
   mov   rdx, TRUE
   call  run_middlewares
 
-  mov   rdi, [rsp+0x20]
-  test  rdi, rdi
-  jz    .free_ctx
+  cmp   qword [rsp+0x20], 0
+  je    .free_ctx
 
   ; run group post request middlewares
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x10]
   mov   rdx, TRUE
   call  run_middlewares

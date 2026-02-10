@@ -67,7 +67,7 @@ echo_handler:
 ; @param  rdi: pointer to the context struct
 ; @return rax: return code
 echo_svc_register:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
   sub   rsp, TO_STRING_MAX_STR_SIZE ; space for str(id)
 
   ; STACK USAGE
@@ -75,7 +75,8 @@ echo_svc_register:
   ; [rsp+0x8]   -> pointer to the server struct
   ; [rsp+0x10]  -> id of the service
   ; [rsp+0x18]  -> pointer to group prefix
-  ; [rsp+0x20]  -> pointer to str(id)
+  ; [rsp+0x20]  -> pointer to the group
+  ; [rsp+0x28]  -> pointer to str(id)
 
   mov   [rsp], rdi
   mov   qword [rsp+0x18], 0
@@ -100,7 +101,7 @@ echo_svc_register:
   mov   [rsp+0x10], rax
 
   mov   rdi, [rsp+0x10]
-  lea   rsi, [rsp+0x20]
+  lea   rsi, [rsp+0x28]
   mov   rdx, TO_STRING_MAX_STR_SIZE
   call  itoa
   cmp   rax, 0
@@ -123,20 +124,22 @@ echo_svc_register:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x20], rax
+
   ; add endpoints to the server
   mov   rdi, [rsp+0x8]
   mov   rsi, POST
   mov   rdx, echo_url
   mov   rcx, echo_handler
-  mov   r8, rax
+  mov   r8, [rsp+0x20]
   mov   r9, NO_ARG
   call  add_route
   cmp   rax, 0
   jl    .error
 
   ; set route to false
-  mov   rdi, rax
-  call  route_deactivate
+  mov   rdi, [rsp+0x20]
+  call  group_deactivate
   cmp   rax, 0
   jl   .error
 
@@ -148,7 +151,7 @@ echo_svc_register:
 
 .return:
   add   rsp, TO_STRING_MAX_STR_SIZE
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 echo_svc_unregister:
