@@ -63,7 +63,6 @@ group_create:
   call  group_exist
   cmp   rax, 0
   jl    .error
-
   cmp   rax, TRUE
   je    .error
 
@@ -81,12 +80,15 @@ group_create:
   mov   qword [rax+GRP_OFF_MIDDLEWARES], 0
   mov   [rax+GRP_OFF_PREFIX], rsi
   mov   [rax+GRP_OFF_IS_ROOT], rdx
+  mov   qword [rax+GRP_OFF_ACTIVE], TRUE
   mov   qword [rax+GRP_OFF_NEXT], 0
 
   ; add the group to the server
   mov   rdi, [rsp]
+  add   rdi, SERVER_OFF_GROUPS
   mov   rsi, rax
-  call  group_add_struct_to_server
+  mov   rdx, GRP_OFF_NEXT
+  call  linked_list_add_entry
   cmp   rax, 0
   jl    .error
 
@@ -106,64 +108,6 @@ group_create:
 
 .return:
   add   rsp, 0x20
-  ret
-
-; adds the group to the group linked list of the server
-; @param  rdi: pointer to the server struct
-; @param  rsi: pointer to the group struct
-; @return rax: return code
-group_add_struct_to_server:
-  sub   rsp, 0x10
-
-  ; STACK USAGE
-  ; [rsp]     -> pointer to the server struct
-  ; [rsp+0x8] -> pointer to the group struct
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  ; get group offset to check if groups are init
-  add   rdi, SERVER_OFF_GROUPS
-
-  cmp   qword [rdi], 0
-  je    .add
-
-  ; load first group
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
-.loop:
-  ; rdi points to the address of current group
-  ; go to next offset
-  add   rdi, GRP_OFF_NEXT
-  cmp   qword [rdi], 0
-  je    .add
-
-  ; rdi contains the address of the group
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
-  jmp   .loop
-.loop_end:
-
-.add:
-  mov   rsi, [rsp+0x8]
-  mov   [rdi], rsi
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x10
   ret
 
 ; checks that a group with the same prefix or sub prefix does not

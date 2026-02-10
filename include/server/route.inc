@@ -721,8 +721,7 @@ add_route:
   jl    .error
 
   mov   rdi, rax
-
-  mov   [rsp+0x20], rdi
+  mov   [rsp+0x20], rax
 
 .no_root_group:
   mov   rax, [rsp+0x28]

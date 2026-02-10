@@ -61,27 +61,25 @@ server_get_root_group:
   jle   .error
 
   ; get group offset to check if groups are init
+  mov   rdi, [rsp]
   add   rdi, SERVER_OFF_GROUPS
 
   cmp   qword [rdi], 0
   je    .error
 
-  ; load first group
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
 .loop:
+  ; get group
+  mov   rsi, [rdi]
+
   ; rsi points to the address of current group
   cmp   qword [rsi+GRP_OFF_IS_ROOT], TRUE
   je    .loop_end
 
   ; go to next offset
-  add   rdi, GRP_OFF_NEXT
-  cmp   qword [rdi], 0
+  add   rsi, GRP_OFF_NEXT
+  cmp   qword [rsi], 0
   je    .error
 
-  ; rdi contains the address of the group
-  mov   rsi, [rdi]
   mov   rdi, rsi
 
   jmp   .loop
