@@ -5,6 +5,7 @@ group_t:
   .middlewares  resq 1
   .prefix       resq 1
   .is_root      resq 1
+  .active       resq 1
   .next         resq 1
 group_t_end:
 
@@ -17,7 +18,8 @@ GRP_OFF_ROUTES       equ 0x0
 GRP_OFF_MIDDLEWARES  equ GRP_OFF_ROUTES + 0x8
 GRP_OFF_PREFIX       equ GRP_OFF_MIDDLEWARES + 0x8
 GRP_OFF_IS_ROOT      equ GRP_OFF_PREFIX + 0x8
-GRP_OFF_NEXT         equ GRP_OFF_IS_ROOT + 0x8
+GRP_OFF_ACTIVE       equ GRP_OFF_IS_ROOT + 0x8
+GRP_OFF_NEXT         equ GRP_OFF_ACTIVE + 0x8
 
 ROOT_GRP_PREFIX db "/", NULL_CHAR
 
@@ -437,4 +439,42 @@ group_free:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; sets the active property to false
+; @param  rdi: pointer to the group struct
+; @return rax: return code
+group_deactivate:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   qword [rdi+GRP_OFF_ACTIVE], FALSE
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the active property to true
+; @param  rdi: pointer to the group struct
+; @return rax: return code
+group_activate:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   qword [rdi+GRP_OFF_ACTIVE], TRUE
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
