@@ -119,7 +119,7 @@ echo_svc_register:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x18]
   mov   rdx, FALSE
-  call  add_group
+  call  group_create
   cmp   rax, 0
   jl    .error
 
@@ -135,10 +135,10 @@ echo_svc_register:
   jl    .error
 
   ; set route to false
-  ; mov   rdi, rax
-  ; call  route_deactivate
-  ; cmp   rax, 0
-  ; jl   .error
+  mov   rdi, rax
+  call  route_deactivate
+  cmp   rax, 0
+  jl   .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return

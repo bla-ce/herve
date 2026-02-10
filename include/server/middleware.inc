@@ -111,7 +111,7 @@ add_middleware:
   mov   rdi, rax
 
 .no_root_group:
-  add   rdi, GRP_STRUCT_OFF_MIDDLEWARES
+  add   rdi, GRP_OFF_MIDDLEWARES
 
   cmp   qword [rdi], 0
   je    .add
@@ -176,7 +176,7 @@ run_middlewares:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  call  get_group_middlewares
+  call  group_get_middleware
   cmp   rax, 0
   jl    .error
   je    .end

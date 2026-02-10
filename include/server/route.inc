@@ -328,7 +328,7 @@ add_model_routes:
   mov   rdi, [rsp]
   lea   rsi, [rsp+0x20]
   mov   rdx, FALSE
-  call  add_group
+  call  group_create
   cmp   rax, 0
   jl    .error
 
@@ -784,9 +784,16 @@ add_route:
   mov   rdi, [rsp+0x48]
   mov   [rax+ROUTE_OFF_ARG1], rdi
 
+  ; add route to group routes
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x28]
+  call  add_route_struct_to_group
+  cmp   rax, 0
+  jl    .error
+
   ; add route to server routes
   mov   rdi, [rsp]
-  mov   rsi, rax
+  mov   rsi, [rsp+0x28]
   call  add_route_struct_to_server
   cmp   rax, 0
   jl    .error
@@ -823,7 +830,7 @@ add_route:
   add   rsp, 0x50
   ret
 
-; adds a structure of route to the list of routes available
+; adds route struct to the server
 ; @param  rdi: pointer to server struct
 ; @param  rsi: pointer to route struct
 ; @return rax: return code
@@ -835,6 +842,35 @@ add_route_struct_to_server:
 
   ; get route offset to check if routes are init
   add   rdi, SERVER_OFF_ROUTES
+
+  mov   rsi, [rsp+0x8]
+  mov   rdx, ROUTE_OFF_NEXT
+  call  linked_list_add_entry
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; adds route to the group
+; @param  rdi: pointer to group struct
+; @param  rsi: pointer to route struct
+; @return rax: return code
+add_route_struct_to_group:
+  sub   rsp, 0x10
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; get route offset to check if routes are init
+  add   rdi, GRP_OFF_ROUTES
 
   mov   rsi, [rsp+0x8]
   mov   rdx, ROUTE_OFF_NEXT

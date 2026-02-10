@@ -13,11 +13,11 @@ section .data
 GRP_STRUCT_LEN equ group_t_end - group_t
 
 ; offsets
-GRP_STRUCT_OFF_ROUTES       equ 0x0
-GRP_STRUCT_OFF_MIDDLEWARES  equ GRP_STRUCT_OFF_ROUTES + 0x8
-GRP_STRUCT_OFF_PREFIX       equ GRP_STRUCT_OFF_MIDDLEWARES + 0x8
-GRP_STRUCT_OFF_IS_ROOT      equ GRP_STRUCT_OFF_PREFIX + 0x8
-GRP_STRUCT_OFF_NEXT         equ GRP_STRUCT_OFF_IS_ROOT + 0x8
+GRP_OFF_ROUTES       equ 0x0
+GRP_OFF_MIDDLEWARES  equ GRP_OFF_ROUTES + 0x8
+GRP_OFF_PREFIX       equ GRP_OFF_MIDDLEWARES + 0x8
+GRP_OFF_IS_ROOT      equ GRP_OFF_PREFIX + 0x8
+GRP_OFF_NEXT         equ GRP_OFF_IS_ROOT + 0x8
 
 ROOT_GRP_PREFIX db "/", NULL_CHAR
 
@@ -27,7 +27,7 @@ section .text
 ; @param  rsi: pointer to the prefix
 ; @param  rdx: group is root (boolean)
 ; @return rax: pointer to the group struct
-add_group:
+group_create:
   sub   rsp, 0x20
 
   ; STACK USAGE
@@ -75,16 +75,16 @@ add_group:
   mov   rsi, [rsp+0x8]
   mov   rdx, [rsp+0x10]
 
-  mov   qword [rax+GRP_STRUCT_OFF_ROUTES], 0
-  mov   qword [rax+GRP_STRUCT_OFF_MIDDLEWARES], 0
-  mov   [rax+GRP_STRUCT_OFF_PREFIX], rsi
-  mov   [rax+GRP_STRUCT_OFF_IS_ROOT], rdx
-  mov   qword [rax+GRP_STRUCT_OFF_NEXT], 0
+  mov   qword [rax+GRP_OFF_ROUTES], 0
+  mov   qword [rax+GRP_OFF_MIDDLEWARES], 0
+  mov   [rax+GRP_OFF_PREFIX], rsi
+  mov   [rax+GRP_OFF_IS_ROOT], rdx
+  mov   qword [rax+GRP_OFF_NEXT], 0
 
   ; add the group to the server
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  add_group_struct_to_server
+  call  group_add_struct_to_server
   cmp   rax, 0
   jl    .error
 
@@ -110,7 +110,7 @@ add_group:
 ; @param  rdi: pointer to the server struct
 ; @param  rsi: pointer to the group struct
 ; @return rax: return code
-add_group_struct_to_server:
+group_add_struct_to_server:
   sub   rsp, 0x10
 
   ; STACK USAGE
@@ -139,7 +139,7 @@ add_group_struct_to_server:
 .loop:
   ; rdi points to the address of current group
   ; go to next offset
-  add   rdi, GRP_STRUCT_OFF_NEXT
+  add   rdi, GRP_OFF_NEXT
   cmp   qword [rdi], 0
   je    .add
 
@@ -215,7 +215,7 @@ group_exist:
   ; go to next
 .not_equal:
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rdi+GRP_STRUCT_OFF_NEXT]
+  mov   rsi, [rdi+GRP_OFF_NEXT]
 
   test  rsi, rsi
   jz    .loop_end
@@ -242,11 +242,11 @@ group_exist:
 ; returns the middlewares of the group
 ; @param  rdi: pointer to the group struct
 ; @return rax: pointer to the middlewares linked list
-get_group_middlewares:
+group_get_middleware:
   cmp   rdi, 0
   jle   .error
 
-  mov   rax, [rdi+GRP_STRUCT_OFF_MIDDLEWARES]
+  mov   rax, [rdi+GRP_OFF_MIDDLEWARES]
 
   jmp   .return
 
@@ -263,7 +263,7 @@ get_group_prefix:
   cmp   rdi, 0
   jle   .error
 
-  mov   rax, [rdi+GRP_STRUCT_OFF_PREFIX]
+  mov   rax, [rdi+GRP_OFF_PREFIX]
 
   jmp   .return
 
@@ -316,7 +316,7 @@ get_group_from_ctx:
 
 .loop:
   mov   rdi, [rsp+0x10]
-  cmp   qword [rdi+GRP_STRUCT_OFF_IS_ROOT], TRUE
+  cmp   qword [rdi+GRP_OFF_IS_ROOT], TRUE
   je    .skip_root
 
   ; get the prefix of the group
@@ -356,7 +356,7 @@ get_group_from_ctx:
   mov   rdi, [rsp+0x10]
 
   ; go to next offset
-  add   rdi, GRP_STRUCT_OFF_NEXT
+  add   rdi, GRP_OFF_NEXT
   cmp   qword [rdi], 0
   je    .error
 
@@ -382,7 +382,7 @@ get_group_from_ctx:
 ; frees the group struct and all associated resources
 ; @param  rdi: pointer to the group struct
 ; @return rax: return code
-free_group:
+group_free:
   sub   rsp, 0x10
 
   ; STACK USAGE
@@ -396,7 +396,7 @@ free_group:
 
   ; free the middlewares
   mov   rsi, [rsp]
-  add   rsi, GRP_STRUCT_OFF_MIDDLEWARES
+  add   rsi, GRP_OFF_MIDDLEWARES
 
   cmp   qword [rsi], 0
   je    .loop_end

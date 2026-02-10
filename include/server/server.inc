@@ -72,11 +72,11 @@ server_get_root_group:
 
 .loop:
   ; rsi points to the address of current group
-  cmp   qword [rsi+GRP_STRUCT_OFF_IS_ROOT], TRUE
+  cmp   qword [rsi+GRP_OFF_IS_ROOT], TRUE
   je    .loop_end
 
   ; go to next offset
-  add   rdi, GRP_STRUCT_OFF_NEXT
+  add   rdi, GRP_OFF_NEXT
   cmp   qword [rdi], 0
   je    .error
 
@@ -446,7 +446,7 @@ server_init:
   mov   rdi, [rsp+0x8]
   mov   rsi, ROOT_GRP_PREFIX
   mov   rdx, TRUE
-  call  add_group
+  call  group_create
   cmp   rax, 0
   jl    .error
 

@@ -33,7 +33,7 @@ _start:
   mov   rdi, [server]
   mov   rsi, public_url
   mov   rdx, FALSE
-  call  add_group
+  call  group_create
   cmp   rax, 0
   jl    .error
 
@@ -60,7 +60,7 @@ _start:
   mov   rdi, [server]
   mov   rsi, internal_url
   mov   rdx, FALSE
-  call  add_group
+  call  group_create
   cmp   rax, 0
   jl    .error
 
