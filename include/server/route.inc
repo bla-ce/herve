@@ -1,24 +1,26 @@
 section .bss
 route_t:
-  .method   resq 1
-  .url      resq 1
-  .callback resq 1
-  .group    resq 1
-  .active   resq 1
-  .arg1     resq 1
-  .next     resq 1
+  .method             resq 1
+  .url                resq 1
+  .callback           resq 1
+  .group              resq 1
+  .active             resq 1
+  .arg1               resq 1
+  .next_server_route  resq 1  ; route linked list of the server
+  .next_group_route   resq 1  ; route linked list of the group
 route_t_end:
 
 section .data
   ROUTE_STRUCT_LEN equ route_t_end - route_t
 
-  ROUTE_OFF_METHOD    equ 0x0
-  ROUTE_OFF_URL       equ ROUTE_OFF_METHOD + 0x8
-  ROUTE_OFF_CALLBACK  equ ROUTE_OFF_URL + 0x8
-  ROUTE_OFF_GROUP     equ ROUTE_OFF_CALLBACK + 0x8
-  ROUTE_OFF_ACTIVE    equ ROUTE_OFF_GROUP + 0x8
-  ROUTE_OFF_ARG1      equ ROUTE_OFF_ACTIVE + 0x8
-  ROUTE_OFF_NEXT      equ ROUTE_OFF_ARG1 + 0x8
+  ROUTE_OFF_METHOD      equ 0x0
+  ROUTE_OFF_URL         equ ROUTE_OFF_METHOD + 0x8
+  ROUTE_OFF_CALLBACK    equ ROUTE_OFF_URL + 0x8
+  ROUTE_OFF_GROUP       equ ROUTE_OFF_CALLBACK + 0x8
+  ROUTE_OFF_ACTIVE      equ ROUTE_OFF_GROUP + 0x8
+  ROUTE_OFF_ARG1        equ ROUTE_OFF_ACTIVE + 0x8
+  ROUTE_OFF_SERVER_NEXT equ ROUTE_OFF_ARG1 + 0x8
+  ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_SERVER_NEXT + 0x8
 
   log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
@@ -587,7 +589,7 @@ route_exist:
   ; go to next
 .not_equal:
   mov   rdi, [rsp+0x18]
-  mov   rsi, [rdi+ROUTE_OFF_NEXT]
+  mov   rsi, [rdi+ROUTE_OFF_SERVER_NEXT]
 
   test  rsi, rsi
   jz    .loop_end
@@ -705,8 +707,8 @@ add_route:
   mov   rdi, [rsp+0x18]
   mov   [rax+ROUTE_OFF_CALLBACK], rdi
 
-  ; set next to 0
-  mov   qword [rax+ROUTE_OFF_NEXT], 0
+  mov   qword [rax+ROUTE_OFF_SERVER_NEXT], 0
+  mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
 
   mov   qword [rax+ROUTE_OFF_ACTIVE], TRUE
 
@@ -844,7 +846,7 @@ add_route_struct_to_server:
   add   rdi, SERVER_OFF_ROUTES
 
   mov   rsi, [rsp+0x8]
-  mov   rdx, ROUTE_OFF_NEXT
+  mov   rdx, ROUTE_OFF_SERVER_NEXT
   call  linked_list_add_entry
   cmp   rax, 0
   jl    .error
@@ -873,7 +875,7 @@ add_route_struct_to_group:
   add   rdi, GRP_OFF_ROUTES
 
   mov   rsi, [rsp+0x8]
-  mov   rdx, ROUTE_OFF_NEXT
+  mov   rdx, ROUTE_OFF_GRP_NEXT
   call  linked_list_add_entry
   cmp   rax, 0
   jl    .error

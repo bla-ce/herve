@@ -191,7 +191,7 @@ log_server_init:
   jl    .error
 
   mov   rax, [rsp+0x8]
-  mov   rdi, [rax+ROUTE_OFF_NEXT]
+  mov   rdi, [rax+ROUTE_OFF_SERVER_NEXT]
   test  rdi, rdi
   jz    .loop_end
 

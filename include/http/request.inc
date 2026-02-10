@@ -1102,9 +1102,9 @@ verify_request:
   jl    .error
   jg    .loop_end ; route is valid
 
-  ; go to next route
+  ; go to next route in server ll
   mov   rdx, [rsp+0x20]
-  mov   rsi, [rdx+ROUTE_OFF_NEXT]
+  mov   rsi, [rdx+ROUTE_OFF_SERVER_NEXT]
 
   cmp   rsi, 0
   je    .not_found
