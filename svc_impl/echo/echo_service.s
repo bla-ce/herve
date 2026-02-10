@@ -9,6 +9,7 @@ echo_svc_t:
   .unregister dq echo_svc_unregister
   .start      dq echo_svc_start
   .stop       dq echo_svc_stop
+  .group      dq 0  ; set by the central server
   .next       dq 0  ; set by the central server
 echo_svc_t_end:
 
@@ -68,21 +69,16 @@ echo_handler:
 ; @param  rsi: pointer to the service struct
 ; @return rax: return code
 echo_svc_register:
-  sub   rsp, 0x30
-  sub   rsp, TO_STRING_MAX_STR_SIZE ; space for str(id)
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the service struct
   ; [rsp+0x10]  -> pointer to the server struct
-  ; [rsp+0x18]  -> id of the service
-  ; [rsp+0x20]  -> pointer to group prefix
-  ; [rsp+0x28]  -> pointer to the group
-  ; [rsp+0x30]  -> pointer to str(id)
+  ; [rsp+0x18]  -> pointer to group prefix
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x20], 0
 
   cmp   rdi, 0
   jle   .error
@@ -98,53 +94,26 @@ echo_svc_register:
 
   mov   [rsp+0x10], rax
 
-  ; get id of the service
   mov   rdi, [rsp+0x8]
-  call  service_get_id
+  call  service_get_group
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x18]
-  lea   rsi, [rsp+0x30]
-  mov   rdx, TO_STRING_MAX_STR_SIZE
-  call  itoa
-  cmp   rax, 0
-  jl    .error
-
-  ; create group endpoint
-  mov   rdi, service_endpoint.root
-  mov   rsi, rax
-  call  strcat
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
-  ; create group
-  mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x20]
-  mov   rdx, FALSE
-  call  group_create
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
 
   ; add endpoints to the server
   mov   rdi, [rsp+0x10]
   mov   rsi, POST
   mov   rdx, echo_url
   mov   rcx, echo_handler
-  mov   r8, [rsp+0x28]
+  mov   r8, [rsp+0x18]
   mov   r9, NO_ARG
   call  add_route
   cmp   rax, 0
   jl    .error
 
-  ; set route to false
-  mov   rdi, [rsp+0x28]
+  ; deactivate the group
+  mov   rdi, [rsp+0x18]
   call  group_deactivate
   cmp   rax, 0
   jl   .error
@@ -156,8 +125,7 @@ echo_svc_register:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, TO_STRING_MAX_STR_SIZE
-  add   rsp, 0x30
+  add   rsp, 0x20
   ret
 
 echo_svc_unregister:

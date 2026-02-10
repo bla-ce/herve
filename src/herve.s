@@ -46,7 +46,7 @@ _start:
 
   mov   rdi, [herve]
   mov   rsi, GET
-  mov   rdx, service_endpoint.root
+  mov   rdx, service_endpoint.service_root
   mov   rcx, service_list
   mov   r8, NO_ARG
   call  add_route

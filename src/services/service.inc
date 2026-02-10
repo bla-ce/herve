@@ -107,6 +107,19 @@ service_register:
   cmp   rax, 0
   jl    .not_found
 
+  ; get server struct
+  mov   rdi, [rsp]
+  call  get_ctx_server
+  cmp   rax, 0
+  jl    .error
+
+  ; create server group from service
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  service_set_group
+  cmp   rax, 0
+  jl    .error
+
   ; register service
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
@@ -800,18 +813,61 @@ service_get_group:
 .return:
   ret
 
-; sets the server group of the service
+; sets the server group of the service from its struct and add it
+; to the server
 ; @param  rdi: pointer to the service struct
-; @param  rsi: pointer to the server group of the service
+; @param  rsi: pointer to the server struct
 ; @return rax: return code
 service_set_group:
+  sub   rsp, 0x10
+  sub   rsp, TO_STRING_MAX_STR_SIZE
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the service struct
+  ; [rsp+0x8]   -> pointer to the server struct
+  ; [rsp+0x10]  -> pointer to str(id)
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
+  jle   .error
+
+  ; get id of the service
+  mov   rdi, [rsp]
+  call  service_get_id
+  cmp   rax, 0
   jl    .error
 
-  mov   [rdi+SERVICE_OFF_GRP], rsi
+  mov   rdi, rax
+  lea   rsi, [rsp+0x10]
+  mov   rdx, TO_STRING_MAX_STR_SIZE
+  call  itoa
+  cmp   rax, 0
+  jl    .error
+
+  ; create group endpoint
+  mov   rdi, service_endpoint.root
+  mov   rsi, rax
+  call  strcat
+  cmp   rax, 0
+  jl    .error
+
+  ; TODO: free this after group dups the prefix
+
+  ; create group
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  mov   rdx, FALSE
+  call  group_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   [rdi+SERVICE_OFF_GRP], rax
 
   mov   rax, SUCCESS_CODE
 
@@ -821,4 +877,6 @@ service_set_group:
   mov   rax, FAILURE_CODE
 
 .return:
+  add   rsp, TO_STRING_MAX_STR_SIZE
+  add   rsp, 0x10
   ret

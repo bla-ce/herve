@@ -55,7 +55,7 @@ curl -X POST http://localhost:5000/services/register \
 curl http://localhost:5000/services
 ```
 
-Returns all registered services with their name, and status.
+Returns all registered services with their id, name, type, and status.
 
 ### Unregister a service
 
