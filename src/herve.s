@@ -28,7 +28,7 @@ _start:
   ; create service endpoints
   mov   rdi, [herve]
   mov   rsi, POST
-  mov   rdx, service_url.register
+  mov   rdx, service_endpoint.register
   mov   rcx, service_register
   mov   r8, NO_ARG
   call  add_route
@@ -37,7 +37,7 @@ _start:
 
   mov   rdi, [herve]
   mov   rsi, POST
-  mov   rdx, service_url.unregister
+  mov   rdx, service_endpoint.unregister
   mov   rcx, service_unregister
   mov   r8, NO_ARG
   call  add_route
@@ -46,7 +46,7 @@ _start:
 
   mov   rdi, [herve]
   mov   rsi, GET
-  mov   rdx, service_url.list
+  mov   rdx, service_endpoint.root
   mov   rcx, service_list
   mov   r8, NO_ARG
   call  add_route

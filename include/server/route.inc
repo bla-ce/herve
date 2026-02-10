@@ -1351,3 +1351,41 @@ add_healthcheck_route:
 
 .return:
   ret
+
+; sets the active property to false
+; @param  rdi: pointer to the route struct
+; @return rax: return code
+route_deactivate:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   qword [rdi+ROUTE_OFF_ACTIVE], FALSE
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the active property to true
+; @param  rdi: pointer to the route struct
+; @return rax: return code
+route_activate:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   qword [rdi+ROUTE_OFF_ACTIVE], TRUE
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret

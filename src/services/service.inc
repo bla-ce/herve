@@ -40,10 +40,11 @@ service_status:
   .STOPPED      db "STOPPED", NULL_CHAR
 
 ; endpoints
-service_url:
-  .list       db "/services", NULL_CHAR
-  .register   db "/services/register", NULL_CHAR
-  .unregister db "/services/unregister", NULL_CHAR
+service_endpoint:
+  .root         db "/", NULL_CHAR
+  .service_root db "/services", NULL_CHAR
+  .register     db "/services/register", NULL_CHAR
+  .unregister   db "/services/unregister", NULL_CHAR
 
 hv_services dq 0   ; linked list of services
 

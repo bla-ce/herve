@@ -15,8 +15,7 @@ echo_svc_t_end:
 echo_svc_msg:
   .register db "Registering new echo server...", NULL_CHAR
 
-
-echo_url db "/echo", NULL_CHAR
+echo_url            db "/echo", NULL_CHAR
 
 section .text
 ; returns the content of the body
@@ -68,13 +67,18 @@ echo_handler:
 ; @param  rdi: pointer to the context struct
 ; @return rax: return code
 echo_svc_register:
-  sub   rsp, 0x10
+  sub   rsp, 0x20
+  sub   rsp, TO_STRING_MAX_STR_SIZE ; space for str(id)
 
   ; STACK USAGE
-  ; [rsp]     -> pointer to the context struct
-  ; [rsp+0x8] -> pointer to the server struct
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the server struct
+  ; [rsp+0x10]  -> id of the service
+  ; [rsp+0x18]  -> pointer to group prefix
+  ; [rsp+0x20]  -> pointer to str(id)
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -87,16 +91,54 @@ echo_svc_register:
 
   mov   [rsp+0x8], rax
 
+  ; get id of the service
+  mov   rdi, [rsp+0x8]
+  call  service_get_id
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x10]
+  lea   rsi, [rsp+0x20]
+  mov   rdx, TO_STRING_MAX_STR_SIZE
+  call  itoa
+  cmp   rax, 0
+  jl    .error
+
+  ; create group endpoint
+  mov   rdi, service_endpoint.root
+  mov   rsi, rax
+  call  strcat
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; create group
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x18]
+  mov   rdx, FALSE
+  call  add_group
+  cmp   rax, 0
+  jl    .error
+
   ; add endpoints to the server
   mov   rdi, [rsp+0x8]
   mov   rsi, POST
   mov   rdx, echo_url
   mov   rcx, echo_handler
-  mov   r8, NO_ARG
+  mov   r8, rax
   mov   r9, NO_ARG
   call  add_route
   cmp   rax, 0
   jl    .error
+
+  ; set route to false
+  ; mov   rdi, rax
+  ; call  route_deactivate
+  ; cmp   rax, 0
+  ; jl   .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -105,7 +147,8 @@ echo_svc_register:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, TO_STRING_MAX_STR_SIZE
+  add   rsp, 0x20
   ret
 
 echo_svc_unregister:
