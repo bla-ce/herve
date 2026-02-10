@@ -31,10 +31,6 @@ jobs:
           echo $! > server.pid
           sleep 2
 
-      - name: Run wrk benchmark
-        run: |
-          wrk -t1 -c1 -d30s --latency http://localhost:1337/health
-
       - name: Stop hello world server
         run: kill $(cat examples/hello-world/server.pid)
 
