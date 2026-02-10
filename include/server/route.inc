@@ -4,6 +4,7 @@ route_t:
   .url      resq 1
   .callback resq 1
   .group    resq 1
+  .active   resq 1
   .arg1     resq 1
   .next     resq 1
 route_t_end:
@@ -15,7 +16,8 @@ section .data
   ROUTE_OFF_URL       equ ROUTE_OFF_METHOD + 0x8
   ROUTE_OFF_CALLBACK  equ ROUTE_OFF_URL + 0x8
   ROUTE_OFF_GROUP     equ ROUTE_OFF_CALLBACK + 0x8
-  ROUTE_OFF_ARG1      equ ROUTE_OFF_GROUP + 0x8
+  ROUTE_OFF_ACTIVE    equ ROUTE_OFF_GROUP + 0x8
+  ROUTE_OFF_ARG1      equ ROUTE_OFF_ACTIVE + 0x8
   ROUTE_OFF_NEXT      equ ROUTE_OFF_ARG1 + 0x8
 
   log_pre_routes  db SPACE, SPACE, NULL_CHAR
@@ -703,8 +705,11 @@ add_route:
   mov   rdi, [rsp+0x18]
   mov   [rax+ROUTE_OFF_CALLBACK], rdi
 
+
   ; set next to 0
   mov   qword [rax+ROUTE_OFF_NEXT], 0
+
+  mov   qword [rax+ROUTE_OFF_ACTIVE], TRUE
 
   ; set the group
   mov   rdi, [rsp+0x20]

@@ -1111,6 +1111,10 @@ verify_request:
 
   jmp   .loop
 .loop_end:
+  ; check if the route is active
+  mov   rdi, [rsp+0x20]
+  cmp   qword [rdi+ROUTE_OFF_ACTIVE], TRUE
+  jne   .not_found
 
   mov   rax, [rsp+0x20]
   jmp   .return
