@@ -1094,5 +1094,120 @@ service_start:
   add   rsp, 0x18
   ret
 
+; stops a service if it exists
+; @param  rdi: pointer to the context struct
 service_stop:
+  sub   rsp, 0x18
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> id of the service
+  ; [rsp+0x10]  -> pointer to the service
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get the request struct
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; get the dynamic parameter from the request
+  mov   rdi, rax
+  call  get_request_dynamic_param
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; get the id
+  mov   rdi, rax
+  mov   rsi, service_key.id
+  call  ht_get
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; convert str to int
+  mov   rdi, rax
+  call  stoi
+  cmp   rax, 0  ; should not be below zero
+  jl    .internal_server_error
+
+  mov   [rsp+0x8], rax
+
+  ; get the services
+  mov   rdi, [hv_services]
+  cmp   rdi, 0
+  je    .not_found
+
+.loop:
+  ; get the id of the service
+  mov   rax, [rdi+SERVICE_OFF_ID]
+
+  ; compare ids
+  cmp   rax, [rsp+0x8]
+  je    .loop_end
+
+  ; go to next
+  mov   rsi, [rdi+SERVICE_OFF_NEXT]
+  cmp   rsi, 0
+  je    .not_found
+
+  mov   rdi, rsi
+  jmp   .loop
+
+.loop_end:
+  ; rax point to the service
+  mov   [rsp+0x10], rdi
+
+  ; activate the group of the service
+  call  service_get_group
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   rdi, rax
+  call  group_deactivate
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; call the start function of the service
+  mov   rax, [rsp+0x10]
+  mov   rdi, [rax+SERVICE_OFF_STOP]
+  call  rdi
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, service_msg.stopped
+  mov   rcx, NO_ARG
+  mov   r8, TRUE
+  call  service_return_json
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.not_found:
+  mov   rsi, NOT_FOUND
+  mov   rdx, service_err.unknown_service
+
+  jmp   .send_json
+
+.internal_server_error:
+  mov   rsi, INTERNAL_SERVER_ERROR
+  mov   rdx, service_err.generic
+
+.send_json:
+  mov   rdi, [rsp]
+  mov   rcx, NO_ARG
+  mov   r8, FALSE
+  call  service_return_json
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
   ret
