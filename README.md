@@ -80,18 +80,18 @@ curl -X POST http://localhost:5000/services/:id/stop
 
 Custom services must implement the Herve service contract. A service is defined by:
 
-| Field      | Description                                      |
-|------------|--------------------------------------------------|
-| id         | Auto-generated service identifier                |
-| name       | Name of the service                              |
-| status     | Current status of the service                    |
-| type       | Type of the service                              |
-| register   | Function pointer to register the service         |
-| unregister | Function pointer to unregister the service       |
-| start      | Function pointer to start the service            |
-| stop       | Function pointer to stop the service             |
-| group      | Pointer to the server group with all the routes  |
-| next       | Pointer to the next service (linked list)        |
+| Field      | Description                                      | Need to be defined        |
+|------------|--------------------------------------------------|---------------------------|
+| id         | Auto-generated service identifier                | no                        |
+| name       | Name of the service                              | no                        |
+| status     | Current status of the service                    | no                        |
+| type       | Type of the service                              | yes                       |
+| register   | Function pointer to register the service         | yes                       |
+| unregister | Function pointer to unregister the service       | yes                       |
+| start      | Function pointer to start the service            | yes                       |
+| stop       | Function pointer to stop the service             | yes                       |
+| group      | Pointer to the server group with all the routes  | no                        |
+| next       | Pointer to the next service (linked list)        | no                        |
 
 ## Project Structure
 
