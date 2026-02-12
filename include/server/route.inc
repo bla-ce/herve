@@ -1083,6 +1083,16 @@ handle_dynamic_route:
 
   mov   rdx, rax
 
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x28]
+  ; rdx is already populated
+  call  strncmp
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, TRUE
+  je    .equal
+
 .compare:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x28]
