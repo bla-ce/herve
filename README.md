@@ -64,6 +64,18 @@ curl -X POST http://localhost:5000/services/unregister \
   -d "name=my-service"
 ```
 
+### Start a service
+
+```bash
+curl -X POST http://localhost:5000/services/:id/start
+```
+
+### Stop a service
+
+```bash
+curl -X POST http://localhost:5000/services/:id/stop
+```
+
 ## Creating Custom Services
 
 Custom services must implement the Herve service contract. A service is defined by:
@@ -72,12 +84,14 @@ Custom services must implement the Herve service contract. A service is defined 
 |------------|--------------------------------------------------|
 | id         | Auto-generated service identifier                |
 | name       | Name of the service                              |
-| type       | Type of the service                              |
 | status     | Current status of the service                    |
+| type       | Type of the service                              |
 | register   | Function pointer to register the service         |
 | unregister | Function pointer to unregister the service       |
 | start      | Function pointer to start the service            |
 | stop       | Function pointer to stop the service             |
+| group      | Pointer to the server group with all the routes  |
+| next       | Pointer to the next service (linked list)        |
 
 ## Project Structure
 

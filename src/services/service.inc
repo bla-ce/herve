@@ -623,283 +623,6 @@ service_to_json:
   add   rsp, 0x10
   ret
 
-; returns the type of the service
-; @param  rdi: pointer to the service struct
-; @return rax: type of the service
-service_get_type:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVICE_OFF_TYPE]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the type of the service
-; @param  rdi: pointer to the service struct
-; @param  rsi: type of the service
-; @return rax: return code
-service_set_type:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  mov   [rdi+SERVICE_OFF_TYPE], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the status of the service
-; @param  rdi: pointer to the service struct
-; @return rax: status of the service
-service_get_status:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVICE_OFF_STATUS]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the status of the service
-; @param  rdi: pointer to the service struct
-; @param  rsi: status of the service
-; @return rax: return code
-service_set_status:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  mov   [rdi+SERVICE_OFF_STATUS], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the name of the service
-; @param  rdi: pointer to the service struct
-; @return rax: name of the service
-service_get_name:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVICE_OFF_NAME]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the name of the service
-; @param  rdi: pointer to the service struct
-; @param  rsi: name of the service
-; @return rax: return code
-service_set_name:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   [rdi+SERVICE_OFF_NAME], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the next pointer of the service
-; @param  rdi: pointer to the service struct
-; @return rax: pointer to the next service in the linked list
-service_get_next:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVICE_OFF_NEXT]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the next pointer of the service
-; @param  rdi: pointer to the service struct
-; @param  rsi: pointer to the service struct
-; @return rax: return code
-service_set_next:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   [rdi+SERVICE_OFF_NEXT], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the id of the service
-; @param  rdi: pointer to the service struct
-; @return rax: id of the service
-service_get_id:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVICE_OFF_ID]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the id of the service
-; @param  rdi: pointer to the service struct
-; @param  rsi: id of the service
-; @return rax: return code
-service_set_id:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   [rdi+SERVICE_OFF_ID], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the server group of the service
-; @param  rdi: pointer to the service struct
-; @return rax: pointer to the server group of the service
-service_get_group:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVICE_OFF_GRP]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the server group of the service from its struct and add it
-; to the server
-; @param  rdi: pointer to the service struct
-; @param  rsi: pointer to the server struct
-; @return rax: return code
-service_set_group:
-  sub   rsp, 0x10
-  sub   rsp, TO_STRING_MAX_STR_SIZE
-
-  ; STACK USAGE
-  ; [rsp]       -> pointer to the service struct
-  ; [rsp+0x8]   -> pointer to the server struct
-  ; [rsp+0x10]  -> pointer to str(id)
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  ; get id of the service
-  mov   rdi, [rsp]
-  call  service_get_id
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  lea   rsi, [rsp+0x10]
-  mov   rdx, TO_STRING_MAX_STR_SIZE
-  call  itoa
-  cmp   rax, 0
-  jl    .error
-
-  ; create group endpoint
-  mov   rdi, service_endpoint.root
-  mov   rsi, rax
-  call  strcat
-  cmp   rax, 0
-  jl    .error
-
-  ; TODO: free this after group dups the prefix
-
-  ; create group
-  mov   rdi, [rsp+0x8]
-  mov   rsi, rax
-  mov   rdx, FALSE
-  call  group_create
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   [rdi+SERVICE_OFF_GRP], rax
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, TO_STRING_MAX_STR_SIZE
-  add   rsp, 0x10
-  ret
-
 ; initialises the start and stop route for the service
 ; @param  rdi: pointer to the context struct
 ; @param  rsi: pointer to the service struct
@@ -1210,4 +933,281 @@ service_stop:
 
 .return:
   add   rsp, 0x18
+  ret
+
+; returns the type of the service
+; @param  rdi: pointer to the service struct
+; @return rax: type of the service
+service_get_type:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_TYPE]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the type of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: type of the service
+; @return rax: return code
+service_set_type:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+SERVICE_OFF_TYPE], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the status of the service
+; @param  rdi: pointer to the service struct
+; @return rax: status of the service
+service_get_status:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_STATUS]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the status of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: status of the service
+; @return rax: return code
+service_set_status:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  mov   [rdi+SERVICE_OFF_STATUS], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the name of the service
+; @param  rdi: pointer to the service struct
+; @return rax: name of the service
+service_get_name:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_NAME]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the name of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: name of the service
+; @return rax: return code
+service_set_name:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+SERVICE_OFF_NAME], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the next pointer of the service
+; @param  rdi: pointer to the service struct
+; @return rax: pointer to the next service in the linked list
+service_get_next:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_NEXT]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the next pointer of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: pointer to the service struct
+; @return rax: return code
+service_set_next:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+SERVICE_OFF_NEXT], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the id of the service
+; @param  rdi: pointer to the service struct
+; @return rax: id of the service
+service_get_id:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_ID]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the id of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: id of the service
+; @return rax: return code
+service_set_id:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+SERVICE_OFF_ID], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the server group of the service
+; @param  rdi: pointer to the service struct
+; @return rax: pointer to the server group of the service
+service_get_group:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_GRP]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the server group of the service from its struct and add it
+; to the server
+; @param  rdi: pointer to the service struct
+; @param  rsi: pointer to the server struct
+; @return rax: return code
+service_set_group:
+  sub   rsp, 0x10
+  sub   rsp, TO_STRING_MAX_STR_SIZE
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the service struct
+  ; [rsp+0x8]   -> pointer to the server struct
+  ; [rsp+0x10]  -> pointer to str(id)
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get id of the service
+  mov   rdi, [rsp]
+  call  service_get_id
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  lea   rsi, [rsp+0x10]
+  mov   rdx, TO_STRING_MAX_STR_SIZE
+  call  itoa
+  cmp   rax, 0
+  jl    .error
+
+  ; create group endpoint
+  mov   rdi, service_endpoint.root
+  mov   rsi, rax
+  call  strcat
+  cmp   rax, 0
+  jl    .error
+
+  ; TODO: free this after group dups the prefix
+
+  ; create group
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  mov   rdx, FALSE
+  call  group_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   [rdi+SERVICE_OFF_GRP], rax
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, TO_STRING_MAX_STR_SIZE
+  add   rsp, 0x10
   ret
