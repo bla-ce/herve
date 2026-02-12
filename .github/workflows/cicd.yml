@@ -177,3 +177,30 @@ jobs:
 
       - name: Stop models server
         run: kill $(cat examples/models/server.pid)
+
+  service_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+
+      - name: Build herve
+        run: make
+
+      - name: Start herve
+        run: |
+          ./bin/herve &
+          echo $! > herve.pid
+          sleep 2
+
+      - name: Run tests
+        run: |
+          chmod +x scripts/test_services.sh
+          ./scripts/test_services.sh
+
+      - name: Stop herve
+        run: kill $(cat herve.pid)
