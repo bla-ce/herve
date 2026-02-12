@@ -36,9 +36,27 @@ _start:
   jl    .error
 
   mov   rdi, [herve]
-  mov   rsi, POST
+  mov   rsi, GET
   mov   rdx, service_endpoint.unregister
   mov   rcx, service_unregister
+  mov   r8, NO_ARG
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [herve]
+  mov   rsi, GET
+  mov   rdx, service_endpoint.start
+  mov   rcx, service_start
+  mov   r8, NO_ARG
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [herve]
+  mov   rsi, GET
+  mov   rdx, service_endpoint.stop
+  mov   rcx, service_stop
   mov   r8, NO_ARG
   call  add_route
   cmp   rax, 0

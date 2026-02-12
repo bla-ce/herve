@@ -47,6 +47,8 @@ service_endpoint:
   .service_root db "/services", NULL_CHAR
   .register     db "/services/register", NULL_CHAR
   .unregister   db "/services/unregister", NULL_CHAR
+  .start        db "/services/:id/start", NULL_CHAR
+  .stop         db "/services/:id/stop", NULL_CHAR
 
 hv_services dq 0   ; linked list of services
 
@@ -55,10 +57,13 @@ MAX_SERVICES equ 32
 service_msg:
   .registered   db "The service has been successfully registered.", NULL_CHAR
   .unregisterd  db "The service has been successfully unregistered.", NULL_CHAR
+  .started      db "The service has successfully started.", NULL_CHAR
+  .stopped      db "The service has successfully stopped.", NULL_CHAR
 
 service_err:
-  .unknown_type db "This service type does not exist.", NULL_CHAR
-  .generic      db "An error occurred, please try again later", NULL_CHAR
+  .unknown_type     db "This service type does not exist.", NULL_CHAR
+  .unknown_service  db "The service does not exist.", NULL_CHAR
+  .generic          db "An error occurred, please try again later", NULL_CHAR
 
 service_count dq 0
 
@@ -69,15 +74,16 @@ section .text
 ; @param  rdi: context struct
 ; @return rax: return code
 service_register:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the service struct
-  ; [rsp+0x10]  -> pointer to the service to json object
+  ; [rsp+0x10]  -> pointer to the group
+  ; [rsp+0x18]  -> pointer to the service to json object
 
   mov   [rsp], rdi
-  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle    .internal_server_error
@@ -120,6 +126,15 @@ service_register:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x10], rax
+
+  ; create default route for the service
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  service_init_routes
+  cmp   rax, 0
+  jl    .error
+
   ; register service
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
@@ -127,6 +142,12 @@ service_register:
   call  rax
   cmp   rax, 0
   jl    .internal_server_error
+
+  ; deactivate the group of routes
+  mov   rdi, [rsp+0x10]
+  call  group_deactivate
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
@@ -143,19 +164,19 @@ service_register:
   cmp   rax, 0
   jl    .internal_server_error
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x18], rax
 
   mov   rdi, [rsp]
   mov   rsi, CREATED
   mov   rdx, service_msg.registered
-  mov   rcx, [rsp+0x10]
+  mov   rcx, [rsp+0x18]
   mov   r8, TRUE
   call  service_return_json
   cmp   rax, 0
   jl    .error
 
   ; free service to json
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   call  json_free
   cmp   rax, 0
   jl    .error
@@ -165,7 +186,7 @@ service_register:
   jmp   .return
 
 .not_found:
-  mov   rsi, BAD_REQUEST
+  mov   rsi, NOT_FOUND
   mov   rdx, service_err.unknown_type
 
   jmp   .send_json
@@ -194,7 +215,7 @@ service_register:
   call  linked_list_remove_entry
 
 .free_json_response:
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   test  rdi, rdi
   jz    .no_free
 
@@ -204,7 +225,7 @@ service_register:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; initialises a service before registering it
@@ -869,8 +890,6 @@ service_set_group:
   mov   rdi, [rsp]
   mov   [rdi+SERVICE_OFF_GRP], rax
 
-  mov   rax, SUCCESS_CODE
-
   jmp   .return
 
 .error:
@@ -879,4 +898,201 @@ service_set_group:
 .return:
   add   rsp, TO_STRING_MAX_STR_SIZE
   add   rsp, 0x10
+  ret
+
+; initialises the start and stop route for the service
+; @param  rdi: pointer to the context struct
+; @param  rsi: pointer to the service struct
+service_init_routes:
+  sub   rsp, 0x20
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the service struct
+  ; [rsp+0x10]  -> pointer to the server struct
+  ; [rsp+0x18]  -> pointer to group prefix
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; get server from context struct
+  mov   rdi, [rsp]
+  call  get_ctx_server
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x8]
+  call  service_get_group
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; get start function
+  mov   rsi, [rsp+0x8]
+  mov   rax, [rsi+SERVICE_OFF_START]
+
+  ; add endpoints to the server
+  mov   rdi, [rsp+0x10]
+  mov   rsi, GET
+  mov   rdx, service_endpoint.start
+  mov   rcx, rax
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  ; get stop function
+  mov   rsi, [rsp+0x8]
+  mov   rax, [rsi+SERVICE_OFF_STOP]
+
+  ; add endpoints to the server
+  mov   rdi, [rsp+0x10]
+  mov   rsi, GET
+  mov   rdx, service_endpoint.stop
+  mov   rcx, rax
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  add_route
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
+; starts a service if it exists
+; @param  rdi: pointer to the context struct
+service_start:
+  sub   rsp, 0x18
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> id of the service
+  ; [rsp+0x10]  -> pointer to the service
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get the request struct
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; get the dynamic parameter from the request
+  mov   rdi, rax
+  call  get_request_dynamic_param
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; get the id
+  mov   rdi, rax
+  mov   rsi, service_key.id
+  call  ht_get
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; convert str to int
+  mov   rdi, rax
+  call  stoi
+  cmp   rax, 0  ; should not be below zero
+  jl    .internal_server_error
+
+  mov   [rsp+0x8], rax
+
+  ; get the services
+  mov   rdi, [hv_services]
+  cmp   rdi, 0
+  je    .not_found
+
+.loop:
+  ; get the id of the service
+  mov   rax, [rdi+SERVICE_OFF_ID]
+
+  ; compare ids
+  cmp   rax, [rsp+0x8]
+  je    .loop_end
+
+  ; go to next
+  mov   rsi, [rdi+SERVICE_OFF_NEXT]
+  cmp   rsi, 0
+  je    .not_found
+
+  mov   rdi, rsi
+  jmp   .loop
+
+.loop_end:
+  ; rax point to the service
+  mov   [rsp+0x10], rdi
+
+  ; activate the group of the service
+  call  service_get_group
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   rdi, rax
+  call  group_activate
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; call the start function of the service
+  mov   rax, [rsp+0x10]
+  mov   rdi, [rax+SERVICE_OFF_START]
+  call  rdi
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, service_msg.started
+  mov   rcx, NO_ARG
+  mov   r8, TRUE
+  call  service_return_json
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.not_found:
+  mov   rsi, NOT_FOUND
+  mov   rdx, service_err.unknown_service
+
+  jmp   .send_json
+
+.internal_server_error:
+  mov   rsi, INTERNAL_SERVER_ERROR
+  mov   rdx, service_err.generic
+
+.send_json:
+  mov   rdi, [rsp]
+  mov   rcx, NO_ARG
+  mov   r8, FALSE
+  call  service_return_json
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+service_stop:
   ret

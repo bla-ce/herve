@@ -16,7 +16,7 @@ echo_svc_t_end:
 echo_svc_msg:
   .register db "Registering new echo server...", NULL_CHAR
 
-echo_url            db "/echo", NULL_CHAR
+echo_url  db "/echo", NULL_CHAR
 
 section .text
 ; returns the content of the body
@@ -75,7 +75,7 @@ echo_svc_register:
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the service struct
   ; [rsp+0x10]  -> pointer to the server struct
-  ; [rsp+0x18]  -> pointer to group prefix
+  ; [rsp+0x18]  -> pointer to group
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -111,12 +111,6 @@ echo_svc_register:
   call  add_route
   cmp   rax, 0
   jl    .error
-
-  ; deactivate the group
-  mov   rdi, [rsp+0x18]
-  call  group_deactivate
-  cmp   rax, 0
-  jl   .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
