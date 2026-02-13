@@ -778,6 +778,13 @@ service_start:
   cmp   rax, 0
   jl    .internal_server_error
 
+  ; set the service status
+  mov   rdi, [rsp+0x10]
+  mov   rsi, service_status.RUNNING
+  call  service_set_status
+  cmp   rax, 0
+  jl    .error
+
   ; call the start function of the service
   mov   rax, [rsp+0x10]
   mov   rdi, [rax+SERVICE_OFF_START]
@@ -895,6 +902,13 @@ service_stop:
   call  group_deactivate
   cmp   rax, 0
   jl    .internal_server_error
+
+  ; set the service status
+  mov   rdi, [rsp+0x10]
+  mov   rsi, service_status.STOPPED
+  call  service_set_status
+  cmp   rax, 0
+  jl    .error
 
   ; call the start function of the service
   mov   rax, [rsp+0x10]
