@@ -390,8 +390,10 @@ service_list:
 
   mov   rdi, [rsp]
   mov   rsi, OK
-  mov   rdx, [rsp+0x8]
-  call  send_JSON
+  mov   rdx, NO_ARG
+  mov   rcx, [rsp+0x8]
+  mov   r8, TRUE
+  call  service_return_json
   cmp   rax, 0
   jl    .error
 
