@@ -46,7 +46,7 @@ service_endpoint:
   .root         db "/", NULL_CHAR
   .service_root db "/services", NULL_CHAR
   .register     db "/services/register", NULL_CHAR
-  .unregister   db "/services/unregister", NULL_CHAR
+  .unregister   db "/services/:id/unregister", NULL_CHAR
   .start        db "/services/:id/start", NULL_CHAR
   .stop         db "/services/:id/stop", NULL_CHAR
 
@@ -56,7 +56,7 @@ MAX_SERVICES equ 32
 
 service_msg:
   .registered   db "The service has been successfully registered.", NULL_CHAR
-  .unregisterd  db "The service has been successfully unregistered.", NULL_CHAR
+  .unregistered db "The service has been successfully unregistered.", NULL_CHAR
   .started      db "The service has successfully started.", NULL_CHAR
   .stopped      db "The service has successfully stopped.", NULL_CHAR
 
@@ -448,9 +448,69 @@ service_unregister:
   cmp   rdi, 0
   jle    .error
 
+  ; get the request struct
+  mov   rdi, [rsp]
+  call  get_ctx_request
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; get the dynamic parameter from the request
+  mov   rdi, rax
+  mov   rsi, service_key.id
+  call  get_dynamic_param
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; convert str to int
+  mov   rdi, rax
+  call  stoi
+  cmp   rax, 0  ; should not be below zero
+  jl    .internal_server_error
+
+  ; get the service by its id
+  mov   rdi, rax
+  call  service_get_by_id
+  cmp   rax, 0
+  jl    .error
+
+  ; remove service from the linked list
+  mov   rdi, hv_services
+  mov   rsi, rax
+  mov   rdx, SERVICE_OFF_NEXT
+  call  linked_list_remove_entry
+  cmp   rax, 0
+  jl    .error
+
+  dec   qword [service_count]
+
+  mov   rdi, [rsp]
+  mov   rsi, OK
+  mov   rdx, service_msg.unregistered
+  mov   rcx, NO_ARG
+  mov   r8, TRUE
+  call  service_return_json
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SUCCESS_CODE
 
   jmp   .return
+
+.not_found:
+  mov   rsi, NOT_FOUND
+  mov   rdx, service_err.unknown_service
+
+  jmp   .send_json
+
+.internal_server_error:
+  mov   rsi, INTERNAL_SERVER_ERROR
+  mov   rdx, service_err.generic
+
+.send_json:
+  mov   rdi, [rsp]
+  mov   rcx, NO_ARG
+  mov   r8, FALSE
+  call  service_return_json
 
 .error:
   mov   rax, FAILURE_CODE
@@ -724,14 +784,8 @@ service_start:
 
   ; get the dynamic parameter from the request
   mov   rdi, rax
-  call  get_request_dynamic_param
-  cmp   rax, 0
-  jl    .internal_server_error
-
-  ; get the id
-  mov   rdi, rax
   mov   rsi, service_key.id
-  call  ht_get
+  call  get_dynamic_param
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -868,30 +922,12 @@ service_stop:
 
   mov   [rsp+0x8], rax
 
-  ; get the services
-  mov   rdi, [hv_services]
-  cmp   rdi, 0
-  je    .not_found
+  mov   rdi, rax
+  call  service_get_by_id
+  cmp   rax, 0
+  jl    .not_found
 
-.loop:
-  ; get the id of the service
-  mov   rax, [rdi+SERVICE_OFF_ID]
-
-  ; compare ids
-  cmp   rax, [rsp+0x8]
-  je    .loop_end
-
-  ; go to next
-  mov   rsi, [rdi+SERVICE_OFF_NEXT]
-  cmp   rsi, 0
-  je    .not_found
-
-  mov   rdi, rsi
-  jmp   .loop
-
-.loop_end:
-  ; rax point to the service
-  mov   [rsp+0x10], rdi
+  mov   [rsp+0x10], rax
 
   ; activate the group of the service
   call  service_get_group
@@ -949,6 +985,53 @@ service_stop:
 
 .return:
   add   rsp, 0x18
+  ret
+
+; returns a service by its id
+; @param  rdi: id of the service
+; @return rax: pointer to the service struct
+service_get_by_id:
+  sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp]   -> id of the service
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jl    .error
+
+  ; get the services
+  mov   rdi, [hv_services]
+  cmp   rdi, 0
+  je    .error
+
+.loop:
+  ; get the id of the service
+  mov   rax, [rdi+SERVICE_OFF_ID]
+
+  ; compare ids
+  cmp   rax, [rsp]
+  je    .loop_end
+
+  ; go to next
+  mov   rsi, [rdi+SERVICE_OFF_NEXT]
+  cmp   rsi, 0
+  je    .error
+
+  mov   rdi, rsi
+  jmp   .loop
+
+.loop_end:
+  mov   rax, rdi
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret
 
 ; returns the type of the service

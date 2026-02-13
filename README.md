@@ -40,7 +40,6 @@ The binary will be available at `bin/herve`.
 By default, Herve listens on port 5000.
 
 ## Service Management API
-This is a work in progress, don't expect them to work
 
 ### Register a service
 
@@ -60,8 +59,7 @@ Returns all registered services with their id, name, type, and status.
 ### Unregister a service
 
 ```bash
-curl -X POST http://localhost:5000/services/unregister \
-  -d "name=my-service"
+curl -X POST http://localhost:5000/services/:id/unregister
 ```
 
 ### Start a service
