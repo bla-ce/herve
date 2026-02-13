@@ -36,7 +36,7 @@ _start:
   jl    .error
 
   mov   rdi, [herve]
-  mov   rsi, GET
+  mov   rsi, POST
   mov   rdx, service_endpoint.unregister
   mov   rcx, service_unregister
   mov   r8, NO_ARG
@@ -45,7 +45,7 @@ _start:
   jl    .error
 
   mov   rdi, [herve]
-  mov   rsi, GET
+  mov   rsi, POST
   mov   rdx, service_endpoint.start
   mov   rcx, service_start
   mov   r8, NO_ARG
@@ -54,7 +54,7 @@ _start:
   jl    .error
 
   mov   rdi, [herve]
-  mov   rsi, GET
+  mov   rsi, POST
   mov   rdx, service_endpoint.stop
   mov   rcx, service_stop
   mov   r8, NO_ARG

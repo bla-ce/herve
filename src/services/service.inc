@@ -36,10 +36,9 @@ service_key:
   .type   db "type", NULL_CHAR
 
 service_status:
-  .NOT_STARTED  db "NOT STARTED", NULL_CHAR
-  .RUNNING      db "RUNNING", NULL_CHAR
-  .PAUSED       db "PAUSED", NULL_CHAR
-  .STOPPED      db "STOPPED", NULL_CHAR
+  .REGISTERED   db "registered", NULL_CHAR
+  .RUNNING      db "running", NULL_CHAR
+  .STOPPED      db "stopped", NULL_CHAR
 
 ; endpoints
 service_endpoint:
@@ -65,7 +64,8 @@ service_err:
   .unknown_service  db "The service does not exist.", NULL_CHAR
   .generic          db "An error occurred, please try again later", NULL_CHAR
 
-service_count dq 0
+service_count   dq 0
+service_curr_id dq 0
 
 section .text
 
@@ -117,14 +117,14 @@ service_register:
   mov   rdi, [rsp]
   call  get_ctx_server
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   ; create server group from service
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  service_set_group
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   mov   [rsp+0x10], rax
 
@@ -133,7 +133,7 @@ service_register:
   mov   rsi, [rsp+0x8]
   call  service_init_routes
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   ; register service
   mov   rdi, [rsp]
@@ -147,7 +147,7 @@ service_register:
   mov   rdi, [rsp+0x10]
   call  group_deactivate
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
@@ -157,6 +157,7 @@ service_register:
   jl    .internal_server_error
 
   inc   qword [service_count]
+  inc   qword [service_curr_id]
 
   ; service to json
   mov   rdi, [rsp+0x8]
@@ -280,13 +281,13 @@ service_init:
   jl    .error
 
   mov   rdi, [rsp+0x8]
-  mov   rsi, qword [service_count]
+  mov   rsi, qword [service_curr_id]
   call  service_set_id
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x8]
-  mov   rsi, service_status.NOT_STARTED
+  mov   rsi, service_status.REGISTERED
   call  service_set_status
   cmp   rax, 0
   jl    .error
@@ -438,10 +439,11 @@ service_list:
 ; @param  rdi: context struct
 ; @return rax: return code
 service_unregister:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   ; STACK USAGE
-  ; [rsp]   -> pointer to the context struct
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the service struct
 
   mov   [rsp], rdi
 
@@ -471,17 +473,25 @@ service_unregister:
   mov   rdi, rax
   call  service_get_by_id
   cmp   rax, 0
-  jl    .error
+  jl    .not_found
+
+  mov   [rsp+0x8], rax
 
   ; remove service from the linked list
   mov   rdi, hv_services
-  mov   rsi, rax
+  mov   rsi, [rsp+0x8]
   mov   rdx, SERVICE_OFF_NEXT
   call  linked_list_remove_entry
   cmp   rax, 0
   jl    .error
 
   dec   qword [service_count]
+
+  ; free the service
+  mov   rdi, [rsp+0x8]
+  call  service_free
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, OK
@@ -516,7 +526,7 @@ service_unregister:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; returns a service json response
@@ -1288,8 +1298,6 @@ service_set_group:
   cmp   rax, 0
   jl    .error
 
-  ; TODO: free this after group dups the prefix
-
   ; create group
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
@@ -1297,6 +1305,8 @@ service_set_group:
   call  group_create
   cmp   rax, 0
   jl    .error
+
+  ; TODO: free this after group dups the prefix
 
   mov   rdi, [rsp]
   mov   [rdi+SERVICE_OFF_GRP], rax
@@ -1309,4 +1319,42 @@ service_set_group:
 .return:
   add   rsp, TO_STRING_MAX_STR_SIZE
   add   rsp, 0x10
+  ret
+
+; frees the service and associated resources
+; @param  rdi: pointer to the service
+; @return rax: return code
+service_free:
+  sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp] -> pointer to the service
+
+  mov  [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; free the group
+  mov   rdi, [rsp]
+  call  service_get_group
+  cmp   rax, 0
+  jl    .error
+
+  ; group free removes the group from the server
+  mov   rdi, rax
+  call  group_free
+
+  mov   rdi, [rsp]
+  call  free
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret

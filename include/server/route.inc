@@ -837,15 +837,14 @@ add_route:
 ; @param  rsi: pointer to route struct
 ; @return rax: return code
 add_route_struct_to_server:
-  sub   rsp, 0x10
+  cmp   rdi, 0
+  jle   .error
 
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
+  cmp   rsi, 0
+  jle   .error
 
   ; get route offset to check if routes are init
   add   rdi, SERVER_OFF_ROUTES
-
-  mov   rsi, [rsp+0x8]
   mov   rdx, ROUTE_OFF_SERVER_NEXT
   call  linked_list_add_entry
   cmp   rax, 0
@@ -858,7 +857,6 @@ add_route_struct_to_server:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
   ret
 
 ; adds route to the group
@@ -866,15 +864,15 @@ add_route_struct_to_server:
 ; @param  rsi: pointer to route struct
 ; @return rax: return code
 add_route_struct_to_group:
-  sub   rsp, 0x10
+  cmp   rdi, 0
+  jle   .error
 
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
+  cmp   rsi, 0
+  jle   .error
 
   ; get route offset to check if routes are init
   add   rdi, GRP_OFF_ROUTES
 
-  mov   rsi, [rsp+0x8]
   mov   rdx, ROUTE_OFF_GRP_NEXT
   call  linked_list_add_entry
   cmp   rax, 0
@@ -887,7 +885,6 @@ add_route_struct_to_group:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
   ret
 
 ; returns if the url is a dynamic route
@@ -1376,6 +1373,63 @@ get_dynamic_param:
   add   rsp, 0x10
   ret
 
+; removes the route from the server and frees the struct
+; @param  rdi: pointer to the server
+; @param  rsi: pointer to the route
+; @return rax: return code
+route_free:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the server
+  ; [rsp+0x8] -> pointer to the route
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; remove route from ll
+  mov   rdi, [rsp]
+  add   rdi, SERVER_OFF_ROUTES
+  mov   rsi, [rsp+0x8]
+  mov   rdx, ROUTE_OFF_SERVER_NEXT
+  call  linked_list_remove_entry
+  cmp   rax, 0
+  jl    .error
+
+  ; free url
+  mov   rdi, [rsp+0x8]
+  call  route_get_url
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free route
+  mov   rdi, [rsp+0x8]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; adds a health check endpoint to return server status and memory
 ; stats
 ; @param  rdi: pointer to the server struct
@@ -1427,6 +1481,126 @@ route_activate:
   jle   .error
 
   mov   qword [rdi+ROUTE_OFF_ACTIVE], TRUE
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the url of the route
+; @param  rdi: pointer to the route struct
+; @return rax: url of the route
+route_get_url:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_URL]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the url of the route
+; @param  rdi: pointer to the route
+; @param  rsi: url of the route
+; @return rax: return code
+route_set_url:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+ROUTE_OFF_URL], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the next pointer in the server ll
+; @param  rdi: pointer to the route struct
+; @return rax: next of the route
+route_get_server_next:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_SERVER_NEXT]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the route next pointer in the server ll
+; @param  rdi: pointer to the route
+; @param  rsi: next of the route
+; @return rax: return code
+route_set_server_next:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+ROUTE_OFF_SERVER_NEXT], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the next pointer in the group ll
+; @param  rdi: pointer to the route struct
+; @return rax: next of the route
+route_get_group_next:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_GRP_NEXT]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the route next pointer in the group ll
+; @param  rdi: pointer to the route
+; @param  rsi: next of the route
+; @return rax: return code
+route_set_group_next:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+ROUTE_OFF_GRP_NEXT], rsi
 
   mov   rax, SUCCESS_CODE
 

@@ -6,6 +6,7 @@ group_t:
   .prefix       resq 1
   .is_root      resq 1
   .active       resq 1
+  .server       resq 1
   .next         resq 1
 group_t_end:
 
@@ -14,12 +15,13 @@ section .data
 GRP_STRUCT_LEN equ group_t_end - group_t
 
 ; offsets
-GRP_OFF_ROUTES       equ 0x0
-GRP_OFF_MIDDLEWARES  equ GRP_OFF_ROUTES + 0x8
-GRP_OFF_PREFIX       equ GRP_OFF_MIDDLEWARES + 0x8
-GRP_OFF_IS_ROOT      equ GRP_OFF_PREFIX + 0x8
-GRP_OFF_ACTIVE       equ GRP_OFF_IS_ROOT + 0x8
-GRP_OFF_NEXT         equ GRP_OFF_ACTIVE + 0x8
+GRP_OFF_ROUTES      equ 0x0
+GRP_OFF_MIDDLEWARES equ GRP_OFF_ROUTES + 0x8
+GRP_OFF_PREFIX      equ GRP_OFF_MIDDLEWARES + 0x8
+GRP_OFF_IS_ROOT     equ GRP_OFF_PREFIX + 0x8
+GRP_OFF_ACTIVE      equ GRP_OFF_IS_ROOT + 0x8
+GRP_OFF_SERVER      equ GRP_OFF_ACTIVE + 0x8
+GRP_OFF_NEXT        equ GRP_OFF_SERVER + 0x8
 
 ROOT_GRP_PREFIX db "/", NULL_CHAR
 
@@ -73,15 +75,18 @@ group_create:
 
   mov   [rsp+0x18], rax
 
+  mov   qword [rax+GRP_OFF_ROUTES], 0
+  mov   qword [rax+GRP_OFF_MIDDLEWARES], 0
+  mov   qword [rax+GRP_OFF_ACTIVE], TRUE
+  mov   qword [rax+GRP_OFF_NEXT], 0
+
+  mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, [rsp+0x10]
 
-  mov   qword [rax+GRP_OFF_ROUTES], 0
-  mov   qword [rax+GRP_OFF_MIDDLEWARES], 0
+  mov   [rax+GRP_OFF_SERVER], rdi
   mov   [rax+GRP_OFF_PREFIX], rsi
   mov   [rax+GRP_OFF_IS_ROOT], rdx
-  mov   qword [rax+GRP_OFF_ACTIVE], TRUE
-  mov   qword [rax+GRP_OFF_NEXT], 0
 
   ; add the group to the server
   mov   rdi, [rsp]
@@ -219,6 +224,84 @@ group_get_prefix:
 .return:
   ret
 
+; sets the routes ll of the group
+; @param  rdi: pointer to the group struct
+; @param  rsi: pointer to the routes ll
+; @return rax: return code
+group_set_routes:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+GRP_OFF_ROUTES], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the routes ll of the group
+; @param  rdi: pointer to the group struct
+; @return rax: pointer to the routes struct
+group_get_routes:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+GRP_OFF_ROUTES]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the server of the group
+; @param  rdi: pointer to the group struct
+; @param  rsi: pointer to the server struct
+; @return rax: return code
+group_set_server:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+GRP_OFF_SERVER], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the server of the group
+; @param  rdi: pointer to the group struct
+; @return rax: pointer to the server struct
+group_get_server:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+GRP_OFF_SERVER]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the group struct corresponsing to the url of the ctx
 ; if two or more groups match, the first one will be chosen.
 ; @param  rdi: pointer to the server struct
@@ -333,7 +416,7 @@ group_free:
 
   ; STACK USAGE
   ; [rsp]     -> pointer to the group struct
-  ; [rsp+0x8] -> next pointer
+  ; [rsp+0x8] -> middleware next pointer
 
   mov   [rsp], rdi
 
@@ -354,7 +437,7 @@ group_free:
   lea   rsi, [rdi+MIDDLEWARE_OFF_NEXT]
   mov   [rsp+0x8], rsi
 
-  ; free the group
+  ; free the middleware
   call  free
   cmp   rax, 0
   jl    .error
@@ -367,6 +450,25 @@ group_free:
 
   jmp   .loop
 .loop_end:
+  ; remove group from the server
+  mov   rdi, [rsp]
+  call  group_get_server
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  add   rdi, SERVER_OFF_GROUPS
+  mov   rsi, [rsp]
+  mov   rdx, GRP_OFF_NEXT
+  call  linked_list_remove_entry
+  cmp   rax, 0
+  jl    .error
+
+  ; remove all the routes from the server route
+  mov   rdi, [rsp]
+  call  group_free_routes
+  cmp   rax, 0
+  jl    .error
 
   ; free the struct
   mov   rdi, [rsp]
@@ -383,6 +485,75 @@ group_free:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; removes the route from the server and frees them
+; @param  rdi: pointer to the group
+; @return rax: return code
+group_free_routes:
+  sub   rsp, 0x20
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the group
+  ; [rsp+0x8]   -> pointer to the server struct
+  ; [rsp+0x10]  -> pointer to the route linked list
+  ; [rsp+0x18]  -> pointer to the next route
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get server from group
+  mov   rdi, [rsp]
+  call  group_get_server
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; get routes ll
+  mov   rdi, [rsp]
+  call  group_get_routes
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+  test   rax, rax
+  jz    .loop_end
+
+.loop:
+  ; get route next
+  mov   rdi, [rsp+0x10]
+  call  route_get_group_next
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; free the route
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  call  route_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .loop_end
+
+  mov   [rsp+0x10], rdi
+.loop_end:
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
 
 ; sets the active property to false
