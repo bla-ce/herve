@@ -3,6 +3,7 @@ route_t:
   .method             resq 1
   .url                resq 1
   .callback           resq 1
+  .server             resq 1
   .group              resq 1
   .active             resq 1
   .arg1               resq 1
@@ -17,7 +18,8 @@ section .data
   ROUTE_OFF_URL         equ ROUTE_OFF_METHOD + 0x8
   ROUTE_OFF_CALLBACK    equ ROUTE_OFF_URL + 0x8
   ROUTE_OFF_GROUP       equ ROUTE_OFF_CALLBACK + 0x8
-  ROUTE_OFF_ACTIVE      equ ROUTE_OFF_GROUP + 0x8
+  ROUTE_OFF_SERVER      equ ROUTE_OFF_GROUP + 0x8
+  ROUTE_OFF_ACTIVE      equ ROUTE_OFF_SERVER + 0x8
   ROUTE_OFF_ARG1        equ ROUTE_OFF_ACTIVE + 0x8
   ROUTE_OFF_SERVER_NEXT equ ROUTE_OFF_ARG1 + 0x8
   ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_SERVER_NEXT + 0x8
@@ -575,6 +577,10 @@ route_add:
   ; add callback
   mov   rdi, [rsp+0x18]
   mov   [rax+ROUTE_OFF_CALLBACK], rdi
+
+  ; add server
+  mov   rdi, [rsp]
+  mov   [rax+ROUTE_OFF_SERVER], rdi
 
   mov   qword [rax+ROUTE_OFF_SERVER_NEXT], 0
   mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
@@ -1245,18 +1251,15 @@ route_get_dynamic_param:
   ret
 
 ; removes the route from the server and frees the struct
-; @param  rdi: pointer to the server
-; @param  rsi: pointer to the route
+; @param  rdi: pointer to the route
 ; @return rax: return code
 route_free:
-  sub   rsp, 0x10
+  sub   rsp, 0x8
 
   ; STACK USAGE
-  ; [rsp]     -> pointer to the server
-  ; [rsp+0x8] -> pointer to the route
+  ; [rsp] -> pointer to the route
 
   mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
 
   cmp   rdi, 0
   jle   .error
@@ -1264,17 +1267,23 @@ route_free:
   cmp   rsi, 0
   jle   .error
 
-  ; remove route from ll
+  ; get route server
   mov   rdi, [rsp]
+  call  route_get_server
+  cmp   rax, 0
+  jl    .error
+
+  ; remove route from ll
+  mov   rdi, rax
   add   rdi, SERVER_OFF_ROUTES
-  mov   rsi, [rsp+0x8]
+  mov   rsi, [rsp]
   mov   rdx, ROUTE_OFF_SERVER_NEXT
   call  linked_list_remove_entry
   cmp   rax, 0
   jl    .error
 
   ; free url
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp]
   call  route_get_url
   cmp   rax, 0
   jl    .error
@@ -1285,7 +1294,7 @@ route_free:
   jl    .error
 
   ; free route
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp]
   call  free
   cmp   rax, 0
   jl    .error
@@ -1298,7 +1307,7 @@ route_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x8
   ret
 
 ; sets the active property to false
@@ -1431,6 +1440,46 @@ route_set_group_next:
   jl    .error
 
   mov   [rdi+ROUTE_OFF_GRP_NEXT], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the server associated to the route
+; @param  rdi: pointer to the route
+; @return rax: pointer to the server struct
+route_get_server:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_SERVER]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the server associated to the route
+; @param  rdi: pointer to the route
+; @param  rsi: pointer to the server struct
+; @return rax: return code
+route_set_server:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+ROUTE_OFF_SERVER], rsi
 
   mov   rax, SUCCESS_CODE
 

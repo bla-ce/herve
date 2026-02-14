@@ -491,61 +491,24 @@ group_free:
 ; @param  rdi: pointer to the group
 ; @return rax: return code
 group_free_routes:
-  sub   rsp, 0x20
+  sub   rsp, 0x8
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the group
-  ; [rsp+0x8]   -> pointer to the server struct
-  ; [rsp+0x10]  -> pointer to the route linked list
-  ; [rsp+0x18]  -> pointer to the next route
 
   mov   [rsp], rdi
 
   cmp   rdi, 0
   jle   .error
 
-  ; get server from group
-  mov   rdi, [rsp]
-  call  group_get_server
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
   ; get routes ll
   mov   rdi, [rsp]
-  call  group_get_routes
+  add   rdi, GRP_OFF_ROUTES
+  mov   rsi, route_free
+  mov   rdx, ROUTE_OFF_GRP_NEXT
+  call  linked_list_free
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x10], rax
-  test   rax, rax
-  jz    .loop_end
-
-.loop:
-  ; get route next
-  mov   rdi, [rsp+0x10]
-  call  route_get_group_next
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  ; free the route
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
-  call  route_free
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x18]
-  test  rdi, rdi
-  jz    .loop_end
-
-  mov   [rsp+0x10], rdi
-
-  jmp   .loop
-.loop_end:
 
   mov   rax, SUCCESS_CODE
 
@@ -555,7 +518,7 @@ group_free_routes:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x8
   ret
 
 ; sets the active property to false
