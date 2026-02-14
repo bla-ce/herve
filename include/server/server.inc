@@ -10,40 +10,43 @@ server_t:
 server_t_end:
 
 section .data
-  DEFAULT_PORT    equ 1337
-  PORT_MIN        equ 0x1
-  PORT_MAX        equ 0xffff
 
-  SERVER_STRUCT_LEN equ server_t_end - server_t
+DEFAULT_PORT    equ 1337
+PORT_MIN        equ 0x1
+PORT_MAX        equ 0xffff
 
-  ; offsets
-  SERVER_OFF_SOCKFD       equ 0x0
-  SERVER_OFF_LOGGER       equ SERVER_OFF_SOCKFD + 0x8
-  SERVER_OFF_ROUTES       equ SERVER_OFF_LOGGER + 0x8
-  SERVER_OFF_404_HANDLER  equ SERVER_OFF_ROUTES + 0x8
-  SERVER_OFF_SOCKADDR     equ SERVER_OFF_404_HANDLER + 0x8
-  SERVER_OFF_GROUPS       equ SERVER_OFF_SOCKADDR + 0x8
-  SERVER_OFF_PORT         equ SERVER_OFF_GROUPS + 0x8
+SERVER_STRUCT_LEN equ server_t_end - server_t
 
-  server_init_msg db "Herve started listening on port ", NULL_CHAR
-  routes_msg      db LINE_FEED, "Routes available:", NULL_CHAR
+; offsets
+SERVER_OFF_SOCKFD       equ 0x0
+SERVER_OFF_LOGGER       equ SERVER_OFF_SOCKFD + 0x8
+SERVER_OFF_ROUTES       equ SERVER_OFF_LOGGER + 0x8
+SERVER_OFF_404_HANDLER  equ SERVER_OFF_ROUTES + 0x8
+SERVER_OFF_SOCKADDR     equ SERVER_OFF_404_HANDLER + 0x8
+SERVER_OFF_GROUPS       equ SERVER_OFF_SOCKADDR + 0x8
+SERVER_OFF_PORT         equ SERVER_OFF_GROUPS + 0x8
 
-  ; healthcheck
-  ok_msg      db "ok", NULL_CHAR
-  mallocd_key db "mallocd (bytes)", NULL_CHAR
-  mmapd_key   db "mmapd (bytes)", NULL_CHAR
-  freed_key   db "freed (bytes)", NULL_CHAR
+server_init_msg db "Herve started listening on port ", NULL_CHAR
+routes_msg      db LINE_FEED, "Routes available:", NULL_CHAR
 
-  ; messages
-  message_key db "message", NULL_CHAR
-  success_key db "success", NULL_CHAR
-  error_key   db "error", NULL_CHAR
+; healthcheck
+ok_msg      db "ok", NULL_CHAR
+mallocd_key db "mallocd (bytes)", NULL_CHAR
+mmapd_key   db "mmapd (bytes)", NULL_CHAR
+freed_key   db "freed (bytes)", NULL_CHAR
 
-  memory_corrupted_msg  db "memory is corrupted, freed memory ",
-                        db "is greater than allocated ",
-                        db "memory", NULL_CHAR
+; messages
+message_key db "message", NULL_CHAR
+success_key db "success", NULL_CHAR
+error_key   db "error", NULL_CHAR
 
-  STR_PORT_MAX_LENGTH equ 6
+memory_corrupted_msg  db "memory is corrupted, freed memory ",
+                      db "is greater than allocated ",
+                      db "memory", NULL_CHAR
+
+STR_PORT_MAX_LENGTH equ 6
+
+health_check_url  db "/health", NULL_CHAR
 
 section .text
 ; returns the root group of the server

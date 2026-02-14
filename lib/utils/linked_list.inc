@@ -224,7 +224,7 @@ linked_list_free:
   mov   [rsp+0x18], rdi
 
   jmp   .loop
-.loop_end
+.loop_end:
   mov   rax, SUCCESS_CODE
 
   jmp   .return

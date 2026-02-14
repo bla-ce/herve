@@ -12,6 +12,9 @@ http_model_msg:
 
 data_key    db "data", NULL_CHAR
 
+http_model_route_root db "/", NULL_CHAR
+http_model_route_id   db "/:id", NULL_CHAR
+
 section .text
 ; returns all instances of a model
 ; @param  rdi: pointer to the context struct

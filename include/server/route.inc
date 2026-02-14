@@ -26,11 +26,6 @@ section .data
 
   log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
-  http_model_route_root db "/", NULL_CHAR
-  http_model_route_id   db "/:id", NULL_CHAR
-
-  health_check_url  db "/health", NULL_CHAR
-
 section .text
 ; logs the route "METHOD  URL"
 ; @param  rdi: pointer to the route
