@@ -1,9 +1,11 @@
 %include "echo_service.s"
+%include "ping_service.s"
 
 section .data
 
 SVC_TYPES:
   .ECHO db "echo", NULL_CHAR
+  .PING db "ping", NULL_CHAR
 
 section .text
 
@@ -27,19 +29,13 @@ svc_init_by_type:
   cmp   rsi, 0
   jle   .error
 
+  ; get the service implementation
   mov   rdi, [rsp+0x8]
-  call  svc_type_from_str
+  call  svc_get_from_str_type
   cmp   rax, 0
   jl    .error
 
-  cmp   rax, SVC_TYPES.ECHO
-  jne   .error
-
-  mov   rax, echo_svc_t
-  jmp   .init_svc
-
-.init_svc:
-  ; get service
+  ; get service to be created
   mov   rdi, [rsp]
 
   ; init type and function pointers
@@ -71,7 +67,7 @@ svc_init_by_type:
 ; converts type string to enum value
 ; @param  rdi: type string
 ; @return rax: type enum value
-svc_type_from_str:
+svc_get_from_str_type:
   sub   rsp, 0x8
 
   ; STACK USAGE
@@ -82,15 +78,29 @@ svc_type_from_str:
   cmp   rdi, 0
   jle   .error
 
+.test_echo:
   mov   rdi, [rsp]
   mov   rsi, SVC_TYPES.ECHO
   call  strcmp
   cmp   rax, 0
   jl    .error
   cmp   rax, TRUE
-  jne   .error  ; unknown service
+  jne   .test_ping
 
-  mov   rax, SVC_TYPES.ECHO
+  mov   rax, echo_svc_t
+
+  jmp   .return
+
+.test_ping:
+  mov   rdi, [rsp]
+  mov   rsi, SVC_TYPES.PING
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, TRUE
+  jne   .error
+
+  mov   rax, ping_svc_t
 
   jmp   .return
 
