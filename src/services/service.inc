@@ -59,6 +59,8 @@ service_msg:
   .started      db "The service has successfully started.", NULL_CHAR
   .stopped      db "The service has successfully stopped.", NULL_CHAR
 
+  .stop_to_unregister db "The service should be stopped before being unregistered", NULL_CHAR
+
 service_err:
   .unknown_type     db "This service type does not exist.", NULL_CHAR
   .unknown_service  db "The service does not exist.", NULL_CHAR
@@ -477,6 +479,25 @@ service_unregister:
 
   mov   [rsp+0x8], rax
 
+  ; check if the service is stopped to be unregistered
+  mov   rdi, [rsp+0x8]
+  call  service_get_status
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  cmp   rax, service_status.STOPPED
+  je    .svc_is_stopped
+
+  mov   rdi, [rsp]
+  mov   rsi, BAD_REQUEST
+  mov   rdx, service_msg.stop_to_unregister
+  mov   rcx, NO_ARG
+  mov   r8, FALSE
+  call  service_return_json
+
+  jmp   .error
+
+.svc_is_stopped:
   ; remove service from the linked list
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]

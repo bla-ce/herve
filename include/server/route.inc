@@ -570,23 +570,6 @@ route_add:
 
   mov   [rsp+0x28], rax
 
-  ; add method to struct
-  mov   rdi, [rsp+0x8]
-  mov   [rax+ROUTE_OFF_METHOD], rdi
-
-  ; add callback
-  mov   rdi, [rsp+0x18]
-  mov   [rax+ROUTE_OFF_CALLBACK], rdi
-
-  ; add server
-  mov   rdi, [rsp]
-  mov   [rax+ROUTE_OFF_SERVER], rdi
-
-  mov   qword [rax+ROUTE_OFF_SERVER_NEXT], 0
-  mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
-
-  mov   qword [rax+ROUTE_OFF_ACTIVE], TRUE
-
   ; set the group
   mov   rdi, [rsp+0x20]
   test  rdi, rdi
@@ -601,6 +584,7 @@ route_add:
   mov   [rsp+0x20], rax
 
 .no_root_group:
+  ; set the group of the route
   mov   rax, [rsp+0x28]
   mov   qword [rax+ROUTE_OFF_GROUP], rdi
 
@@ -653,13 +637,30 @@ route_add:
   xor   rax, rax
   stosb
 
+  mov   rax, [rsp+0x28]
+
+  ; add method to struct
+  mov   rdi, [rsp+0x8]
+  mov   [rax+ROUTE_OFF_METHOD], rdi
+
   ; add to url struct
   mov   rdi, [rsp+0x38]
-  mov   rax, [rsp+0x28]
   mov   [rax+ROUTE_OFF_URL], rdi
+
+  ; add callback
+  mov   rdi, [rsp+0x18]
+  mov   [rax+ROUTE_OFF_CALLBACK], rdi
 
   mov   rdi, [rsp+0x48]
   mov   [rax+ROUTE_OFF_ARG1], rdi
+
+  ; add server
+  mov   rdi, [rsp]
+  mov   [rax+ROUTE_OFF_SERVER], rdi
+
+  mov   qword [rax+ROUTE_OFF_SERVER_NEXT], 0
+  mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
+  mov   qword [rax+ROUTE_OFF_ACTIVE], TRUE
 
   ; add route to group routes
   mov   rdi, [rsp+0x20]
