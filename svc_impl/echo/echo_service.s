@@ -108,7 +108,7 @@ echo_svc_register:
   mov   rcx, echo_handler
   mov   r8, [rsp+0x18]
   mov   r9, NO_ARG
-  call  add_route
+  call  route_add
   cmp   rax, 0
   jl    .error
 

@@ -67,7 +67,7 @@ _start:
   mov   rdx, echo_url
   mov   rcx, echo_handler
   mov		r8, NO_ARG
-  call  add_route
+  call  route_add
   cmp   rax, 0
   jl    .error
 
