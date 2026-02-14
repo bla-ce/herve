@@ -19,7 +19,7 @@ _start:
   ; add echo route
   mov   rdi, [server]
   mov   rsi, public_path
-  call  add_dir_route
+  call  route_add_directory
   cmp   rax, 0
   jl    .error
 
