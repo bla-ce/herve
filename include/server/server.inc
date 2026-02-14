@@ -186,7 +186,7 @@ log_server_init:
 
 .loop:
   mov   rdi, [rsp+0x8]
-  call  log_route
+  call  route_log
   cmp   rax, 0
   jl    .error
 
@@ -455,7 +455,7 @@ server_init:
   mov   rcx, health_check
   mov		r8, NO_ARG
   mov		r9, NO_ARG
-  call  add_route
+  call  route_add
   cmp   rax, 0
   jl    .error
 

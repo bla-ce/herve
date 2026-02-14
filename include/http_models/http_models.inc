@@ -120,7 +120,7 @@ http_model_read_single:
   ; get id from param
   mov   rdi, rax
   mov   rsi, id_field_name
-  call  get_dynamic_param
+  call  route_get_dynamic_param
   cmp   rax, 0
   jl    .error
 
@@ -245,7 +245,7 @@ http_model_put:
   ; get id from param
   mov   rdi, rax
   mov   rsi, id_field_name
-  call  get_dynamic_param
+  call  route_get_dynamic_param
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -401,7 +401,7 @@ http_model_patch:
   ; get id from param
   mov   rdi, rax
   mov   rsi, id_field_name
-  call  get_dynamic_param
+  call  route_get_dynamic_param
   cmp   rax, 0
   jl    .error
 
@@ -734,7 +734,7 @@ http_model_delete:
   ; get id from param
   mov   rdi, rax
   mov   rsi, id_field_name
-  call  get_dynamic_param
+  call  route_get_dynamic_param
   cmp   rax, 0
   jl    .error
 
@@ -925,4 +925,135 @@ model_http_response:
 
 .return:
   add   rsp, 0x40
+  ret
+
+; creates a list of routes from a model
+; @param  rdi: pointer to the server struct
+; @param  rsi: pointer to the model struct
+; @return rax: return code
+add_model_routes:
+  sub   rsp, 0x20
+  sub   rsp, BUFSIZ
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the server struct
+  ; [rsp+0x8]   -> pointer to the model struct
+  ; [rsp+0x10]  -> pointer to the model name
+  ; [rsp+0x18]  -> pointer to the model group
+  ; [rsp+0x20]  -> group url
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; get the name of the model
+  mov   rdi, [rsp+0x8]
+  call  model_get_name
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; create group url
+  lea   rdi, [rsp+0x20]
+  mov   rax, SLASH
+  stosb
+
+  mov   rsi, [rsp+0x10]
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  ; create group
+  mov   rdi, [rsp]
+  lea   rsi, [rsp+0x20]
+  mov   rdx, FALSE
+  call  group_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; create routes
+  ; GET -> http_model_read_many
+  mov   rdi, [rsp]
+  mov   rsi, GET
+  mov   rdx, http_model_route_root
+  mov   rcx, http_model_read_many
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  route_add
+  cmp   rax, 0
+  jl    .error
+
+  ; GET -> http_model_read_single
+  mov   rdi, [rsp]
+  mov   rsi, GET
+  mov   rdx, http_model_route_id
+  mov   rcx, http_model_read_single
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  route_add
+  cmp   rax, 0
+  jl    .error
+
+  ; POST -> http_model_post
+  mov   rdi, [rsp]
+  mov   rsi, POST
+  mov   rdx, http_model_route_root
+  mov   rcx, http_model_post
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  route_add
+  cmp   rax, 0
+  jl    .error
+
+  ; PUT -> http_model_update
+  mov   rdi, [rsp]
+  mov   rsi, PUT
+  mov   rdx, http_model_route_id
+  mov   rcx, http_model_put
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  route_add
+  cmp   rax, 0
+  jl    .error
+
+  ; PATCH -> http_model_patch
+  mov   rdi, [rsp]
+  mov   rsi, PATCH
+  mov   rdx, http_model_route_id
+  mov   rcx, http_model_patch
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  route_add
+  cmp   rax, 0
+  jl    .error
+
+  ; DELETE -> http_model_update
+  mov   rdi, [rsp]
+  mov   rsi, DELETE
+  mov   rdx, http_model_route_id
+  mov   rcx, http_model_delete
+  mov   r8, [rsp+0x18]
+  mov   r9, [rsp+0x8]
+  call  route_add
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, BUFSIZ
+  add   rsp, 0x20
   ret

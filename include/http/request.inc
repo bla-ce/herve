@@ -1097,7 +1097,7 @@ verify_request:
   mov   [rsp+0x20], rsi
 
   mov   rdi, [rsp+0x18]
-  call  compare_route
+  call  route_match_request
   cmp   rax, 0
   jl    .error
   jg    .loop_end ; route is valid

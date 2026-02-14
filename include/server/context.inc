@@ -137,7 +137,7 @@ handle_ctx:
 
   ; check if route has a callback
   mov   rdi, [rsp+0x18]
-  call  get_route_callback
+  call  route_get_callback
   test  rax, rax
   jz   .done
 

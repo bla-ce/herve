@@ -33,7 +33,7 @@ section .text
 ; logs the route "METHOD  URL"
 ; @param  rdi: pointer to the route
 ; @return rax: return code
-log_route:
+route_log:
   sub   rsp, 0x8
 
   ; STACK USAGE
@@ -82,7 +82,7 @@ log_route:
 ; returns the group associated to the route struct
 ; @param  rdi: pointer to route struct
 ; @return rax: group address
-get_route_group:
+route_get_group:
   cmp   rdi, 0
   jle   .error
 
@@ -99,7 +99,7 @@ get_route_group:
 ; returns the url associated to the route struct
 ; @param  rdi: pointer to route struct
 ; @return rax: url address
-get_route_url:
+route_get_url:
   cmp   rdi, 0
   jle   .error
 
@@ -116,7 +116,7 @@ get_route_url:
 ; returns the method associated to the route struct
 ; @param  rdi: pointer to route struct
 ; @return rax: method address
-get_route_method:
+route_get_method:
   cmp   rdi, 0
   jle   .error
 
@@ -133,7 +133,7 @@ get_route_method:
 ; returns the callback associated to the route struct
 ; @param  rdi: pointer to route struct
 ; @return rax: callback address
-get_route_callback:
+route_get_callback:
   cmp   rdi, 0
   jle   .error
 
@@ -151,7 +151,7 @@ get_route_callback:
 ; @param  rdi: pointer to request struct
 ; @param  rsi: pointer to route
 ; @param  rax: (bool) route corresponds to the request
-compare_route:
+route_match_request:
   sub   rsp, 0x30
 
   cmp   rdi, 0
@@ -217,16 +217,16 @@ compare_route:
   ; check if compared route is a wild card
   mov   rsi, [rsp+0x8]
   mov   rdi, [rsi+ROUTE_OFF_URL]
-  call  is_wildcard_route
+  call  route_is_wildcard
   cmp   rax, TRUE
-  je    .cmp_wildcard
+  je    .match_wildcard
 
   ; check if compared route is a dynamic route
   mov   rsi, [rsp+0x8]
   mov   rdi, [rsi+ROUTE_OFF_URL]
-  call  is_dynamic_route
+  call  route_is_dynamic
   cmp   rax, TRUE
-  je    .handle_dynamic_route
+  je    .match_dynamic
 
   mov   rdi, [rsp+0x10]
   mov   rdx, [rsp+0x8]
@@ -238,21 +238,21 @@ compare_route:
 
   jmp   .equal
 
-.handle_dynamic_route:
+.match_dynamic:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]
   mov   rdx, [rsp+0x10]
-  call  handle_dynamic_route
+  call  route_match_dynamic
   cmp   rax, 0
   jl    .error
   je    .not_the_same
 
   jmp   .equal
 
-.cmp_wildcard:
+.match_wildcard:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
-  call  cmp_wildcard
+  call  route_match_wildcard
   cmp   rax, 0
   jl    .error
   je    .not_the_same
@@ -284,142 +284,11 @@ compare_route:
   add   rsp, 0x30
   ret
 
-; creates a list of routes from a model
-; @param  rdi: pointer to the server struct
-; @param  rsi: pointer to the model struct
-; @return rax: return code
-add_model_routes:
-  sub   rsp, 0x20
-  sub   rsp, BUFSIZ
-
-  ; STACK USAGE
-  ; [rsp]       -> pointer to the server struct
-  ; [rsp+0x8]   -> pointer to the model struct
-  ; [rsp+0x10]  -> pointer to the model name
-  ; [rsp+0x18]  -> pointer to the model group
-  ; [rsp+0x20]  -> group url
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  cmp   rdi, 0
-  jl    .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  ; get the name of the model
-  mov   rdi, [rsp+0x8]
-  call  model_get_name
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-
-  ; create group url
-  lea   rdi, [rsp+0x20]
-  mov   rax, SLASH
-  stosb
-
-  mov   rsi, [rsp+0x10]
-  call  strcpy
-  cmp   rax, 0
-  jl    .error
-
-  ; create group
-  mov   rdi, [rsp]
-  lea   rsi, [rsp+0x20]
-  mov   rdx, FALSE
-  call  group_create
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  ; create routes
-  ; GET -> http_model_read_many
-  mov   rdi, [rsp]
-  mov   rsi, GET
-  mov   rdx, http_model_route_root
-  mov   rcx, http_model_read_many
-  mov   r8, [rsp+0x18]
-  mov   r9, [rsp+0x8]
-  call  add_route
-  cmp   rax, 0
-  jl    .error
-
-  ; GET -> http_model_read_single
-  mov   rdi, [rsp]
-  mov   rsi, GET
-  mov   rdx, http_model_route_id
-  mov   rcx, http_model_read_single
-  mov   r8, [rsp+0x18]
-  mov   r9, [rsp+0x8]
-  call  add_route
-  cmp   rax, 0
-  jl    .error
-
-  ; POST -> http_model_post
-  mov   rdi, [rsp]
-  mov   rsi, POST
-  mov   rdx, http_model_route_root
-  mov   rcx, http_model_post
-  mov   r8, [rsp+0x18]
-  mov   r9, [rsp+0x8]
-  call  add_route
-  cmp   rax, 0
-  jl    .error
-
-  ; PUT -> http_model_update
-  mov   rdi, [rsp]
-  mov   rsi, PUT
-  mov   rdx, http_model_route_id
-  mov   rcx, http_model_put
-  mov   r8, [rsp+0x18]
-  mov   r9, [rsp+0x8]
-  call  add_route
-  cmp   rax, 0
-  jl    .error
-
-  ; PATCH -> http_model_patch
-  mov   rdi, [rsp]
-  mov   rsi, PATCH
-  mov   rdx, http_model_route_id
-  mov   rcx, http_model_patch
-  mov   r8, [rsp+0x18]
-  mov   r9, [rsp+0x8]
-  call  add_route
-  cmp   rax, 0
-  jl    .error
-
-  ; DELETE -> http_model_update
-  mov   rdi, [rsp]
-  mov   rsi, DELETE
-  mov   rdx, http_model_route_id
-  mov   rcx, http_model_delete
-  mov   r8, [rsp+0x18]
-  mov   r9, [rsp+0x8]
-  call  add_route
-  cmp   rax, 0
-  jl    .error
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, BUFSIZ
-  add   rsp, 0x20
-  ret
-
 ; create a route serving files located in a specified dir
 ; @param  rdi: pointer to server struct
 ; @param  rsi: pointer to the root url
 ; @return rax: return code
-add_dir_route:
+route_add_directory:
   sub   rsp, 0x20
 
   ; STACK USAGE
@@ -494,7 +363,7 @@ add_dir_route:
   mov   rdx, [rsp+0x18]
   mov   rcx, serve_dir
   mov		r8, NO_ARG
-  call  add_route
+  call  route_add
   cmp   rax, 0
   jl    .error
 
@@ -526,8 +395,8 @@ add_dir_route:
 ; @param  rdi: pointer to server struct
 ; @param  rsi: pointer to method
 ; @param  rdx: pointer to url
-; @return rax: (bool) route exist
-route_exist:
+; @return rax: (bool) route exists
+route_exists:
   sub   rsp, 0x20
 
   ; STACK USAGE
@@ -563,7 +432,7 @@ route_exist:
   ; for each route
   ; check if the url is the same
   mov   rdi, [rsp+0x18]
-  call  get_route_url
+  call  route_get_url
   cmp   rax, 0
   jl    .error
 
@@ -576,7 +445,7 @@ route_exist:
   jne   .not_equal
 
   mov   rdi, [rsp+0x18]
-  call  get_route_method
+  call  route_get_method
   cmp   rax, 0
   jl    .error
 
@@ -621,7 +490,7 @@ route_exist:
 ; @param  r8: pointer to the group struct or 0 if root
 ; @param  r9: arg 1 for the callback function
 ; @return rax: pointer to route struct
-add_route:
+route_add:
   sub   rsp, 0x50
 
   ; STACK USAGE
@@ -679,7 +548,7 @@ add_route:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, [rsp+0x10]
-  call  route_exist
+  call  route_exists
   cmp   rax, 0
   jl    .error
   cmp   rax, TRUE
@@ -789,14 +658,14 @@ add_route:
   ; add route to group routes
   mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x28]
-  call  add_route_struct_to_group
+  call  route_link_to_group
   cmp   rax, 0
   jl    .error
 
   ; add route to server routes
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x28]
-  call  add_route_struct_to_server
+  call  route_link_to_server
   cmp   rax, 0
   jl    .error
 
@@ -832,11 +701,11 @@ add_route:
   add   rsp, 0x50
   ret
 
-; adds route struct to the server
+; links route struct to the server's route linked list
 ; @param  rdi: pointer to server struct
 ; @param  rsi: pointer to route struct
 ; @return rax: return code
-add_route_struct_to_server:
+route_link_to_server:
   cmp   rdi, 0
   jle   .error
 
@@ -859,11 +728,11 @@ add_route_struct_to_server:
 .return:
   ret
 
-; adds route to the group
+; links route struct to the group's route linked list
 ; @param  rdi: pointer to group struct
 ; @param  rsi: pointer to route struct
 ; @return rax: return code
-add_route_struct_to_group:
+route_link_to_group:
   cmp   rdi, 0
   jle   .error
 
@@ -890,7 +759,7 @@ add_route_struct_to_group:
 ; returns if the url is a dynamic route
 ; @param  rdi: pointer to the route
 ; @return rax: (bool) is a dynamic route
-is_dynamic_route:
+route_is_dynamic:
   cmp   rdi, 0
   jl    .error
 
@@ -917,7 +786,7 @@ is_dynamic_route:
 ; returns if the url is a wildcard (ends with '*')
 ; @param  rdi: pointer to the route
 ; @return rax: (bool) is a wildcard route
-is_wildcard_route:
+route_is_wildcard:
   sub   rsp, 0x8
 
   cmp   rdi, 0
@@ -958,7 +827,7 @@ is_wildcard_route:
 ; @param  rdi: pointer to the wildcard route struct
 ; @param  rsi: pointer to the current url
 ; @return rax: same route (bool)
-cmp_wildcard:
+route_match_wildcard:
   sub   rsp, 0x10
 
   ; STACK USAGE
@@ -1004,7 +873,7 @@ cmp_wildcard:
 ; @param  rsi: pointer to the request struct
 ; @param  rdx: pointer to the request url
 ; @return rax: same route (bool)
-handle_dynamic_route:
+route_match_dynamic:
   sub   rsp, 0x40
 
   ; STACK USAGE
@@ -1033,7 +902,7 @@ handle_dynamic_route:
   jle   .error
 
   mov   rdi, [rsp]
-  call  get_route_url
+  call  route_get_url
   cmp   rax, 0
   jl   .error
 
@@ -1114,7 +983,7 @@ handle_dynamic_route:
   mov   rdi, [rsp+0x38]
   mov   rsi, [rsp+0x28]
   mov   rdx, [rsp+0x18]
-  call  save_parameter
+  call  route_save_param
   cmp   rax, 0
   jl    .error
 
@@ -1190,7 +1059,7 @@ handle_dynamic_route:
 ; @param  rsi: pointer to the route url
 ; @param  rdx: pointer to the request url
 ; @return rax: return code
-save_parameter:
+route_save_param:
   sub   rsp, 0x28
 
   ; STACK USAGE
@@ -1282,7 +1151,9 @@ save_parameter:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
   mov		rdx, NO_ARG
-  call  free_kv_dyn_param
+  call  route_free_dyn_param
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
 
@@ -1292,7 +1163,7 @@ save_parameter:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
   mov		rdx, NO_ARG
-  call  free_kv_dyn_param
+  call  route_free_dyn_param
 
   mov   rax, FAILURE_CODE
 
@@ -1305,7 +1176,7 @@ save_parameter:
 ; @param  rsi: pointer to the value
 ; @param  rdx: pointer to the hash table
 ; @return rax: return code
-free_kv_dyn_param:
+route_free_dyn_param:
   sub   rsp, 0x18
 
   mov   [rsp], rdi
@@ -1340,7 +1211,7 @@ free_kv_dyn_param:
 ; @param  rdi: pointer to request struct
 ; @param  rsi: key
 ; @return rax: value
-get_dynamic_param:
+route_get_dynamic_param:
   sub   rsp, 0x10
 
   mov   [rsp], rdi
@@ -1430,30 +1301,6 @@ route_free:
   add   rsp, 0x10
   ret
 
-; adds a health check endpoint to return server status and memory
-; stats
-; @param  rdi: pointer to the server struct
-; @return rax: return code
-add_healthcheck_route:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rdi, [rsp]
-  mov   rsi, GET
-  mov   rdx, health_check_url
-  mov   rcx, health_check
-  mov		r8, NO_ARG
-  mov		r9, NO_ARG
-  call  add_route
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
 ; sets the active property to false
 ; @param  rdi: pointer to the route struct
 ; @return rax: return code
@@ -1483,23 +1330,6 @@ route_activate:
   mov   qword [rdi+ROUTE_OFF_ACTIVE], TRUE
 
   mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the url of the route
-; @param  rdi: pointer to the route struct
-; @return rax: url of the route
-route_get_url:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+ROUTE_OFF_URL]
 
   jmp   .return
 

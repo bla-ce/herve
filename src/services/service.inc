@@ -459,7 +459,7 @@ service_unregister:
   ; get the dynamic parameter from the request
   mov   rdi, rax
   mov   rsi, service_key.id
-  call  get_dynamic_param
+  call  route_get_dynamic_param
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -742,7 +742,7 @@ service_init_routes:
   mov   rcx, rax
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
-  call  add_route
+  call  route_add
   cmp   rax, 0
   jl    .error
 
@@ -757,7 +757,7 @@ service_init_routes:
   mov   rcx, rax
   mov   r8, [rsp+0x18]
   mov   r9, [rsp+0x8]
-  call  add_route
+  call  route_add
   cmp   rax, 0
   jl    .error
 
@@ -795,7 +795,7 @@ service_start:
   ; get the dynamic parameter from the request
   mov   rdi, rax
   mov   rsi, service_key.id
-  call  get_dynamic_param
+  call  route_get_dynamic_param
   cmp   rax, 0
   jl    .internal_server_error
 
