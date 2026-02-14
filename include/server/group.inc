@@ -543,6 +543,8 @@ group_free_routes:
   jz    .loop_end
 
   mov   [rsp+0x10], rdi
+
+  jmp   .loop
 .loop_end:
 
   mov   rax, SUCCESS_CODE
