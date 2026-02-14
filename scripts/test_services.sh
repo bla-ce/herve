@@ -355,14 +355,29 @@ else
   exit 1
 fi
 
-# Unregister service 1 (was running)
+# Stop service 1
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/1/stop)
+body=$(echo "$response" | head -n -1)
+status_code=$(echo "$response" | tail -n1)
+success=$(echo "$body" | jq -r '.success')
+
+if [ "$status_code" == "200" ] && [ "$success" == "true" ]; then
+  echo "PASSED: POST /services/1/stop (running service)"
+else
+  echo "FAILED: POST /services/1/stop"
+  echo "  Expected: status 200"
+  echo "  Got: status $status_code"
+  exit 1
+fi
+
+# Unregister service 1 (was stopped)
 response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/1/unregister)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
 
 if [ "$status_code" == "200" ] && [ "$success" == "true" ]; then
-  echo "PASSED: POST /services/1/unregister (running service)"
+  echo "PASSED: POST /services/1/unregister (stopped service)"
 else
   echo "FAILED: POST /services/1/unregister"
   echo "  Expected: status 200"
@@ -483,16 +498,6 @@ else
   echo "  Expected: status 200, body 'fresh echo'"
   echo "  Got: status $status_code, body '$body'"
   exit 1
-fi
-
-# Cleanup: unregister the fresh service
-response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/3/unregister)
-status_code=$(echo "$response" | tail -n1)
-
-if [ "$status_code" == "200" ]; then
-  echo "PASSED: Cleanup - unregistered fresh service"
-else
-  echo "WARNING: Cleanup failed - could not unregister fresh service"
 fi
 
 # =============================================================================

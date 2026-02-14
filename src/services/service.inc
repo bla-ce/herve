@@ -487,6 +487,8 @@ service_unregister:
 
   cmp   rax, service_status.STOPPED
   je    .svc_is_stopped
+  cmp   rax, service_status.REGISTERED
+  je    .svc_is_stopped
 
   mov   rdi, [rsp]
   mov   rsi, BAD_REQUEST
