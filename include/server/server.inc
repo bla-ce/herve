@@ -613,7 +613,7 @@ server_run:
   mov   rdi, [rsp+0x30]
   call  client_init
   cmp   rax, 0
-  jl    .error
+  jl    .skip_ctx
 
   mov   [rsp+0x38], rax
 
@@ -629,6 +629,7 @@ server_run:
   cmp   rax, 0
   jl    .error
 
+.skip_ctx:
   ; reset pointer
   mov   qword [rsp+0x38], 0
 
