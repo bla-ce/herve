@@ -88,7 +88,7 @@ _split:
   mov   qword [rsp+0x8], rsi
 
   ; check if it's a new chunk
-  cmp   qword [rdi+CHUNK_OFFSET_INUSE], 1
+  cmp   qword [rdi+CHUNK_OFFSET_INUSE], TRUE
   je    .new_chunk
 
   ; remove chunk from free list
@@ -107,7 +107,7 @@ _split:
   ; init second chunk
   add   rdi, qword [rdi+CHUNK_OFFSET_SIZE]
   mov   qword [rdi+CHUNK_OFFSET_MAGIC], MAGIC_VAL_HEAP_CORRUPT
-  mov   qword [rdi+CHUNK_OFFSET_INUSE], 0
+  mov   qword [rdi+CHUNK_OFFSET_INUSE], FALSE
 
   ; get second chunk size
   mov   rbx, qword [rsp+0x10]
@@ -227,7 +227,7 @@ search_chunk:
   call  remove_from_free_list
 
   mov   rdi, [rsp+0x8]
-  mov   qword [rdi+CHUNK_OFFSET_INUSE], 1
+  mov   qword [rdi+CHUNK_OFFSET_INUSE], TRUE
 
   ; return chunk
   mov   rax, rdi
@@ -303,7 +303,7 @@ malloc:
   mov   qword [rsi+CHUNK_OFFSET_SIZE],  rax
   mov   qword [rsi+CHUNK_OFFSET_NEXT],  0
   mov   qword [rsi+CHUNK_OFFSET_PREV],  0
-  mov   qword [rsi+CHUNK_OFFSET_INUSE], 1
+  mov   qword [rsi+CHUNK_OFFSET_INUSE], TRUE
 
   ; check if heap is init
   cmp   qword [heap_start], 0
@@ -348,7 +348,7 @@ malloc:
   ; reset next and prev pointers
   mov   qword [rax+CHUNK_OFFSET_NEXT],  0
   mov   qword [rax+CHUNK_OFFSET_PREV],  0
-  mov   qword [rax+CHUNK_OFFSET_INUSE], 1
+  mov   qword [rax+CHUNK_OFFSET_INUSE], TRUE
 
   mov   rbx, qword [rax+CHUNK_OFFSET_SIZE]
 

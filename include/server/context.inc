@@ -148,7 +148,7 @@ ctx_process_request:
   call  rax
 
   mov   rdi, [rsp+0x10]
-  cmp   qword [rdi+CTX_OFF_DONE], 1
+  cmp   qword [rdi+CTX_OFF_DONE], TRUE
   je    .post_request_middlewares
 
 .done:

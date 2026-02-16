@@ -3,7 +3,7 @@ section .text
 ; @param  rdi: chunk
 ; @return rax: bool
 can_coalesce:
-  cmp   qword [rdi+CHUNK_OFFSET_INUSE], 0
+  cmp   qword [rdi+CHUNK_OFFSET_INUSE], FALSE
   je    .heap_bound
 
   mov   rsi, qword [rdi+CHUNK_OFFSET_SIZE]
@@ -12,7 +12,7 @@ can_coalesce:
   cmp   rdi, qword [heap_start]
   jge   .heap_bound
 
-  cmp   qword [rdi+CHUNK_OFFSET_INUSE], 0
+  cmp   qword [rdi+CHUNK_OFFSET_INUSE], FALSE
   sete  al
   movzx rax, al
 
@@ -246,7 +246,7 @@ free:
   mov   rdi, [rsp]
 
   ; chunk not in use
-  mov   qword [rdi+CHUNK_OFFSET_INUSE], 0
+  mov   qword [rdi+CHUNK_OFFSET_INUSE], FALSE
   call  add_to_free_list
 
   mov   rax, SUCCESS_CODE

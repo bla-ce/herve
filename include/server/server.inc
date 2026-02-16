@@ -580,7 +580,7 @@ server_run:
 
   ; compare it with the fd of the server
   cmp   qword [rsp+0x8], rax
-  jne   .ctx_process_request
+  jne   .process_request
 
   ; accept new connection
   mov   rdi, [rsp+0x8]
@@ -608,7 +608,7 @@ server_run:
 
   jmp   .inner_loop
 
-.ctx_process_request:
+.process_request:
   ; create a new client
   mov   rdi, [rsp+0x30]
   call  client_init

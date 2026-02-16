@@ -1085,7 +1085,7 @@ verify_request:
   jl    .error
 
   mov   rdi, rax
-  lea   rsi, [HOST_HEADER]
+  mov   rsi, HOST_HEADER
   call  ht_get
   cmp   rax, 0
   jle   .error
