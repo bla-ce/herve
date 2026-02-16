@@ -1284,16 +1284,19 @@ service_get_group:
 ; @param  rsi: pointer to the server struct
 ; @return rax: return code
 service_set_group:
-  sub   rsp, 0x10
+  sub   rsp, 0x20
   sub   rsp, TO_STRING_MAX_STR_SIZE
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the service struct
   ; [rsp+0x8]   -> pointer to the server struct
-  ; [rsp+0x10]  -> pointer to str(id)
+  ; [rsp+0x10]  -> pointer to the group prefix
+  ; [rsp+0x18]  -> pointer to the group struct
+  ; [rsp+0x20]  -> pointer to str(id)
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
 
   cmp   rdi, 0
   jle   .error
@@ -1308,7 +1311,7 @@ service_set_group:
   jl    .error
 
   mov   rdi, rax
-  lea   rsi, [rsp+0x10]
+  lea   rsi, [rsp+0x20]
   mov   rdx, TO_STRING_MAX_STR_SIZE
   call  itoa
   cmp   rax, 0
@@ -1321,27 +1324,43 @@ service_set_group:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x10], rax
+
   ; create group
   mov   rdi, [rsp+0x8]
-  mov   rsi, rax
+  mov   rsi, [rsp+0x10]
   mov   rdx, FALSE
   call  group_create
   cmp   rax, 0
   jl    .error
 
-  ; TODO: free this after group dups the prefix
+  mov   [rsp+0x18], rax
 
   mov   rdi, [rsp]
   mov   [rdi+SERVICE_OFF_GRP], rax
 
+  mov   rdi, [rsp+0x10]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x18]
+
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, TO_STRING_MAX_STR_SIZE
-  add   rsp, 0x10
+  add   rsp, 0x20
   ret
 
 ; frees the service and associated resources

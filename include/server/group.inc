@@ -32,18 +32,20 @@ section .text
 ; @param  rdx: group is root (boolean)
 ; @return rax: pointer to the group struct
 group_create:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the prefix
   ; [rsp+0x10]  -> group is root
-  ; [rsp+0x18]  -> pointer to the group
+  ; [rsp+0x18]  -> pointer to the duplicated prefix
+  ; [rsp+0x20]  -> pointer to the group
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
 
   cmp   rdi, 0
   jle   .error
@@ -68,12 +70,20 @@ group_create:
   cmp   rax, TRUE
   je    .error
 
+  ; duplicate the prefix
+  mov   rdi, [rsp+0x8]
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
   mov   rdi, GRP_STRUCT_LEN
   call  malloc
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
 
   mov   qword [rax+GRP_OFF_ROUTES], 0
   mov   qword [rax+GRP_OFF_MIDDLEWARES], 0
@@ -81,7 +91,7 @@ group_create:
   mov   qword [rax+GRP_OFF_NEXT], 0
 
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
+  mov   rsi, [rsp+0x18]
   mov   rdx, [rsp+0x10]
 
   mov   [rax+GRP_OFF_SERVER], rdi
@@ -97,12 +107,19 @@ group_create:
   cmp   rax, 0
   jl    .error
 
-  mov   rax, [rsp+0x18]
+  mov   rax, [rsp+0x20]
 
   jmp   .return
 
 .error:
   mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_group
+
+  call  free
+
+.free_group:
+  mov   rdi, [rsp+0x20]
   test  rdi, rdi
   jz    .no_free
 
@@ -112,7 +129,7 @@ group_create:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; checks that a group with the same prefix or sub prefix does not
