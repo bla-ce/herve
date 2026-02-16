@@ -349,7 +349,7 @@ get_group_from_ctx:
 
   ; get the url from the context request
   mov   rdi, [rsp+0x8]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jle   .error
 

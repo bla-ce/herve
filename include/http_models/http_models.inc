@@ -116,7 +116,7 @@ http_model_read_single:
 
   ; get context request
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jle   .error
 
@@ -241,7 +241,7 @@ http_model_put:
 
   ; get request
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -281,7 +281,7 @@ http_model_put:
 .populate_fields:
   ; get fields from the body
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -397,7 +397,7 @@ http_model_patch:
 
   ; get context request
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jle   .error
 
@@ -425,7 +425,7 @@ http_model_patch:
 
   ; get fields from the body
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 
@@ -547,7 +547,7 @@ http_model_post:
 
   ; get request struct
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -730,7 +730,7 @@ http_model_delete:
 
   ; get context request
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jle   .error
 

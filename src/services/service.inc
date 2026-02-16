@@ -117,7 +117,7 @@ service_register:
 
   ; get server struct
   mov   rdi, [rsp]
-  call  get_ctx_server
+  call  ctx_get_server
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -257,7 +257,7 @@ service_init:
 
   ; get request struct
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 
@@ -454,7 +454,7 @@ service_unregister:
 
   ; get the request struct
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -741,7 +741,7 @@ service_init_routes:
 
   ; get server from context struct
   mov   rdi, [rsp]
-  call  get_ctx_server
+  call  ctx_get_server
   cmp   rax, 0
   jl    .error
 
@@ -811,7 +811,7 @@ service_start:
 
   ; get the request struct
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -930,7 +930,7 @@ service_stop:
 
   ; get the request struct
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .internal_server_error
 

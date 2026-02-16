@@ -577,7 +577,7 @@ send_no_content:
 
   ; get response
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -666,7 +666,7 @@ send_JSON:
 
   ; get response
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -801,7 +801,7 @@ send_HTML:
 
   ; get response
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -934,7 +934,7 @@ send_string:
 
   ; get response
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -1059,7 +1059,7 @@ send_response:
 
   ; get response
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -1103,7 +1103,7 @@ send_response:
 
   ; get client
   mov   rdi, [rsp]
-  call  get_ctx_client
+  call  ctx_get_client
   cmp   rax, 0
   jl    .error
 
@@ -1182,7 +1182,7 @@ send_static_file:
 
   ; get context response
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -1329,7 +1329,7 @@ serve_dir:
 
   ; get context request
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 
@@ -1352,7 +1352,7 @@ serve_dir:
 .error:
   ; check if the ctx has been aborted
   mov   rdi, [rsp]
-  call  is_ctx_aborted
+  call  ctx_is_aborted
   cmp   rax, TRUE
   je    .is_aborted
 

@@ -19,7 +19,7 @@ echo_handler:
 
   ; get request
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 

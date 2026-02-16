@@ -79,7 +79,7 @@ log_ctx:
 
   ; get the client
   mov   rdi, [rsp]
-  call  get_ctx_client
+  call  ctx_get_client
   cmp   rax, 0
   jl    .error
 
@@ -112,7 +112,7 @@ log_ctx:
 
   ; get status code
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -150,7 +150,7 @@ log_ctx:
 
   ; get method
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 
@@ -182,7 +182,7 @@ log_ctx:
 
   ; get url
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 

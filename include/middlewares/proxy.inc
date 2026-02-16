@@ -268,7 +268,7 @@ handle_proxy_request:
   mov   qword [rsp+0x20], rax
 
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -334,7 +334,7 @@ send_response_from_target:
 
   ; get client fd
   mov   rdi, [rsp]
-  call  get_ctx_client
+  call  ctx_get_client
   cmp   rax, 0
   jl    .error
 
@@ -383,7 +383,7 @@ send_request_to_server:
   mov   [rsp+0x8], rsi
 
  ; sends the request
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 

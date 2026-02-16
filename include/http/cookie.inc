@@ -87,7 +87,7 @@ set_cookie:
   mov   [rsp+0x10], rax
 
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 

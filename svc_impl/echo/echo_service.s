@@ -35,7 +35,7 @@ echo_handler:
 
   ; get request
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 
@@ -88,7 +88,7 @@ echo_svc_register:
 
   ; get server from context struct
   mov   rdi, [rsp]
-  call  get_ctx_server
+  call  ctx_get_server
   cmp   rax, 0
   jl    .error
 

@@ -32,7 +32,7 @@ section .text
 ; @param  rdi: pointer to the server
 ; @param  rsi: pointer to client struct
 ; @return rax: return code
-handle_ctx:
+ctx_process_request:
   sub   rsp, 0x28
 
   ; STACK USAGE
@@ -65,7 +65,7 @@ handle_ctx:
 
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
-  call  set_ctx_start_time
+  call  ctx_set_start_time
   cmp   rax, 0
   jl   .post_request_middlewares
 
@@ -76,7 +76,7 @@ handle_ctx:
 
   ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
-  call  is_ctx_aborted
+  call  ctx_is_aborted
   cmp   rax, TRUE
   je    .post_request_middlewares
 
@@ -117,7 +117,7 @@ handle_ctx:
 .no_group_pre_middlewares:
   ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
-  call  is_ctx_aborted
+  call  ctx_is_aborted
   cmp   rax, TRUE
   je    .post_request_middlewares
 
@@ -131,7 +131,7 @@ handle_ctx:
 
   ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
-  call  is_ctx_aborted
+  call  ctx_is_aborted
   cmp   rax, TRUE
   je    .post_request_middlewares
 
@@ -169,12 +169,12 @@ handle_ctx:
   ; set end timer
   call  get_curr_ns
   cmp   rax, 0
-  jl   .free_ctx
+  jl   .ctx_free
 
   ; if yes, compute the difference
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
-  call  set_ctx_end_time
+  call  ctx_set_end_time
   cmp   rax, 0
   jl    .error
 
@@ -191,7 +191,7 @@ handle_ctx:
   call  run_middlewares
 
   cmp   qword [rsp+0x20], 0
-  je    .free_ctx
+  je    .ctx_free
 
   ; run group post request middlewares
   mov   rdi, [rsp+0x20]
@@ -199,9 +199,9 @@ handle_ctx:
   mov   rdx, TRUE
   call  run_middlewares
 
-.free_ctx:
+.ctx_free:
   mov   rdi, [rsp+0x10]
-  call  free_ctx
+  call  ctx_free
 
   mov   rax, SUCCESS_CODE
 
@@ -212,7 +212,7 @@ handle_ctx:
   test  rdi, rdi
   jz    .no_free
 
-  call  free_ctx
+  call  ctx_free
 
 .no_free:
   mov   rax, FAILURE_CODE
@@ -223,14 +223,14 @@ handle_ctx:
 
 ; frees the resources associated to the context
 ; @param  rdi: pointer to the context
-free_ctx:
+ctx_free:
   sub   rsp, 0x8
 
   mov   [rsp], rdi
 
   ; get response
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 
@@ -240,7 +240,7 @@ free_ctx:
   jl    .error
 
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 
@@ -285,7 +285,7 @@ ctx_abort:
 ; check if ctx has been aborted
 ; @param  rdi: ctx
 ; @return rax: is_aborted
-is_ctx_aborted:
+ctx_is_aborted:
   cmp   rdi, 0
   jle   .error
 
@@ -338,14 +338,14 @@ ctx_init:
 
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x18]
-  call  set_ctx_request
+  call  ctx_set_request
   cmp   rax, 0
   jl    .error
 
   ; set client fd
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
-  call  set_ctx_client
+  call  ctx_set_client
   cmp   rax, 0
   jl    .error
 
@@ -358,14 +358,14 @@ ctx_init:
 
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x20]
-  call  set_ctx_response
+  call  ctx_set_response
   cmp   rax, 0
   jl    .error
 
   ; set server
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp]
-  call  set_ctx_server
+  call  ctx_set_server
   cmp   rax, 0
   jl    .error
 
@@ -389,7 +389,7 @@ ctx_init:
 ; returns the pointer to the request of the context
 ; @param  rdi: pointer to context
 ; @return rax: pointer to the request
-get_ctx_request:
+ctx_get_request:
   cmp   rdi, 0
   jl    .error
 
@@ -406,7 +406,7 @@ get_ctx_request:
 ; returns the pointer to the response of the context
 ; @param  rdi: pointer to context
 ; @return rax: pointer to the response
-get_ctx_response:
+ctx_get_response:
   cmp   rdi, 0
   jl    .error
 
@@ -423,7 +423,7 @@ get_ctx_response:
 ; returns the start time of the context
 ; @param  rdi: pointer to context
 ; @return rax: timestamp
-get_ctx_start_time:
+ctx_get_start_time:
   cmp   rdi, 0
   jl    .error
 
@@ -437,10 +437,56 @@ get_ctx_start_time:
 .return:
   ret
 
+; sets the start time of the context
+; @param  rdi: pointer to context
+; @param  rsi: timestamp
+; @return rax: return code
+ctx_set_start_time:
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+CTX_OFF_START_TIME], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the end time of the context
+; @param  rdi: pointer to context
+; @param  rsi: timestamp
+; @return rax: return code
+ctx_set_end_time:
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+CTX_OFF_END_TIME], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; returns the end time of the context
 ; @param  rdi: pointer to context
 ; @return rax: timestamp
-get_ctx_end_time:
+ctx_get_end_time:
   cmp   rdi, 0
   jl    .error
 
@@ -454,55 +500,11 @@ get_ctx_end_time:
 .return:
   ret
 
-; sets the start time of the context
-; @param  rdi: pointer to context
-; @param  rsi: timestamp
-; @return rax: return code
-set_ctx_start_time:
-  cmp   rdi, 0
-  jl    .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   qword [rdi+CTX_OFF_START_TIME], rsi
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the end time of the context
-; @param  rdi: pointer to context
-; @param  rsi: timestamp
-; @return rax: return code
-set_ctx_end_time:
-  cmp   rdi, 0
-  jl    .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   qword [rdi+CTX_OFF_END_TIME], rsi
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
 ; sets the request struct of the context
 ; @param  rdi: pointer to context
 ; @param  rsi: pointer to request
 ; @return rax: return code
-set_ctx_request:
+ctx_set_request:
   cmp   rdi, 0
   jle   .error
 
@@ -524,7 +526,7 @@ set_ctx_request:
 ; @param  rdi: pointer to context
 ; @param  rsi: pointer to client
 ; @return rax: return code
-set_ctx_client:
+ctx_set_client:
   cmp   rdi, 0
   jle   .error
 
@@ -546,7 +548,7 @@ set_ctx_client:
 ; @param  rdi: pointer to context
 ; @param  rsi: pointer to server
 ; @return rax: return code
-set_ctx_server:
+ctx_set_server:
   cmp   rdi, 0
   jle   .error
 
@@ -568,7 +570,7 @@ set_ctx_server:
 ; @param  rdi: pointer to context
 ; @param  rsi: pointer to response
 ; @return rax: return code
-set_ctx_response:
+ctx_set_response:
   cmp   rdi, 0
   jle   .error
 
@@ -589,7 +591,7 @@ set_ctx_response:
 ; returns the client struct of the context
 ; @param  rdi: pointer to context
 ; @return rax: pointer to client
-get_ctx_client:
+ctx_get_client:
   cmp   rdi, 0
   jle   .error
 
@@ -606,7 +608,7 @@ get_ctx_client:
 ; returns the server struct of the context
 ; @param  rdi: pointer to context
 ; @return rax: pointer to server
-get_ctx_server:
+ctx_get_server:
   cmp   rdi, 0
   jle   .error
 

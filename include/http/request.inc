@@ -689,7 +689,7 @@ receive_request:
 
   ; get request struct
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 
@@ -697,7 +697,7 @@ receive_request:
 
   ; get client
   mov   rdi, [rsp]
-  call  get_ctx_client
+  call  ctx_get_client
   cmp   rax, 0
   jl    .error
 
@@ -785,7 +785,7 @@ parse_request:
   jle   .error
 
   ; get request struct
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 
@@ -1054,7 +1054,7 @@ verify_request:
   jle   .error
 
   ; get context server
-  call  get_ctx_server
+  call  ctx_get_server
   cmp   rax, 0
   jl    .error
 
@@ -1072,7 +1072,7 @@ verify_request:
 
   ; get ctx request
   mov   rdi, [rsp]
-  call  get_ctx_request
+  call  ctx_get_request
   cmp   rax, 0
   jl    .error
 

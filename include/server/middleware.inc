@@ -203,7 +203,7 @@ run_middlewares:
 
   ; check if the contxt has been aborted
   mov   rdi, [rsp+0x8]
-  call  is_ctx_aborted
+  call  ctx_is_aborted
   cmp   rax, TRUE
   je    .return
 

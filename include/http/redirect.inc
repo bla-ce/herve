@@ -30,7 +30,7 @@ redirect:
 
   ; get response
   mov   rdi, [rsp]
-  call  get_ctx_response
+  call  ctx_get_response
   cmp   rax, 0
   jl    .error
 

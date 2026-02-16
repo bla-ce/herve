@@ -78,7 +78,7 @@ ping_svc_register:
 
   ; get server from context struct
   mov   rdi, [rsp]
-  call  get_ctx_server
+  call  ctx_get_server
   cmp   rax, 0
   jl    .error
 
