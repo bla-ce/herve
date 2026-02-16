@@ -487,6 +487,17 @@ group_free:
   cmp   rax, 0
   jl    .error
 
+  ; free the prefix
+  mov   rdi, [rsp]
+  call  group_get_prefix
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   ; free the struct
   mov   rdi, [rsp]
   call  free
