@@ -20,19 +20,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y nasm wrk
 
-      - name: Build hello world example
-        working-directory: examples/hello-world
-        run: make
-
-      - name: Start hello world server
-        working-directory: examples/hello-world
+      - name: Build and run herve
         run: |
           make run &
           echo $! > server.pid
           sleep 2
 
-      - name: Stop hello world server
-        run: kill $(cat examples/hello-world/server.pid)
+      - name: Run wrk
+        run: |
+          wrk -c1 -d32s -t1 --latency http://localhost:5000/health
+
+      - name: Stop herve
+        run: kill $(cat server.pid)
 
   static-content-tests:
     runs-on: ubuntu-latest
