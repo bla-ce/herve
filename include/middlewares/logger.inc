@@ -6,6 +6,7 @@ section .data
   LOGGER_URL_OFF          equ 00001000b
   LOGGER_METHOD_OFF       equ 00000100b
   LOGGER_IP_OFF           equ 00000010b
+  LOGGER_LATENCY_OFF      equ 00000001b
   ; | PAD | S | U | M | I | L |
 
 section .text
@@ -43,18 +44,16 @@ get_logger_middleware:
 ; @param  rdx: flags
 ; @return rax: return code
 log_ctx:
-  sub   rsp, 0x20
+  sub   rsp, 0x18
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the logan struct
   ; [rsp+0x10]  -> flags
-  ; [rsp+0x18]  -> pointer to the boeuf buffer
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
-  mov   qword [rsp+0x18], 0
 
   cmp   rdi, 0
   jle   .error
@@ -65,13 +64,12 @@ log_ctx:
   cmp   rdx, 0
   jle   .return
 
-  ; create boeuf buffer
-  mov   rdi, logger_delim
-  call  boeuf_create
+  ; log the prefix
+  mov   rdi, [rsp+0x8]
+  mov   rsi, logger_delim
+  call  log_info
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x18], rax
 
   mov   rdi, [rsp+0x10]
   test  rdi, LOGGER_IP_OFF
@@ -89,21 +87,17 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  boeuf_append
+  call  log       ; log the prefix
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   rsi, logger_delim
-  call  boeuf_append
+  call  log       ; log without prefix
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x18], rax
 
 .skip_ip:
   mov   rdi, [rsp+0x10]
@@ -127,21 +121,17 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  boeuf_append
+  call  log
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   rsi, logger_delim
-  call  boeuf_append
+  call  log
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x18], rax
 
 .skip_status_code:
   mov   rdi, [rsp+0x10]
@@ -159,21 +149,17 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  boeuf_append
+  call  log
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   rsi, logger_delim
-  call  boeuf_append
+  call  log
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x18], rax
 
 .skip_method:
   mov   rdi, [rsp+0x10]
@@ -191,24 +177,39 @@ log_ctx:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  boeuf_append
+  call  log
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   rdi, [rsp+0x8]
+  mov   rsi, logger_delim
+  call  log
+  cmp   rax, 0
+  jl    .error
 
 .skip_url:
-  mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x18]
-  call  log_infoln
+  mov   rdi, [rsp+0x10]
+  test  rdi, LOGGER_LATENCY_OFF
+  jz    .skip_latency
+
+  ; get request latency
+  mov   rdi, [rsp]
+  call  ctx_get_request_latency
   cmp   rax, 0
   jl    .error
 
-  ; free boeuf buffer
-  mov   rdi, [rsp+0x18]
-  call  boeuf_free
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  log_latency
+  cmp   rax, 0
+  jl    .error
+
+.skip_latency:
+  mov   rdi, [rsp+0x8]
+  mov   rsi, logger_delim
+  call  logln
   cmp   rax, 0
   jl    .error
 
@@ -216,17 +217,64 @@ log_ctx:
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x18]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  boeuf_free
-  cmp   rax, 0
-  jl    .error
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x18
+  ret
+
+; logs the latency
+; @param  rdi: pointer to the logger
+; @param  rsi: latency in ns
+; @return rax: return code
+log_latency:
+  sub   rsp, 0x10
+  sub   rsp, UNSIGNED_LONG_MAX_STR_SIZE
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the logger struct
+  ; [rsp+0x8]   -> latency in ns
+  ; [rsp+0x10]  -> str(timestamp)
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  ; convert number to string
+  mov   rdi, [rsp+0x8]
+  lea   rsi, [rsp+0x10]
+  mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
+  call  itoa
+  cmp   rax, 0
+  jl    .error
+
+  ; print latency
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  log
+  cmp   rax, 0
+  jl    .error
+
+  ; print unit
+  mov   rdi, [rsp]
+  mov   rsi, ns_str
+  call  log
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, UNSIGNED_LONG_MAX_STR_SIZE
+  add   rsp, 0x10
   ret

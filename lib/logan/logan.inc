@@ -29,15 +29,15 @@ LOGAN_ERROR equ 5
 LOGAN_FATAL equ 6
 
 ; log levels prefixes
-logan_prefixes:
-  trace_prefix  db "[TRACE] ", NULL_CHAR
-  debug_prefix  db "[DEBUG] ", NULL_CHAR
-  log_prefix    db "[LOG]   ", NULL_CHAR
-  info_prefix   db "[INFO]  ", NULL_CHAR
-  warn_prefix   db "[WARN]  ", NULL_CHAR
-  error_prefix  db "[ERROR] ", NULL_CHAR
-  fatal_prefix  db "[FATAL] ", NULL_CHAR
-logan_prefixes_end:
+logan_prefix:
+  .trace  db "[TRACE] ", NULL_CHAR
+  .debug  db "[DEBUG] ", NULL_CHAR
+  .log    db "[LOG]   ", NULL_CHAR
+  .info   db "[INFO]  ", NULL_CHAR
+  .warn   db "[WARN]  ", NULL_CHAR
+  .error  db "[ERROR] ", NULL_CHAR
+  .fatal  db "[FATAL] ", NULL_CHAR
+logan_prefix_end:
 
 logan_colors:
   trace_color  dq WHITE_FG
@@ -49,7 +49,7 @@ logan_colors:
   fatal_color  dq RED_FG
 logan_colors_end:
 
-LOGAN_PREFIX_SIZE equ fatal_prefix - error_prefix
+LOGAN_PREFIX_SIZE equ logan_prefix.fatal - logan_prefix.error
 
 section .text
 ; initializes a logan struct with default value
@@ -178,10 +178,10 @@ logan_get_prefix:
   mov   rbx, LOGAN_PREFIX_SIZE
   mul   rbx
 
-  mov   rdi, logan_prefixes
+  mov   rdi, logan_prefix
   add   rdi, rax
 
-  cmp   rdi, logan_prefixes_end
+  cmp   rdi, logan_prefix_end
   jge   .error
 
   mov   rax, rdi

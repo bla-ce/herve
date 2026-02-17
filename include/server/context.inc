@@ -386,6 +386,47 @@ ctx_init:
   add   rsp, 0x28
   ret
 
+; retusn the latency of an ended and processes request
+; it will return an error if the request hasn't been processed
+; @param  rdi: pointer to the context struct
+; @return rax: return the latency (ns)
+ctx_get_request_latency:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the context struct
+  ; [rsp+0x8] -> start timestamp
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jl    .error
+
+  ; get start time
+  mov   rdi, [rsp]
+  call  ctx_get_start_time
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
+  call  ctx_get_end_time
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  sub   rax, rdi
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; returns the pointer to the request of the context
 ; @param  rdi: pointer to context
 ; @return rax: pointer to the request
