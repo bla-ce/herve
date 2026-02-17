@@ -28,7 +28,7 @@ jobs:
 
       - name: Run wrk
         run: |
-          wrk -c16 -d32s -t8 --latency http://localhost:5000/health
+          wrk -c400 -d32s -t12 --latency http://localhost:5000/health
 
       - name: Stop herve
         run: kill $(cat server.pid)
