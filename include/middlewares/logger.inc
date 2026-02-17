@@ -228,16 +228,18 @@ log_ctx:
 ; @param  rsi: latency in ns
 ; @return rax: return code
 log_latency:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
   sub   rsp, UNSIGNED_LONG_MAX_STR_SIZE
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the logger struct
-  ; [rsp+0x8]   -> latency in ns
-  ; [rsp+0x10]  -> str(timestamp)
+  ; [rsp+0x8]   -> latency
+  ; [rsp+0x10]  -> latency unit
+  ; [rsp+0x18]  -> str(timestamp)
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], ns_str  ; by default, latency is ns
 
   cmp   rdi, 0
   jle   .error
@@ -245,9 +247,25 @@ log_latency:
   cmp   rsi, 0
   jl    .error
 
+  ; check units, if latency is greater than 999ns, print us
+  mov   rdi, [rsp+0x8]
+  cmp   rdi, 1000
+  jl    .log
+
+.get_us:
+  ; divide by 1000 and print us
+  xor   rdx, rdx
+  mov   rax, [rsp+0x8]
+  mov   rbx, 1000
+  div   rbx
+
+  mov   [rsp+0x8], rax
+  mov   qword [rsp+0x10], us_str
+
+.log:
   ; convert number to string
   mov   rdi, [rsp+0x8]
-  lea   rsi, [rsp+0x10]
+  lea   rsi, [rsp+0x18]
   mov   rdx, UNSIGNED_LONG_MAX_STR_SIZE
   call  itoa
   cmp   rax, 0
@@ -262,7 +280,7 @@ log_latency:
 
   ; print unit
   mov   rdi, [rsp]
-  mov   rsi, ns_str
+  mov   rsi, [rsp+0x10]
   call  log
   cmp   rax, 0
   jl    .error
@@ -276,5 +294,5 @@ log_latency:
 
 .return:
   add   rsp, UNSIGNED_LONG_MAX_STR_SIZE
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
