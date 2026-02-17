@@ -47,8 +47,10 @@ section .data
 
   days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 
-  ns_str db "ns", NULL_CHAR
-  us_str db MICRO_FIRST, MICRO_SECOND, "s", NULL_CHAR
+  ns_str  db "ns", NULL_CHAR
+  us_str  db MICRO_FIRST, MICRO_SECOND, "s", NULL_CHAR
+  ms_str  db "ms", NULL_CHAR
+  s_str   db "s", NULL_CHAR
 
 section .text
 ; convert unix to date

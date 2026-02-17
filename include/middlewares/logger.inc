@@ -248,19 +248,47 @@ log_latency:
   jl    .error
 
   ; check units, if latency is greater than 999ns, print us
-  mov   rdi, [rsp+0x8]
-  cmp   rdi, 1000
+  cmp   qword [rsp+0x8], 1000
   jl    .log
 
 .get_us:
-  ; divide by 1000 and print us
+  ; divide by 1000 and get us
   xor   rdx, rdx
   mov   rax, [rsp+0x8]
   mov   rbx, 1000
   div   rbx
 
   mov   [rsp+0x8], rax
+
   mov   qword [rsp+0x10], us_str
+
+  cmp   qword [rsp+0x8], 1000
+  jl    .log
+
+.get_ms:
+  ; divide by 1000 and get ms
+  xor   rdx, rdx
+  mov   rax, [rsp+0x8]
+  mov   rbx, 1000
+  div   rbx
+
+  mov   [rsp+0x8], rax
+
+  mov   qword [rsp+0x10], ms_str
+
+  cmp   qword [rsp+0x8], 1000
+  jl    .log
+
+.get_s:
+  ; divide by 1000 and get s
+  xor   rdx, rdx
+  mov   rax, [rsp+0x8]
+  mov   rbx, 1000
+  div   rbx
+
+  mov   [rsp+0x8], rax
+
+  mov   qword [rsp+0x10], s_str
 
 .log:
   ; convert number to string
