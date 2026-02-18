@@ -1000,7 +1000,11 @@ parse_request:
 
   mov   rdi, [rsp+0x28]
   add   rdi, rax
-  inc   rdi       ; go after the '?'
+
+  ; add \0 at the end of the url before the query param
+  mov   rax, NULL_CHAR
+  stosb
+
   call  parse_query_param
   cmp   rax, 0
   jl    .error

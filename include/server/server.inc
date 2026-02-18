@@ -579,7 +579,8 @@ server_run:
   mov   [rsp+0x30], rax
 
   ; compare it with the fd of the server
-  cmp   qword [rsp+0x8], rax
+  mov   rdi, [rsp+0x30]
+  cmp   qword [rsp+0x8], rdi
   jne   .process_request
 
   ; accept new connection
@@ -604,16 +605,14 @@ server_run:
   cmp   rax, 0
   jl    .error
 
-  inc   qword [rsp+0x28]
-
-  jmp   .inner_loop
+  jmp   .next
 
 .process_request:
   ; create a new client
   mov   rdi, [rsp+0x30]
   call  client_init
   cmp   rax, 0
-  jl    .skip_ctx
+  jl    .next
 
   mov   [rsp+0x38], rax
 
@@ -629,13 +628,7 @@ server_run:
   cmp   rax, 0
   jl    .error
 
-.skip_ctx:
-  ; reset pointer
-  mov   qword [rsp+0x38], 0
-
-  inc   qword [rsp+0x28]
-
-  jmp   .inner_loop
+  jmp   .next
 
 .clear_fd:
   mov   rdi, [rsp+0x10]
@@ -655,6 +648,7 @@ server_run:
   cmp   rax, 0
   jl    .error
 
+.next:
   ; reset pointer
   mov   qword [rsp+0x38], 0
 

@@ -149,7 +149,7 @@ route_get_callback:
 ; @param  rsi: pointer to route
 ; @param  rax: (bool) route corresponds to the request
 route_match_request:
-  sub   rsp, 0x30
+  sub   rsp, 0x38
 
   cmp   rdi, 0
   jl    .error
@@ -163,6 +163,7 @@ route_match_request:
   ; [rsp+0x10]  -> pointer to request url
   ; [rsp+0x18]  -> '?' position if query parameters
   ; [rsp+0x20]  -> pointer to request url without query parameters
+  ; [rsp+0x28]  -> pointer to curr route url
   ; [rsp+0x30]  -> result
 
   mov   [rsp], rdi
@@ -207,27 +208,45 @@ route_match_request:
 
   mov   [rsp+0x20], rax
 
-  mov   rdi, [rsp+0x20]
-  mov   [rsp+0x10], rdi
+  jmp   .compare_urls
 
 .no_query:
+  ; malloc new url for lower
+  mov   rdi, [rsp+0x10]
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+.compare_urls:
+  ; urls to lower
+  mov   rdi, [rsp+0x20]
+  call  to_lower
+  cmp   rax, 0
+  jl    .error
+
   ; check if compared route is a wild card
-  mov   rsi, [rsp+0x8]
-  mov   rdi, [rsi+ROUTE_OFF_URL]
+  mov   rdi, [rsp+0x8]
+  call  route_get_url
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  mov   rdi, [rsp+0x28]
   call  route_is_wildcard
   cmp   rax, TRUE
   je    .match_wildcard
 
   ; check if compared route is a dynamic route
-  mov   rsi, [rsp+0x8]
-  mov   rdi, [rsi+ROUTE_OFF_URL]
+  mov   rdi, [rsp+0x28]
   call  route_is_dynamic
   cmp   rax, TRUE
   je    .match_dynamic
 
-  mov   rdi, [rsp+0x10]
-  mov   rdx, [rsp+0x8]
-  mov   rsi, [rdx+ROUTE_OFF_URL]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x28]
   call  strcmp
   cmp   rax, 0
   jl    .error
@@ -238,7 +257,7 @@ route_match_request:
 .match_dynamic:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]
-  mov   rdx, [rsp+0x10]
+  mov   rdx, [rsp+0x20]
   call  route_match_dynamic
   cmp   rax, 0
   jl    .error
@@ -248,24 +267,24 @@ route_match_request:
 
 .match_wildcard:
   mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x10]
+  mov   rsi, [rsp+0x20]
   call  route_match_wildcard
   cmp   rax, 0
   jl    .error
   je    .not_the_same
 
 .equal:
-  mov   qword [rsp+0x28], TRUE
+  mov   qword [rsp+0x30], TRUE
 
   jmp   .return
 
 .not_the_same:
-  mov   qword [rsp+0x28], FALSE
+  mov   qword [rsp+0x30], FALSE
 
   jmp   .return
 
 .error:
-  mov   qword [rsp+0x28], FAILURE_CODE
+  mov   qword [rsp+0x30], FAILURE_CODE
 
 .return:
   ; free duplicated route without query
@@ -276,9 +295,9 @@ route_match_request:
   call  free
 
 .no_free:
-  mov   rax, qword [rsp+0x28]
+  mov   rax, qword [rsp+0x30]
 
-  add   rsp, 0x30
+  add   rsp, 0x38
   ret
 
 ; create a route serving files located in a specified dir
@@ -623,8 +642,14 @@ route_add:
 
   mov   [rsp+0x38], rax
 
+  ; route to lower
+  mov   rdi, [rsp+0x10]
+  call  to_lower
+  cmp   rax, 0
+  jl    .error
+
   ; copy url
-  mov   rdi, rax
+  mov   rdi, [rsp+0x38]
   mov   rsi, [rsp+0x10]
   mov   rcx, [rsp+0x30]
   rep   movsb
