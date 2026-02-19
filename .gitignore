@@ -13,3 +13,4 @@ ERROR.md
 venv/
 .venv/
 service.md
+.env

@@ -9,9 +9,15 @@ herve dq 0
 
 PORT equ 5000
 
+env_ht dq 0
+
 section .text
 
 _start:
+  ; read env var
+  mov   rdi, NO_ARG
+  call  env_read
+
   ; init server
   mov   rdi, PORT
   call  server_init
