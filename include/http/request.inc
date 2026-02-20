@@ -176,7 +176,7 @@ set_request_proto:
 ; @param  rdi: pointer to the request
 ; @param  rsi: pointer to the headers
 ; @return rax: return code
-set_request_headers:
+request_set_headers:
   cmp   rdi, 0
   jle   .error
 
@@ -232,7 +232,7 @@ parse_form_data:
 
   ; get headers of the request
   mov   rdi, [rsp]
-  call  get_request_headers
+  call  request_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -940,7 +940,7 @@ parse_request:
   ; save headers
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  set_request_headers
+  call  request_set_headers
   cmp   rax, 0
   jl    .error
 
@@ -1084,7 +1084,7 @@ verify_request:
 
   ; check if the host header is present in the request
   mov   rdi, [rsp+0x18]
-  call  get_request_headers
+  call  request_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -1221,7 +1221,7 @@ free_request:
 
 .free_headers:
   mov   rdi, [rsp]
-  call  get_request_headers
+  call  request_get_headers
   cmp   rax, 0
   jl    .error
   je    .free_body
@@ -1319,7 +1319,7 @@ get_request_proto:
 ; returns the pointer to the headers of the request
 ; @param  rdi: pointer to request
 ; @return rax: pointer to request headers
-get_request_headers:
+request_get_headers:
   cmp   rdi, 0
   jle   .error
 

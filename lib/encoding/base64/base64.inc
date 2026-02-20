@@ -244,9 +244,10 @@ base64_encode:
   add   rsp, 0x40
   ret
 
-; decodes base64 encoded string, developer is responsible of freeing the string
+; decodes base64 encoded string,
+; developer is responsible for freeing the string
 ; @param  rdi: Pointer to a NULL-terminated Base64 encoded string.
-; @return rax: Pointer to the newly allocated decoded string (or FAILURE_CODE)
+; @return rax: Pointer to the newly allocated decoded string
 base64_decode:
   sub   rsp, 0x48
 

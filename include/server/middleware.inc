@@ -9,14 +9,15 @@ middleware_t:
 middleware_t_end:
 
 section .data
-  MIDDLEWARE_STRUCT_LEN equ middleware_t_end - middleware_t
 
-  MIDDLEWARE_OFF_ADDR     equ 0x0
-  MIDDLEWARE_OFF_ARG1     equ MIDDLEWARE_OFF_ADDR + 0x8
-  MIDDLEWARE_OFF_ARG2     equ MIDDLEWARE_OFF_ARG1 + 0x8
-  MIDDLEWARE_OFF_ARG3     equ MIDDLEWARE_OFF_ARG2 + 0x8
-  MIDDLEWARE_OFF_NEXT     equ MIDDLEWARE_OFF_ARG3 + 0x8
-  MIDDLEWARE_OFF_POST_REQ equ MIDDLEWARE_OFF_NEXT + 0x8
+MIDDLEWARE_STRUCT_LEN equ middleware_t_end - middleware_t
+
+MIDDLEWARE_OFF_ADDR     equ 0x0
+MIDDLEWARE_OFF_ARG1     equ MIDDLEWARE_OFF_ADDR + 0x8
+MIDDLEWARE_OFF_ARG2     equ MIDDLEWARE_OFF_ARG1 + 0x8
+MIDDLEWARE_OFF_ARG3     equ MIDDLEWARE_OFF_ARG2 + 0x8
+MIDDLEWARE_OFF_NEXT     equ MIDDLEWARE_OFF_ARG3 + 0x8
+MIDDLEWARE_OFF_POST_REQ equ MIDDLEWARE_OFF_NEXT + 0x8
 
 section .text
 ; creates a middleware structure - dev is responsible of freeing

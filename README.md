@@ -41,17 +41,25 @@ By default, Herve listens on port 5000.
 
 ## Service Management API
 
+### Authorization
+
+For each request, it is necessary to include the `Authorization` header with `username:password` using Basic64 encoding. This value is to be set in the `.env` file that you need to create. An example has been provided in this repository.
+
+This is a basic, simple authentication process as a base before implementing an authentication provider service.
+
 ### Register a service
 
 ```bash
 curl -X POST http://localhost:5000/services/register \
   -d "name=my-service&type=echo"
+  -u "username:password"
 ```
 
 ### List services
 
 ```bash
-curl http://localhost:5000/services
+curl http://localhost:5000/services \
+  -u "username:password"
 ```
 
 Returns all registered services with their id, name, type, and status.
@@ -59,19 +67,22 @@ Returns all registered services with their id, name, type, and status.
 ### Unregister a service
 
 ```bash
-curl -X POST http://localhost:5000/services/:id/unregister
+curl -X POST http://localhost:5000/services/:id/unregister \
+  -u "username:password"
 ```
 
 ### Start a service
 
 ```bash
-curl -X POST http://localhost:5000/services/:id/start
+curl -X POST http://localhost:5000/services/:id/start \
+  -u "username:password"
 ```
 
 ### Stop a service
 
 ```bash
-curl -X POST http://localhost:5000/services/:id/stop
+curl -X POST http://localhost:5000/services/:id/stop \
+  -u "username:password"
 ```
 
 ## Creating Custom Services

@@ -1,3 +1,4 @@
+%include "auth.inc"
 %include "herve.inc"
 %include "service.inc"
 
@@ -18,6 +19,8 @@ _start:
   mov   rdi, NO_ARG
   call  env_read
 
+  mov   [env_ht], rax
+
   ; init server
   mov   rdi, PORT
   call  server_init
@@ -28,6 +31,12 @@ _start:
 
   mov   rdi, [herve]
   call  server_enable_logger
+  cmp   rax, 0
+  jl    .error
+
+  ; add auth middleware
+  mov   rdi, [herve]
+  call  svc_auth_middleware
   cmp   rax, 0
   jl    .error
 
