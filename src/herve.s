@@ -1,4 +1,3 @@
-%include "auth.inc"
 %include "herve.inc"
 %include "service.inc"
 
