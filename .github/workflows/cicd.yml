@@ -22,6 +22,7 @@ jobs:
 
       - name: Build and run herve
         run: |
+          cp .env.example .env
           make run &
           echo $! > server.pid
           sleep 2
@@ -192,6 +193,7 @@ jobs:
 
       - name: Start herve
         run: |
+          cp .env.example .env
           ./bin/herve &
           echo $! > herve.pid
           sleep 2
