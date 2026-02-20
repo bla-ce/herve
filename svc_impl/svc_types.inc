@@ -1,3 +1,4 @@
+%include "auth_service.s"
 %include "echo_service.s"
 %include "ping_service.s"
 
@@ -6,6 +7,7 @@ section .data
 SVC_TYPES:
   .ECHO db "echo", NULL_CHAR
   .PING db "ping", NULL_CHAR
+  .AUTH db "auth", NULL_CHAR
 
 section .text
 
@@ -85,9 +87,22 @@ svc_get_from_str_type:
   cmp   rax, 0
   jl    .error
   cmp   rax, TRUE
-  jne   .test_ping
+  jne   .test_auth
 
   mov   rax, echo_svc_t
+
+  jmp   .return
+
+.test_auth:
+  mov   rdi, [rsp]
+  mov   rsi, SVC_TYPES.AUTH
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, TRUE
+  jne   .test_ping
+
+  mov   rax, auth_svc_t
 
   jmp   .return
 

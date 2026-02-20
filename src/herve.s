@@ -34,12 +34,6 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; add auth middleware
-  mov   rdi, [herve]
-  call  svc_auth_middleware
-  cmp   rax, 0
-  jl    .error
-
   ; create service endpoints
   mov   rdi, [herve]
   mov   rsi, POST

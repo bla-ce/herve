@@ -2,7 +2,6 @@
 set -euo pipefail
 
 URL="http://localhost:5000"
-AUTH="-u username:password"
 
 echo "=== Service API Tests ==="
 echo ""
@@ -12,7 +11,7 @@ echo ""
 # =============================================================================
 echo "--- Health Check ---"
 
-status_code=$(curl -s $AUTH -w "\n%{http_code}" $URL/health | tail -n1)
+status_code=$(curl -s -w "\n%{http_code}" $URL/health | tail -n1)
 
 if [ "$status_code" == "200" ]; then
   echo "PASSED: Application is running"
@@ -28,7 +27,7 @@ echo ""
 echo "--- Initial State ---"
 
 # Get services list (should be empty)
-response=$(curl -s $AUTH -w "\n%{http_code}" $URL/services)
+response=$(curl -s -w "\n%{http_code}" $URL/services)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 length=$(echo "$body" | jq -r '.data | length')
@@ -43,7 +42,7 @@ else
 fi
 
 # Try to echo to service 0 before it exists (should fail)
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/0/echo -d "yo")
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/0/echo -d "yo")
 status_code=$(echo "$response" | tail -n1)
 
 if [ "$status_code" == "404" ]; then
@@ -62,7 +61,7 @@ echo ""
 echo "--- Register Multiple Services ---"
 
 # Register first service
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/register \
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/register \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "name=service-alpha" \
   -d "type=echo")
@@ -80,7 +79,7 @@ else
 fi
 
 # Register second service
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/register \
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/register \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "name=service-beta" \
   -d "type=echo")
@@ -98,7 +97,7 @@ else
 fi
 
 # Register third service
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/register \
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/register \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "name=service-gamma" \
   -d "type=echo")
@@ -121,7 +120,7 @@ fi
 echo ""
 echo "--- Verify Services List ---"
 
-response=$(curl -s $AUTH -w "\n%{http_code}" $URL/services)
+response=$(curl -s -w "\n%{http_code}" $URL/services)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 length=$(echo "$body" | jq -r '.data | length')
@@ -155,7 +154,7 @@ fi
 echo ""
 echo "--- Service Before Start ---"
 
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/0/echo -d "test")
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/0/echo -d "test")
 status_code=$(echo "$response" | tail -n1)
 
 if [ "$status_code" == "404" ]; then
@@ -174,7 +173,7 @@ echo ""
 echo "--- Start Multiple Services ---"
 
 # Start service 0
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/0/start)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/0/start)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -189,7 +188,7 @@ else
 fi
 
 # Start service 1
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/1/start)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/1/start)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -209,7 +208,7 @@ fi
 echo ""
 echo "--- Verify Status After Start ---"
 
-response=$(curl -s $AUTH -w "\n%{http_code}" $URL/services)
+response=$(curl -s -w "\n%{http_code}" $URL/services)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 status_0=$(echo "$body" | jq -r '.data[0].status')
@@ -232,7 +231,7 @@ echo ""
 echo "--- Echo to Running Services ---"
 
 # Echo to service 0
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/0/echo -d "hello from 0")
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/0/echo -d "hello from 0")
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 
@@ -246,7 +245,7 @@ else
 fi
 
 # Echo to service 1
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/1/echo -d "hello from 1")
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/1/echo -d "hello from 1")
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 
@@ -260,7 +259,7 @@ else
 fi
 
 # Echo to service 2 (not started, should fail)
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/2/echo -d "hello from 2")
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/2/echo -d "hello from 2")
 status_code=$(echo "$response" | tail -n1)
 
 if [ "$status_code" == "404" ]; then
@@ -279,7 +278,7 @@ echo ""
 echo "--- Stop Services ---"
 
 # Stop service 0
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/0/stop)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/0/stop)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -294,7 +293,7 @@ else
 fi
 
 # Verify service 0 is stopped
-response=$(curl -s $AUTH -w "\n%{http_code}" $URL/services)
+response=$(curl -s -w "\n%{http_code}" $URL/services)
 body=$(echo "$response" | head -n -1)
 status_0=$(echo "$body" | jq -r '.data[0].status')
 
@@ -308,7 +307,7 @@ else
 fi
 
 # Echo to stopped service 0 (should fail)
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/0/echo -d "test")
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/0/echo -d "test")
 status_code=$(echo "$response" | tail -n1)
 
 if [ "$status_code" == "404" ]; then
@@ -327,7 +326,7 @@ echo ""
 echo "--- Unregister Services ---"
 
 # Unregister service 2 (the one that was never started)
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/2/unregister)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/2/unregister)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -342,7 +341,7 @@ else
 fi
 
 # Verify we now have 2 services
-response=$(curl -s $AUTH -w "\n%{http_code}" $URL/services)
+response=$(curl -s -w "\n%{http_code}" $URL/services)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 length=$(echo "$body" | jq -r '.data | length')
@@ -357,7 +356,7 @@ else
 fi
 
 # Stop service 1
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/1/stop)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/1/stop)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -372,7 +371,7 @@ else
 fi
 
 # Unregister service 1 (was stopped)
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/1/unregister)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/1/unregister)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -387,7 +386,7 @@ else
 fi
 
 # Verify we now have 1 service
-response=$(curl -s $AUTH -w "\n%{http_code}" $URL/services)
+response=$(curl -s -w "\n%{http_code}" $URL/services)
 body=$(echo "$response" | head -n -1)
 length=$(echo "$body" | jq -r '.data | length')
 
@@ -401,7 +400,7 @@ else
 fi
 
 # Unregister service 0 (was stopped)
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/0/unregister)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/0/unregister)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -421,7 +420,7 @@ fi
 echo ""
 echo "--- Verify Empty State ---"
 
-response=$(curl -s $AUTH -w "\n%{http_code}" $URL/services)
+response=$(curl -s -w "\n%{http_code}" $URL/services)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 length=$(echo "$body" | jq -r '.data | length')
@@ -436,7 +435,7 @@ else
 fi
 
 # Try to unregister non-existent service
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/0/unregister)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/0/unregister)
 status_code=$(echo "$response" | tail -n1)
 
 if [ "$status_code" == "404" ]; then
@@ -455,7 +454,7 @@ echo ""
 echo "--- Re-register and Test Fresh State ---"
 
 # Register a new service after clearing all
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/register \
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/register \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "name=fresh-service" \
   -d "type=echo")
@@ -473,7 +472,7 @@ else
 fi
 
 # Start and test the fresh service
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/services/3/start)
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/services/3/start)
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -488,7 +487,7 @@ else
 fi
 
 # Echo to fresh service
-response=$(curl -s $AUTH -w "\n%{http_code}" -X POST $URL/3/echo -d "fresh echo")
+response=$(curl -s -w "\n%{http_code}" -X POST $URL/3/echo -d "fresh echo")
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 
