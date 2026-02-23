@@ -6,10 +6,11 @@ global _start
 section .data
 
 herve dq 0
-
-PORT equ 5000
+port  dq 0
 
 env_ht dq 0
+
+env_port_key db "PORT", NULL_CHAR
 
 section .text
 
@@ -20,8 +21,23 @@ _start:
 
   mov   [env_ht], rax
 
+  ; get port from .env file
+  mov   rdi, [env_ht]
+  mov   rsi, env_port_key
+  call  ht_get
+  cmp   rax, 0
+  jl    .init
+
+  mov   rdi, rax
+  call  stoi
+  cmp   rax, 0
+  jl    .init
+
+  mov   [port], rax
+
+.init:
   ; init server
-  mov   rdi, PORT
+  mov   rdi, [port]
   call  server_init
   cmp   rax, 0
   jl    .error

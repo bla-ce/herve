@@ -6,7 +6,7 @@ server_t:
   .404_handler  resq 1  ; pointer to the 404 handler
   .sockaddr     resq 1  ; pointer to sockaddr struct
   .groups       resq 1  ; pointer to groups linked list
-  .port         resw 1  ; port
+  .port         resq 1  ; port
 server_t_end:
 
 section .data
@@ -348,13 +348,13 @@ server_set_port:
   jl    .error
 
   ; check if port is in bounds
-  cmp   esi, PORT_MIN
+  cmp   rsi, PORT_MIN
   jl    .error
 
-  cmp   esi, PORT_MAX
+  cmp   rsi, PORT_MAX
   jg    .error
 
-  mov   dword [rdi+SERVER_OFF_PORT], esi
+  mov   qword [rdi+SERVER_OFF_PORT], rsi
 
   mov   rax, SUCCESS_CODE
   jmp   .return

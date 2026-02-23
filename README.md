@@ -37,7 +37,7 @@ The binary will be available at `bin/herve`.
 ./bin/herve
 ```
 
-By default, Herve listens on port 5000.
+By default, Herve listens on port 5000, but you can update the listening port with the `PORT` environment variable.
 
 ## Service Management API
 
