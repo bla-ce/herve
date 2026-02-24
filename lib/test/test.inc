@@ -141,6 +141,7 @@ assert_string_not_equal:
   call  exit
 
 .return:
+  add   rsp, 0x10
   ret
 
 ; tests that the value is 0
