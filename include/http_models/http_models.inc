@@ -888,7 +888,7 @@ model_http_response:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x38]
-  call  send_JSON
+  call  send_json
   cmp   rax, 0
   jl    .error
 

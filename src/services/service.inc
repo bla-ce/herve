@@ -590,7 +590,7 @@ service_return_json:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, rax
-  call  send_JSON
+  call  send_json
   cmp   rax, 0
   jl    .error
 

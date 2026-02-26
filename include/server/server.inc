@@ -784,7 +784,7 @@ health_check:
   mov   rdi, [rsp]
   mov   rsi, OK
   mov   rdx, [rsp+0x8]
-  call  send_JSON
+  call  send_json
   cmp   rax, 0
   jl    .error
 
@@ -845,7 +845,7 @@ health_check:
   mov   rdi, [rsp]
   mov   rsi, INTERNAL_SERVER_ERROR
   mov   rdx, [rsp+0x8]
-  call  send_JSON
+  call  send_json
   cmp   rax, 0
   jl    .error
 

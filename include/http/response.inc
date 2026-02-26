@@ -631,7 +631,7 @@ send_no_content:
 ; @param  rsi: status code
 ; @param  rdx: pointer to the json
 ; @return rax: return code
-send_JSON:
+send_json:
   sub   rsp, 0x40
 
   ; STACK USAGE
@@ -766,7 +766,7 @@ send_JSON:
 ; @param  rsi: status code
 ; @param  rdx: pointer to the HTML
 ; @return rax: return code
-send_HTML:
+send_html:
   sub   rsp, 0x40
 
   ; STACK USAGE
