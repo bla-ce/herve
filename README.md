@@ -39,19 +39,34 @@ The binary will be available at `bin/herve`.
 
 By default, Herve listens on port 5000, but you can update the listening port with the `PORT` environment variable.
 
+### Authentication
+
+Herve requires basic authentication for the Service Management API. Set the following environment variables:
+
+```bash
+AUTH_ADMIN_ID=admin
+AUTH_ADMIN_SECRET=password
+```
+
+All requests to the API must include the `Authorization` header with valid Basic Auth credentials.
+
+> [!NOTE]
+> Yes, I know this implementation is not secure (yet). But I'm implementing authentication in raw Assembly, I am not centering a div here. We'll get to the fancy stuff eventually (SPOIL: I am implementing bcrypt in x86).
+
 ## Service Management API
 
 ### Register a service
 
 ```bash
 curl -X POST http://localhost:5000/services/register \
+  -u admin:password \
   -d "name=my-service&type=echo"
 ```
 
 ### List services
 
 ```bash
-curl http://localhost:5000/services
+curl -u admin:password http://localhost:5000/services
 ```
 
 Returns all registered services with their id, name, type, and status.
@@ -59,19 +74,19 @@ Returns all registered services with their id, name, type, and status.
 ### Unregister a service
 
 ```bash
-curl -X POST http://localhost:5000/services/:id/unregister
+curl -X POST -u admin:password http://localhost:5000/services/:id/unregister
 ```
 
 ### Start a service
 
 ```bash
-curl -X POST http://localhost:5000/services/:id/start
+curl -X POST -u admin:password http://localhost:5000/services/:id/start
 ```
 
 ### Stop a service
 
 ```bash
-curl -X POST http://localhost:5000/services/:id/stop
+curl -X POST -u admin:password http://localhost:5000/services/:id/stop
 ```
 
 ## Creating Custom Services

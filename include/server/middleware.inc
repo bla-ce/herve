@@ -4,8 +4,8 @@ middleware_t:
   .arg1     resq 1
   .arg2     resq 1
   .arg3     resq 1
-  .next     resq 1
   .post_req resq 1
+  .next     resq 1
 middleware_t_end:
 
 section .data
@@ -16,8 +16,8 @@ MIDDLEWARE_OFF_ADDR     equ 0x0
 MIDDLEWARE_OFF_ARG1     equ MIDDLEWARE_OFF_ADDR + 0x8
 MIDDLEWARE_OFF_ARG2     equ MIDDLEWARE_OFF_ARG1 + 0x8
 MIDDLEWARE_OFF_ARG3     equ MIDDLEWARE_OFF_ARG2 + 0x8
-MIDDLEWARE_OFF_NEXT     equ MIDDLEWARE_OFF_ARG3 + 0x8
-MIDDLEWARE_OFF_POST_REQ equ MIDDLEWARE_OFF_NEXT + 0x8
+MIDDLEWARE_OFF_POST_REQ equ MIDDLEWARE_OFF_ARG3 + 0x8
+MIDDLEWARE_OFF_NEXT     equ MIDDLEWARE_OFF_POST_REQ + 0x8
 
 section .text
 ; creates a middleware structure - dev is responsible of freeing
@@ -65,6 +65,7 @@ middleware_create:
   mov   qword [rax+MIDDLEWARE_OFF_ARG2], rdx
   mov   qword [rax+MIDDLEWARE_OFF_ARG3], rcx
   mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], r9
+  mov   qword [rax+MIDDLEWARE_OFF_NEXT], 0
 
   jmp   .return
 
@@ -180,12 +181,11 @@ middleware_run_chain:
   call  group_get_middleware
   cmp   rax, 0
   jl    .error
-  je    .end
 
-  mov   rdi, rax
+  mov   [rsp+0x18], rax
 
 .loop:
-  mov   [rsp+0x18], rdi
+  mov   rdi, [rsp+0x18]
   mov   rax, qword [rdi+MIDDLEWARE_OFF_POST_REQ]
   mov   rbx, qword [rsp+0x10]
   cmp   rax, rbx
@@ -193,20 +193,17 @@ middleware_run_chain:
 
   ; rdi contains the address of middleware_struct
   mov   rax, [rdi+MIDDLEWARE_OFF_ADDR]
-  mov   [rsp+0x18], rdi
   mov   rsi, [rdi+MIDDLEWARE_OFF_ARG1]  ; load first argument
   mov   rdx, [rdi+MIDDLEWARE_OFF_ARG2]  ; load second argument
   mov   rcx, [rdi+MIDDLEWARE_OFF_ARG3]  ; load third argument
   mov   rdi, [rsp+0x8]
   call  rax
-  cmp   rax, 0
-  jl    .error
 
-  ; check if the contxt has been aborted
+  ; check if the context has been aborted
   mov   rdi, [rsp+0x8]
   call  ctx_is_aborted
   cmp   rax, TRUE
-  je    .return
+  je    .end
 
 .skip:
   mov   rdi, [rsp+0x18]  ; load address of middleware struct
@@ -218,7 +215,8 @@ middleware_run_chain:
   ; rdi contains the address of next
   ; needs to contains the address pointer by next
   mov   rsi, [rdi]
-  mov   rdi, rsi
+
+  mov   [rsp+0x18], rsi
 
   jmp   .loop
 

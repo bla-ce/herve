@@ -12,6 +12,13 @@ env_ht dq 0
 
 env_port_key db "PORT", NULL_CHAR
 
+env_username_key db "AUTH_ADMIN_ID", NULL_CHAR
+env_password_key db "AUTH_ADMIN_SECRET", NULL_CHAR
+
+; YES, I KNOW, THIS IS NOT SECURE. Let's start simple, shall we?
+username  dq 0
+password  dq 0
+
 section .text
 
 _start:
@@ -46,6 +53,42 @@ _start:
 
   mov   rdi, [herve]
   call  server_enable_logger
+  cmp   rax, 0
+  jl    .error
+
+  ; get username from .env
+  mov   rdi, [env_ht]
+  mov   rsi, env_username_key
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  mov   [username], rax
+
+  ; get password from .env
+  mov   rdi, [env_ht]
+  mov   rsi, env_password_key
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  mov   [password], rax
+
+  ; create basic auth middleware
+  mov   rdi, basic_auth_middleware
+  mov		rsi, [username]
+  mov		rdx, [password]
+  mov		rcx, NO_ARG
+  mov   r9, FALSE
+  call  middleware_create
+  cmp   rax, 0
+  jl    .error
+
+  ; add middleware
+  mov   rdi, [herve]
+  mov   rsi, NO_ARG
+  mov   rdx, rax
+  call  middleware_add
   cmp   rax, 0
   jl    .error
 

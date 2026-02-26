@@ -92,12 +92,6 @@ ctx_process_request:
   mov   rdx, FALSE      ; pre request middlewares
   call  middleware_run_chain
 
-  ; check if ctx has been aborted
-  mov   rdi, [rsp+0x10]
-  call  ctx_is_aborted
-  cmp   rax, TRUE
-  je    .post_request_middlewares
-
   ; get the corresponding group from the url
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
