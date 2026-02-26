@@ -19,7 +19,7 @@ You can use the built-in services or create your own. As long as your service im
 
 To gain a deeper knowledge of computer architecture, networking and how the CPU works at the instruction level, I wanted to build projects in Assembly, so I decided to write a HTTP server library.
 
-After one year and ~28,500 lines of Assembly code, I decided to move away from a library to an actual project. The goal: a cloud platform in x86 to compete (lol) against AWS, GCP, Azure and so on.
+After one year and ~30,000 lines of Assembly code, I decided to move away from a library to an actual project. The goal: a cloud platform in x86 to compete (lol) against AWS, GCP, Azure and so on.
 
 ## Building
 
@@ -51,7 +51,7 @@ AUTH_ADMIN_SECRET=password
 All requests to the API must include the `Authorization` header with valid Basic Auth credentials.
 
 > [!NOTE]
-> Yes, I know this implementation is not secure (yet). But I'm implementing authentication in raw Assembly, I am not centering a div here. We'll get to the fancy stuff eventually (SPOIL: I am implementing bcrypt in x86).
+> Yes, I know this implementation is not secure (yet). But hey, I'm implementing authentication in raw Assembly, not centering a div in React. We'll get to the fancy stuff eventually (SPOIL: I am implementing bcrypt in x86).
 
 ## Service Management API
 
