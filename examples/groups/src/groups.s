@@ -45,14 +45,14 @@ _start:
   mov		rdx, NO_ARG
   mov		rcx, NO_ARG
   mov   r9, FALSE
-  call  create_middleware
+  call  middleware_create
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [server]
   mov   rsi, [public_group]
   mov   rdx, rax
-  call  add_middleware
+  call  middleware_add
   cmp   rax, 0
   jl    .error
 
@@ -71,14 +71,14 @@ _start:
   mov		rdx, NO_ARG
   mov		rcx, NO_ARG
   mov   r9, FALSE
-  call  create_middleware
+  call  middleware_create
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [server]
   mov   rsi, [internal_group]
   mov   rdx, rax
-  call  add_middleware
+  call  middleware_add
   cmp   rax, 0
   jl    .error
 

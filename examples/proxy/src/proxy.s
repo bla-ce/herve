@@ -126,14 +126,14 @@ _start:
   mov   rdx, WEIGHTED_ROUND_ROBIN_IP
   mov   rcx, 2
   mov   r9, FALSE
-  call  create_middleware
+  call  middleware_create
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [proxy]
   mov   rsi, [target1_group]
   mov   rdx, rax
-  call  add_middleware
+  call  middleware_add
   cmp   rax, 0
   jl    .error
 
@@ -143,14 +143,14 @@ _start:
   mov   rdx, ROUND_ROBIN_IP
   mov   rcx, 1
   mov   r9, FALSE
-  call  create_middleware
+  call  middleware_create
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [proxy]
   mov   rsi, [target2_group]
   mov   rdx, rax
-  call  add_middleware
+  call  middleware_add
   cmp   rax, 0
   jl    .error
 

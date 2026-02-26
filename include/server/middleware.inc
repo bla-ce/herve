@@ -28,7 +28,7 @@ section .text
 ; @param  rcx: arg3
 ; @param  r9: post request (boolean)
 ; @return rax: pointer to the middleware
-create_middleware:
+middleware_create:
   sub   rsp, 0x28
 
   ; STACK USAGE
@@ -80,7 +80,7 @@ create_middleware:
 ; @param  rsi: pointer to the group or 0 if root
 ; @param  rdx: pointer to a middleware struct
 ; @return rax: return code
-add_middleware:
+middleware_add:
   sub   rsp, 0x18
 
   ; STACK USAGE
@@ -157,7 +157,7 @@ add_middleware:
 ; @param  rsi: pointer to context struct
 ; @param  rdx: run post middlewares (bool)
 ; @return rax: return code
-run_middlewares:
+middleware_run_chain:
   sub   rsp, 0x20
 
   ; STACK USAGE

@@ -25,7 +25,7 @@ get_logger_middleware:
   mov   rdx, 0xFF
   mov   rcx, 0
   mov   r9, TRUE
-  call  create_middleware
+  call  middleware_create
   cmp   rax, 0
   jl    .error
 

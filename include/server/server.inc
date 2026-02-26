@@ -132,7 +132,7 @@ server_enable_logger:
   mov   rdi, [rsp]
   mov		rsi, NO_ARG
   mov   rdx, [rsp+0x8]
-  call  add_middleware
+  call  middleware_add
   cmp   rax, 0
   jl    .error
 
@@ -524,6 +524,11 @@ server_run:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [rsp]
+  call  log_server_init
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x8]
   call  epoll_init
   cmp   rax, 0
@@ -539,11 +544,6 @@ server_run:
   jl    .error
 
   mov   [rsp+0x18], rax
-
-  mov   rdi, [rsp]
-  call  log_server_init
-  cmp   rax, 0
-  jl    .error
 
 .loop:
   mov   rdi, [rsp+0x10]

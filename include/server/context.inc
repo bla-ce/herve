@@ -90,7 +90,13 @@ ctx_process_request:
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
   mov   rdx, FALSE      ; pre request middlewares
-  call  run_middlewares
+  call  middleware_run_chain
+
+  ; check if ctx has been aborted
+  mov   rdi, [rsp+0x10]
+  call  ctx_is_aborted
+  cmp   rax, TRUE
+  je    .post_request_middlewares
 
   ; get the corresponding group from the url
   mov   rdi, [rsp]
@@ -112,7 +118,7 @@ ctx_process_request:
   mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x10]
   mov   rdx, FALSE
-  call  run_middlewares
+  call  middleware_run_chain
 
 .no_group_pre_middlewares:
   ; check if ctx has been aborted
@@ -188,7 +194,7 @@ ctx_process_request:
   mov   rdi, rax
   mov   rsi, [rsp+0x10]
   mov   rdx, TRUE
-  call  run_middlewares
+  call  middleware_run_chain
 
   cmp   qword [rsp+0x20], 0
   je    .ctx_free
@@ -197,7 +203,7 @@ ctx_process_request:
   mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x10]
   mov   rdx, TRUE
-  call  run_middlewares
+  call  middleware_run_chain
 
 .ctx_free:
   mov   rdi, [rsp+0x10]
