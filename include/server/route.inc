@@ -1541,3 +1541,20 @@ route_set_arg1:
 
 .return:
   ret
+
+; return whether the route is active or not
+; @param  rdi: pointer to the route
+; @return rax: route is active
+route_is_active:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_ACTIVE]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret

@@ -1117,7 +1117,10 @@ verify_request:
 .loop_end:
   ; check if the route is active
   mov   rdi, [rsp+0x20]
-  cmp   qword [rdi+ROUTE_OFF_ACTIVE], TRUE
+  call  route_is_active
+  cmp   rax, 0
+  jl    .internal_server_error
+  cmp   rax, TRUE
   jne   .not_found
 
   ; check if the group is active
