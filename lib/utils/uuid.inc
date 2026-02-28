@@ -150,10 +150,10 @@ uuid_to_str:
 
   mov   [rsp+0x18], rdi
 
-  ; endode 8-11
+  ; endode 8-9
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x18]
-  mov   rdx, 4
+  mov   rdx, 2
   call  hex_nencode
   cmp   rax, 0
   jl    .error
@@ -166,11 +166,11 @@ uuid_to_str:
 
   mov   [rsp+0x18], rdi
 
-  ; encode 12-15
+  ; encode 10-15
   mov   rdi, [rsp+0x8]
   shr   rdi, 16
   mov   rsi, [rsp+0x18]
-  mov   rdx, 8
+  mov   rdx, 6
   call  hex_nencode
   cmp   rax, 0
   jl    .error
@@ -185,6 +185,13 @@ uuid_to_str:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
