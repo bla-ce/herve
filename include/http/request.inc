@@ -1056,12 +1056,12 @@ verify_request:
   mov   [rsp], rdi
 
   cmp   rdi, 0
-  jle   .error
+  jle   .internal_server_error
 
   ; get context server
   call  ctx_get_server
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   mov   [rsp+0x8], rax
 
@@ -1069,17 +1069,17 @@ verify_request:
   mov   rdi, rax
   call  get_server_routes
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
   je    .not_found
 
-  ; save routes onto the stack
   mov   [rsp+0x10], rax
+  mov   [rsp+0x20], rax
 
   ; get ctx request
   mov   rdi, [rsp]
   call  ctx_get_request
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   mov   [rsp+0x18], rax
 
@@ -1087,34 +1087,33 @@ verify_request:
   mov   rdi, [rsp+0x18]
   call  request_get_headers
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
   mov   rdi, rax
   mov   rsi, HOST_HEADER
   call  ht_get
   cmp   rax, 0
-  jle   .error
-
-  mov   rsi, [rsp+0x10]
+  jle   .internal_server_error
 
 .loop:
-  ; save route onto the stack
-  mov   [rsp+0x20], rsi
-
   mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
   call  route_match_request
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
   jg    .loop_end ; route is valid
 
   ; go to next route in server ll
-  mov   rdx, [rsp+0x20]
-  mov   rsi, [rdx+ROUTE_OFF_SERVER_NEXT]
+  mov   rsi, [rsp+0x20]
+  mov   rdi, [rsi+ROUTE_OFF_SERVER_NEXT]
 
-  cmp   rsi, 0
+  cmp   rdi, 0
   je    .not_found
 
+  mov   [rsp+0x20], rdi
+
   jmp   .loop
+
 .loop_end:
   ; check if the route is active
   mov   rdi, [rsp+0x20]
@@ -1125,26 +1124,26 @@ verify_request:
   mov   rdi, [rsp+0x20]
   call  route_get_group
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
   je    .no_group
 
   mov   rdi, rax
   call  group_is_active
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
   cmp   rax, FALSE
-  je    .not_found
+  je    .route_not_found
 
 .no_group:
   mov   rax, [rsp+0x20]
   jmp   .return
 
-.not_found:
+.route_not_found:
   ; check if there is a 404 handler
   mov   rdi, [rsp+0x8]
   mov   rax, [rdi+SERVER_OFF_404_HANDLER]
   test  rax, rax
-  jz    .send_404
+  jz    .not_found
 
   mov   rdi, [rsp]
   call  rax
@@ -1157,30 +1156,27 @@ verify_request:
   mov   rax, SUCCESS_CODE
   jmp   .return
 
-.send_404:
-  ; send 404
-  mov   rdi, [rsp]
+.not_found:
   mov   rsi, NOT_FOUND
+  jmp   .send_response
+
+.internal_server_error:
+  mov   rsi, INTERNAL_SERVER_ERROR
+  jmp   .send_response
+
+.bad_request:
+  mov   rsi, BAD_REQUEST
+
+.send_response:
+  mov   rdi, [rsp]
   call  send_no_content
 
   mov   rdi, [rsp]
   call  ctx_abort
   cmp   rax, 0
   jl    .error
-
-  jmp   .return
 
 .error:
-  ; send bad request
-  mov   rdi, [rsp]
-  mov   rsi, BAD_REQUEST
-  call  send_no_content
-
-  mov   rdi, [rsp]
-  call  ctx_abort
-  cmp   rax, 0
-  jl    .error
-
   mov   rax, FAILURE_CODE
 
 .return:
