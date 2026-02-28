@@ -70,7 +70,7 @@ basic_auth_middleware:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x8]
   mov   rdx, [rsp+0x20]
-  call  strncmp
+  call  strncmp_const_time
   cmp   rax, 0
   jle   .unauthorized
 
@@ -79,7 +79,7 @@ basic_auth_middleware:
   add   rdi, [rsp+0x20]
   inc   rdi
   mov   rsi, [rsp+0x10]
-  call  strcmp
+  call  strncmp_const_time
   cmp   rax, 0
   jle   .unauthorized
 

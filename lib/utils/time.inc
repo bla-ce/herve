@@ -1,5 +1,5 @@
 section .bss
-  ; dt struct
+; dt struct
 dt_t:
   .year   resq 1
   .month  resq 1

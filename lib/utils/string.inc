@@ -282,6 +282,7 @@ strcmp:
   ret
 
 ; compare first `count` bytes of two strings
+; it does not check if n exceeds the size of any of the string
 ; @param  rdi: str
 ; @param  rsi: substr
 ; @param  rdx: count
@@ -306,6 +307,113 @@ strncmp:
 
 .str_not_equal:
   mov   rax, FALSE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; compare two strings in constant time
+strcmp_const_time:
+  sub   rsp, 0x20
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> pointer to the substring
+  ; [rsp+0x10]  -> length of the string
+  ; [rsp+0x18]  -> length of the substring
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; get length of the first string
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax ,0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  ; get length of the second string
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax ,0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; if length are not equal, return false
+  cmp   rax, [rsp+0x10]
+  jne   .str_not_equal
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, [rsp+0x18]
+  call  strncmp_const_time
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.str_not_equal:
+  mov   rax, FALSE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
+; compare n bytes of two strings in constant time
+; it does not check if n exceeds the size of any of the string
+; @param  rdi: pointer to the first string
+; @param  rsi: pointer to the second string
+; @param  rdx: number of bytes to compare
+; @return rax: rdi == rsi (bool)
+strncmp_const_time:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; set result
+  mov   rax, TRUE  ; TRUE by default
+
+.loop:
+  cmp   rdx, 0
+  jle   .loop_end
+
+  cmpsb
+  je    .char_match
+
+.char_dont_match:
+  and   rax, FALSE
+
+  jmp   .continue
+
+.char_match:
+  and   rax, TRUE
+
+.continue:
+  dec   rdx
+
+  jmp   .loop
+
+.loop_end:
   jmp   .return
 
 .error:

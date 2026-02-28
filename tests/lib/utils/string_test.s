@@ -8,9 +8,13 @@ section .data
 
   mixed_string db "hELlo, WORld! 9", NULL_CHAR
 
+  str_1 db "Hello, world!", NULL_CHAR
+  str_2 db "Hello, sir!", NULL_CHAR
+
 section .text
 
 _start:
+  ; to_lower and to_upper test
   mov   rdi, upper_string
   call  to_lower
   cmp   rax, 0
@@ -65,6 +69,37 @@ _start:
   call  strcmp
   cmp   rax, 0
   jle   .error
+
+  ; constant time strcmp tests
+  mov   rdi, str_1
+  mov   rsi, str_2
+  call  strcmp_const_time
+
+  mov   rdi, rax
+  call  assert_false
+
+  mov   rdi, str_1
+  mov   rsi, str_1
+  call  strcmp_const_time
+
+  mov   rdi, rax
+  call  assert_true
+
+  mov   rdi, str_1
+  mov   rsi, str_2
+  mov   rdx, 4
+  call  strncmp_const_time
+
+  mov   rdi, rax
+  call  assert_true
+
+  mov   rdi, str_1
+  mov   rsi, str_2
+  mov   rdx, 8
+  call  strncmp_const_time
+
+  mov   rdi, rax
+  call  assert_false
 
   mov   rdi, SUCCESS_CODE
   call  exit

@@ -2,6 +2,8 @@ section .bss
 
 section .data
 
+; messages are confusing but the variable name refers to
+; the condition that is tested, not the result
 assert_msg:
   .str_equal  db "[FAILED]: strings are not equal", NULL_CHAR
   .equal      db "[FAILED]: values are not equal", NULL_CHAR
@@ -11,6 +13,9 @@ assert_msg:
 
   .is_zero      db "[FAILED]: value is not zero", NULL_CHAR
   .is_not_zero  db "[FAILED]: value is zero", NULL_CHAR
+
+  .true   db "[FAILED]: value is not true", NULL_CHAR
+  .false  db "[FAILED]: value is not false", NULL_CHAR
 
 section .text
 ; tests that first and second values are not equal
@@ -176,6 +181,46 @@ assert_is_not_zero:
 
 .error:
   mov   rdi, assert_msg.is_not_zero
+  call  println
+
+  mov   rdi, FAILURE_CODE
+  call  exit
+
+.return:
+  ret
+
+; tests that the value is TRUE
+; @param  rdi: value
+; @return rax: return code
+assert_true:
+  cmp   rdi, TRUE
+  jne   .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rdi, assert_msg.true
+  call  println
+
+  mov   rdi, FAILURE_CODE
+  call  exit
+
+.return:
+  ret
+
+; tests that the value is FALSE
+; @param  rdi: value
+; @return rax: return code
+assert_false:
+  cmp   rdi, FALSE
+  jne   .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rdi, assert_msg.false
   call  println
 
   mov   rdi, FAILURE_CODE
