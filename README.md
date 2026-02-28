@@ -110,27 +110,28 @@ Custom services must implement the Herve service contract. A service is defined 
 
 ```
 herve/
-├── src/           # Main application source
-│   ├── herve.s    # Entry point and service manager
-│   └── services/  # Service registration logic
-├── svc_impl/      # Built-in service implementations
-├── include/       # Public API headers
-│   ├── server/    # Socket, routing, context
-│   ├── http/      # Request/response handling
-│   ├── http_models/   # CRUD endpoint generation
-│   ├── auth/      # Authentication
-│   └── middlewares/   # Logger, proxy, CSRF
-├── lib/           # Core libraries
-│   ├── malloc/    # Memory allocator
-│   ├── net/       # Sockets, epoll, select
-│   ├── encoding/  # JSON, Base64
-│   ├── hash_table/    # Key-value storage
-│   ├── model/     # Data model system
-│   ├── utils/     # Strings, linked lists, arrays
-│   ├── logan/     # Logging
-│   └── boeuf/     # Dynamic buffers
-├── examples/      # Working examples
-└── tests/         # Unit tests
+├── src/            # Main application source
+│   ├── herve.s     # Entry point and service manager
+│   └── services/   # Service registration logic
+├── svc_impl/   # Built-in service implementations
+├── include/            # Public API headers
+│   ├── server/         # Socket, routing, context
+│   ├── http/           # Request/response handling
+│   ├── http_models/    # CRUD endpoint generation
+│   ├── auth/           # Authentication
+│   └── middlewares/    # Logger, proxy, CSRF
+├── lib/            # Core libraries
+│   ├── malloc/     # Memory allocator
+│   ├── net/        # Sockets, epoll, select
+│   ├── encoding/   # JSON, Base64
+│   ├── hash_table/ # Key-value storage
+│   ├── model/      # Data model system
+│   ├── utils/      # Strings, linked lists, arrays
+│   ├── logan/      # Logging
+│   ├── uuid/       # UUID generation
+│   └── boeuf/      # Dynamic buffers
+├── examples/   # Working examples
+└── tests/  # Unit tests
 ```
 
 ## Examples

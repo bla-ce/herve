@@ -8,3 +8,4 @@
 %include "net.inc"
 %include "test.inc"
 %include "utils.inc"
+%include "uuid.inc"

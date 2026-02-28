@@ -8,4 +8,3 @@
 %include "string.inc"
 %include "syscall.inc"
 %include "time.inc"
-%include "uuid.inc"
