@@ -3,6 +3,12 @@ section .data
 RDRAND_CPUID_POS    equ 30
 RDRAND_RETRY_LIMIT  equ 10
 
+; bit shift positions for uuid segment
+UUID_SHR_BYTES_0_3    equ 0
+UUID_SHR_BYTES_4_5    equ 32
+UUID_SHR_BYTES_6_7    equ 48
+UUID_SHR_BYTES_10_15  equ 16
+
 ; masks to set the versions and variants
 UUIDV4_VARIANT_OR_MASK  dq 0x80
 UUIDV4_VARIANT_AND_MASK dq 0xFFFFFFFFFFFFFF3F
@@ -102,6 +108,7 @@ uuid_to_str:
 
   ; encode 0-3
   mov   rdi, [rsp]
+  shr   rdi, UUID_SHR_BYTES_0_3
   mov   rsi, [rsp+0x18]
   mov   rdx, 4
   call  hex_nencode
@@ -118,7 +125,7 @@ uuid_to_str:
 
   ; encode 4-5
   mov   rdi, [rsp]
-  shr   rdi, 32
+  shr   rdi, UUID_SHR_BYTES_4_5
   mov   rsi, [rsp+0x18]
   mov   rdx, 2
   call  hex_nencode
@@ -135,7 +142,7 @@ uuid_to_str:
 
   ; encode 6-7
   mov   rdi, [rsp]
-  shr   rdi, 48
+  shr   rdi, UUID_SHR_BYTES_6_7
   mov   rsi, [rsp+0x18]
   mov   rdx, 2
   call  hex_nencode
@@ -168,7 +175,7 @@ uuid_to_str:
 
   ; encode 10-15
   mov   rdi, [rsp+0x8]
-  shr   rdi, 16
+  shr   rdi, UUID_SHR_BYTES_10_15
   mov   rsi, [rsp+0x18]
   mov   rdx, 6
   call  hex_nencode
