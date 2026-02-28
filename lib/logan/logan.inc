@@ -501,7 +501,7 @@ _log:
   je    .log_message
 
   ; get timestamp
-  call  now
+  call  time_now
   cmp   rax, 0
   jle   .log_message
 

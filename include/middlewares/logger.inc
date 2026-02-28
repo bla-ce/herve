@@ -239,7 +239,8 @@ log_latency:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x10], ns_str  ; by default, latency is ns
+  ; by default, latency is ns
+  mov   qword [rsp+0x10], time_unit_str.ns
 
   cmp   rdi, 0
   jle   .error
@@ -260,7 +261,7 @@ log_latency:
 
   mov   [rsp+0x8], rax
 
-  mov   qword [rsp+0x10], us_str
+  mov   qword [rsp+0x10], time_unit_str.us
 
   cmp   qword [rsp+0x8], 1000
   jl    .log
@@ -274,7 +275,7 @@ log_latency:
 
   mov   [rsp+0x8], rax
 
-  mov   qword [rsp+0x10], ms_str
+  mov   qword [rsp+0x10], time_unit_str.ms
 
   cmp   qword [rsp+0x8], 1000
   jl    .log
@@ -288,7 +289,7 @@ log_latency:
 
   mov   [rsp+0x8], rax
 
-  mov   qword [rsp+0x10], s_str
+  mov   qword [rsp+0x10], time_unit_str.s
 
 .log:
   ; convert number to string

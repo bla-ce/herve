@@ -15,49 +15,51 @@ timespec_t:
 timespec_t_end:
 
 section .data
-  TIMESPEC_STRUCT_LEN equ timespec_t_end - timespec_t
 
-  TIMESPEC_OFF_TV_SEC  equ 0x0
-  TIMESPEC_OFF_TV_NSEC equ TIMESPEC_OFF_TV_SEC + 0x8
+TIMESPEC_STRUCT_LEN equ timespec_t_end - timespec_t
 
-  DT_STRUCT_LEN equ dt_t_end - dt_t
+TIMESPEC_OFF_TV_SEC  equ 0x0
+TIMESPEC_OFF_TV_NSEC equ TIMESPEC_OFF_TV_SEC + 0x8
 
-  ; offsets
-  DT_STRUCT_YEAR    equ 0
-  DT_STRUCT_MONTH   equ DT_STRUCT_YEAR + 0x8
-  DT_STRUCT_DAY     equ DT_STRUCT_MONTH + 0x8
-  DT_STRUCT_HOUR    equ DT_STRUCT_DAY + 0x8
-  DT_STRUCT_MINUTE  equ DT_STRUCT_HOUR + 0x8
-  DT_STRUCT_SECOND  equ DT_STRUCT_MINUTE + 0x8
+DT_STRUCT_LEN equ dt_t_end - dt_t
 
-  ; time constants
-  CLOCK_REALTIME  equ 0
-  HOURS_IN_DAY    equ 24
-  EPOCH_YEAR      equ 1970
+; offsets
+DT_STRUCT_YEAR    equ 0
+DT_STRUCT_MONTH   equ DT_STRUCT_YEAR + 0x8
+DT_STRUCT_DAY     equ DT_STRUCT_MONTH + 0x8
+DT_STRUCT_HOUR    equ DT_STRUCT_DAY + 0x8
+DT_STRUCT_MINUTE  equ DT_STRUCT_HOUR + 0x8
+DT_STRUCT_SECOND  equ DT_STRUCT_MINUTE + 0x8
 
-  SECONDS_IN_MINUTE equ 60
-  SECONDS_IN_HOUR   equ 3600
-  SECONDS_IN_DAY    equ 86400
-  DAYS_IN_YEAR      equ 365
-  DAYS_IN_LEAP_YEAR equ 366
+; time constants
+CLOCK_REALTIME  equ 0
+HOURS_IN_DAY    equ 24
+EPOCH_YEAR      equ 1970
 
-  utc_str db "UTC", NULL_CHAR
+SECONDS_IN_MINUTE equ 60
+SECONDS_IN_HOUR   equ 3600
+SECONDS_IN_DAY    equ 86400
+DAYS_IN_YEAR      equ 365
+DAYS_IN_LEAP_YEAR equ 366
 
-  DEFAULT_TIME_STR_LEN equ 24 ; yyyy-mm-dd hh:mm:ss UTC\0
+utc_str db "UTC", NULL_CHAR
 
-  days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+DEFAULT_TIME_STR_LEN equ 24 ; yyyy-mm-dd hh:mm:ss UTC\0
 
-  ns_str  db "ns", NULL_CHAR
-  us_str  db MICRO_FIRST, MICRO_SECOND, "s", NULL_CHAR
-  ms_str  db "ms", NULL_CHAR
-  s_str   db "s", NULL_CHAR
+days_in_each_month db 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+
+time_unit_str:
+  .ns db "ns", NULL_CHAR
+  .us db MICRO_FIRST, MICRO_SECOND, "s", NULL_CHAR
+  .ms db "ms", NULL_CHAR
+  .s  db "s", NULL_CHAR
 
 section .text
 ; convert unix to date
 ; @param  rdi: timestamp
 ; @param  rsi: pointer to dt struct
 ; @return rax: return code
-unix_to_date_time:
+time_unix_to_dt:
   sub   rsp, 0x10
 
   ; STACK USAGE
@@ -110,7 +112,7 @@ unix_to_date_time:
 .curr_year:
   ; check if year is leap_year
   mov   rdi, qword [dt_t.year]
-  call  is_leap_year
+  call  time_is_leap_year
 
   ; check if n_days is 366 or 365
   mov   rbx, DAYS_IN_LEAP_YEAR
@@ -139,8 +141,7 @@ unix_to_date_time:
   ; get n_days in month
   mov   rdi, qword [dt_t.month]
   mov   rsi, qword [dt_t.year]
-  call  days_in_month
-
+  call  time_days_in_month
   cmp   qword [rsp], rax
   jle   .loop_end
 
@@ -184,7 +185,7 @@ unix_to_date_time:
 ; @param  rdi: month
 ; @param  rsi: year
 ; @return rax: n_days
-days_in_month:
+time_days_in_month:
   sub   rsp, 0x10
 
   mov   qword [rsp], rdi
@@ -196,8 +197,7 @@ days_in_month:
 
   ; if yes, check if year is leap year
   mov   rdi, qword [rsp+0x8]
-  call  is_leap_year
-
+  call  time_is_leap_year
   cmp   rax, FALSE
   je    .skip_feb
 
@@ -221,7 +221,7 @@ days_in_month:
 ; return if the year in rdi is a leap year
 ; @param  rdi: year
 ; @return rax: (bool)is_leap_year
-is_leap_year:
+time_is_leap_year:
   sub   rsp, 0x8
 
   ; save year onto the stack
@@ -277,7 +277,7 @@ is_leap_year:
 
 ; return now's unix timestamp
 ; @return rax: timestamp
-now:
+time_now:
   sub   rsp, TIMESPEC_STRUCT_LEN
 
   mov   rax, SYS_CLOCK_GETTIME
@@ -301,7 +301,7 @@ now:
 
 ; return the fractional part of the current second in nanoseconds
 ; @return rax: ns
-get_curr_ns:
+time_now_ns:
   sub   rsp, TIMESPEC_STRUCT_LEN
 
   mov   rax, SYS_CLOCK_GETTIME
@@ -327,7 +327,7 @@ get_curr_ns:
 ; @param  rdi: pointer to the dt struct
 ; @param  rsi: pointer to the string
 ; @return rax: return code
-time_to_str:
+time_dt_to_str:
   sub   rsp, 0x20
 
   ; STACK USAGE

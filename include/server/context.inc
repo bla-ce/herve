@@ -64,7 +64,7 @@ ctx_process_request:
   mov   [rsp+0x10], rax
 
   ; set request start time
-  call  get_curr_ns
+  call  time_now_ns
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -176,7 +176,7 @@ ctx_process_request:
 
 .post_request_middlewares:
   ; set request end time
-  call  get_curr_ns
+  call  time_now_ns
   cmp   rax, 0
   jl    .internal_server_error
 

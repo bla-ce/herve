@@ -106,7 +106,7 @@ model_instance_update:
 
 .loop_end:
   ; updated_at field
-  call  now
+  call  time_now
   cmp   rax, 0
   jl    .error
 
@@ -455,7 +455,7 @@ model_instance_create:
   jl    .error
 
   ; get now
-  call  now
+  call  time_now
   cmp   rax, 0
   jl    .error
 
