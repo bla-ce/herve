@@ -76,9 +76,9 @@ _start:
 
   ; create basic auth middleware
   mov   rdi, basic_auth_middleware
-  mov		rsi, [username]
-  mov		rdx, [password]
-  mov		rcx, NO_ARG
+  mov	  rsi, [username]
+  mov	  rdx, [password]
+  mov	  rcx, NO_ARG
   mov   r9, FALSE
   call  middleware_create
   cmp   rax, 0

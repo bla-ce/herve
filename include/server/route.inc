@@ -584,22 +584,8 @@ route_add:
 
   mov   [rsp+0x28], rax
 
-  ; set the group
-  mov   rdi, [rsp+0x20]
-  test  rdi, rdi
-  jnz   .no_root_group
-
-  mov   rdi, [rsp]
-  call  server_get_root_group
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  mov   [rsp+0x20], rax
-
-.no_root_group:
   ; set the group of the route
-  mov   rax, [rsp+0x28]
+  mov   rdi, [rsp+0x20]
   mov   qword [rax+ROUTE_OFF_GROUP], rdi
 
   ; get url length
@@ -682,6 +668,9 @@ route_add:
   mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
   mov   qword [rax+ROUTE_OFF_ACTIVE], TRUE
 
+  cmp   qword [rsp+0x20], 0
+  je    .no_group_link
+
   ; add route to group routes
   mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x28]
@@ -689,6 +678,7 @@ route_add:
   cmp   rax, 0
   jl    .error
 
+.no_group_link:
   ; add route to server routes
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x28]
@@ -1501,6 +1491,46 @@ route_set_server:
   jl    .error
 
   mov   [rdi+ROUTE_OFF_SERVER], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the first argument to be passed to the route handler
+; @param  rdi: pointer to the route
+; @return rax: route handler arg1
+route_get_arg1:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+ROUTE_OFF_ARG1]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the first argument to be passed to the route handler
+; @param  rdi: pointer to the route
+; @param  rsi: route handler arg1
+; @return rax: return code
+route_set_arg1:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+ROUTE_OFF_ARG1], rsi
 
   mov   rax, SUCCESS_CODE
 

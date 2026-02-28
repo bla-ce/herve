@@ -87,7 +87,8 @@ handle_request:
   lea   rsi, [rsp+0x8]
   call  receive_request
   cmp   rax, 0
-  jle   .error
+  jl    .error
+  je    .return
 
   mov   rdi, [rsp]
   lea   rsi, [rsp+0x8]
@@ -746,7 +747,7 @@ receive_request:
   mov   rdi, [rsp]
   call  ctx_abort
 
-  mov   rax, 0
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -1121,8 +1122,20 @@ verify_request:
   jne   .not_found
 
   ; check if the group is active
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x20]
+  call  route_get_group
+  cmp   rax, 0
+  jl    .error
+  je    .no_group
 
+  mov   rdi, rax
+  call  group_is_active
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, FALSE
+  je    .not_found
+
+.no_group:
   mov   rax, [rsp+0x20]
   jmp   .return
 

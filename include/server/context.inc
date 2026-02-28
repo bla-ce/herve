@@ -33,17 +33,21 @@ section .text
 ; @param  rsi: pointer to client struct
 ; @return rax: return code
 ctx_process_request:
-  sub   rsp, 0x28
+  sub   rsp, 0x38
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
   ; [rsp+0x8]   -> pointer to the client struct
   ; [rsp+0x10]  -> pointer to the context struct
-  ; [rsp+0x18]  -> pointer to the route struct
-  ; [rsp+0x20]  -> pointer to the group struct
+  ; [rsp+0x18]  -> pointer to the root group
+  ; [rsp+0x20]  -> pointer to the route struct
+  ; [rsp+0x28]  -> pointer to the route group
+  ; [rsp+0x30]  -> pointer to the route handler
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x28], 0
 
   cmp   rdi, 0
   jle   .error
@@ -59,24 +63,27 @@ ctx_process_request:
 
   mov   [rsp+0x10], rax
 
+  ; set request start time
   call  get_curr_ns
   cmp   rax, 0
-  jl   .post_request_middlewares
+  jl    .internal_server_error
 
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  ctx_set_start_time
   cmp   rax, 0
-  jl   .post_request_middlewares
+  jl    .internal_server_error
 
-  mov   rdi,  [rsp+0x10]
+  ; receive and parse the request
+  mov   rdi, [rsp+0x10]
   call  handle_request
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
-  ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
   call  ctx_is_aborted
+  cmp   rax, 0
+  jl    .internal_server_error
   cmp   rax, TRUE
   je    .post_request_middlewares
 
@@ -84,40 +91,25 @@ ctx_process_request:
   mov   rdi, [rsp]
   call  server_get_root_group
   cmp   rax, 0
-  jl    .post_request_middlewares
+  jl    .internal_server_error
 
-  ; run root pre request middlewares
-  mov   rdi, rax
-  mov   rsi, [rsp+0x10]
-  mov   rdx, FALSE      ; pre request middlewares
-  call  middleware_run_chain
+  mov   [rsp+0x18], rax
 
-  ; get the corresponding group from the url
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x10]
-  call  get_group_from_ctx
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
-  test  rax, rax
-  jz    .no_group_pre_middlewares
-
-  ; check if the group is active
-  mov   rdi, rax
-  cmp   qword [rdi+GRP_OFF_ACTIVE], TRUE
-  jne   .not_found
-
-  mov   rdi, [rsp+0x20]
+  ; run root pre request middleware
+  mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x10]
   mov   rdx, FALSE
   call  middleware_run_chain
+  cmp   rax, 0
+  ; here, we send a 500 because it's a server error,
+  ; not middleware error. A middleware error will just abort
+  ; the ctx, check below
+  jl    .internal_server_error
 
-.no_group_pre_middlewares:
-  ; check if ctx has been aborted
   mov   rdi, [rsp+0x10]
   call  ctx_is_aborted
+  cmp   rax, 0
+  jl    .internal_server_error
   cmp   rax, TRUE
   je    .post_request_middlewares
 
@@ -125,79 +117,99 @@ ctx_process_request:
   mov   rdi, [rsp+0x10]
   call  verify_request
   cmp   rax, 0
-  jl   .post_request_middlewares
+  jl    .error
 
-  mov   [rsp+0x18], rax ; returns a pointer to the route
+  mov   [rsp+0x20], rax
 
-  ; check if ctx has been aborted
+  ; check if request has been aborted (404, 405 etc...)
   mov   rdi, [rsp+0x10]
   call  ctx_is_aborted
+  cmp   rax, 0
+  jl    .internal_server_error
   cmp   rax, TRUE
   je    .post_request_middlewares
 
-  ; check if route has a callback
-  mov   rdi, [rsp+0x18]
-  call  route_get_callback
-  test  rax, rax
-  jz   .done
+  ; get route group
+  mov   rdi, [rsp+0x20]
+  call  route_get_group
+  cmp   rax, 0
+  jl    .internal_server_error
 
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rdi+ROUTE_OFF_ARG1]
+  mov   [rsp+0x28], rax
 
+  ; run route pre request middleware
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, FALSE
+  call  middleware_run_chain
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; check if request has been aborted (404, 405 etc...)
   mov   rdi, [rsp+0x10]
-  call  rax
-
-  mov   rdi, [rsp+0x10]
-  cmp   qword [rdi+CTX_OFF_DONE], TRUE
+  call  ctx_is_aborted
+  cmp   rax, 0
+  jl    .internal_server_error
+  cmp   rax, TRUE
   je    .post_request_middlewares
 
-.done:
-  mov   rdi, [rsp+0x10]
-  mov   rsi, OK
-  call  send_no_content
-  jmp   .post_request_middlewares
+  ; get route handler
+  mov   rdi, [rsp+0x20]
+  call  route_get_callback
+  cmp   rax, 0
+  jl    .internal_server_error
 
-.not_found:
-  mov   rdi, [rsp+0x10]
-  mov   rsi, NOT_FOUND
-  call  send_no_content
+  mov   [rsp+0x30], rax
 
-  ; clear group to not run post middleware
-  mov   qword [rsp+0x20], 0
+  mov   rdi, [rsp+0x20]
+  call  route_get_arg1
+  cmp   rax, 0
+  jl    .internal_server_error
+
+  ; run route handler
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  mov   rax, [rsp+0x30]
+  call  rax
+  cmp   rax, 0
+  jl    .internal_server_error
 
 .post_request_middlewares:
-  ; set end timer
+  ; set request end time
   call  get_curr_ns
   cmp   rax, 0
-  jl   .ctx_free
+  jl    .internal_server_error
 
-  ; if yes, compute the difference
   mov   rdi, [rsp+0x10]
   mov   rsi, rax
   call  ctx_set_end_time
   cmp   rax, 0
-  jl    .error
+  jl    .internal_server_error
 
-  ; get root group
-  mov   rdi, [rsp]
-  call  server_get_root_group
+  ; run root post request middleware
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, TRUE
+  call  middleware_run_chain
   cmp   rax, 0
-  jl    .error
+  ; we can't return 500 because we don't know what's
+  ; been sent before
+  jl    .ctx_free
 
-  ; run root post request middlewares
-  mov   rdi, rax
+  ; run route post request middleware
+  mov   rdi, [rsp+0x28]
   mov   rsi, [rsp+0x10]
   mov   rdx, TRUE
   call  middleware_run_chain
 
-  cmp   qword [rsp+0x20], 0
-  je    .ctx_free
+  jmp   .ctx_free
 
-  ; run group post request middlewares
-  mov   rdi, [rsp+0x20]
-  mov   rsi, [rsp+0x10]
-  mov   rdx, TRUE
-  call  middleware_run_chain
+.internal_server_error:
+  mov   rdi, [rsp+0x10]
+  mov   rsi, INTERNAL_SERVER_ERROR
+  call  send_no_content
+
+  ; TODO: should return a string here
 
 .ctx_free:
   mov   rdi, [rsp+0x10]
@@ -218,7 +230,7 @@ ctx_process_request:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x38
   ret
 
 ; frees the resources associated to the context

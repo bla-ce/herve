@@ -586,3 +586,20 @@ group_activate:
 
 .return:
   ret
+
+; checks if the group is active or not
+; @param  rdi: poitner to the group struct
+; @return rax: group is active
+group_is_active:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+GRP_OFF_ACTIVE]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret

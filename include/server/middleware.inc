@@ -181,6 +181,7 @@ middleware_run_chain:
   call  group_get_middleware
   cmp   rax, 0
   jl    .error
+  je    .end
 
   mov   [rsp+0x18], rax
 
@@ -225,6 +226,10 @@ middleware_run_chain:
   jmp   .return
 
 .error:
+  ; abort request
+  mov   rdi, [rsp+0x8]
+  call  ctx_abort
+
   mov   rax, FAILURE_CODE
 
 .return:
