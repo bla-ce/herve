@@ -2,7 +2,7 @@
 
 section .bss
 service_t:
-  .id         resq 1
+  .uuid       resq 1
   .name       resq 1
   .status     resq 1
   .type       resq 1
@@ -18,8 +18,8 @@ section .data
 
 SERVICE_STRUCT_LEN equ service_t_end - service_t
 
-SERVICE_OFF_ID          equ 0x0
-SERVICE_OFF_NAME        equ SERVICE_OFF_ID + 0x8
+SERVICE_OFF_UUID        equ 0x0
+SERVICE_OFF_NAME        equ SERVICE_OFF_UUID + 0x8
 SERVICE_OFF_STATUS      equ SERVICE_OFF_NAME + 0x8
 SERVICE_OFF_TYPE        equ SERVICE_OFF_STATUS + 0x8
 SERVICE_OFF_REGISTER    equ SERVICE_OFF_TYPE + 0x8
@@ -30,7 +30,7 @@ SERVICE_OFF_GRP         equ SERVICE_OFF_STOP + 0x8
 SERVICE_OFF_NEXT        equ SERVICE_OFF_GRP + 0x8
 
 service_key:
-  .id     db "id", NULL_CHAR
+  .uuid   db "uuid", NULL_CHAR
   .name   db "name", NULL_CHAR
   .status db "status", NULL_CHAR
   .type   db "type", NULL_CHAR
@@ -45,9 +45,9 @@ service_endpoint:
   .root         db "/", NULL_CHAR
   .service_root db "/services", NULL_CHAR
   .register     db "/services/register", NULL_CHAR
-  .unregister   db "/services/:id/unregister", NULL_CHAR
-  .start        db "/services/:id/start", NULL_CHAR
-  .stop         db "/services/:id/stop", NULL_CHAR
+  .unregister   db "/services/:uuid/unregister", NULL_CHAR
+  .start        db "/services/:uuid/start", NULL_CHAR
+  .stop         db "/services/:uuid/stop", NULL_CHAR
 
 hv_services dq 0   ; linked list of services
 
@@ -282,9 +282,14 @@ service_init:
   cmp   rax, 0
   jl    .error
 
+  ; generate uuid
+  call  uuid_v4
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x8]
-  mov   rsi, qword [service_curr_id]
-  call  service_set_id
+  mov   rsi, rax
+  call  service_set_uuid
   cmp   rax, 0
   jl    .error
 
@@ -460,7 +465,7 @@ service_unregister:
 
   ; get the dynamic parameter from the request
   mov   rdi, rax
-  mov   rsi, service_key.id
+  mov   rsi, service_key.uuid
   call  route_get_dynamic_param
   cmp   rax, 0
   jl    .internal_server_error
@@ -471,9 +476,9 @@ service_unregister:
   cmp   rax, 0  ; should not be below zero
   jl    .internal_server_error
 
-  ; get the service by its id
+  ; get the service by its uuid
   mov   rdi, rax
-  call  service_get_by_id
+  call  service_get_by_uuid
   cmp   rax, 0
   jl    .not_found
 
@@ -642,14 +647,14 @@ service_to_json:
   mov   [rsp+0x8], rax
 
   mov   rdi, [rsp]
-  call  service_get_id
+  call  service_get_uuid
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x8]
-  mov   rsi, service_key.id
+  mov   rsi, service_key.uuid
   mov   rdx, rax
-  call  json_insert_integer
+  call  json_insert_string
   cmp   rax, 0
   jl    .error
 
@@ -801,7 +806,7 @@ service_start:
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
-  ; [rsp+0x8]   -> id of the service
+  ; [rsp+0x8]   -> uuid of the service
   ; [rsp+0x10]  -> pointer to the service
 
   mov   [rsp], rdi
@@ -817,45 +822,22 @@ service_start:
 
   ; get the dynamic parameter from the request
   mov   rdi, rax
-  mov   rsi, service_key.id
+  mov   rsi, service_key.uuid
   call  route_get_dynamic_param
   cmp   rax, 0
   jl    .internal_server_error
 
-  ; convert str to int
-  mov   rdi, rax
-  call  stoi
-  cmp   rax, 0  ; should not be below zero
-  jl    .internal_server_error
-
   mov   [rsp+0x8], rax
 
-  ; get the services
-  mov   rdi, [hv_services]
-  cmp   rdi, 0
-  je    .not_found
+  mov   rdi, [rsp+0x8]
+  call  service_get_by_uuid
+  cmp   rax, 0
+  jl    .error
 
-.loop:
-  ; get the id of the service
-  mov   rax, [rdi+SERVICE_OFF_ID]
-
-  ; compare ids
-  cmp   rax, [rsp+0x8]
-  je    .loop_end
-
-  ; go to next
-  mov   rsi, [rdi+SERVICE_OFF_NEXT]
-  cmp   rsi, 0
-  je    .not_found
-
-  mov   rdi, rsi
-  jmp   .loop
-
-.loop_end:
-  ; rax point to the service
-  mov   [rsp+0x10], rdi
+  mov   [rsp+0x10], rax
 
   ; activate the group of the service
+  mov   rdi, [rsp+0x10]
   call  service_get_group
   cmp   rax, 0
   jl    .internal_server_error
@@ -915,12 +897,13 @@ service_start:
 
 ; stops a service if it exists
 ; @param  rdi: pointer to the context struct
+; @return rax: return code
 service_stop:
   sub   rsp, 0x18
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
-  ; [rsp+0x8]   -> id of the service
+  ; [rsp+0x8]   -> uuid of the service
   ; [rsp+0x10]  -> pointer to the service
 
   mov   [rsp], rdi
@@ -940,23 +923,17 @@ service_stop:
   cmp   rax, 0
   jl    .internal_server_error
 
-  ; get the id
+  ; get the uuid
   mov   rdi, rax
-  mov   rsi, service_key.id
+  mov   rsi, service_key.uuid
   call  ht_get
   cmp   rax, 0
-  jl    .internal_server_error
-
-  ; convert str to int
-  mov   rdi, rax
-  call  stoi
-  cmp   rax, 0  ; should not be below zero
   jl    .internal_server_error
 
   mov   [rsp+0x8], rax
 
   mov   rdi, rax
-  call  service_get_by_id
+  call  service_get_by_uuid
   cmp   rax, 0
   jl    .not_found
 
@@ -1020,43 +997,54 @@ service_stop:
   add   rsp, 0x18
   ret
 
-; returns a service by its id
-; @param  rdi: id of the service
+; returns a service by its uuid
+; @param  rdi: uuid of the service
 ; @return rax: pointer to the service struct
-service_get_by_id:
-  sub   rsp, 0x8
+service_get_by_uuid:
+  sub   rsp, 0x10
 
   ; STACK USAGE
-  ; [rsp]   -> id of the service
+  ; [rsp]     -> id of the service
+  ; [rsp+0x8] -> pointer to current service
 
   mov   [rsp], rdi
 
   cmp   rdi, 0
-  jl    .error
+  jle   .error
 
   ; get the services
   mov   rdi, [hv_services]
   cmp   rdi, 0
   je    .error
 
-.loop:
-  ; get the id of the service
-  mov   rax, [rdi+SERVICE_OFF_ID]
+  mov   [rsp+0x8], rdi
 
-  ; compare ids
-  cmp   rax, [rsp]
+.loop:
+  mov   rdi, [rsp+0x8]
+
+  ; get the uuid of the service
+  mov   rax, [rdi+SERVICE_OFF_UUID]
+
+  mov   rdi, rax
+  mov   rsi, [rsp]
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+  cmp   rax, TRUE
   je    .loop_end
 
   ; go to next
+  mov   rdi, [rsp+0x8]
   mov   rsi, [rdi+SERVICE_OFF_NEXT]
   cmp   rsi, 0
   je    .error
 
-  mov   rdi, rsi
+  mov   [rsp+0x8], rsi
+
   jmp   .loop
 
 .loop_end:
-  mov   rax, rdi
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 
@@ -1064,7 +1052,7 @@ service_get_by_id:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; returns the type of the service
@@ -1223,14 +1211,14 @@ service_set_next:
 .return:
   ret
 
-; returns the id of the service
+; returns the uuid of the service
 ; @param  rdi: pointer to the service struct
-; @return rax: id of the service
-service_get_id:
+; @return rax: uuid of the service
+service_get_uuid:
   cmp   rdi, 0
   jle   .error
 
-  mov   rax, [rdi+SERVICE_OFF_ID]
+  mov   rax, [rdi+SERVICE_OFF_UUID]
   jmp   .return
 
 .error:
@@ -1239,18 +1227,18 @@ service_get_id:
 .return:
   ret
 
-; sets the id of the service
+; sets the uuid of the service
 ; @param  rdi: pointer to the service struct
-; @param  rsi: id of the service
+; @param  rsi: uuid of the service
 ; @return rax: return code
-service_set_id:
+service_set_uuid:
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jl    .error
 
-  mov   [rdi+SERVICE_OFF_ID], rsi
+  mov   [rdi+SERVICE_OFF_UUID], rsi
 
   mov   rax, SUCCESS_CODE
 
@@ -1292,7 +1280,7 @@ service_set_group:
   ; [rsp+0x8]   -> pointer to the server struct
   ; [rsp+0x10]  -> pointer to the group prefix
   ; [rsp+0x18]  -> pointer to the group struct
-  ; [rsp+0x20]  -> pointer to str(id)
+  ; [rsp+0x20]  -> pointer to uuid
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -1304,16 +1292,9 @@ service_set_group:
   cmp   rsi, 0
   jle   .error
 
-  ; get id of the service
+  ; get uuid of the service
   mov   rdi, [rsp]
-  call  service_get_id
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
-  lea   rsi, [rsp+0x20]
-  mov   rdx, TO_STRING_MAX_STR_SIZE
-  call  itoa
+  call  service_get_uuid
   cmp   rax, 0
   jl    .error
 
@@ -1377,6 +1358,17 @@ service_free:
   cmp   rdi, 0
   jle   .error
 
+  ; free the uuid
+  mov   rdi, [rsp]
+  call  service_get_uuid
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   ; free the group
   mov   rdi, [rsp]
   call  service_get_group
@@ -1386,9 +1378,13 @@ service_free:
   ; group free removes the group from the server
   mov   rdi, rax
   call  group_free
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [rsp]
   call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, SUCCESS_CODE
 
