@@ -13,7 +13,7 @@ Think of Herve as a minimalist alternative to cloud service platforms. It acts a
 - **Proxies requests** - Routes traffic to the appropriate service
 - **Enforces contracts** - Ensures all services comply with a defined interface
 
-You can use the built-in services or create your own. As long as your service implements the Herve contract, it can be registered and managed like any other.
+You can use the built-in services or create your own. As long as your service implements the Herve contract, it can be registered and managed like any other. Herve provides a comprehensive public API to help you develop your own services.
 
 ## Background
 
@@ -114,7 +114,7 @@ herve/
 │   ├── herve.s     # Entry point and service manager
 │   └── services/   # Service registration logic
 ├── svc_impl/   # Built-in service implementations
-├── include/            # Public API headers
+├── include/
 │   ├── server/         # Socket, routing, context
 │   ├── http/           # Request/response handling
 │   ├── http_models/    # CRUD endpoint generation
@@ -136,7 +136,7 @@ herve/
 
 ## Examples
 
-The `examples/` directory contains demonstrations from when Herve was a library. They showcase the underlying HTTP server capabilities:
+The `examples/` directory contains demonstrations from when Herve was a library. They showcase the underlying HTTP server capabilities and can be used as reference to build your own service:
 
 - **hello-world** - Minimal server setup
 - **models** - Data model CRUD operations
