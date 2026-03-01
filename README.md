@@ -69,24 +69,24 @@ curl -X POST http://localhost:5000/services/register \
 curl -u admin:password http://localhost:5000/services
 ```
 
-Returns all registered services with their id, name, type, and status.
+Returns all registered services with their uuid, name, type, and status.
 
 ### Unregister a service
 
 ```bash
-curl -X POST -u admin:password http://localhost:5000/services/:id/unregister
+curl -X POST -u admin:password http://localhost:5000/services/:uuid/unregister
 ```
 
 ### Start a service
 
 ```bash
-curl -X POST -u admin:password http://localhost:5000/services/:id/start
+curl -X POST -u admin:password http://localhost:5000/services/:uuid/start
 ```
 
 ### Stop a service
 
 ```bash
-curl -X POST -u admin:password http://localhost:5000/services/:id/stop
+curl -X POST -u admin:password http://localhost:5000/services/:uuid/stop
 ```
 
 ## Creating Custom Services
@@ -95,7 +95,7 @@ Custom services must implement the Herve service contract. A service is defined 
 
 | Field      | Description                                      | Need to be defined        |
 |------------|--------------------------------------------------|---------------------------|
-| id         | Auto-generated service identifier                | no                        |
+| uuid       | Auto-generated service identifier (uuid v4)      | no                        |
 | name       | Name of the service                              | no                        |
 | status     | Current status of the service                    | no                        |
 | type       | Type of the service                              | yes                       |
