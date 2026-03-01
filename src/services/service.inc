@@ -470,12 +470,6 @@ service_unregister:
   cmp   rax, 0
   jl    .internal_server_error
 
-  ; convert str to int
-  mov   rdi, rax
-  call  stoi
-  cmp   rax, 0  ; should not be below zero
-  jl    .internal_server_error
-
   ; get the service by its uuid
   mov   rdi, rax
   call  service_get_by_uuid
@@ -940,6 +934,7 @@ service_stop:
   mov   [rsp+0x10], rax
 
   ; activate the group of the service
+  mov   rdi, [rsp+0x10]
   call  service_get_group
   cmp   rax, 0
   jl    .internal_server_error
