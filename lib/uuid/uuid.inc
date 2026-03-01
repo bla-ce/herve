@@ -2,9 +2,6 @@
 
 section .data
 
-RDRAND_CPUID_POS    equ 30
-RDRAND_RETRY_LIMIT  equ 10
-
 ; bit shift positions for uuid segment
 UUID_SHR_BYTES_0_3    equ 0
 UUID_SHR_BYTES_4_5    equ 32
@@ -140,17 +137,4 @@ uuid_to_str:
 
 .return:
   add   rsp, 0x20
-  ret
-
-; returns whether RDRAND is supported with this CPU or not
-; @return rax: RDRAND is supported (1 YES, 0 NO)
-uuid_rdrand_is_supported:
-  mov   rax, 1
-  cpuid
-
-  shr   rcx, RDRAND_CPUID_POS
-  and   rcx, 1
-
-  mov   rax, rcx
-
   ret

@@ -13,44 +13,31 @@ section .text
 ; user is responsible for freeing the uuid string
 ; @return rax: pointer to the generated uuid
 uuid_v4:
-  ; check if RDRAND is supported by the CPU
-  call  uuid_rdrand_is_supported
-  cmp   rax, 0
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> first 64-bit generated number
+  ; [rsp+0x8] -> first 64-bit generated number
+
+  call  rand_generate_number
+  cmp   qword [RDRAND_ERRNO], 0
   je    .error
 
-  ; get first 64bit random number
-  xor   rcx, rcx
-.loop1:
-  rdrand  rdi
-  jc    .loop1_end
+  mov   [rsp], rax
 
-  inc   rcx
+  call  rand_generate_number
+  cmp   qword [RDRAND_ERRNO], 0
+  je    .error
 
-  cmp   rcx, RDRAND_RETRY_LIMIT
-  jge   .error
-
-  jmp   .loop1
-.loop1_end:
-
-  ; get second 64bit random number
-  xor   rcx, rcx
-.loop2:
-  rdrand  rsi
-  jc    .loop2_end
-
-  inc   rcx
-
-  cmp   rcx, RDRAND_RETRY_LIMIT
-  jge   .error
-
-  jmp   .loop2
-.loop2_end:
+  mov   [rsp+0x8], rax
 
   ; set the version
+  mov   rdi, [rsp]
   and   rdi, qword [UUIDV4_VERSION_AND_MASK]
   or    rdi, qword [UUIDV4_VERSION_OR_MASK]
 
   ; set the variant
+  mov   rsi, [rsp+0x8]
   and   rsi, qword [UUIDV4_VARIANT_AND_MASK]
   or    rsi, qword [UUIDV4_VARIANT_OR_MASK]
 
@@ -65,4 +52,5 @@ uuid_v4:
   mov   rax, FAILURE_CODE
 
 .return:
+  add   rsp, 0x10
   ret
