@@ -20,13 +20,13 @@ uuid_v4:
   ; [rsp+0x8] -> first 64-bit generated number
 
   call  rand_generate_number
-  cmp   qword [RDRAND_ERRNO], 0
+  cmp   qword [RDRAND_ERRNO], TRUE
   je    .error
 
   mov   [rsp], rax
 
   call  rand_generate_number
-  cmp   qword [RDRAND_ERRNO], 0
+  cmp   qword [RDRAND_ERRNO], TRUE
   je    .error
 
   mov   [rsp+0x8], rax
