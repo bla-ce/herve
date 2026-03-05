@@ -1,5 +1,6 @@
 %include "boeuf.inc"
 %include "config.inc"
+%include "crypto.inc"
 %include "encoding.inc"
 %include "hash_table.inc"
 %include "logan.inc"

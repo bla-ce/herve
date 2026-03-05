@@ -50,7 +50,7 @@ bcrypt_hash:
   cmp   rax, 0
   je    .generate_salt
 
-  mov   [rsp+0x8], BCRYPT_DEFAULT_SALT
+  mov   qword [rsp+0x8], BCRYPT_DEFAULT_COST
 
 .generate_salt:
   ; generate random 128-bit salt
@@ -63,7 +63,7 @@ bcrypt_hash:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x8]
-  call  eks_blowfish_setup
+  call  bcrypt_eks_blowfish_setup
   cmp   rax, 0
   jl    .error
 
@@ -109,6 +109,12 @@ bcrypt_hash:
   jl    .error
 
   mov   qword [rdi+0x8], 0
+
+  ; free duplicated magic string
+  mov   rdi, [rsp+0x20]
+  call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rax, [rsp+0x28]
 
@@ -186,4 +192,29 @@ bcrypt_validate_password:
 ; user is responsible for freeing the salt
 ; @return   rax: pointer to the salt
 bcrypt_generate_salt:
+  ret
+
+; runs encryption loop on the magic string
+; the string is modified in-place
+; @param  rdi: pointer to the blowfish state
+; @param  rsi: pointer to the duplicated magic string
+; @return rax: return code
+bcrypt_encrypt_loop:
+  ret
+
+; concatenates the cost, the salt and the encrypted string
+; user is responsible for freeing the final hash
+; @param  rdi: cost
+; @param  rsi: pointer to the salt
+; @param  rdx: pointer to the encrypted magic string
+; @return rax: pointer to the hash
+bcrypt_concat_values:
+  ret
+
+; initialises the blowfish state with cost, salt, and password
+; @param  rdi: pointer to the password
+; @param  rsi: pointer to the salt
+; @param  rdx: cost
+; @return rax: pointer to the state struct
+bcrypt_eks_blowfish_setup:
   ret
