@@ -14,6 +14,10 @@ BCRYPT_MAX_PWD_LEN  equ 73  ; include null char
 
 bcrypt_magic_string db "OrpheanBeholderScryDoubt" ; no need for null char
 
+bcrypt_base64_alphabet  db  "./ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                        db  "abcdefghijklmnopqrstuvwxyz"
+                        db  "0123456789"
+
 section .text
 
 ; hashes a password using bcrypt algorithm
@@ -190,8 +194,37 @@ bcrypt_validate_password:
 
 ; generates a 128-bit random salt
 ; user is responsible for freeing the salt
-; @return   rax: pointer to the salt
+; @return rax: pointer to the salt
 bcrypt_generate_salt:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]       -> first generated number
+  ; [rsp+0x8]   -> second generated number
+
+  ; generate first random 64-bit number
+  call  rand_generate_number
+  mov   [rsp], rax
+
+  ; generate second random 64-bit number
+  call  rand_generate_number
+  mov   [rsp+0x8], rax
+
+  ; base64 encode 128-bit salt
+  mov   rdi, [rsp]
+  mov   rsi, 16 ; we need to encode 16 byte
+  mov   rdx, bcrypt_base64_alphabet
+  call  base64_cust_encode
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; runs encryption loop on the magic string
