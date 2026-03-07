@@ -44,13 +44,13 @@ bcrypt_hash:
 
   ; validate password
   mov   rdi, [rsp]
-  call  bcrypt_validate_password
+  call  _bcrypt_validate_password
   cmp   rax, 0
   jl    .error
 
   ; validate cost
   mov   rdi, [rsp+0x8]
-  call  bcrypt_validate_cost
+  call  _bcrypt_validate_cost
   cmp   rax, 0
   je    .generate_salt
 
@@ -58,7 +58,7 @@ bcrypt_hash:
 
 .generate_salt:
   ; generate random 128-bit salt
-  call  bcrypt_generate_salt
+  call  _bcrypt_generate_salt
   cmp   rax, 0
   jl    .error
 
@@ -67,7 +67,7 @@ bcrypt_hash:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x8]
-  call  bcrypt_eks_blowfish_setup
+  call  _bcrypt_eks_blowfish_setup
   cmp   rax, 0
   jl    .error
 
@@ -84,7 +84,7 @@ bcrypt_hash:
   ; expensive loop
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
-  call  bcrypt_encrypt_loop
+  call  _bcrypt_encrypt_loop
   cmp   rax, 0
   jl    .error
 
@@ -92,7 +92,7 @@ bcrypt_hash:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x20]
-  call  bcrypt_concat_values
+  call  _bcrypt_concat_values
   cmp   rax, 0
   jl    .error
 
@@ -155,7 +155,7 @@ bcrypt_hash:
 ; validates the current cost for bcrypt hashing
 ; @param  rdi: cost
 ; @return rax: return code
-bcrypt_validate_cost:
+_bcrypt_validate_cost:
   cmp   rdi, BCRYPT_MIN_COST
   jl    .error
 
@@ -173,7 +173,7 @@ bcrypt_validate_cost:
   ret
 
 ; validates the password for bcrypt hashing
-bcrypt_validate_password:
+_bcrypt_validate_password:
   cmp   rdi, 0
   jle   .error
 
@@ -195,7 +195,7 @@ bcrypt_validate_password:
 ; generates a 128-bit random salt
 ; user is responsible for freeing the salt
 ; @return rax: pointer to the salt
-bcrypt_generate_salt:
+_bcrypt_generate_salt:
   sub   rsp, 0x10
 
   ; STACK USAGE
@@ -213,6 +213,11 @@ bcrypt_generate_salt:
   ; set the alphabet for next base64 encoding
   mov   rdi, bcrypt_base64_alphabet
   call  base64_set_alphabet
+  cmp   rax, 0
+  jl    .error
+
+  ; disable padding
+  call  base64_disable_padding
   cmp   rax, 0
   jl    .error
 
@@ -237,7 +242,7 @@ bcrypt_generate_salt:
 ; @param  rdi: pointer to the blowfish state
 ; @param  rsi: pointer to the duplicated magic string
 ; @return rax: return code
-bcrypt_encrypt_loop:
+_bcrypt_encrypt_loop:
   ret
 
 ; concatenates the cost, the salt and the encrypted string
@@ -246,7 +251,7 @@ bcrypt_encrypt_loop:
 ; @param  rsi: pointer to the salt
 ; @param  rdx: pointer to the encrypted magic string
 ; @return rax: pointer to the hash
-bcrypt_concat_values:
+_bcrypt_concat_values:
   ret
 
 ; initialises the blowfish state with cost, salt, and password
@@ -254,5 +259,5 @@ bcrypt_concat_values:
 ; @param  rsi: pointer to the salt
 ; @param  rdx: cost
 ; @return rax: pointer to the state struct
-bcrypt_eks_blowfish_setup:
+_bcrypt_eks_blowfish_setup:
   ret
