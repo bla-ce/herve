@@ -721,7 +721,6 @@ strlen:
   je    .return
 
 .loop:
-  xor   rax, rax
   mov   al, NULL_CHAR
   cmp   byte [rsi], al
   je    .return

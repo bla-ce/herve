@@ -59,7 +59,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, enc_str_1
-  call  base64_decode
+  call  base64_decode_str
   cmp   rax, 0
   jl    .error
 
@@ -68,7 +68,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, enc_str_2
-  call  base64_decode
+  call  base64_decode_str
   cmp   rax, 0
   jl    .error
 
@@ -77,7 +77,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, enc_str_3
-  call  base64_decode
+  call  base64_decode_str
   cmp   rax, 0
   jl    .error
 
@@ -86,7 +86,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, enc_str_4
-  call  base64_decode
+  call  base64_decode_str
   cmp   rax, 0
   jl    .error
 
@@ -95,7 +95,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, enc_str_5
-  call  base64_decode
+  call  base64_decode_str
   cmp   rax, 0
   jl    .error
 
@@ -104,7 +104,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, enc_str_6
-  call  base64_decode
+  call  base64_decode_str
   cmp   rax, 0
   jl    .error
 
