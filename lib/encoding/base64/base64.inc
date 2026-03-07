@@ -4,6 +4,8 @@ base64_std_alphabet db "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                     db "abcdefghijklmnopqrstuvwxyz"
                     db "0123456789+/"
 
+base64_dec_table times 256 db 0xFF
+
 BASE64_MAX_INDEX        equ 63
 BASE64_DEFAULT_ALPHABET equ base64_std_alphabet
 BASE64_DEFAULT_PADCHAR  equ EQUAL_SIGN
@@ -232,6 +234,59 @@ base64_encode_str:
   add   rsp, 0x8
   ret
 
+; decodes a base64 encoded string
+; user is responsible for freeing the decoded sequence of byte
+; @param  rdi: pointer to the encoded string
+; @return rax: pointer to decoded bytes
+base64_decode:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the encoded string
+  ; [rsp+0x8]   -> size of the decoded bytes
+  ; [rsp+0x10]  -> pointer to the decoded bytes
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x10], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get size of decoded string
+  mov   rdi, [rsp]
+  call  _base64_get_decoded_size
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp+0x8]
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+base64_decode_str:
+  ret
+
+
 ; sets the alphabet for the next base64 encode/decode call
 ; @param  rdi: pointer to the alphabet
 ; @return rax: return code
@@ -284,12 +339,6 @@ base64_disable_padding:
   mov   byte [base64_padding], FALSE
 
   mov   rax, SUCCESS_CODE
-  ret
-
-base64_decode:
-  ret
-
-base64_decode_str:
   ret
 
 ; resets the settings for base64 encoding/decoding
@@ -433,6 +482,57 @@ _base64_get_char:
   mov   rax, FAILURE_CODE
 
 .return:
+  ret
+
+; return the size of the decoded string from the encoded bytes
+; @param  rdi: pointer to the encoded bytes
+; @return rax: size of encoded string
+_base64_get_decoded_size:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the encoded bytes
+  ; [rsp+0x8] -> number of pad char
+
+  mov   [rsp], rdi
+
+  cmp   rdi, 0
+  jle   .error
+
+  ; get the number of pad char
+  mov   rdi, [rsp]
+  mov   rsi, base64_padchar
+  call  count_char
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; get size of the encoded bytes
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  xor   rdx, rdx
+  mov   rbx, 4
+  div   rbx
+
+  xor   rdx, rdx
+  mov   rbx 3
+  mul   rbx
+
+  sub   rax, qword [rsp+0x8]
+
+  inc   rax   ; null char
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+
   ret
 
 ; return the size of the encoded string from the number of bytes

@@ -166,9 +166,8 @@ count_char:
 
   mov   rdi, qword [rsp+0x8]
   call  is_ascii
-
-  test  rax, rax
-  jz    .error
+  cmp   rax, TRUE
+  jne   .error
 
   mov   rdi, qword [rsp+0x8]
   mov   rsi, [rsp]
