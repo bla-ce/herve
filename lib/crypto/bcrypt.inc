@@ -210,11 +210,16 @@ bcrypt_generate_salt:
   call  rand_generate_number
   mov   [rsp+0x8], rax
 
+  ; set the alphabet for next base64 encoding
+  mov   rdi, bcrypt_base64_alphabet
+  call  base64_set_alphabet
+  cmp   rax, 0
+  jl    .error
+
   ; base64 encode 128-bit salt
-  mov   rdi, [rsp]
+  lea   rdi, [rsp]
   mov   rsi, 16 ; we need to encode 16 byte
-  mov   rdx, bcrypt_base64_alphabet
-  call  base64_cust_encode
+  call  base64_encode
   cmp   rax, 0
   jl    .error
 

@@ -4,7 +4,14 @@ base64_std_alphabet db "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                     db "abcdefghijklmnopqrstuvwxyz"
                     db "0123456789+/"
 
-BASE64_MAX_INDEX equ 63
+BASE64_MAX_INDEX        equ 63
+BASE64_DEFAULT_ALPHABET equ base64_std_alphabet
+BASE64_DEFAULT_PADCHAR  equ EQUAL_SIGN
+BASE64_DEFAULT_PADDING  equ 1
+
+base64_alphabet dq BASE64_DEFAULT_ALPHABET
+base64_padchar  db BASE64_DEFAULT_PADCHAR
+base64_padding  db BASE64_DEFAULT_PADDING
 
 section .text
 
@@ -143,16 +150,22 @@ base64_encode:
   mov   rdi, [rsp+0x20]
   stosb
 
+  cmp   byte [base64_padding], FALSE
+  je    .end
+
   ; add pad char
-  mov   rax, EQUAL_SIGN
+  mov   al, byte [base64_padchar]
   stosb
 
   mov   [rsp+0x20], rdi
   jmp   .end
 
 .padding_1:
+  cmp   byte [base64_padding], FALSE
+  je    .end
+
   mov   rdi, [rsp+0x20]
-  mov   rax, EQUAL_SIGN
+  mov   al, byte [base64_padchar]
   mov   rcx, 2
   rep   stosb
 
@@ -163,7 +176,11 @@ base64_encode:
   mov   rdi, [rsp+0x20]
   mov   byte [rdi], NULL_CHAR
 
+  ; reset alphabet and padding setting
+  call  _base64_reset
+
   mov   rax, [rsp+0x18]
+
   jmp   .return
 
 .error:
@@ -215,13 +232,72 @@ base64_encode_str:
   add   rsp, 0x8
   ret
 
+; sets the alphabet for the next base64 encode/decode call
+; @param  rdi: pointer to the alphabet
+; @return rax: return code
+base64_set_alphabet:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   qword [base64_alphabet], rdi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the padding character for the next base64 encode/decode call
+; @param  rdi: new pad char
+; @return rax: return code
+base64_set_padchar:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   byte [base64_padchar], dil
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; enables the padding for the next base64 encode/decode call
+; @return rax: return code
+base64_enable_padding:
+  mov   byte [base64_padding], TRUE
+
+  mov   rax, SUCCESS_CODE
+  ret
+
+; disables the padding for the next base64 encode/decode call
+; @return rax: return code
+base64_disable_padding:
+  mov   byte [base64_padding], FALSE
+
+  mov   rax, SUCCESS_CODE
+  ret
+
 base64_decode:
   ret
 
 base64_decode_str:
   ret
 
-base64_cust_encode:
+; resets the settings for base64 encoding/decoding
+_base64_reset:
+  mov   qword [base64_alphabet], BASE64_DEFAULT_ALPHABET
+  mov   qword [base64_padchar], BASE64_DEFAULT_PADCHAR
+  mov   qword [base64_padding], BASE64_DEFAULT_PADDING
+
   ret
 
 ; encodes a 3x8bit group from src to destination
@@ -348,7 +424,8 @@ _base64_get_char:
   jg    .error
 
   xor   rax, rax
-  mov   al, byte [base64_std_alphabet+rdi]
+  mov   rsi, [base64_alphabet]
+  mov   al, byte [rsi+rdi]
 
   jmp   .return
 
