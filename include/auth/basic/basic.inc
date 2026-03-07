@@ -48,7 +48,7 @@ read_basic_auth:
 
   mov   rdi, [rsp]
   add   rdi, BASIC_AUTH_LEN   ; go after the basic
-  call  base64_decode
+  call  base64_decode_str
   cmp   rax, 0
   jl    .error
 
