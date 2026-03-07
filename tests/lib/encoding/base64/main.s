@@ -5,7 +5,7 @@ global _start
 section .text
 _start:
   mov   rdi, dec_str_1
-  call  base64_encode
+  call  base64_encode_str
   cmp   rax, 0
   jl    .error
 
@@ -14,7 +14,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, dec_str_2
-  call  base64_encode
+  call  base64_encode_str
   cmp   rax, 0
   jl    .error
 
@@ -23,7 +23,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, dec_str_3
-  call  base64_encode
+  call  base64_encode_str
   cmp   rax, 0
   jl    .error
 
@@ -32,7 +32,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, dec_str_4
-  call  base64_encode
+  call  base64_encode_str
   cmp   rax, 0
   jl    .error
 
@@ -41,7 +41,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, dec_str_5
-  call  base64_encode
+  call  base64_encode_str
   cmp   rax, 0
   jl    .error
 
@@ -50,7 +50,7 @@ _start:
   call  assert_string_equal
 
   mov   rdi, dec_str_6
-  call  base64_encode
+  call  base64_encode_str
   cmp   rax, 0
   jl    .error
 
@@ -121,14 +121,14 @@ _start:
 
 section .data
 
-dec_str_1 db "hello, sir!", NULL_CHAR
-enc_str_1 db "aGVsbG8sIHNpciE=", NULL_CHAR
+dec_str_1 db "I am decoded", NULL_CHAR
+enc_str_1 db "SSBhbSBkZWNvZGVk", NULL_CHAR
 
-dec_str_2 db "I am decoded", NULL_CHAR
-enc_str_2 db "SSBhbSBkZWNvZGVk", NULL_CHAR
+dec_str_2 db "I am decoded, interesting", NULL_CHAR
+enc_str_2 db "SSBhbSBkZWNvZGVkLCBpbnRlcmVzdGluZw==", NULL_CHAR
 
-dec_str_3 db "I am decoded, interesting", NULL_CHAR
-enc_str_3 db "SSBhbSBkZWNvZGVkLCBpbnRlcmVzdGluZw==", NULL_CHAR
+dec_str_3 db "hello, sir!", NULL_CHAR
+enc_str_3 db "aGVsbG8sIHNpciE=", NULL_CHAR
 
 dec_str_4 db "This is another test.", NULL_CHAR
 enc_str_4 db "VGhpcyBpcyBhbm90aGVyIHRlc3Qu", NULL_CHAR
