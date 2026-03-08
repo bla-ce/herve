@@ -448,8 +448,8 @@ base64_disable_padding:
 ; resets the settings for base64 encoding/decoding
 _base64_reset:
   mov   qword [base64_alphabet], BASE64_DEFAULT_ALPHABET
-  mov   qword [base64_padchar], BASE64_DEFAULT_PADCHAR
-  mov   qword [base64_padding], BASE64_DEFAULT_PADDING
+  mov   byte [base64_padchar], BASE64_DEFAULT_PADCHAR
+  mov   byte [base64_padding], BASE64_DEFAULT_PADDING
 
   ret
 

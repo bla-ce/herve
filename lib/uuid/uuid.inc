@@ -117,9 +117,7 @@ uuid_to_str:
   jl    .error
 
   mov   rdi, [rsp+0x18]
-  add   rdi, 12
-  mov   rax, NULL_CHAR
-  stosb
+  mov   byte [rdi+12], NULL_CHAR
 
   mov   rax, [rsp+0x10]
 
