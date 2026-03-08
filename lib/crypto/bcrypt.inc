@@ -1,9 +1,21 @@
+%include "blowfish_constants.inc"
+
 section .bss
 
 blowfish_state_t:
+  .p_array  resb BCRYPT_P_ARRAY_SIZE
+  .s_boxes  resb BCRYPT_S_BOXES_SIZE
 blowfish_state_t_end:
 
 section .data
+
+BCRYPT_P_ARRAY_SIZE equ 72
+BCRYPT_S_BOXES_SIZE equ 4096
+
+BCRYPT_BLOWFISH_LEN equ blowfish_state_t_end - blowfish_state_t
+
+BCRYPT_BLOWFISH_OFF_P_ARRAY equ 0x0
+BCRYPT_BLOWFISH_OFF_S_BOXES equ BCRYPT_BLOWFISH_OFF_P_ARRAY + BCRYPT_P_ARRAY_SIZE
 
 BCRYPT_DEFAULT_COST   equ 10
 BCRYPT_MIN_COST       equ 4
@@ -26,7 +38,7 @@ section .text
 ; @param  rsi: cost
 ; @return rax: pointer to the hash
 bcrypt_hash:
-  sub   rsp, 0x18
+  sub   rsp, 0x30
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the password
@@ -149,7 +161,7 @@ bcrypt_hash:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x30
   ret
 
 ; validates the current cost for bcrypt hashing
@@ -260,4 +272,81 @@ _bcrypt_concat_values:
 ; @param  rdx: cost
 ; @return rax: pointer to the state struct
 _bcrypt_eks_blowfish_setup:
+  sub   rsp, 0x20
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the password
+  ; [rsp+0x8]   -> pointer to the salt
+  ; [rsp+0x10]  -> cost
+  ; [rsp+0x18]  -> pointer to the state struct
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
+
+  call  _bcrypt_init_state
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+
+  mov   rax, [rsp+0x18]
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
+
+; initialises the state with const p and s values
+; user is responsible for freeing the struct
+; @return rax: pointer to the blowfish state struct
+_bcrypt_init_state:
+  sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp]   -> pointer to the blowfish state struct
+
+  mov   qword [rsp], 0
+
+  mov   rdi, BCRYPT_BLOWFISH_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rdi
+
+  ; copy p-array
+  mov   rdi, [rsp]
+  add   rdi, BCRYPT_BLOWFISH_OFF_P_ARRAY
+  mov   rsi, blowfish_const_p
+  mov   rcx, BCRYPT_P_ARRAY_SIZE
+  rep   movsb
+
+  mov   rdi, [rsp]
+  add   rdi, BCRYPT_BLOWFISH_OFF_S_BOXES
+  mov   rsi, blowfish_const_s0
+  mov   rcx, BCRYPT_P_ARRAY_SIZE
+  rep   movsb
+
+  mov   rax, [rsp]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
   ret

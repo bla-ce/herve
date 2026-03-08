@@ -20,6 +20,10 @@ _start:
   jmp   .loop
 
 .loop_end:
+  mov   rdi, password
+  mov   rsi, 10
+  call  bcrypt_hash
+
 
   mov   rdi, SUCCESS_CODE
   call  exit
@@ -29,5 +33,7 @@ _start:
   call  exit
 
 section .data
+
+password db "hello, sir", NULL_CHAR
 
 counter dq 20
