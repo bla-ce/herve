@@ -263,11 +263,13 @@ base64_decode:
   jle   .error
 
   cmp   rsi, 0
-  jle   .error
+  je    .skip_init
+  jl    .error
 
   ; init decoded len to 0
   mov   qword [rsi], 0
 
+.skip_init:
   ; get size of the encoded string
   mov   rdi, [rsp]
   call  strlen
@@ -283,8 +285,12 @@ base64_decode:
   jl    .error
 
   mov   rdi, [rsp+0x8]
+  cmp   rdi, 0
+  je    .skip_save_size
+
   mov   [rdi], rax
 
+.skip_save_size:
   mov   rdi, rax
   inc   rdi   ; for potential null char
   call  malloc
@@ -301,7 +307,7 @@ base64_decode:
 
 .loop:
   cmp   qword [rsp+0x10], 0
-  je    .loop_end
+  jle   .loop_end
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x20]
@@ -338,10 +344,6 @@ base64_decode:
   call  free
 
 .no_free:
-  ; set decoded length to 0
-  mov   rdi, [rsp+0x8]
-  mov   qword [rdi], 0
-
   mov   rax, FAILURE_CODE
 
 .return:

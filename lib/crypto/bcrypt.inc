@@ -257,6 +257,9 @@ _bcrypt_generate_salt:
 _bcrypt_encrypt_loop:
   ret
 
+_bcrypt_encrypt_block:
+  ret
+
 ; concatenates the cost, the salt and the encrypted string
 ; user is responsible for freeing the final hash
 ; @param  rdi: cost
@@ -272,18 +275,20 @@ _bcrypt_concat_values:
 ; @param  rdx: cost
 ; @return rax: pointer to the state struct
 _bcrypt_eks_blowfish_setup:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the password
   ; [rsp+0x8]   -> pointer to the salt
   ; [rsp+0x10]  -> cost
   ; [rsp+0x18]  -> pointer to the state struct
+  ; [rsp+0x20]  -> counter
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
 
   call  _bcrypt_init_state
   cmp   rax, 0
@@ -299,7 +304,34 @@ _bcrypt_eks_blowfish_setup:
   cmp   rax, 0
   jl    .error
 
-  ; TODO: expansive loop
+  ; we need to get 2^cost which is equal to 1 << cost
+  mov   rcx, [rsp+0x10]
+  mov   rax, 1
+  shl   rax, cl
+
+  mov   qword [rsp+0x20], rax
+
+.loop:
+  mov   rdi, [rsp+0x18]
+  mov   rsi, NO_ARG
+  mov   rdx, [rsp]
+  call  _bcrypt_expand_key
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, NO_ARG
+  call  _bcrypt_expand_key
+  cmp   rax, 0
+  jl    .error
+
+  dec   qword [rsp+0x20]
+  cmp   qword [rsp+0x20], 0
+  jle   .loop_end
+
+  jmp   .loop
+.loop_end:
 
   mov   rax, [rsp+0x18]
   jmp   .return
@@ -315,7 +347,7 @@ _bcrypt_eks_blowfish_setup:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; @param  rdi: pointer to the blowfish state struct
@@ -323,7 +355,7 @@ _bcrypt_eks_blowfish_setup:
 ; @param  rdx: pointer to the salt
 ; @return rax: return code
 _bcrypt_expand_key:
-  sub   rsp, 0x48
+  sub   rsp, 0x38
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the blowfish state struct
@@ -344,11 +376,13 @@ _bcrypt_expand_key:
   cmp   rdi, 0
   jle   .error
 
-  cmp   rsi, 0
-  jle   .error
-
+  ; verify salt before
   cmp   rdx, 0
-  jle   .error
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+  je    .loop_end
 
   ; get the length of the password
   mov   rdi, [rsp+0x8]
@@ -386,8 +420,23 @@ _bcrypt_expand_key:
   jmp   .loop
 
 .loop_end:
+  cmp   qword [rsp+0x10], 0
+  je    .encrypt_p_loop
+
+  ; set the alphabet for next base64 decoding
+  mov   rdi, bcrypt_base64_alphabet
+  call  base64_set_alphabet
+  cmp   rax, 0
+  jl    .error
+
+  ; disable padding
+  call  base64_disable_padding
+  cmp   rax, 0
+  jl    .error
+
   ; decode base64 salt
   mov   rdi, [rsp+0x10]
+  mov   rsi, NO_ARG
   call  base64_decode
   cmp   rax, 0
   jl    .error
@@ -406,9 +455,14 @@ _bcrypt_expand_key:
   mov   rbx, 8
   mul   rbx
 
+  xor   rdx, rdx
   mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .xor_salt_1
+
   mov   rdx, [rdi+rax]
 
+.xor_salt_1:
   xor   [rsp+0x28], rdx
 
   mov   rdi, [rsp]
@@ -449,9 +503,14 @@ _bcrypt_expand_key:
   mov   rbx, 8
   mul   rbx
 
+  xor   rdx, rdx
   mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .xor_salt_2
+
   mov   rdx, [rdi+rax]
 
+.xor_salt_2:
   xor   [rsp+0x28], rdx
 
   mov   rdi, [rsp]
@@ -476,13 +535,16 @@ _bcrypt_expand_key:
 
   jmp   .encrypt_s_loop
 .encrypt_s_loop_end:
-
   mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .skip_free
+
   call  free
   mov   qword [rsp+0x20], 0
   cmp   rax, 0
   jl    .error
 
+.skip_free:
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -498,7 +560,7 @@ _bcrypt_expand_key:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x48
+  add   rsp, 0x38
   ret
 
 ; initialises the state with const p and s values
