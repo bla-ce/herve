@@ -291,6 +291,15 @@ _bcrypt_eks_blowfish_setup:
 
   mov   [rsp+0x18], rax
 
+  ; permute P and S based on the password and salt
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp]
+  mov   rdx, [rsp+0x8]
+  call  _bcrypt_expand_key
+  cmp   rax, 0
+  jl    .error
+
+  ; TODO: expansive loop
 
   mov   rax, [rsp+0x18]
   jmp   .return
@@ -309,6 +318,189 @@ _bcrypt_eks_blowfish_setup:
   add   rsp, 0x20
   ret
 
+; @param  rdi: pointer to the blowfish state struct
+; @param  rsi: pointer to the password
+; @param  rdx: pointer to the salt
+; @return rax: return code
+_bcrypt_expand_key:
+  sub   rsp, 0x48
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the blowfish state struct
+  ; [rsp+0x8]   -> pointer to the password
+  ; [rsp+0x10]  -> pointer to the salt
+  ; [rsp+0x18]  -> length of the password
+  ; [rsp+0x20]  -> pointer to the decoded base64 salt
+  ; [rsp+0x28]  -> 64-bit block
+  ; [rsp+0x30]  -> counter
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x28], 0
+  mov   qword [rsp+0x30], 0
+
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  cmp   rdx, 0
+  jle   .error
+
+  ; get the length of the password
+  mov   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  xor   r9, r9    ; counter
+  xor   r10, r10  ; password index to store
+
+.loop:
+  cmp   r9, BCRYPT_P_ARRAY_SIZE
+  jge   .loop_end
+
+  ; get the password byte at index r9
+  mov   rdi, [rsp+0x8]
+  add   rdi, r10
+  mov   al, byte [rdi]
+
+  mov   rdi, [rsp]
+  add   rdi, r9
+  xor   byte [rdi], al
+
+  inc   r9
+  inc   r10
+
+  cmp   r10, [rsp+0x18]
+  jne   .loop
+
+  ; reset password
+  xor   r10, r10
+
+  jmp   .loop
+
+.loop_end:
+  ; decode base64 salt
+  mov   rdi, [rsp+0x10]
+  call  base64_decode
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+.encrypt_p_loop:
+  cmp   qword [rsp+0x30], 8
+  jg    .encrypt_p_loop_end
+
+  ; block = block xor saltHalf[n mod 2]
+  ; get the right salt half
+  xor   rdx, rdx
+  mov   rax, qword [rsp+0x30]
+  and   rax, 1
+  mov   rbx, 8
+  mul   rbx
+
+  mov   rdi, [rsp+0x20]
+  mov   rdx, [rdi+rax]
+
+  xor   [rsp+0x28], rdx
+
+  mov   rdi, [rsp]
+  lea   rsi, [rsp+0x28]
+  call  _bcrypt_encrypt_block
+  cmp   rax, 0
+  jl    .error
+
+  ; get P-array
+  mov   rdx, [rsp]
+
+  ; get the offset 8n
+  mov   rax, [rsp+0x30]
+  lea   rdi, [rdx + rax * 0x8]
+
+  ; move block to p-array
+  mov   rax, [rsp+0x28]
+  ror   rax, 32
+  mov   [rdi], rax
+
+  add   qword [rsp+0x30], 0x1
+
+  jmp   .encrypt_p_loop
+.encrypt_p_loop_end:
+
+  ; reset counter
+  mov   qword [rsp+0x30], 0
+
+.encrypt_s_loop:
+  cmp   qword [rsp+0x30], 511
+  jg    .encrypt_s_loop_end
+
+  ; block = block xor saltHalf[n mod 2]
+  ; get the right salt half
+  xor   rdx, rdx
+  mov   rax, qword [rsp+0x30]
+  and   rax, 1
+  mov   rbx, 8
+  mul   rbx
+
+  mov   rdi, [rsp+0x20]
+  mov   rdx, [rdi+rax]
+
+  xor   [rsp+0x28], rdx
+
+  mov   rdi, [rsp]
+  lea   rsi, [rsp+0x28]
+  call  _bcrypt_encrypt_block
+  cmp   rax, 0
+  jl    .error
+
+  ; get S-boxes
+  mov   rdx, [rsp]
+
+  ; get the offset 8n
+  mov   rax, [rsp+0x30]
+  lea   rdi, [rdx + rax * 0x8 + BCRYPT_BLOWFISH_OFF_S_BOXES]
+
+  ; move block to s-array
+  mov   rax, [rsp+0x28]
+  ror   rax, 32
+  mov   [rdi], rax
+
+  add   qword [rsp+0x30], 0x1
+
+  jmp   .encrypt_s_loop
+.encrypt_s_loop_end:
+
+  mov   rdi, [rsp+0x20]
+  call  free
+  mov   qword [rsp+0x20], 0
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x48
+  ret
+
 ; initialises the state with const p and s values
 ; user is responsible for freeing the struct
 ; @return rax: pointer to the blowfish state struct
@@ -325,7 +517,7 @@ _bcrypt_init_state:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rdi
+  mov   [rsp], rax
 
   ; copy p-array
   mov   rdi, [rsp]
@@ -337,7 +529,7 @@ _bcrypt_init_state:
   mov   rdi, [rsp]
   add   rdi, BCRYPT_BLOWFISH_OFF_S_BOXES
   mov   rsi, blowfish_const_s0
-  mov   rcx, BCRYPT_P_ARRAY_SIZE
+  mov   rcx, BCRYPT_S_BOXES_SIZE
   rep   movsb
 
   mov   rax, [rsp]
