@@ -93,7 +93,6 @@ bcrypt_hash:
 
   mov   [rsp+0x20], rax
 
-  ; expensive loop
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
   call  _bcrypt_encrypt_loop
@@ -257,7 +256,94 @@ _bcrypt_generate_salt:
 _bcrypt_encrypt_loop:
   ret
 
+; encrypts in-place a 64-bit block using blowfish cypher
+; @param  rdi: pointer to the blowfish state struct
+; @param  rsi: pointer to the 64-bit block
+; @param  rax: return code
 _bcrypt_encrypt_block:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the blowfish state struct
+  ; [rsp+0x8] -> pointer to the 64-bit block
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  cmp   rdi, 0
+  je    .error
+
+  cmp   rsi, 0
+  je    .error
+
+  ; save L and R of the block in r13d and r14d
+  mov   rdi, [rsp+0x8]
+  mov   r14d, dword [rdi]       ; R
+  mov   r13d, dword [rdi+0x4]   ; L
+
+  xor   r12, r12
+
+.loop:
+  ; get P[i]
+  mov   rdi, [rsp]
+  mov   eax, dword [rdi+r12*4]
+
+  ; L = L XOR P[i]
+  xor   r13d, eax
+
+  ; get f(L)
+  mov   rdi, [rsp]
+  mov   rsi, r13d
+  call  _bcrypt_blowfish_f_function
+  cmp   rax, 0
+  jl    .error
+
+  ; R = f(L) XOR R
+  xor   r14d, eax
+
+  ; swap values of L and R
+  mov   eax, r14d
+  mov   r14d, r13d
+  mov   r13d, eax
+
+  inc   r12
+  cmp   r12, 16
+  jl    .loop
+
+.loop_end:
+  ; swap values of L and R
+  mov   eax, r14d
+  mov   r14d, r13d
+  mov   r13d, eax
+
+  ; get P[16]
+  mov   rdi, [rsp]
+  mov   eax, dword [rdi+16*4]
+
+  ; R := R XOR P[16]
+  xor   r14d, eax
+
+  ; get P[17]
+  mov   eax, dword [rdi+17*4]
+  xor   r13d, eax
+
+  ; update block in place
+  mov   rdi, [rsp+0x8]
+  mov   dword [rdi], r14d       ; R
+  mov   dword [rdi+0x4], r13d   ; L
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; calculates a function f on a 32-bit input, using S-boxes and bit manipulation
+_bcrypt_blowfish_f_function:
   ret
 
 ; concatenates the cost, the salt and the encrypted string
