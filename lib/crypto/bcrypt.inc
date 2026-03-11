@@ -219,11 +219,12 @@ _bcrypt_validate_password:
 ; user is responsible for freeing the salt
 ; @return rax: pointer to the salt
 _bcrypt_generate_salt:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   ; STACK USAGE
   ; [rsp]       -> first generated number
   ; [rsp+0x8]   -> second generated number
+  ; [rsp+0x10]  -> pointer to the salt
 
   ; generate first random 64-bit number
   call  rand_generate_number
@@ -244,12 +245,19 @@ _bcrypt_generate_salt:
   cmp   rax, 0
   jl    .error
 
-  ; base64 encode 128-bit salt
-  lea   rdi, [rsp]
-  mov   rsi, 16 ; we need to encode 16 byte
-  call  base64_encode
+  mov   rdi, 16
+  call  malloc
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x10]
+  lea   rsi, [rsp]
+  mov   rcx, 16
+  rep   movsb
+
+  mov   rax, [rsp+0x10]
 
   jmp   .return
 
@@ -257,7 +265,7 @@ _bcrypt_generate_salt:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; runs encryption loop on the magic string
@@ -460,7 +468,7 @@ _bcrypt_blowfish_f_function:
 ; @param  rdx: pointer to the encrypted magic string
 ; @return rax: pointer to the hash
 _bcrypt_concat_values:
-  sub   rsp, 0x28
+  sub   rsp, 0x30
   sub   rsp, TO_STRING_MAX_STR_SIZE
 
   ; STACK USAGE
@@ -468,14 +476,16 @@ _bcrypt_concat_values:
   ; [rsp+0x8]   -> pointer to the salt
   ; [rsp+0x10]  -> pointer to the encrypted magic string
   ; [rsp+0x18]  -> pointer to the hash
-  ; [rsp+0x20]  -> base64 encoded hash
-  ; [rsp+0x28]  -> cost to string
+  ; [rsp+0x20]  -> base64 encoded salt
+  ; [rsp+0x28]  -> base64 encoded hash
+  ; [rsp+0x30]  -> cost to string
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x28], 0
 
   cmp   rdi, 0
   je    .error
@@ -501,7 +511,7 @@ _bcrypt_concat_values:
 
   ; to string the cost
   mov   rdi, [rsp]
-  lea   rsi, [rsp+0x28]
+  lea   rsi, [rsp+0x30]
   mov   rdx, TO_STRING_MAX_STR_SIZE
   call  itoa
   cmp   rax, 0
@@ -526,9 +536,18 @@ _bcrypt_concat_values:
   mov   rax, DOLLAR
   stosb
 
+  ; base64 encode the salt
+  mov   rdi, [rsp+0x8]
+  mov   rsi, 16
+  call  base64_encode
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
   mov   rdi, [rsp+0x18]
   add   rdi, BCRYPT_OFF_SALT
-  mov   rsi, [rsp+0x8]
+  mov   rsi, [rsp+0x20]
   mov   rcx, BCRYPT_SALT_SIZE
   rep   movsb
 
@@ -550,22 +569,29 @@ _bcrypt_concat_values:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x28], rax
 
   ; copy the hash
   mov   rdi, [rsp+0x18]
   add   rdi, BCRYPT_OFF_HASH
-  mov   rsi, [rsp+0x20]
+  mov   rsi, [rsp+0x28]
   mov   rcx, BCRYPT_ENCODED_HASH_SIZE
   rep   movsb
 
   mov   rax, NULL_CHAR
   stosb
 
-  ; free the base64 encoded hash
+  ; free the base64 encoded salt
   mov   rdi, [rsp+0x20]
   call  free
   mov   qword [rsp+0x20], 0
+  cmp   rax, 0
+  jl    .error
+
+  ; free the base64 encoded hash
+  mov   rdi, [rsp+0x28]
+  call  free
+  mov   qword [rsp+0x28], 0
   cmp   rax, 0
   jl    .error
 
@@ -576,12 +602,19 @@ _bcrypt_concat_values:
 .error:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
+  jz    .free_encoded_salt
+
+  call  free
+
+.free_encoded_salt:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
   jz    .free_encoded_hash
 
   call  free
 
 .free_encoded_hash:
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   test  rdi, rdi
   jz    .no_free
 
@@ -592,7 +625,7 @@ _bcrypt_concat_values:
 
 .return:
   add   rsp, TO_STRING_MAX_STR_SIZE
-  add   rsp, 0x28
+  add   rsp, 0x30
   ret
 
 ; initialises the blowfish state with cost, salt, and password
@@ -639,15 +672,15 @@ _bcrypt_eks_blowfish_setup:
 
 .loop:
   mov   rdi, [rsp+0x18]
-  mov   rsi, NO_ARG
-  mov   rdx, [rsp]
+  mov   rsi, [rsp]
+  mov   rdx, NO_ARG
   call  _bcrypt_expand_key
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x8]
-  mov   rdx, NO_ARG
+  mov   rsi, NO_ARG
+  mov   rdx, [rsp+0x8]
   call  _bcrypt_expand_key
   cmp   rax, 0
   jl    .error
@@ -681,23 +714,21 @@ _bcrypt_eks_blowfish_setup:
 ; @param  rdx: pointer to the salt
 ; @return rax: return code
 _bcrypt_expand_key:
-  sub   rsp, 0x38
+  sub   rsp, 0x30
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the blowfish state struct
   ; [rsp+0x8]   -> pointer to the password
-  ; [rsp+0x10]  -> pointer to the salt
+  ; [rsp+0x10]  -> pointer to the decoded salt
   ; [rsp+0x18]  -> length of the password
-  ; [rsp+0x20]  -> pointer to the decoded base64 salt
-  ; [rsp+0x28]  -> 64-bit block
-  ; [rsp+0x30]  -> counter
+  ; [rsp+0x20]  -> 64-bit block
+  ; [rsp+0x28]  -> counter
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x28], 0
-  mov   qword [rsp+0x30], 0
 
   cmp   rdi, 0
   jle   .error
@@ -728,11 +759,14 @@ _bcrypt_expand_key:
   ; get the password byte at index r9
   mov   rdi, [rsp+0x8]
   add   rdi, r10
-  mov   al, byte [rdi]
+  mov   cl, byte [rdi]
 
+  ; get P[i]
   mov   rdi, [rsp]
-  add   rdi, r9
-  xor   byte [rdi], al
+  mov   rax, r9
+  xor   rax, 0x3
+  add   rdi, rax
+  xor   byte [rdi], cl
 
   inc   r9
   inc   r10
@@ -749,50 +783,30 @@ _bcrypt_expand_key:
   cmp   qword [rsp+0x10], 0
   je    .encrypt_p_loop
 
-  ; set the alphabet for next base64 decoding
-  mov   rdi, bcrypt_base64_alphabet
-  call  base64_set_alphabet
-  cmp   rax, 0
-  jl    .error
-
-  ; disable padding
-  call  base64_disable_padding
-  cmp   rax, 0
-  jl    .error
-
-  ; decode base64 salt
-  mov   rdi, [rsp+0x10]
-  mov   rsi, NO_ARG
-  call  base64_decode
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x20], rax
-
 .encrypt_p_loop:
-  cmp   qword [rsp+0x30], 8
+  cmp   qword [rsp+0x28], 8
   jg    .encrypt_p_loop_end
 
   ; block = block xor saltHalf[n mod 2]
   ; get the right salt half
   xor   rdx, rdx
-  mov   rax, qword [rsp+0x30]
+  mov   rax, qword [rsp+0x28]
   and   rax, 1
   mov   rbx, 8
   mul   rbx
 
   xor   rdx, rdx
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x10]
   test  rdi, rdi
   jz    .xor_salt_1
 
   mov   rdx, [rdi+rax]
 
 .xor_salt_1:
-  xor   [rsp+0x28], rdx
+  xor   [rsp+0x20], rdx
 
   mov   rdi, [rsp]
-  lea   rsi, [rsp+0x28]
+  lea   rsi, [rsp+0x20]
   call  _bcrypt_encrypt_block
   cmp   rax, 0
   jl    .error
@@ -801,46 +815,46 @@ _bcrypt_expand_key:
   mov   rdx, [rsp]
 
   ; get the offset 8n
-  mov   rax, [rsp+0x30]
+  mov   rax, [rsp+0x28]
   lea   rdi, [rdx + rax * 0x8]
 
   ; move block to p-array
-  mov   rax, [rsp+0x28]
+  mov   rax, [rsp+0x20]
   ror   rax, 32
   mov   [rdi], rax
 
-  add   qword [rsp+0x30], 0x1
+  add   qword [rsp+0x28], 0x1
 
   jmp   .encrypt_p_loop
 .encrypt_p_loop_end:
 
   ; reset counter
-  mov   qword [rsp+0x30], 0
+  mov   qword [rsp+0x28], 0
 
 .encrypt_s_loop:
-  cmp   qword [rsp+0x30], 511
+  cmp   qword [rsp+0x28], 511
   jg    .encrypt_s_loop_end
 
   ; block = block xor saltHalf[n mod 2]
   ; get the right salt half
   xor   rdx, rdx
-  mov   rax, qword [rsp+0x30]
+  mov   rax, qword [rsp+0x28]
   and   rax, 1
   mov   rbx, 8
   mul   rbx
 
   xor   rdx, rdx
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x10]
   test  rdi, rdi
   jz    .xor_salt_2
 
   mov   rdx, [rdi+rax]
 
 .xor_salt_2:
-  xor   [rsp+0x28], rdx
+  xor   [rsp+0x20], rdx
 
   mov   rdi, [rsp]
-  lea   rsi, [rsp+0x28]
+  lea   rsi, [rsp+0x20]
   call  _bcrypt_encrypt_block
   cmp   rax, 0
   jl    .error
@@ -849,44 +863,28 @@ _bcrypt_expand_key:
   mov   rdx, [rsp]
 
   ; get the offset 8n
-  mov   rax, [rsp+0x30]
+  mov   rax, [rsp+0x28]
   lea   rdi, [rdx + rax * 0x8 + BCRYPT_BLOWFISH_OFF_S_BOXES]
 
   ; move block to s-array
-  mov   rax, [rsp+0x28]
+  mov   rax, [rsp+0x20]
   ror   rax, 32
   mov   [rdi], rax
 
-  add   qword [rsp+0x30], 0x1
+  add   qword [rsp+0x28], 0x1
 
   jmp   .encrypt_s_loop
 .encrypt_s_loop_end:
-  mov   rdi, [rsp+0x20]
-  test  rdi, rdi
-  jz    .skip_free
 
-  call  free
-  mov   qword [rsp+0x20], 0
-  cmp   rax, 0
-  jl    .error
-
-.skip_free:
   mov   rax, SUCCESS_CODE
 
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x20]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x30
   ret
 
 ; initialises the state with const p and s values
