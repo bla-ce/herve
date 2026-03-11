@@ -775,14 +775,12 @@ _bcrypt_expand_key:
   ; get the password byte at index r9
   mov   rdi, [rsp+0x8]
   add   rdi, r10
-  mov   cl, byte [rdi]
+  mov   al, byte [rdi]
 
   ; get P[i]
   mov   rdi, [rsp]
-  mov   rax, r9
-  xor   rax, 0x3
-  add   rdi, rax
-  xor   byte [rdi], cl
+  add   rdi, r9
+  xor   byte [rdi], al
 
   inc   r9
   inc   r10
