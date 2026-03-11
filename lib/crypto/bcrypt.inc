@@ -634,31 +634,51 @@ _bcrypt_concat_values:
 ; @param  rdx: cost
 ; @return rax: pointer to the state struct
 _bcrypt_eks_blowfish_setup:
-  sub   rsp, 0x28
+  sub   rsp, 0x30
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the password
   ; [rsp+0x8]   -> pointer to the salt
   ; [rsp+0x10]  -> cost
-  ; [rsp+0x18]  -> pointer to the state struct
-  ; [rsp+0x20]  -> counter
+  ; [rsp+0x18]  -> size of the password
+  ; [rsp+0x20]  -> pointer to the state struct
+  ; [rsp+0x28]  -> counter
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
-  mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x28], 0
+
+  cmp   rdi, 0
+  je    .error
+
+  cmp   rsi, 0
+  je    .error
+
+  cmp   rdx, 0
+  je    .error
+
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  inc   rax
+
+  mov   [rsp+0x18], rax
 
   call  _bcrypt_init_state
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
 
   ; permute P and S based on the password and salt
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp]
   mov   rdx, [rsp+0x8]
+  mov   rcx, [rsp+0x18]
   call  _bcrypt_expand_key
   cmp   rax, 0
   jl    .error
@@ -668,35 +688,37 @@ _bcrypt_eks_blowfish_setup:
   mov   rax, 1
   shl   rax, cl
 
-  mov   qword [rsp+0x20], rax
+  mov   qword [rsp+0x28], rax
 
 .loop:
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp]
   mov   rdx, NO_ARG
+  mov   rcx, [rsp+0x18]
   call  _bcrypt_expand_key
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x18]
-  mov   rsi, NO_ARG
-  mov   rdx, [rsp+0x8]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x8]
+  mov   rdx, NO_ARG
+  mov   rcx, 16
   call  _bcrypt_expand_key
   cmp   rax, 0
   jl    .error
 
-  dec   qword [rsp+0x20]
-  cmp   qword [rsp+0x20], 0
+  dec   qword [rsp+0x28]
+  cmp   qword [rsp+0x28], 0
   jle   .loop_end
 
   jmp   .loop
 .loop_end:
 
-  mov   rax, [rsp+0x18]
+  mov   rax, [rsp+0x20]
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   test  rdi, rdi
   jz    .no_free
 
@@ -706,12 +728,13 @@ _bcrypt_eks_blowfish_setup:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x30
   ret
 
 ; @param  rdi: pointer to the blowfish state struct
 ; @param  rsi: pointer to the password
 ; @param  rdx: pointer to the salt
+; @param  rcx: length of the password
 ; @return rax: return code
 _bcrypt_expand_key:
   sub   rsp, 0x30
@@ -727,6 +750,7 @@ _bcrypt_expand_key:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
   mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x28], 0
 
@@ -740,14 +764,6 @@ _bcrypt_expand_key:
   cmp   rsi, 0
   jl    .error
   je    .loop_end
-
-  ; get the length of the password
-  mov   rdi, [rsp+0x8]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
 
   xor   r9, r9    ; counter
   xor   r10, r10  ; password index to store

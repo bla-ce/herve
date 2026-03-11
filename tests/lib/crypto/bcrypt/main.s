@@ -44,7 +44,7 @@ _start:
 
 section .data
 
-password db "hello, sir", NULL_CHAR
+password db "thisIsMyPasswordMate14", NULL_CHAR
 
 hash dq 0
 
