@@ -1,4 +1,4 @@
-ROOT_DIR = ../../..
+ROOT_DIR = ../../../..
 INCLUDE_DIR = $(ROOT_DIR)/include
 LIB_DIR = $(ROOT_DIR)/lib
 

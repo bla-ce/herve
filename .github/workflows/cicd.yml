@@ -102,6 +102,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y nasm
 
+      - name: Run bcrypt tests
+        working-directory: tests/lib/crypto/bcrypt
+        run: make
+
       - name: Run malloc tests
         working-directory: tests/lib/malloc
         run: make
