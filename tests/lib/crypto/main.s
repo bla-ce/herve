@@ -31,6 +31,9 @@ _start:
   jmp   .loop
 
 .loop_end:
+  mov   rdi, qword [mallocd]
+  mov   rsi, qword [freed]
+  call  assert_equal
 
   mov   rdi, SUCCESS_CODE
   call  exit
@@ -45,4 +48,4 @@ password db "hello, sir", NULL_CHAR
 
 hash dq 0
 
-counter dq 1
+counter dq 10
