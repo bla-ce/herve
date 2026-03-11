@@ -486,9 +486,6 @@ _bcrypt_concat_values:
   cmp   rdx, 0
   je    .error
 
-  mov   rdi, [rsp+0x8]
-  call  println
-
   mov   rdi, BCRYPT_HASH_SIZE
   call  malloc
   cmp   rax, 0
