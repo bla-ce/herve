@@ -11,6 +11,7 @@ section .data
 
 BCRYPT_P_ARRAY_SIZE equ 72
 BCRYPT_S_BOXES_SIZE equ 4096
+BCRYPT_S_BOX_SIZE   equ 1024
 
 BCRYPT_BLOWFISH_LEN equ blowfish_state_t_end - blowfish_state_t
 
@@ -342,8 +343,49 @@ _bcrypt_encrypt_block:
   add   rsp, 0x10
   ret
 
-; calculates a function f on a 32-bit input, using S-boxes and bit manipulation
+; calculates a function f on a 32-bit input
+; @param  rdi: pointer to the blowfish state struct
+; @param  rsi: 32-bit input
+; @return rax: f(rsi)
 _bcrypt_blowfish_f_function:
+  cmp   rdi, 0
+  jle   .error
+
+  ; S[0][high_byte]
+  mov   edx, esi
+  shr   edx, 24
+  movzx ecx, dl
+  mov   eax, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+ecx*4]
+
+  ; S[1][second_byte]
+  mov   edx, esi
+  shr   edx, 16
+  movzx ecx, dl
+  mov   ebx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE+ecx*4]
+
+  ; h := S[0][high_byte] + S[1][second_byte]
+  add   eax, ebx
+
+  ; S[2][third_byte]
+  mov   edx, esi
+  shr   edx, 8
+  movzx ecx, dl
+  mov   edx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE*2+ecx*4]
+
+  xor   eax, edx
+
+  ; S[3][low_byte]
+  movzx ecx, sil
+  mov   edx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE*3+ecx*4]
+
+  ; return (h XOR S[2][third_byte]) + S[3][low_byte]
+  add   eax, edx
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 
 ; concatenates the cost, the salt and the encrypted string
