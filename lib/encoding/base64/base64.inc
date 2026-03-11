@@ -155,6 +155,8 @@ base64_encode:
   mov   rdi, [rsp+0x20]
   stosb
 
+  mov   [rsp+0x20], rdi
+
   cmp   byte [base64_padding], FALSE
   je    .end
 
