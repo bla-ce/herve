@@ -112,6 +112,21 @@ _start:
   mov   rsi, dec_str_6
   call  assert_string_equal
 
+  ; test with disabled padding
+  call  base64_disable_padding
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, dec_str_9
+  mov   rsi, 23
+  call  base64_encode
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, enc_str_9
+  call  assert_string_equal
+
   mov   rdi, SUCCESS_CODE
   call  exit
 
@@ -138,3 +153,12 @@ enc_str_5 db "RW5jb2RlIG1lLCBwbGVhc2U=", NULL_CHAR
 
 dec_str_6 db "Encode me!", NULL_CHAR
 enc_str_6 db "RW5jb2RlIG1lIQ==", NULL_CHAR
+
+dec_str_7 db "I am decoded", NULL_CHAR
+enc_str_7 db "SSBhbSBkZWNvZGVk", NULL_CHAR
+
+dec_str_8 db "I am decoded, interesting", NULL_CHAR
+enc_str_8 db "SSBhbSBkZWNvZGVkLCBpbnRlcmVzdGluZw", NULL_CHAR
+
+dec_str_9 db "OrpheanBeholderScryDoub"
+enc_str_9 db "T3JwaGVhbkJlaG9sZGVyU2NyeURvdWI", NULL_CHAR

@@ -18,18 +18,27 @@ BCRYPT_BLOWFISH_LEN equ blowfish_state_t_end - blowfish_state_t
 BCRYPT_BLOWFISH_OFF_P_ARRAY equ 0x0
 BCRYPT_BLOWFISH_OFF_S_BOXES equ BCRYPT_BLOWFISH_OFF_P_ARRAY + BCRYPT_P_ARRAY_SIZE
 
-BCRYPT_DEFAULT_COST   equ 10
+BCRYPT_OFF_VERSION  equ 0x0
+BCRYPT_OFF_COST     equ BCRYPT_OFF_VERSION + 0x4
+BCRYPT_OFF_SALT     equ BCRYPT_OFF_COST + 0x3 ; (cost + '$')
+BCRYPT_OFF_HASH     equ BCRYPT_OFF_SALT + BCRYPT_SALT_SIZE
+
+BCRYPT_DEFAULT_COST   equ 12
 BCRYPT_MIN_COST       equ 4
 BCRYPT_MAX_COST       equ 31
 
-BCRYPT_HASH_SIZE    equ 61  ; include null char
-BCRYPT_MAX_PWD_LEN  equ 73  ; include null char
+BCRYPT_SALT_SIZE          equ 22
+BCRYPT_ENCODED_HASH_SIZE  equ 31
+BCRYPT_HASH_SIZE          equ 61  ; include null char
+BCRYPT_MAX_PWD_LEN        equ 73  ; include null char
 
 bcrypt_magic_string db "OrpheanBeholderScryDoubt" ; no need for null char
 
 bcrypt_base64_alphabet  db  "./ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                         db  "abcdefghijklmnopqrstuvwxyz"
                         db  "0123456789"
+
+bcrypt_version db "$2b$", NULL_CHAR
 
 section .text
 
@@ -248,7 +257,7 @@ _bcrypt_generate_salt:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x10
   ret
 
 ; runs encryption loop on the magic string
@@ -350,7 +359,7 @@ _bcrypt_encrypt_block:
 
   ; get f(L)
   mov   rdi, [rsp]
-  mov   rsi, r13d
+  mov   esi, r13d
   call  _bcrypt_blowfish_f_function
   cmp   rax, 0
   jl    .error
@@ -411,13 +420,13 @@ _bcrypt_blowfish_f_function:
   mov   edx, esi
   shr   edx, 24
   movzx ecx, dl
-  mov   eax, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+ecx*4]
+  mov   eax, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+rcx*4]
 
   ; S[1][second_byte]
   mov   edx, esi
   shr   edx, 16
   movzx ecx, dl
-  mov   ebx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE+ecx*4]
+  mov   ebx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE+rcx*4]
 
   ; h := S[0][high_byte] + S[1][second_byte]
   add   eax, ebx
@@ -426,13 +435,13 @@ _bcrypt_blowfish_f_function:
   mov   edx, esi
   shr   edx, 8
   movzx ecx, dl
-  mov   edx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE*2+ecx*4]
+  mov   edx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE*2+rcx*4]
 
   xor   eax, edx
 
   ; S[3][low_byte]
   movzx ecx, sil
-  mov   edx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE*3+ecx*4]
+  mov   edx, [rdi+BCRYPT_BLOWFISH_OFF_S_BOXES+BCRYPT_S_BOX_SIZE*3+rcx*4]
 
   ; return (h XOR S[2][third_byte]) + S[3][low_byte]
   add   eax, edx
@@ -451,6 +460,142 @@ _bcrypt_blowfish_f_function:
 ; @param  rdx: pointer to the encrypted magic string
 ; @return rax: pointer to the hash
 _bcrypt_concat_values:
+  sub   rsp, 0x28
+  sub   rsp, TO_STRING_MAX_STR_SIZE
+
+  ; STACK USAGE
+  ; [rsp]       -> cost
+  ; [rsp+0x8]   -> pointer to the salt
+  ; [rsp+0x10]  -> pointer to the encrypted magic string
+  ; [rsp+0x18]  -> pointer to the hash
+  ; [rsp+0x20]  -> base64 encoded hash
+  ; [rsp+0x28]  -> cost to string
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
+
+  cmp   rdi, 0
+  je    .error
+
+  cmp   rsi, 0
+  je    .error
+
+  cmp   rdx, 0
+  je    .error
+
+  mov   rdi, [rsp+0x8]
+  call  println
+
+  mov   rdi, BCRYPT_HASH_SIZE
+  call  malloc
+  cmp   rax, 0
+  jle   .error
+
+  mov   [rsp+0x18], rax
+
+  ; copy version
+  mov   rdi, [rsp+0x18]
+  mov   rsi, bcrypt_version
+  mov   rcx, 4
+  rep   movsb
+
+  ; to string the cost
+  mov   rdi, [rsp]
+  lea   rsi, [rsp+0x28]
+  mov   rdx, TO_STRING_MAX_STR_SIZE
+  call  itoa
+  cmp   rax, 0
+  jl    .error
+
+  ; need to be padded if cost<10
+  mov   rdi, [rsp+0x18]
+  add   rdi, BCRYPT_OFF_COST
+  mov   rcx, 2
+  cmp   qword [rsp], 10
+  jge   .no_padding
+
+  mov   byte [rdi], ZERO_CHAR
+  inc   rdi
+  mov   rcx, 1
+
+.no_padding:
+  mov   rsi, rax
+  rep   movsb
+
+  ; add separator
+  mov   rax, DOLLAR
+  stosb
+
+  mov   rdi, [rsp+0x18]
+  add   rdi, BCRYPT_OFF_SALT
+  mov   rsi, [rsp+0x8]
+  mov   rcx, BCRYPT_SALT_SIZE
+  rep   movsb
+
+  ; set the alphabet for next base64 encoding
+  mov   rdi, bcrypt_base64_alphabet
+  call  base64_set_alphabet
+  cmp   rax, 0
+  jl    .error
+
+  ; disable padding
+  call  base64_disable_padding
+  cmp   rax, 0
+  jl    .error
+
+  ; base64 encode the hash
+  mov   rdi, [rsp+0x10]
+  mov   rsi, 23
+  call  base64_encode
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
+  ; copy the hash
+  mov   rdi, [rsp+0x18]
+  add   rdi, BCRYPT_OFF_HASH
+  mov   rsi, [rsp+0x20]
+  mov   rcx, BCRYPT_ENCODED_HASH_SIZE
+  rep   movsb
+
+  mov   rax, NULL_CHAR
+  stosb
+
+  ; free the base64 encoded hash
+  mov   rdi, [rsp+0x20]
+  call  free
+  mov   qword [rsp+0x20], 0
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x18]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .free_encoded_hash
+
+  call  free
+
+.free_encoded_hash:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, TO_STRING_MAX_STR_SIZE
+  add   rsp, 0x28
   ret
 
 ; initialises the blowfish state with cost, salt, and password
