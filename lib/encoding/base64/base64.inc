@@ -91,6 +91,60 @@ base64_encode:
 
 .loop_end:
   ; handling padding here
+  cmp   qword [rsp+0x8], 2
+  je    .padding_1
+
+  ; padding 2
+  ; get the first 6-bit of the first byte
+  xor   rax, rax
+  mov   rdi, [rsp]
+  mov   al, byte [rdi]
+  shr   rax, 0x2
+
+  ; get the character from that value
+  mov   rdi, rax
+  call  _base64_get_encoded_char
+  cmp   rax, 0
+  jl    .error
+
+  ; add character to the dest
+  mov   rdi, [rsp+0x20]
+  stosb
+
+  mov   [rsp+0x20], rdi
+
+  ; get the last 2-bit of the first byte
+  xor   rax, rax
+  mov   rdi, [rsp]
+  mov   al, byte [rdi]
+  and   rax, 0x3
+  ; these bits are the high bit of the 2nd chunk
+  shl   al, 0x4
+
+  movzx rdi, al
+  call  _base64_get_encoded_char
+  cmp   rax, 0
+  jl    .error
+
+  ; add character to the dest
+  mov   rdi, [rsp+0x20]
+  stosb
+
+  mov   [rsp+0x20], rdi
+
+  cmp   byte [base64_padding], FALSE
+  je    .end
+
+  mov   rdi, [rsp+0x20]
+  mov   al, byte [base64_padchar]
+  mov   rcx, 2
+  rep   stosb
+
+  mov   [rsp+0x20], rdi
+
+  jmp   .end
+
+.padding_1:
   ; get the first 6-bit of the first byte
   xor   rax, rax
   mov   rdi, [rsp]
@@ -134,19 +188,14 @@ base64_encode:
 
   mov   [rsp+0x20], rdi
 
-  cmp   qword [rsp+0x8], 1
-  je    .padding_1
-
-  ; encode last byte
   ; get the last 4-bit of the second byte
-  xor   rax, rax
+  xor   rbx, rbx
   mov   rdi, [rsp]
-  mov   al, byte [rdi+1]
-  and   al, 0xF
-  ; these bits are the high bit of the 3rd chunk
-  shl   al, 0x2
+  mov   bl, byte [rdi+1]
+  and   rbx, 0xf
+  shl   bl, 0x2
 
-  mov   rdi, rax
+  movzx rdi, bl
   call  _base64_get_encoded_char
   cmp   rax, 0
   jl    .error
@@ -163,18 +212,6 @@ base64_encode:
   ; add pad char
   mov   al, byte [base64_padchar]
   stosb
-
-  mov   [rsp+0x20], rdi
-  jmp   .end
-
-.padding_1:
-  cmp   byte [base64_padding], FALSE
-  je    .end
-
-  mov   rdi, [rsp+0x20]
-  mov   al, byte [base64_padchar]
-  mov   rcx, 2
-  rep   stosb
 
   mov   [rsp+0x20], rdi
 
