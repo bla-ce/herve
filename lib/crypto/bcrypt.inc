@@ -185,6 +185,8 @@ _bcrypt_validate_cost:
   ret
 
 ; validates the password for bcrypt hashing
+; @param  rdi: pointer to the plain text password
+; @return rax: SUCCESS if password is valid FAILURE otherwise
 _bcrypt_validate_password:
   cmp   rdi, 0
   jle   .error
@@ -246,7 +248,7 @@ _bcrypt_generate_salt:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x20
   ret
 
 ; runs encryption loop on the magic string
@@ -255,6 +257,60 @@ _bcrypt_generate_salt:
 ; @param  rsi: pointer to the duplicated magic string
 ; @return rax: return code
 _bcrypt_encrypt_loop:
+  sub   rsp, 0x20
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the blowfish state struct
+  ; [rsp+0x8]   -> pointer to the duplicated magic string
+  ; [rsp+0x10]  -> outer counter
+  ; [rsp+0x18]  -> inner counte
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0
+
+  cmp   rdi, 0
+  je    .error
+
+  cmp   rsi, 0
+  je    .error
+
+.outer_loop:
+  mov   qword [rsp+0x18], 0
+
+.inner_loop:
+  mov   rcx, qword [rsp+0x10]
+  mov   rax, [rsp+0x8]
+
+  mov   rdi, [rsp]
+  lea   rsi, [rax+rcx*8]
+  call  _bcrypt_encrypt_block
+  cmp   rax, 0
+  jl    .error
+
+  inc   qword [rsp+0x18]
+
+  cmp   qword [rsp+0x18], 64
+  jl    .inner_loop
+
+.innner_loop_end:
+  inc   qword [rsp+0x10]
+
+  cmp   qword [rsp+0x10], 3
+  jl    .outer_loop
+
+.outer_loop_end:
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
 
 ; encrypts in-place a 64-bit block using blowfish cypher
