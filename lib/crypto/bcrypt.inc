@@ -9,6 +9,8 @@ blowfish_state_t_end:
 
 section .data
 
+test_salt db "9woyyttf8R4iXx1RveIKae", NULL_CHAR
+
 BCRYPT_P_ARRAY_SIZE equ 72
 BCRYPT_S_BOXES_SIZE equ 4096
 BCRYPT_S_BOX_SIZE   equ 1024
@@ -233,17 +235,6 @@ _bcrypt_generate_salt:
   ; generate second random 64-bit number
   call  rand_generate_number
   mov   [rsp+0x8], rax
-
-  ; set the alphabet for next base64 encoding
-  mov   rdi, bcrypt_base64_alphabet
-  call  base64_set_alphabet
-  cmp   rax, 0
-  jl    .error
-
-  ; disable padding
-  call  base64_disable_padding
-  cmp   rax, 0
-  jl    .error
 
   mov   rdi, 16
   call  malloc

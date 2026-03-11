@@ -102,7 +102,7 @@ fi
 response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/services/register \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "name=service-beta" \
-  -d "type=echo")
+  -d "type=ping")
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 success=$(echo "$body" | jq -r '.success')
@@ -247,10 +247,10 @@ else
 fi
 
 # =============================================================================
-# Echo to Running Services
+# Requests to Running Services
 # =============================================================================
 echo ""
-echo "--- Echo to Running Services ---"
+echo "--- Requsts to Running Services ---"
 
 # Echo to service alpha
 response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/$UUID_ALPHA/echo -d "hello from alpha")
@@ -266,16 +266,16 @@ else
   exit 1
 fi
 
-# Echo to service beta
-response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/$UUID_BETA/echo -d "hello from beta")
+# Ping to service beta
+response=$(curl -s -u $AUTH -w "\n%{http_code}" $URL/$UUID_BETA/ping )
 body=$(echo "$response" | head -n -1)
 status_code=$(echo "$response" | tail -n1)
 
-if [ "$status_code" == "200" ] && [ "$body" == "hello from beta" ]; then
-  echo "PASSED: POST /$UUID_BETA/echo returns correct echo"
+if [ "$status_code" == "200" ] && [ "$body" == "pong" ]; then
+  echo "PASSED: GET /$UUID_BETA/ping returns correct pong"
 else
-  echo "FAILED: POST /$UUID_BETA/echo"
-  echo "  Expected: status 200, body 'hello from beta'"
+  echo "FAILED: GET /$UUID_BETA/ping"
+  echo "  Expected: status 200, body 'pong'"
   echo "  Got: status $status_code, body '$body'"
   exit 1
 fi

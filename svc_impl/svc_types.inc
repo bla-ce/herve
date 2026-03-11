@@ -44,6 +44,9 @@ svc_init_by_type:
   mov   rsi, qword [rax+SERVICE_OFF_TYPE]
   mov   qword [rdi+SERVICE_OFF_TYPE], rsi
 
+  mov   rsi, qword [rax+SERVICE_OFF_DESCRIPTION]
+  mov   qword [rdi+SERVICE_OFF_DESCRIPTION], rsi
+
   mov   rsi, [rax+SERVICE_OFF_REGISTER]
   mov   qword [rdi+SERVICE_OFF_REGISTER], rsi
 

@@ -1,20 +1,23 @@
 section .data
 
 ping_svc_t:
-  .id         dq 0  ; set by the central server
-  .name       dq 0  ; set by the caller
-  .status     dq 0  ; set by the central server
-  .type       dq SVC_TYPES.PING
-  .register   dq ping_svc_register
-  .unregister dq ping_svc_unregister
-  .start      dq ping_svc_start
-  .stop       dq ping_svc_stop
-  .group      dq 0  ; set by the central server
-  .next       dq 0  ; set by the central server
+  .id           dq 0  ; set by the central server
+  .name         dq 0  ; set by the caller
+  .status       dq 0  ; set by the central server
+  .type         dq SVC_TYPES.PING
+  .description  dq ping_svc_description
+  .register     dq ping_svc_register
+  .unregister   dq ping_svc_unregister
+  .start        dq ping_svc_start
+  .stop         dq ping_svc_stop
+  .group        dq 0  ; set by the central server
+  .next         dq 0  ; set by the central server
 ping_svc_t_end:
 
 ping_svc_msg:
   .register db "Registering new ping server...", NULL_CHAR
+
+ping_svc_description db "A service returning pong to /ping", NULL_CHAR
 
 ping_url  db "/ping", NULL_CHAR
 

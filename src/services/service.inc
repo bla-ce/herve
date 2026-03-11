@@ -2,16 +2,17 @@
 
 section .bss
 service_t:
-  .uuid       resq 1
-  .name       resq 1
-  .status     resq 1
-  .type       resq 1
-  .register   resq 1  ; ptr to the func registering the service
-  .unregister resq 1  ; ptr to the func unregistering the service
-  .start      resq 1  ; ptr to the func starting the service
-  .stop       resq 1  ; ptr to the func stopping the service
-  .group      resq 1  ; ptr to the server group with all the routes
-  .next       resq 1
+  .uuid         resq 1
+  .name         resq 1
+  .status       resq 1
+  .type         resq 1
+  .description  resq 1
+  .register     resq 1  ; ptr to the func registering the service
+  .unregister   resq 1  ; ptr to the func unregistering the service
+  .start        resq 1  ; ptr to the func starting the service
+  .stop         resq 1  ; ptr to the func stopping the service
+  .group        resq 1  ; ptr to the server group with all the routes
+  .next         resq 1
 service_t_end:
 
 section .data
@@ -22,7 +23,8 @@ SERVICE_OFF_UUID        equ 0x0
 SERVICE_OFF_NAME        equ SERVICE_OFF_UUID + 0x8
 SERVICE_OFF_STATUS      equ SERVICE_OFF_NAME + 0x8
 SERVICE_OFF_TYPE        equ SERVICE_OFF_STATUS + 0x8
-SERVICE_OFF_REGISTER    equ SERVICE_OFF_TYPE + 0x8
+SERVICE_OFF_DESCRIPTION equ SERVICE_OFF_TYPE + 0x8
+SERVICE_OFF_REGISTER    equ SERVICE_OFF_DESCRIPTION + 0x8
 SERVICE_OFF_UNREGISTER  equ SERVICE_OFF_REGISTER + 0x8
 SERVICE_OFF_START       equ SERVICE_OFF_UNREGISTER + 0x8
 SERVICE_OFF_STOP        equ SERVICE_OFF_START + 0x8
@@ -30,10 +32,11 @@ SERVICE_OFF_GRP         equ SERVICE_OFF_STOP + 0x8
 SERVICE_OFF_NEXT        equ SERVICE_OFF_GRP + 0x8
 
 service_key:
-  .uuid   db "uuid", NULL_CHAR
-  .name   db "name", NULL_CHAR
-  .status db "status", NULL_CHAR
-  .type   db "type", NULL_CHAR
+  .uuid         db "uuid", NULL_CHAR
+  .name         db "name", NULL_CHAR
+  .status       db "status", NULL_CHAR
+  .type         db "type", NULL_CHAR
+  .description  db "description", NULL_CHAR
 
 service_status:
   .REGISTERED   db "registered", NULL_CHAR
@@ -669,6 +672,20 @@ service_to_json:
   mov   [rsp+0x8], rax
 
   mov   rdi, [rsp]
+  call  service_get_description
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, service_key.description
+  mov   rdx, rax
+  call  json_insert_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, [rsp]
   call  service_get_status
   cmp   rax, 0
   jl    .error
@@ -1117,6 +1134,45 @@ service_set_status:
   jle   .error
 
   mov   [rdi+SERVICE_OFF_STATUS], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the description of the service
+; @param  rdi: pointer to the service struct
+; @return rax: description of the service
+service_get_description:
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rax, [rdi+SERVICE_OFF_DESCRIPTION]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the description of the service
+; @param  rdi: pointer to the service struct
+; @param  rsi: description of the service
+; @return rax: return code
+service_set_description:
+  cmp   rdi, 0
+  jle   .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  mov   [rdi+SERVICE_OFF_DESCRIPTION], rsi
 
   mov   rax, SUCCESS_CODE
 

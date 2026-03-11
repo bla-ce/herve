@@ -1,20 +1,23 @@
 section .data
 
 echo_svc_t:
-  .id         dq 0  ; set by the central server
-  .name       dq 0  ; set by the caller
-  .status     dq 0  ; set by the central server
-  .type       dq SVC_TYPES.ECHO
-  .register   dq echo_svc_register
-  .unregister dq echo_svc_unregister
-  .start      dq echo_svc_start
-  .stop       dq echo_svc_stop
-  .group      dq 0  ; set by the central server
-  .next       dq 0  ; set by the central server
+  .id           dq 0  ; set by the central server
+  .name         dq 0  ; set by the caller
+  .status       dq 0  ; set by the central server
+  .type         dq SVC_TYPES.ECHO
+  .description  dq echo_svc_description
+  .register     dq echo_svc_register
+  .unregister   dq echo_svc_unregister
+  .start        dq echo_svc_start
+  .stop         dq echo_svc_stop
+  .group        dq 0  ; set by the central server
+  .next         dq 0  ; set by the central server
 echo_svc_t_end:
 
 echo_svc_msg:
   .register db "Registering new echo server...", NULL_CHAR
+
+echo_svc_description db "A service returning the request body", NULL_CHAR
 
 echo_url  db "/echo", NULL_CHAR
 

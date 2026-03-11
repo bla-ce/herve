@@ -51,7 +51,7 @@ AUTH_ADMIN_SECRET=password
 All requests to the API must include the `Authorization` header with valid Basic Auth credentials.
 
 > [!NOTE]
-> Yes, I know this implementation is not secure (yet). But hey, I'm implementing authentication in raw Assembly, not centering a div in React. We'll get to the fancy stuff eventually (SPOIL: I am implementing bcrypt in x86).
+> Yes, I know this implementation is not secure (yet). But hey, I'm implementing authentication in raw Assembly, not centering a div in React. We'll get to the fancy stuff eventually (SPOIL: I am implementing bcrypt in x86 -> debugging stage).
 
 ## Service Management API
 
@@ -93,18 +93,19 @@ curl -X POST -u admin:password http://localhost:5000/services/:uuid/stop
 
 Custom services must implement the Herve service contract. A service is defined by:
 
-| Field      | Description                                      | Need to be defined        |
-|------------|--------------------------------------------------|---------------------------|
-| uuid       | Auto-generated service identifier (uuid v4)      | no                        |
-| name       | Name of the service                              | no                        |
-| status     | Current status of the service                    | no                        |
-| type       | Type of the service                              | yes                       |
-| register   | Function pointer to register the service         | yes                       |
-| unregister | Function pointer to unregister the service       | yes                       |
-| start      | Function pointer to start the service            | yes                       |
-| stop       | Function pointer to stop the service             | yes                       |
-| group      | Pointer to the server group with all the routes  | no                        |
-| next       | Pointer to the next service (linked list)        | no                        |
+| Field       | Description                                      | Need to be defined        |
+|-------------|--------------------------------------------------|---------------------------|
+| uuid        | Auto-generated service identifier (uuid v4)      | no                        |
+| name        | Name of the service                              | no                        |
+| status      | Current status of the service                    | no                        |
+| type        | Type of the service                              | yes                       |
+| description | Description of the service                       | yes                       |
+| register    | Function pointer to register the service         | yes                       |
+| unregister  | Function pointer to unregister the service       | yes                       |
+| start       | Function pointer to start the service            | yes                       |
+| stop        | Function pointer to stop the service             | yes                       |
+| group       | Pointer to the server group with all the routes  | no                        |
+| next        | Pointer to the next service (linked list)        | no                        |
 
 ## Project Structure
 

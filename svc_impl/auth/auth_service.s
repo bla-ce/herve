@@ -1,16 +1,17 @@
 section .data
 
 auth_svc_t:
-  .id         dq 0  ; set by the central server
-  .name       dq 0  ; set by the caller
-  .status     dq 0  ; set by the central server
-  .type       dq SVC_TYPES.AUTH
-  .register   dq auth_svc_register
-  .unregister dq auth_svc_unregister
-  .start      dq auth_svc_start
-  .stop       dq auth_svc_stop
-  .group      dq 0  ; set by the central server
-  .next       dq 0  ; set by the central server
+  .id           dq 0  ; set by the central server
+  .name         dq 0  ; set by the caller
+  .status       dq 0  ; set by the central server
+  .type         dq SVC_TYPES.AUTH
+  .description  dq 0
+  .register     dq auth_svc_register
+  .unregister   dq auth_svc_unregister
+  .start        dq auth_svc_start
+  .stop         dq auth_svc_stop
+  .group        dq 0  ; set by the central server
+  .next         dq 0  ; set by the central server
 auth_svc_t_end:
 
 auth_svc_msg:
