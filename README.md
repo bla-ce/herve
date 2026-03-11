@@ -124,6 +124,7 @@ herve/
 │   ├── malloc/     # Memory allocator
 │   ├── net/        # Sockets, epoll, select
 │   ├── encoding/   # JSON, Base64
+│   ├── crypto/     # bcrypt implementation (yes, you read it right)
 │   ├── hash_table/ # Key-value storage
 │   ├── model/      # Data model system
 │   ├── utils/      # Strings, linked lists, arrays
