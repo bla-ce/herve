@@ -8,26 +8,13 @@ section .text
 ; @param  rdi: pointer to authorization header
 ; @return rax: bool
 is_basic_auth:
-  sub   rsp, 0x8
-
   cmp   rdi, 0
-  jle   .error
+  je    .error
 
-  mov   [rsp], rdi
-
-  mov   rdi, [rsp]
   lea   rsi, [BASIC_AUTH]
   call  starts_with
 
   ; rax contains the boolean
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x8
   ret
 
 ; reads and decodes basic authentication
@@ -36,8 +23,11 @@ is_basic_auth:
 read_basic_auth:
   sub   rsp, 0x8
 
+  ; STACK USAGE
+  ; [rsp]   -> pointer to the authorization header
+
   cmp   rdi, 0
-  jle   .error
+  je    .error
 
   mov   [rsp], rdi
 

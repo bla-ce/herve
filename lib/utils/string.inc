@@ -394,7 +394,7 @@ strncmp_const_time:
 
 .loop:
   cmp   rdx, 0
-  jle   .loop_end
+  jle   .return
 
   cmpsb
   je    .char_match
@@ -411,9 +411,6 @@ strncmp_const_time:
   dec   rdx
 
   jmp   .loop
-
-.loop_end:
-  jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
@@ -1227,19 +1224,13 @@ bool_to_str:
   cmp   rdi, FALSE
   je    .false
 
-  jmp   .error
+  mov   rax, FAILURE_CODE
+  ret
 
 .true:
-  mov   rax, str_false
-  jmp   .return
+  mov   rax, str_true
+  ret
 
 .false:
   mov   rax, str_false
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
   ret
