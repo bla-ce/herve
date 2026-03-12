@@ -17,6 +17,10 @@ is_basic_auth:
   ; rax contains the boolean
   ret
 
+.error:
+  mov   rax, FAILURE_CODE
+  ret
+
 ; reads and decodes basic authentication
 ; @param  rdi: pointer to authorization header
 ; @return rax: pointer to decoded string
