@@ -279,6 +279,12 @@ service_init:
   cmp   rax, 0
   jl    .error
 
+  ; duplicate the name
+  mov   rdi, rax
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  service_set_name
@@ -1412,6 +1418,17 @@ service_free:
   ; free the uuid
   mov   rdi, [rsp]
   call  service_get_uuid
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; free the name of the service
+  mov   rdi, [rsp]
+  call  service_get_name
   cmp   rax, 0
   jl    .error
 

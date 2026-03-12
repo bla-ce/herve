@@ -88,7 +88,7 @@ handle_request:
   call  receive_request
   cmp   rax, 0
   jl    .error
-  je    .return
+  je    .empty
 
   mov   rdi, [rsp]
   lea   rsi, [rsp+0x8]
@@ -96,6 +96,7 @@ handle_request:
   cmp   rax, 0
   jl    .error
 
+.empty:
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -715,7 +716,6 @@ receive_request:
   call  receive_from_file
   cmp   rax, 0
   jl    .error
-  je    .empty
 
   mov   qword [rsp+0x18], rax
 
@@ -725,6 +725,9 @@ receive_request:
   call  set_request_length
   cmp   rax, 0
   jl    .error
+
+  cmp   qword [rsp+0x18], 0
+  je    .empty
 
   ; add null char at the end of the request to avoid garbage
   mov   rdi, [rsp+0x8]
@@ -744,9 +747,6 @@ receive_request:
   jmp   .return
 
 .empty:
-  mov   rdi, [rsp]
-  call  ctx_abort
-
   mov   rax, SUCCESS_CODE
   jmp   .return
 

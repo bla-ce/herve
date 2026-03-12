@@ -7,9 +7,9 @@ AUTH="admin:password"
 echo "=== Service API Tests ==="
 echo ""
 
-# =============================================================================
+# ===============================================================
 # Health Check
-# =============================================================================
+# ===============================================================
 echo "--- Health Check ---"
 
 status_code=$(curl -s -u $AUTH -w "\n%{http_code}" $URL/health | tail -n1)
@@ -21,9 +21,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Authentication - 401 Unauthorized
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Authentication ---"
 
@@ -39,9 +39,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Initial State - No Services
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Initial State ---"
 
@@ -73,9 +73,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Register Multiple Services
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Register Multiple Services ---"
 
@@ -136,9 +136,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Verify Services List Length
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Verify Services List ---"
 
@@ -170,9 +170,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Service Before Start (should fail)
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Service Before Start ---"
 
@@ -188,9 +188,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Start Multiple Services
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Start Multiple Services ---"
 
@@ -224,9 +224,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Verify Status After Start
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Verify Status After Start ---"
 
@@ -246,9 +246,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Requests to Running Services
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Requsts to Running Services ---"
 
@@ -293,9 +293,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Stop Services
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Stop Services ---"
 
@@ -341,9 +341,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Unregister Services
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Unregister Services ---"
 
@@ -436,9 +436,9 @@ else
   exit 1
 fi
 
-# =============================================================================
+# ===============================================================
 # Verify Empty State After Unregister All
-# =============================================================================
+# ===============================================================
 echo ""
 echo "--- Verify Empty State ---"
 
@@ -469,62 +469,52 @@ else
   exit 1
 fi
 
-# =============================================================================
-# Re-register and Test Fresh State
-# =============================================================================
+# ===============================================================
+# Stress test (kind of)
+# ===============================================================
 echo ""
-echo "--- Re-register and Test Fresh State ---"
+echo "--- Stress test ---"
 
-# Register a new service after clearing all
-response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/services/register \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "name=fresh-service" \
-  -d "type=echo")
-body=$(echo "$response" | head -n -1)
-status_code=$(echo "$response" | tail -n1)
-success=$(echo "$body" | jq -r '.success')
-UUID_FRESH=$(echo "$body" | jq -r '.data.uuid')
+for i in $(seq 1 10000);
+do
+  # Register a new service after clearing all
+  response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/services/register \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "name=fresh-service" \
+    -d "type=echo")
+  body=$(echo "$response" | head -n -1)
+  status_code=$(echo "$response" | tail -n1)
+  success=$(echo "$body" | jq -r '.success')
+  UUID_FRESH=$(echo "$body" | jq -r '.data.uuid')
 
-if [ "$status_code" == "201" ] && [ "$success" == "true" ] && [ "$UUID_FRESH" != "null" ]; then
-  echo "PASSED: POST /services/register fresh-service after unregister all (uuid: $UUID_FRESH)"
-else
-  echo "FAILED: POST /services/register after unregister all"
-  echo "  Expected: status 201"
-  echo "  Got: status $status_code"
-  exit 1
-fi
+  if [ "$status_code" == "201" ] && [ "$success" == "true" ] && [ "$UUID_FRESH" != "null" ]; then
+    echo "PASSED: POST /services/register service"
+  else
+    echo "FAILED: POST /services/register"
+    echo "  Expected: status 201"
+    echo "  Got: status $status_code"
+    exit 1
+  fi
 
-# Start and test the fresh service
-response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/services/$UUID_FRESH/start)
-body=$(echo "$response" | head -n -1)
-status_code=$(echo "$response" | tail -n1)
-success=$(echo "$body" | jq -r '.success')
+  # Unregister service
+  response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/services/$UUID_FRESH/unregister)
+  body=$(echo "$response" | head -n -1)
+  status_code=$(echo "$response" | tail -n1)
+  success=$(echo "$body" | jq -r '.success')
 
-if [ "$status_code" == "200" ] && [ "$success" == "true" ]; then
-  echo "PASSED: POST /services/$UUID_FRESH/start fresh service"
-else
-  echo "FAILED: POST /services/$UUID_FRESH/start fresh service"
-  echo "  Expected: status 200"
-  echo "  Got: status $status_code"
-  exit 1
-fi
+  if [ "$status_code" == "200" ] && [ "$success" == "true" ] && [ "$UUID_FRESH" != "null" ]; then
+    echo "PASSED: POST /services/unregister service"
+  else
+    echo "FAILED: POST /services/unregister"
+    echo "  Expected: status 200"
+    echo "  Got: status $status_code"
+    exit 1
+  fi
+done
 
-# Echo to fresh service
-response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/$UUID_FRESH/echo -d "fresh echo")
-body=$(echo "$response" | head -n -1)
-status_code=$(echo "$response" | tail -n1)
 
-if [ "$status_code" == "200" ] && [ "$body" == "fresh echo" ]; then
-  echo "PASSED: POST /$UUID_FRESH/echo to fresh service"
-else
-  echo "FAILED: POST /$UUID_FRESH/echo to fresh service"
-  echo "  Expected: status 200, body 'fresh echo'"
-  echo "  Got: status $status_code, body '$body'"
-  exit 1
-fi
-
-# =============================================================================
+# ===============================================================
 # Summary
-# =============================================================================
+# ===============================================================
 echo ""
 echo "=== All Tests Passed ==="

@@ -87,6 +87,17 @@ ctx_process_request:
   cmp   rax, TRUE
   je    .post_request_middlewares
 
+  ; check the size of the request, if empty, early return
+  mov   rdi, [rsp+0x10]
+  call  ctx_get_request
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, rax
+  call  get_request_length
+  cmp   rax, 0
+  jle   .error
+
   ; get root group
   mov   rdi, [rsp]
   call  server_get_root_group
@@ -194,7 +205,7 @@ ctx_process_request:
   cmp   rax, 0
   ; we can't return 500 because we don't know what's
   ; been sent before
-  jl    .ctx_free
+  jl    .error
 
   ; run route post request middleware
   mov   rdi, [rsp+0x28]
@@ -202,7 +213,14 @@ ctx_process_request:
   mov   rdx, TRUE
   call  middleware_run_chain
 
-  jmp   .ctx_free
+  mov   rdi, [rsp+0x10]
+  call  ctx_free
+  mov   qword [rsp+0x10], 0
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
 
 .internal_server_error:
   mov   rdi, [rsp+0x10]
@@ -210,14 +228,6 @@ ctx_process_request:
   call  send_no_content
 
   ; TODO: should return a string here
-
-.ctx_free:
-  mov   rdi, [rsp+0x10]
-  call  ctx_free
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
 
 .error:
   mov   rdi, [rsp+0x10]
