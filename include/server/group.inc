@@ -438,35 +438,23 @@ group_free:
   mov   [rsp], rdi
 
   cmp   rdi, 0
-  jle   .error
+  je    .error
 
   ; free the middlewares
   mov   rsi, [rsp]
   add   rsi, GRP_OFF_MIDDLEWARES
 
   cmp   qword [rsi], 0
-  je    .loop_end
+  je    .skip_middlewares
 
-.loop:
-  mov   rdi, [rsi]    ; rdi points to the middleware struct
-
-  ; save next
-  lea   rsi, [rdi+MIDDLEWARE_OFF_NEXT]
-  mov   [rsp+0x8], rsi
-
-  ; free the middleware
-  call  free
+  mov   rdi, rsi
+  mov   rsi, free
+  mov   rdx, MIDDLEWARE_OFF_NEXT
+  call  linked_list_free
   cmp   rax, 0
   jl    .error
 
-  ; go to next
-  mov   rsi, [rsp+0x8]
-
-  cmp   qword [rsi], 0
-  je    .loop_end
-
-  jmp   .loop
-.loop_end:
+.skip_middlewares:
   ; remove group from the server
   mov   rdi, [rsp]
   call  group_get_server
@@ -515,7 +503,7 @@ group_free:
   add   rsp, 0x10
   ret
 
-; removes the route from the server and frees them
+; removes the routes from the server and the group and frees them
 ; @param  rdi: pointer to the group
 ; @return rax: return code
 group_free_routes:

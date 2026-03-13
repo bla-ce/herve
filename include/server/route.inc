@@ -12,19 +12,20 @@ route_t:
 route_t_end:
 
 section .data
-  ROUTE_STRUCT_LEN equ route_t_end - route_t
 
-  ROUTE_OFF_METHOD      equ 0x0
-  ROUTE_OFF_URL         equ ROUTE_OFF_METHOD + 0x8
-  ROUTE_OFF_CALLBACK    equ ROUTE_OFF_URL + 0x8
-  ROUTE_OFF_GROUP       equ ROUTE_OFF_CALLBACK + 0x8
-  ROUTE_OFF_SERVER      equ ROUTE_OFF_GROUP + 0x8
-  ROUTE_OFF_ACTIVE      equ ROUTE_OFF_SERVER + 0x8
-  ROUTE_OFF_ARG1        equ ROUTE_OFF_ACTIVE + 0x8
-  ROUTE_OFF_SERVER_NEXT equ ROUTE_OFF_ARG1 + 0x8
-  ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_SERVER_NEXT + 0x8
+ROUTE_STRUCT_LEN equ route_t_end - route_t
 
-  log_pre_routes  db SPACE, SPACE, NULL_CHAR
+ROUTE_OFF_METHOD      equ 0x0
+ROUTE_OFF_URL         equ ROUTE_OFF_METHOD + 0x8
+ROUTE_OFF_CALLBACK    equ ROUTE_OFF_URL + 0x8
+ROUTE_OFF_GROUP       equ ROUTE_OFF_CALLBACK + 0x8
+ROUTE_OFF_SERVER      equ ROUTE_OFF_GROUP + 0x8
+ROUTE_OFF_ACTIVE      equ ROUTE_OFF_SERVER + 0x8
+ROUTE_OFF_ARG1        equ ROUTE_OFF_ACTIVE + 0x8
+ROUTE_OFF_SERVER_NEXT equ ROUTE_OFF_ARG1 + 0x8
+ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_SERVER_NEXT + 0x8
+
+log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
 section .text
 ; logs the route "METHOD  URL"
@@ -1268,15 +1269,15 @@ route_free:
   sub   rsp, 0x8
 
   ; STACK USAGE
-  ; [rsp] -> pointer to the route
+  ; [rsp]     -> pointer to the route
 
   mov   [rsp], rdi
 
   cmp   rdi, 0
-  jle   .error
+  je    .error
 
   cmp   rsi, 0
-  jle   .error
+  je    .error
 
   ; get route server
   mov   rdi, [rsp]
@@ -1284,7 +1285,7 @@ route_free:
   cmp   rax, 0
   jl    .error
 
-  ; remove route from ll
+  ; remove route from server ll
   mov   rdi, rax
   add   rdi, SERVER_OFF_ROUTES
   mov   rsi, [rsp]
@@ -1293,6 +1294,23 @@ route_free:
   cmp   rax, 0
   jl    .error
 
+  ; get route group
+  mov   rdi, [rsp]
+  call  route_get_group
+  cmp   rax, 0
+  jl    .error
+  je    .skip_group
+
+  ; remove route from group ll
+  mov   rdi, rax
+  add   rdi, GRP_OFF_ROUTES
+  mov   rsi, [rsp]
+  mov   rdx, ROUTE_OFF_GRP_NEXT
+  call  linked_list_remove_entry
+  cmp   rax, 0
+  jl    .error
+
+.skip_group:
   ; free url
   mov   rdi, [rsp]
   call  route_get_url

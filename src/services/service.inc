@@ -124,7 +124,7 @@ service_register:
   cmp   rax, 0
   jl    .internal_server_error
 
-  ; create server group from service
+  ; create server group from service struct
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  service_set_group
@@ -324,6 +324,12 @@ service_init:
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
   call  service_set_type
+  cmp   rax, 0
+  jl    .error
+
+  ; free form data
+  mov   rdi, [rsp+0x10]
+  call  ht_free
   cmp   rax, 0
   jl    .error
 

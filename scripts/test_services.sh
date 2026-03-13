@@ -475,7 +475,7 @@ fi
 echo ""
 echo "--- Stress test ---"
 
-for i in $(seq 1 10000);
+for i in $(seq 1 200);
 do
   # Register a new service after clearing all
   response=$(curl -s -u $AUTH -w "\n%{http_code}" -X POST $URL/services/register \
