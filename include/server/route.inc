@@ -127,17 +127,18 @@ route_create:
   jl    .error
 
   ; add group to route struct
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x18]
   call  route_set_group
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   call  route_activate
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x20]
+  mov   rax, [rsp+0x28]
   mov   qword [rax+ROUTE_OFF_SERVER_NEXT], 0
   mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
 
@@ -816,7 +817,7 @@ route_add:
 
   ; add route to group routes
   mov   rdi, rax
-  mov   rsi, [rsp+0x28]
+  mov   rsi, [rsp+0x30]
   call  route_link_to_group
   cmp   rax, 0
   jl    .error
@@ -824,7 +825,7 @@ route_add:
 .no_group_link:
   ; add route to server routes
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x28]
+  mov   rsi, [rsp+0x30]
   call  route_link_to_server
   cmp   rax, 0
   jl    .error
