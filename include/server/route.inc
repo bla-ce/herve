@@ -253,6 +253,7 @@ route_normalise_url:
   ; check if the last char is slash
   mov   rdi, [rsp+0x10]
   add   rdi, [rsp+0x8]
+  dec   rdi
   cmp   byte [rdi], SLASH
   jne   .skip_remove_trailing_slash
 
