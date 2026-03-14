@@ -93,19 +93,19 @@ curl -X POST -u admin:password http://localhost:5000/services/:uuid/stop
 
 Custom services must implement the Herve service contract. A service is defined by:
 
-| Field       | Description                                      | Need to be defined        |
-|-------------|--------------------------------------------------|---------------------------|
-| uuid        | Auto-generated service identifier (uuid v4)      | no                        |
-| name        | Name of the service                              | no                        |
-| status      | Current status of the service                    | no                        |
-| type        | Type of the service                              | yes                       |
-| description | Description of the service                       | yes                       |
-| register    | Function pointer to register the service         | yes                       |
-| unregister  | Function pointer to unregister the service       | yes                       |
-| start       | Function pointer to start the service            | yes                       |
-| stop        | Function pointer to stop the service             | yes                       |
-| group       | Pointer to the server group with all the routes  | no                        |
-| next        | Pointer to the next service (linked list)        | no                        |
+| Field       | Description                                      | Defined by               |
+|-------------|--------------------------------------------------|--------------------------|
+| uuid        | Auto-generated service identifier (uuid v4)      | Central server           |
+| name        | Name of the service                              | User                     |
+| status      | Current status of the service                    | Central server / User    |
+| type        | Type of the service                              | Service implementation   |
+| description | Description of the service                       | Service implementation   |
+| register    | Function pointer to register the service         | Service implementation   |
+| unregister  | Function pointer to unregister the service       | Service implementation   |
+| start       | Function pointer to start the service            | Service implementation   |
+| stop        | Function pointer to stop the service             | Service implementation   |
+| group       | Pointer to the server group with all the routes  | Central server           |
+| next        | Pointer to the next service (linked list)        | Central server           |
 
 ## Project Structure
 
