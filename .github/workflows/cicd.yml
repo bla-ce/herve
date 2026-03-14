@@ -25,6 +25,8 @@ jobs:
           filters: |
             lib:
               - 'lib/**'
+            include:
+              - 'include/**'
             herve:
               - 'include/**'
               - 'lib/**'
@@ -33,6 +35,19 @@ jobs:
             examples:
               - 'include/**'
               - 'lib/**'
+
+  include-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.include == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nasm
+        run: sudo apt-get update && sudo apt-get install -y nasm
+
+      - name: Run route tests
+        run: make -C tests/include/server program=route_test
 
   lib-tests:
     needs: detect-changes
@@ -66,13 +81,13 @@ jobs:
         run: make -C tests/lib/encoding/base64
 
       - name: Run array tests
-        run: make -C tests/lib/utils program=array_test && ./tests/lib/utils/bin/array_test
+        run: make -C tests/lib/utils program=array_test
 
       - name: Run linked list tests
-        run: make -C tests/lib/utils program=linked_list_test && ./tests/lib/utils/bin/linked_list_test
+        run: make -C tests/lib/utils program=linked_list_test
 
       - name: Run string tests
-        run: make -C tests/lib/utils program=string_test && ./tests/lib/utils/bin/string_test
+        run: make -C tests/lib/utils program=string_test
 
       - name: Run hash table tests
         run: make -C tests/lib/hash_table
