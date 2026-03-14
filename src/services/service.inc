@@ -1383,6 +1383,7 @@ service_set_group:
   mov   rdi, [rsp]
   mov   [rdi+SERVICE_OFF_GRP], rax
 
+  ; free concat service endpoint
   mov   rdi, [rsp+0x10]
   call  free
   cmp   rax, 0

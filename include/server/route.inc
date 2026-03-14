@@ -557,8 +557,8 @@ route_add:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x40], rax
   mov   [rsp+0x10], rax
+  mov   [rsp+0x40], rax
 
 .no_group:
   ; make sure the route does not already exist
@@ -687,6 +687,16 @@ route_add:
   cmp   rax, 0
   jl    .error
 
+  ; free concatenated url
+  mov   rdi, [rsp+0x40]
+  test  rdi, rdi
+  jz    .skip_free_url
+
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+.skip_free_url:
   mov   rax, [rsp+0x28]
 
   jmp   .return

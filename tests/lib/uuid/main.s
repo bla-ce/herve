@@ -4,14 +4,18 @@ global _start
 
 section .text
 _start:
-
 .loop:
   call  uuid_v4
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
+  mov   [uuid], rax
+
+  mov   rdi, [uuid]
   call  println
+
+  mov   rdi, [uuid]
+  call  free
 
   dec   qword [counter]
   cmp   qword [counter], 0
@@ -20,6 +24,9 @@ _start:
   jmp   .loop
 
 .loop_end:
+  mov   rax, [mallocd]
+  cmp   rax, [freed]
+  jne   .error
 
   mov   rdi, SUCCESS_CODE
   call  exit
@@ -31,3 +38,4 @@ _start:
 section .data
 
 counter dq 500
+uuid    dq 0
