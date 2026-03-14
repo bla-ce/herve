@@ -508,7 +508,7 @@ route_exists:
 ; @param  r9: arg 1 for the callback function
 ; @return rax: pointer to route struct
 route_add:
-  sub   rsp, 0x50
+  sub   rsp, 0x38
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
@@ -516,164 +516,61 @@ route_add:
   ; [rsp+0x10]  -> pointer to the url of the route
   ; [rsp+0x18]  -> pointer to the callback function
   ; [rsp+0x20]  -> pointer to the group struct
-  ; [rsp+0x28]  -> pointer to the malloc'd route struct
-  ; [rsp+0x30]  -> size of the url
-  ; [rsp+0x38]  -> pointer to the malloc'd url
-  ; [rsp+0x40]  -> pointer to the concatenated prefix and url
-  ; [rsp+0x48]  -> argument for callback function
+  ; [rsp+0x28]  -> pointer to the route struct
+  ; [rsp+0x30]  -> argument for callback function
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rcx
   mov   [rsp+0x20], r8
-  mov   qword [rsp+0x28], 0
-  mov   qword [rsp+0x38], 0
-  mov   qword [rsp+0x40], 0
-  mov   [rsp+0x48], r9
+  mov   [rsp+0x28], r9
+  mov   qword [rsp+0x30], 0
 
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
-  jle   .error
-
-  ; if group is not null, concatenate group prefix and route url
-  mov   rdi, [rsp+0x20]
   test  rdi, rdi
-  jz    .no_group
+  jz    .error
 
-  ; get the group prefix
-  call  group_get_prefix
+  test  rsi, rsi
+  jz    .error
+
+  test  rdx, rdx
+  jz    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, [rsp+0x10]
+  mov   rdx, [rsp+0x18]
+  mov   rcx, [rsp+0x20]
+  mov   r9, [rsp+0x28]
+  call  route_create
   cmp   rax, 0
   jl    .error
+  
+  mov   [rsp+0x30], rax
 
   mov   rdi, rax
-  mov   rsi, [rsp+0x10]
-  call  strcat
+  call  route_validate
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-  mov   [rsp+0x40], rax
-
-.no_group:
   ; make sure the route does not already exist
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
-  mov   rdx, [rsp+0x10]
+  mov   rsi, [rsp+0x30]
   call  route_exists
   cmp   rax, 0
   jl    .error
   cmp   rax, TRUE
   je    .error
 
-  ; make sure method is valid
-  mov   rdi, [rsp+0x8]
-  call  is_valid_method
-  cmp   rax, 0
-  je    .error
-
-  ; malloc route struct
-  mov   rdi, ROUTE_STRUCT_LEN
-  call  malloc
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x28], rax
-
-  ; set the group of the route
-  mov   rdi, [rsp+0x20]
-  mov   qword [rax+ROUTE_OFF_GROUP], rdi
-
-  ; get url length
-  mov   rdi, [rsp+0x10]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  ; make sure is less than MAX_LEN
-  cmp   rax, URL_MAX_LEN
-  jg    .error
-
-  mov   [rsp+0x30], rax
-
-  cmp   rax, 1
-  je    .malloc_url
-
-  ; check if the url ends with '/', if yes, trim it
-  xor   rax, rax
-  mov   rsi, [rsp+0x10]
-  cmp   byte [rsi], SLASH
-  jne   .error
-
-  add   rsi, [rsp+0x30]
-  dec   rsi
-  lodsb
-
-  cmp   rax, SLASH
-  jne   .malloc_url
-
-  dec   qword [rsp+0x30]
-
-.malloc_url:
-  ; malloc url
   mov   rdi, [rsp+0x30]
-  inc   rdi       ; increase by one to have null char
-  call  malloc
+  call  route_get_group
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x38], rax
-
-  ; route to lower
-  mov   rdi, [rsp+0x10]
-  call  to_lower
-  cmp   rax, 0
-  jl    .error
-
-  ; copy url
-  mov   rdi, [rsp+0x38]
-  mov   rsi, [rsp+0x10]
-  mov   rcx, [rsp+0x30]
-  rep   movsb
-
-  xor   rax, rax
-  stosb
-
-  mov   rax, [rsp+0x28]
-
-  ; add method to struct
-  mov   rdi, [rsp+0x8]
-  mov   [rax+ROUTE_OFF_METHOD], rdi
-
-  ; add to url struct
-  mov   rdi, [rsp+0x38]
-  mov   [rax+ROUTE_OFF_URL], rdi
-
-  ; add callback
-  mov   rdi, [rsp+0x18]
-  mov   [rax+ROUTE_OFF_CALLBACK], rdi
-
-  mov   rdi, [rsp+0x48]
-  mov   [rax+ROUTE_OFF_ARG1], rdi
-
-  ; add server
-  mov   rdi, [rsp]
-  mov   [rax+ROUTE_OFF_SERVER], rdi
-
-  mov   qword [rax+ROUTE_OFF_SERVER_NEXT], 0
-  mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
-  mov   qword [rax+ROUTE_OFF_ACTIVE], TRUE
-
-  cmp   qword [rsp+0x20], 0
-  je    .no_group_link
+  test  rax, rax
+  jz    .no_group_link
 
   ; add route to group routes
-  mov   rdi, [rsp+0x20]
+  mov   rdi, rax
   mov   rsi, [rsp+0x28]
   call  route_link_to_group
   cmp   rax, 0
@@ -687,36 +584,12 @@ route_add:
   cmp   rax, 0
   jl    .error
 
-  ; free concatenated url
-  mov   rdi, [rsp+0x40]
-  test  rdi, rdi
-  jz    .skip_free_url
-
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-.skip_free_url:
-  mov   rax, [rsp+0x28]
+  mov   rax, [rsp+0x30]
 
   jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x40]
-  test  rdi, rdi
-  jz    .no_free_url
-
-  call  free
-
-.no_free_url:
-  mov   rdi, [rsp+0x28]
-  test  rdi, rdi
-  jz    .no_free_struct
-
-  call  free
-
-.no_free_struct:
-  mov   rdi, [rsp+0x38]
+  mov   rdi, [rsp+0x30]
   test  rdi, rdi
   jz    .no_free
 
@@ -726,7 +599,7 @@ route_add:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x50
+  add   rsp, 0x38
   ret
 
 ; links route struct to the server's route linked list

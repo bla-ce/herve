@@ -14,3 +14,4 @@ venv/
 .venv/
 service.md
 .env
+core
