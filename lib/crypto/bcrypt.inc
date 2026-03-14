@@ -899,10 +899,10 @@ _bcrypt_expand_key:
   mov   rax, FAILURE_CODE
 
 .return:
-  pop   r9
-  pop   r10
-  pop   r11
   pop   rbx
+  pop   r11
+  pop   r10
+  pop   r9
 
   add   rsp, 0x30
   ret
