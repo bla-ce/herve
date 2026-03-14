@@ -29,7 +29,7 @@ jobs:
               - 'include/**'
               - 'lib/**'
               - 'src/**'
-              - 'svc_impl/**'
+              - 'builtin_services/**'
             examples:
               - 'include/**'
               - 'lib/**'

@@ -3,7 +3,7 @@ LIB_DIR = lib
 BUILD_DIR = build
 BIN_DIR = bin
 SRC_DIR = src
-SVC_IMPL_DIR = svc_impl
+SVC_IMPL_DIR = builtin_services
 
 MAIN_PATH = herve
 

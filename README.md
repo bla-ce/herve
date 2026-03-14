@@ -114,7 +114,7 @@ herve/
 ├── src/            # Main application source
 │   ├── herve.s     # Entry point and service manager
 │   └── services/   # Service registration logic
-├── svc_impl/   # Built-in service implementations
+├── builtin_services/   # Built-in service implementations
 ├── include/
 │   ├── server/         # Socket, routing, context
 │   ├── http/           # Request/response handling
