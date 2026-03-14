@@ -1156,8 +1156,8 @@ verify_request:
   cmp   rax, 0
   jl    .error
 
-  mov   rax, SUCCESS_CODE
-  jmp   .return
+  mov   rax, FAILURE_CODE
+  jmp   .error
 
 .not_found:
   mov   rsi, NOT_FOUND

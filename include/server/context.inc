@@ -128,7 +128,7 @@ ctx_process_request:
   mov   rdi, [rsp+0x10]
   call  verify_request
   cmp   rax, 0
-  jl    .error
+  jl    .post_request_middlewares
 
   mov   [rsp+0x20], rax
 
