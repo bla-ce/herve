@@ -213,7 +213,7 @@ route_normalise_url:
   mov   [rsp+0x8], rax
 
   mov   rdi, rax
-  inc   rdi       ; add one as we might need to add an extra '/'
+  add   rdi, 2  ; add one for null char and optional leading '/'
   call  malloc
   cmp   rax, 0
   jle   .error
@@ -756,8 +756,8 @@ route_add:
   ; [rsp+0x10]  -> pointer to the url of the route
   ; [rsp+0x18]  -> pointer to the callback function
   ; [rsp+0x20]  -> pointer to the group struct
-  ; [rsp+0x28]  -> pointer to the route struct
-  ; [rsp+0x30]  -> argument for callback function
+  ; [rsp+0x28]  -> argument for callback function
+  ; [rsp+0x30]  -> pointer to the route struct
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -780,7 +780,7 @@ route_add:
   mov   rsi, [rsp+0x10]
   mov   rdx, [rsp+0x18]
   mov   rcx, [rsp+0x20]
-  mov   r9, [rsp+0x28]
+  mov   r8, [rsp+0x28]
   call  route_create
   cmp   rax, 0
   jl    .error
