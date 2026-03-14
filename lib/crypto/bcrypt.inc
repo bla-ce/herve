@@ -328,6 +328,10 @@ _bcrypt_encrypt_loop:
 _bcrypt_encrypt_block:
   sub   rsp, 0x10
 
+  push  r12
+  push  r13
+  push  r14
+
   ; STACK USAGE
   ; [rsp]     -> pointer to the blowfish state struct
   ; [rsp+0x8] -> pointer to the 64-bit block
@@ -404,6 +408,10 @@ _bcrypt_encrypt_block:
   mov   rax, FAILURE_CODE
 
 .return:
+  pop   r14
+  pop   r13
+  pop   r12
+
   add   rsp, 0x10
   ret
 
@@ -412,6 +420,8 @@ _bcrypt_encrypt_block:
 ; @param  rsi: 32-bit input
 ; @return rax: f(rsi)
 _bcrypt_blowfish_f_function:
+  push  rbx
+
   cmp   rdi, 0
   jle   .error
 
@@ -450,6 +460,7 @@ _bcrypt_blowfish_f_function:
   mov   rax, FAILURE_CODE
 
 .return:
+  pop   rbx
   ret
 
 ; concatenates the cost, the salt and the encrypted string
