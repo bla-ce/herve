@@ -28,6 +28,97 @@ ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_SERVER_NEXT + 0x8
 log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
 section .text
+; makes sure the url is lowercase and does not end with '/'
+; user is responsible for freeing the url
+; @param  rdi: pointer to the url
+; @return rax: pointer to the normalised url
+route_normalise_url:
+  sub   rsp, 0x18
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the url
+  ; [rsp+0x8]   -> length of the url
+  ; [rsp+0x10]  -> pointer to the normalised url
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x10], 0
+
+  test  rdi, rdi
+  jz    .error
+
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jle   .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, rax  
+  inc   rdi       ; add one as we might need to add an extra '/'
+  call  malloc
+  cmp   rax, 0
+  jle   .error
+
+  mov   [rsp+0x10], rax
+
+  ; first character should be a slash
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp]
+  lodsb
+
+  cmp   al, SLASH
+  je    .skip_add_leading_slash
+
+  mov   al, SLASH
+  stosb
+
+.skip_add_leading_slash:
+  mov   rsi, [rsp]
+  mov   rcx, [rsp+0x8]
+  rep   movsb
+  
+  ; add null char
+  mov   al, NULL_CHAR
+  stosb
+
+  ; make sure the url is lowercase
+  mov   rdi, [rsp+0x10]
+  call  to_lower
+  cmp   rax, 0
+  jle   .error
+
+  ; trim trailing slash if necessary
+  cmp   qword [rsp+0x8], 1    ; url is root
+  je    .skip_remove_trailing_slash
+
+  ; check if the last char is slash
+  mov   rdi, [rsp+0x10]
+  add   rdi, [rsp+0x8]
+  cmp   byte [rdi], SLASH
+  jne   .skip_remove_trailing_slash
+
+  mov   al, NULL_CHAR
+  stosb
+
+.skip_remove_trailing_slash:
+  mov   rax, [rsp+0x10]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+  
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
 ; validates the route struct
 ; @param  rdi: pointer to the route struct
 ; @return rax: route is valid (bool)
@@ -46,7 +137,7 @@ route_validate:
   mov   rdi, [rsp]
   call  route_get_method
   cmp   rax, 0
-  jle   .error
+  jle   .invalid
 
   mov   rdi, rax
   call  is_valid_method
@@ -57,7 +148,7 @@ route_validate:
   mov   rdi, [rsp]
   call  route_get_url
   cmp   rax, 0
-  jle   .error
+  jle   .invalid
 
   cmp   rax, URL_MAX_LEN
   jg    .invalid

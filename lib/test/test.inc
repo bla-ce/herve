@@ -99,7 +99,6 @@ assert_string_equal:
   mov   rdi, [rsp+0x8]
   call  println
 
-
   mov   rdi, FAILURE_CODE
   call  exit
 
