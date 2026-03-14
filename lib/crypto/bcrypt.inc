@@ -730,6 +730,11 @@ _bcrypt_eks_blowfish_setup:
 _bcrypt_expand_key:
   sub   rsp, 0x30
 
+  push  r9
+  push  r10
+  push  r11
+  push  rbx
+
   ; STACK USAGE
   ; [rsp]       -> pointer to the blowfish state struct
   ; [rsp+0x8]   -> pointer to the password
@@ -745,48 +750,53 @@ _bcrypt_expand_key:
   mov   qword [rsp+0x20], 0
   mov   qword [rsp+0x28], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  ; verify salt before
-  cmp   rdx, 0
-  jl    .error
-
-  cmp   rsi, 0
-  jl    .error
-  je    .loop_end
+  test  rsi, rsi
+  jz    .error
 
   xor   r9, r9    ; counter
   xor   r10, r10  ; password index to store
 
-.loop:
+.outer_loop:
   cmp   r9, BCRYPT_P_ARRAY_SIZE
-  jge   .loop_end
+  jge   .outer_loop_end
 
-  ; get the password byte at index r9
+  xor   eax, eax
+  xor   r11, r11  ; byte to dword
+
+.inner_loop:
+  cmp   r11, 4
+  jge   .inner_loop_end
+
+  shl   eax, 8
+
+  ; get password[r10]
   mov   rdi, [rsp+0x8]
-  add   rdi, r10
-  mov   al, byte [rdi]
+  movzx ebx, byte [rdi+r10]
+  or    eax, ebx
 
-  ; get P[i]
-  mov   rdi, [rsp]
-  add   rdi, r9
-  xor   byte [rdi], al
-
-  inc   r9
   inc   r10
+  inc   r11
 
   cmp   r10, [rsp+0x18]
-  jne   .loop
+  jl    .inner_loop
 
-  ; reset password
   xor   r10, r10
 
-  jmp   .loop
+  jmp   .inner_loop
 
-.loop_end:
-  cmp   qword [rsp+0x10], 0
-  je    .encrypt_p_loop
+.inner_loop_end:
+  ; get P[r9]
+  mov   rdi, [rsp]
+  xor   dword [rdi+r9*4], eax
+
+  inc   r9
+
+  jmp   .outer_loop
+
+.outer_loop_end:
 
 .encrypt_p_loop:
   cmp   qword [rsp+0x28], 8
@@ -889,6 +899,11 @@ _bcrypt_expand_key:
   mov   rax, FAILURE_CODE
 
 .return:
+  pop   r9
+  pop   r10
+  pop   r11
+  pop   rbx
+
   add   rsp, 0x30
   ret
 
