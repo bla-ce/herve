@@ -10,202 +10,193 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  wrk-tests:
+  detect-changes:
     runs-on: ubuntu-latest
+    outputs:
+      lib: ${{ steps.filter.outputs.lib }}
+      herve: ${{ steps.filter.outputs.herve }}
+      examples: ${{ steps.filter.outputs.examples }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nasm wrk
-
-      - name: Build and run herve
-        run: |
-          cp .env.example .env
-          make run &
-          echo $! > server.pid
-          sleep 2
-
-      - name: Run wrk
-        run: |
-          wrk -c400 -d32s -t12 --latency http://localhost:5000/health
-
-      - name: Stop herve
-        run: kill $(cat server.pid)
-
-  static-content-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nasm
-
-      - name: Build static-content example
-        working-directory: examples/static-content
-        run: make
-
-      - name: Start static-content server
-        working-directory: examples/static-content
-        run: |
-          make run &
-          echo $! > server.pid
-          sleep 2
-
-      - name: Run static-content tests
-        run: |
-          chmod +x scripts/test_static_content.sh
-          ./scripts/test_static_content.sh
-
-      - name: Stop static-content server
-        run: kill $(cat examples/static-content/server.pid)
-
-  echo-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nasm
-
-      - name: Build echo example
-        working-directory: examples/echo
-        run: make
-
-      - name: Start echo server
-        working-directory: examples/echo
-        run: |
-          make run &
-          echo $! > server.pid
-          sleep 2
-
-      - name: Run echo tests
-        run: |
-          chmod +x scripts/test_echo.sh
-          ./scripts/test_echo.sh
-
-      - name: Stop echo server
-        run: kill $(cat examples/echo/server.pid)
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            lib:
+              - 'lib/**'
+            herve:
+              - 'include/**'
+              - 'lib/**'
+              - 'src/**'
+              - 'svc_impl/**'
+            examples:
+              - 'include/**'
+              - 'lib/**'
 
   lib-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.lib == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nasm
+      - name: Install nasm
+        run: sudo apt-get update && sudo apt-get install -y nasm
 
       - name: Run bcrypt tests
-        working-directory: tests/lib/crypto/bcrypt
-        run: make
+        run: make -C tests/lib/crypto/bcrypt
 
       - name: Run malloc tests
-        working-directory: tests/lib/malloc
-        run: make
+        run: make -C tests/lib/malloc
 
       - name: Run JSON encoding tests
-        working-directory: tests/lib/encoding/json
-        run: make
+        run: make -C tests/lib/encoding/json
 
       - name: Run models tests
-        working-directory: tests/lib/models
-        run: make
+        run: make -C tests/lib/models
 
       - name: Run HTML encoding tests
-        working-directory: tests/lib/encoding/html
-        run: make
+        run: make -C tests/lib/encoding/html
 
       - name: Run boeuf tests
-        working-directory: tests/lib/boeuf
-        run: make
+        run: make -C tests/lib/boeuf
 
       - name: Run Base64 encoding tests
-        working-directory: tests/lib/encoding/base64
-        run: make
+        run: make -C tests/lib/encoding/base64
 
       - name: Run array tests
-        working-directory: tests/lib/utils
-        run: |
-          make program=array_test
-          ./bin/array_test
+        run: make -C tests/lib/utils program=array_test && ./tests/lib/utils/bin/array_test
 
       - name: Run linked list tests
-        working-directory: tests/lib/utils
-        run: |
-          make program=linked_list_test
-          ./bin/linked_list_test
+        run: make -C tests/lib/utils program=linked_list_test && ./tests/lib/utils/bin/linked_list_test
 
       - name: Run string tests
-        working-directory: tests/lib/utils
-        run: |
-          make program=string_test
-          ./bin/string_test
+        run: make -C tests/lib/utils program=string_test && ./tests/lib/utils/bin/string_test
 
       - name: Run hash table tests
-        working-directory: tests/lib/hash_table
+        run: make -C tests/lib/hash_table
+
+  herve-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.herve == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nasm
+        run: sudo apt-get update && sudo apt-get install -y nasm
+
+      - name: Build and start herve
         run: |
           make
-
-  models-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nasm
-
-      - name: Build models example
-        working-directory: examples/models
-        run: make
-
-      - name: Start models server
-        working-directory: examples/models
-        run: |
-          make run &
-          echo $! > server.pid
-          sleep 2
-
-      - name: Run models tests
-        run: |
-          chmod +x scripts/test_models.sh
-          ./scripts/test_models.sh
-
-      - name: Stop models server
-        run: kill $(cat examples/models/server.pid)
-
-  service_tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nasm
-
-      - name: Build herve
-        run: make
-
-      - name: Start herve
-        run: |
           cp .env.example .env
           ./bin/herve &
           echo $! > herve.pid
           sleep 2
 
       - name: Run tests
-        run: |
-          chmod +x scripts/test_services.sh
-          ./scripts/test_services.sh
+        run: ./scripts/test_services.sh
 
       - name: Stop herve
-        run: kill $(cat herve.pid)
+        if: always()
+        run: kill $(cat herve.pid) 2>/dev/null || true
+
+  wrk-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.examples == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y nasm wrk
+
+      - name: Build and start herve
+        run: |
+          cp .env.example .env
+          make run &
+          echo $! > server.pid
+          sleep 2
+
+      - name: Run wrk benchmark
+        run: wrk -c400 -d32s -t12 --latency http://localhost:5000/health
+
+      - name: Stop herve
+        if: always()
+        run: kill $(cat server.pid) 2>/dev/null || true
+
+  static-content-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.examples == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nasm
+        run: sudo apt-get update && sudo apt-get install -y nasm
+
+      - name: Build and start static-content server
+        working-directory: examples/static-content
+        run: |
+          make
+          make run &
+          echo $! > server.pid
+          sleep 2
+
+      - name: Run tests
+        run: ./scripts/test_static_content.sh
+
+      - name: Stop server
+        if: always()
+        run: kill $(cat examples/static-content/server.pid) 2>/dev/null || true
+
+  echo-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.examples == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nasm
+        run: sudo apt-get update && sudo apt-get install -y nasm
+
+      - name: Build and start echo server
+        working-directory: examples/echo
+        run: |
+          make
+          make run &
+          echo $! > server.pid
+          sleep 2
+
+      - name: Run tests
+        run: ./scripts/test_echo.sh
+
+      - name: Stop server
+        if: always()
+        run: kill $(cat examples/echo/server.pid) 2>/dev/null || true
+
+  models-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.examples == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nasm
+        run: sudo apt-get update && sudo apt-get install -y nasm
+
+      - name: Build and start models server
+        working-directory: examples/models
+        run: |
+          make
+          make run &
+          echo $! > server.pid
+          sleep 2
+
+      - name: Run tests
+        run: ./scripts/test_models.sh
+
+      - name: Stop server
+        if: always()
+        run: kill $(cat examples/models/server.pid) 2>/dev/null || true
