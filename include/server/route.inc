@@ -410,63 +410,74 @@ route_add_directory:
 
 ; checks if a route already exists
 ; @param  rdi: pointer to server struct
-; @param  rsi: pointer to method
-; @param  rdx: pointer to url
+; @param  rsi: pointer to the route
 ; @return rax: (bool) route exists
 route_exists:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
-  ; [rsp+0x8]   -> pointer to the method
-  ; [rsp+0x10]  -> pointer to the url
-  ; [rsp+0x18]  -> pointer to routes linked list
+  ; [rsp+0x8]   -> pointer to the route struct
+  ; [rsp+0x10]  -> pointer to the route url
+  ; [rsp+0x18]  -> pointer to the route method
+  ; [rsp+0x20]  -> pointer to routes linked list
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
 
-  cmp   rdi, 0
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
+
+  ; save route url and route method
+  mov   rdi, [rsp+0x8]
+  call  route_get_url
+  cmp   rax, 0
   jle   .error
 
-  cmp   rsi, 0
+  mov   [rsp+0x10], rax
+
+  mov   rdi, [rsp+0x8]
+  call  route_get_method
+  cmp   rax, 0
   jle   .error
 
-  cmp   rdx, 0
-  jle   .error
+  mov   [rsp+0x18], rax
 
   ; load server routes
   mov   rdi, [rsp]
-  call  get_server_routes
+  call  server_get_routes
   cmp   rax, 0
   jl    .error
   je    .loop_end
 
   ; save route address
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
 
 .loop:
   ; for each route
   ; check if the url is the same
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   call  route_get_url
   cmp   rax, 0
   jl    .error
 
-  mov   rsi, rax
   mov   rdi, [rsp+0x10]
+  mov   rsi, rax
   call  strcmp
   cmp   rax, 0
   jl    .error
   cmp   rax, TRUE
   jne   .not_equal
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   call  route_get_method
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x8]
+  mov   rdi, [rsp+0x18]
   mov   rsi, rax
   call  strcmp
   cmp   rax, TRUE
@@ -474,13 +485,13 @@ route_exists:
 
   ; go to next
 .not_equal:
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x20]
   mov   rsi, [rdi+ROUTE_OFF_SERVER_NEXT]
 
   test  rsi, rsi
   jz    .loop_end
 
-  mov   [rsp+0x18], rsi
+  mov   [rsp+0x20], rsi
 
   jmp   .loop
 
@@ -496,7 +507,7 @@ route_exists:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; adds a route to the server
@@ -544,7 +555,7 @@ route_add:
   call  route_create
   cmp   rax, 0
   jl    .error
-  
+
   mov   [rsp+0x30], rax
 
   mov   rdi, rax

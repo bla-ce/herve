@@ -1067,7 +1067,7 @@ verify_request:
 
   ; get routes server
   mov   rdi, rax
-  call  get_server_routes
+  call  server_get_routes
   cmp   rax, 0
   jl    .internal_server_error
   je    .not_found

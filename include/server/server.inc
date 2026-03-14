@@ -178,7 +178,7 @@ log_server_init:
 
   ; print available routes
   mov   rdi, [rsp]
-  call  get_server_routes
+  call  server_get_routes
   cmp   rax, 0
   jl    .error
 
@@ -384,7 +384,7 @@ server_get_groups:
 ; returns the first route struct associated to the server
 ; @param  rdi: pointer to server struct
 ; @return rax: pointer to the first route struct
-get_server_routes:
+server_get_routes:
   cmp   rdi, 0
   jle   .error
 
