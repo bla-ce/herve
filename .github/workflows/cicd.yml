@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       lib: ${{ steps.filter.outputs.lib }}
+      lib: ${{ steps.filter.outputs.include }}
       herve: ${{ steps.filter.outputs.herve }}
       examples: ${{ steps.filter.outputs.examples }}
     steps:
