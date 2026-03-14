@@ -28,6 +28,52 @@ ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_SERVER_NEXT + 0x8
 log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
 section .text
+; validates the route struct
+; @param  rdi: pointer to the route struct
+; @return rax: route is valid (bool)
+route_validate:
+  sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp]   -> pointer to the route struct
+
+  mov   [rsp], rdi
+
+  test  rdi, rdi
+  jz    .invalid
+
+  ; validate method
+  mov   rdi, [rsp]
+  call  route_get_method
+  cmp   rax, 0
+  jle   .error
+
+  mov   rdi, rax
+  call  is_valid_method
+  cmp   rax, 0
+  jle   .invalid
+
+  ; validate url length
+  mov   rdi, [rsp]
+  call  route_get_url
+  cmp   rax, 0
+  jle   .error
+
+  cmp   rax, URL_MAX_LEN
+  jg    .invalid
+
+.valid:
+  mov   rax, TRUE
+
+  add   rsp, 0x8
+  ret
+
+.invalid:
+  mov   rax, FALSE
+
+  add   rsp, 0x8
+  ret
+
 ; logs the route "METHOD  URL"
 ; @param  rdi: pointer to the route
 ; @return rax: return code
