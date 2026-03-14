@@ -28,6 +28,164 @@ ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_SERVER_NEXT + 0x8
 log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
 section .text
+; creates a new route struct
+; @param  rdi: pointer to the method
+; @param  rsi: pointer to the url
+; @param  rdx: callback function
+; @param  rcx: pointer to the group struct
+; @param  r9: arg 1 for the callback function
+; @return rax: return code
+route_create:
+  sub   rsp, 0x40
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the method of the route
+  ; [rsp+0x8]   -> pointer to the url of the route
+  ; [rsp+0x10]  -> pointer to the callback function
+  ; [rsp+0x18]  -> pointer to the group struct
+  ; [rsp+0x20]  -> argument for callback function
+  ; [rsp+0x28]  -> pointer to the malloc'd route struct
+  ; [rsp+0x30]  -> pointer to the normalised url
+  ; [rsp+0x38]  -> pointer to the concatenated url
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
+  mov   [rsp+0x20], r8
+  mov   qword [rsp+0x28], 0
+  mov   qword [rsp+0x30], 0
+  mov   qword [rsp+0x38], 0
+
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
+
+  ; if group is not null, concatenate group prefix and route url
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_group
+
+  ; get the group prefix
+  call  group_get_prefix
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  strcat
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+  mov   [rsp+0x38], rax
+
+.no_group:
+  ; malloc route struct
+  mov   rdi, ROUTE_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  mov   rdi, [rsp+0x8]
+  call  route_normalise_url
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
+
+  ; add method to struct
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp]
+  call  route_set_method
+  cmp   rax, 0
+  jl    .error
+
+  ; add url to struct
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x30]
+  call  route_set_url
+  cmp   rax, 0
+  jl    .error
+
+  ; add callback func to struct
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x10]
+  call  route_set_callback
+  cmp   rax, 0
+  jl    .error
+
+  ; add callback arg 1 to struct
+  mov   rdi, [rsp+0x28]
+  mov   rsi, [rsp+0x20]
+  call  route_set_arg1
+  cmp   rax, 0
+  jl    .error
+
+  ; add group to route struct
+  mov   rdi, [rsp+0x20]
+  call  route_set_group
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x20]
+  call  route_activate
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x20]
+  mov   qword [rax+ROUTE_OFF_SERVER_NEXT], 0
+  mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
+
+  ; free concatenated url
+  mov   rdi, [rsp+0x38]
+  test  rdi, rdi
+  jz    .skip_free_url
+
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+.skip_free_url:
+  mov   rax, [rsp+0x28]
+
+  jmp   .return
+
+.error:
+  ; free concatenaed url
+  mov   rdi, [rsp+0x38]
+  test  rdi, rdi
+  jz    .no_free_url
+
+  call  free
+
+.no_free_url:
+  ; free route struct
+  mov   rdi, [rsp+0x28]
+  test  rdi, rdi
+  jz    .no_free_struct
+
+  call  free
+
+.no_free_struct:
+  ; free normalised url
+  mov   rdi, [rsp+0x30]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x40
+  ret
+
 ; makes sure the url is lowercase and does not end with '/'
 ; user is responsible for freeing the url
 ; @param  rdi: pointer to the url
@@ -53,7 +211,7 @@ route_normalise_url:
 
   mov   [rsp+0x8], rax
 
-  mov   rdi, rax  
+  mov   rdi, rax
   inc   rdi       ; add one as we might need to add an extra '/'
   call  malloc
   cmp   rax, 0
@@ -76,7 +234,7 @@ route_normalise_url:
   mov   rsi, [rsp]
   mov   rcx, [rsp+0x8]
   rep   movsb
-  
+
   ; add null char
   mov   al, NULL_CHAR
   stosb
@@ -111,7 +269,7 @@ route_normalise_url:
   jz    .no_free
 
   call  free
-  
+
 .no_free:
   mov   rax, FAILURE_CODE
 
@@ -212,74 +370,6 @@ route_log:
 
 .return:
   add   rsp, 0x8
-  ret
-
-; returns the group associated to the route struct
-; @param  rdi: pointer to route struct
-; @return rax: group address
-route_get_group:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+ROUTE_OFF_GROUP]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the url associated to the route struct
-; @param  rdi: pointer to route struct
-; @return rax: url address
-route_get_url:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+ROUTE_OFF_URL]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the method associated to the route struct
-; @param  rdi: pointer to route struct
-; @return rax: method address
-route_get_method:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+ROUTE_OFF_METHOD]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the callback associated to the route struct
-; @param  rdi: pointer to route struct
-; @return rax: callback address
-route_get_callback:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+ROUTE_OFF_CALLBACK]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
   ret
 
 ; compares the route with the url and the method provided in args
@@ -708,6 +798,13 @@ route_add:
   jl    .error
   cmp   rax, TRUE
   je    .error
+
+  ; add server struct to route
+  mov   rdi, [rsp+0x30]
+  mov   rsi, [rsp]
+  call  route_set_server
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [rsp+0x30]
   call  route_get_group
@@ -1374,8 +1471,8 @@ route_free:
 ; @param  rdi: pointer to the route struct
 ; @return rax: return code
 route_deactivate:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   qword [rdi+ROUTE_OFF_ACTIVE], FALSE
 
@@ -1393,8 +1490,8 @@ route_deactivate:
 ; @param  rdi: pointer to the route struct
 ; @return rax: return code
 route_activate:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   qword [rdi+ROUTE_OFF_ACTIVE], TRUE
 
@@ -1413,11 +1510,8 @@ route_activate:
 ; @param  rsi: url of the route
 ; @return rax: return code
 route_set_url:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+ROUTE_OFF_URL], rsi
 
@@ -1435,8 +1529,8 @@ route_set_url:
 ; @param  rdi: pointer to the route struct
 ; @return rax: next of the route
 route_get_server_next:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+ROUTE_OFF_SERVER_NEXT]
 
@@ -1453,11 +1547,8 @@ route_get_server_next:
 ; @param  rsi: next of the route
 ; @return rax: return code
 route_set_server_next:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+ROUTE_OFF_SERVER_NEXT], rsi
 
@@ -1475,8 +1566,8 @@ route_set_server_next:
 ; @param  rdi: pointer to the route struct
 ; @return rax: next of the route
 route_get_group_next:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+ROUTE_OFF_GRP_NEXT]
 
@@ -1493,11 +1584,8 @@ route_get_group_next:
 ; @param  rsi: next of the route
 ; @return rax: return code
 route_set_group_next:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+ROUTE_OFF_GRP_NEXT], rsi
 
@@ -1515,8 +1603,8 @@ route_set_group_next:
 ; @param  rdi: pointer to the route
 ; @return rax: pointer to the server struct
 route_get_server:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+ROUTE_OFF_SERVER]
 
@@ -1533,11 +1621,8 @@ route_get_server:
 ; @param  rsi: pointer to the server struct
 ; @return rax: return code
 route_set_server:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+ROUTE_OFF_SERVER], rsi
 
@@ -1555,8 +1640,8 @@ route_set_server:
 ; @param  rdi: pointer to the route
 ; @return rax: route handler arg1
 route_get_arg1:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+ROUTE_OFF_ARG1]
 
@@ -1573,11 +1658,8 @@ route_get_arg1:
 ; @param  rsi: route handler arg1
 ; @return rax: return code
 route_set_arg1:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+ROUTE_OFF_ARG1], rsi
 
@@ -1595,10 +1677,137 @@ route_set_arg1:
 ; @param  rdi: pointer to the route
 ; @return rax: route is active
 route_is_active:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+ROUTE_OFF_ACTIVE]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the group associated to the route struct
+; @param  rdi: pointer to route struct
+; @param  rsi: group address
+; @return rax: return code
+route_set_group:
+  test  rdi, rdi
+  jz    .error
+
+  mov   [rdi+ROUTE_OFF_GROUP], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the group associated to the route struct
+; @param  rdi: pointer to route struct
+; @return rax: group address
+route_get_group:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+ROUTE_OFF_GROUP]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the url associated to the route struct
+; @param  rdi: pointer to route struct
+; @return rax: url address
+route_get_url:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+ROUTE_OFF_URL]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the method associated to the route struct
+; @param  rdi: pointer to route struct
+; @param  rsi: method address
+; @return rax: return code
+route_set_method:
+  test  rdi, rdi
+  jz    .error
+
+  mov   [rdi+ROUTE_OFF_METHOD], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the method associated to the route struct
+; @param  rdi: pointer to route struct
+; @return rax: method address
+route_get_method:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+ROUTE_OFF_METHOD]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; sets the callback associated to the route struct
+; @param  rdi: pointer to route struct
+; @param  rsi: callback address
+; @return rax: return code
+route_set_callback:
+  test  rdi, rdi
+  jz    .error
+
+  mov   [rdi+ROUTE_OFF_CALLBACK], rsi
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the callback associated to the route struct
+; @param  rdi: pointer to route struct
+; @return rax: callback address
+route_get_callback:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+ROUTE_OFF_CALLBACK]
 
   jmp   .return
 
