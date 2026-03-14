@@ -250,9 +250,13 @@ route_normalise_url:
   cmp   qword [rsp+0x8], 1    ; url is root
   je    .skip_remove_trailing_slash
 
-  ; check if the last char is slash
   mov   rdi, [rsp+0x10]
-  add   rdi, [rsp+0x8]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  add   rdi, rax
   dec   rdi
   cmp   byte [rdi], SLASH
   jne   .skip_remove_trailing_slash
