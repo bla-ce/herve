@@ -226,6 +226,29 @@ _start:
   mov   rdi, [head]
   call  assert_is_zero
 
+  xor   r9, r9
+
+.loop:
+  cmp   r9, 20
+  jge   .loop_end
+
+  mov   rdi, head
+  mov   rsi, r9
+  call  linked_list_insert_at_end
+  cmp   rax, 0
+  jl    .error
+
+  inc   r9
+
+  jmp   .loop
+.loop_end:
+
+  mov   rdi, head
+  mov   rsi, NO_ARG
+  call  linked_list_free
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [mallocd]
   cmp   [freed], rdi
   jne   .error

@@ -481,7 +481,65 @@ linked_list_delete_from_value:
 
 ; frees all the node from the linked list
 ; the data is also free with a specific function if passed in rsi
+; @param  rdi: pointer to the head
+; @param  rsi: (optional) free function for the data
+; @return rax: return code
 linked_list_free:
+  sub   rsp, 0x18
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the head
+  ; [rsp+0x8]   -> optional free func for the data
+  ; [rsp+0x10]  -> temp
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  ; check if the list is already empty
+  mov   rax, SUCCESS_CODE
+  mov   rsi, [rdi]
+  test  rsi, rsi
+  jz    .return
+
+  ; save temp
+  mov   [rsp+0x10], rsi
+
+.loop:
+  mov   rdi, [rsp+0x10]
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  ; *head = temp->next;
+  mov   rdi, [rsp]
+  mov   [rdi], rax
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
+  call  _linked_list_free_node
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rdi]
+
+  mov   [rsp+0x10], rsi
+
+  test  rsi, rsi
+  jnz   .loop
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
   ret
 
 ; frees a node from the linked list
