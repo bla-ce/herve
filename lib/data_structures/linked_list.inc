@@ -1,4 +1,30 @@
+section .bss
+
+_linked_list_t:
+  .data resq 1
+  .next resq 1
+  .prev resq 1
+_linked_list_t_end:
+
+section .data
+
+LINKED_LIST_STRUCT_LEN equ _linked_list_t_end - _linked_list_t
+
+LINKED_LIST_OFF_DATA equ 0x0
+LINKED_LIST_OFF_NEXT equ LINKED_LIST_OFF_DATA + 0x8
+LINKED_LIST_OFF_PREV equ LINKED_LIST_OFF_NEXT + 0x8
+
 section .text
+
+; creates a new linked list
+; @return rax: pointer to the linked list
+linked_list_new:
+  mov   rdi, LINKED_LIST_STRUCT_LEN
+  call  malloc
+
+  ; we may need some initialisation in the future
+
+  ret
 
 ; adds an entry to a linked list
 ; @param  rdi: linked list

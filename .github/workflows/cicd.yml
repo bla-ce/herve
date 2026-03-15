@@ -81,11 +81,11 @@ jobs:
       - name: Run Base64 encoding tests
         run: make -C tests/lib/encoding/base64
 
-      - name: Run array tests
-        run: make -C tests/lib/utils program=array_test
-
       - name: Run linked list tests
-        run: make -C tests/lib/utils program=linked_list_test
+        run: make -C tests/lib/data_structures program=linked_list_test
+
+      - name: Run array tests
+        run: make -C tests/lib/data_structures program=array_test
 
       - name: Run string tests
         run: make -C tests/lib/utils program=string_test
