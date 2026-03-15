@@ -16,7 +16,7 @@ _linked_list_errno  db 0
 
 section .text
 
-; creates a new node to be later added in the linked list
+; creates a new node
 ; @param  rdi: pointer to the data
 ; @return rax: pointer to the node
 _linked_list_new_node:
@@ -65,7 +65,7 @@ _linked_list_new_node:
   add   rsp, 0x10
   ret
 
-; adds a node to the beginning of the linked list
+; adds a node at the beginning of the linked list
 ; @param  rdi: pointer to the pointer to the head
 ; @param  rsi: pointer to the data
 ; @return rax: return code
@@ -123,7 +123,7 @@ linked_list_insert_at_first:
   add   rsp, 0x18
   ret
 
-; adds a node to the end of the linked list
+; adds a node at the end of the linked list
 ; @param  rdi: pointer to the pointer to the head
 ; @param  rsi: pointer to the data
 ; @return rax: return code
@@ -205,170 +205,271 @@ linked_list_insert_at_end:
   add   rsp, 0x20
   ret
 
-; removes an entry from a linked list
-; @param  rdi: linked list
-; @param  rsi: address of the entry to remove
-; @param  rdx: next offset value
+; removes the first node of the linked list
+; the data is also free with a specific function if passed in rsi
+; @param  rdi: pointer to pointer to the head
+; @param  rsi: (optional) free function for the data
 ; @return rax: return code
-linked_list_remove_entry:
-  sub   rsp, 0x20
+linked_list_delete_from_first:
+  sub   rsp, 0x18
 
   ; STACK USAGE
-  ; [rsp]       -> linked list
-  ; [rsp+0x8]   -> address of the entry to add
-  ; [rsp+0x10]  -> next offset value
-  ; [rsp+0x18]  -> prev value
+  ; [rsp]       -> pointer to the pointer to the head
+  ; [rsp+0x8]   -> optional free func for the data
+  ; [rsp+0x10]  -> temp
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   [rsp+0x10], rdx
-  mov   [rsp+0x18], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  ; check if the list is already empty
+  mov   rax, SUCCESS_CODE
+  mov   rsi, [rdi]
+  test  rsi, rsi
+  jz    .return
 
-  cmp   rdx, 0
+  ; save temp
+  mov   [rsp+0x10], rsi
+
+  mov   rdi, rsi
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  ; *head = temp->next;
+  mov   rdi, [rsp]
+  mov   [rdi], rax
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
+  call  _linked_list_free_node
+  cmp   rax, 0
   jl    .error
 
-  ; check if linked list is empty
-  mov   rdi, [rsp]
-  cmp   qword [rdi], 0
-  je    .error
-
-  cmp   qword [rdi], rsi
-  je    .remove_head
-
-  ; load first entry
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
-.loop:
-  ; rdi points to the address of the current entry
-  cmp   rdi, [rsp+0x8]
-  je    .remove
-
-  mov   [rsp+0x18], rdi
-
-  ; go to next
-  add   rdi, [rsp+0x10]
-
-  ; rdi contains the address of the entry
-  mov   rsi, [rdi]
-  mov   rdi, rsi
-
-  cmp   rdi, 0
-  je    .error
-
-  jmp   .loop
-
-.remove:
-  ; rdi contains the address of the entry to remove
-  ; get current next
-  add   rdi, [rsp+0x10]
-  mov   rax, [rdi]
-
-  ; get prev
-  mov   rsi, [rsp+0x18]
-
-  ; change prev next
-  add   rsi, [rsp+0x10]
-  mov   [rsi], rax
-
   mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.remove_head:
-  ; get head
-  mov   rdi, [rsp]
-
-  mov   rax, [rsp+0x10]
-
-  ; get head next
-  mov   rbx, [rdi]
-  mov   rsi, [rbx+rax]
-
-  ; replace head
-  mov   [rdi], rsi
-
-  mov   rax, SUCCESS_CODE
-
   jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x18
   ret
 
-; frees all entries from the linked list with a specific free
-; function. Users need to make sure that each entry has been
-; previously allocated with malloc
-; @param  rdi: pointer to the linked list
-; @param  rsi: free function for the entries
-; @param  rdx: next offset value
+; removes the last node of the linked list
+; the data is also free with a specific function if passed in rsi
+; @param  rdi: pointer to pointer to the head
+; @param  rsi: (optional) free function for the data
 ; @return rax: return code
-linked_list_free:
+linked_list_delete_from_end:
+  sub   rsp, 0x18
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the pointer to the head
+  ; [rsp+0x8]   -> optional free func for the data
+  ; [rsp+0x10]  -> temp
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  ; check if the list is already empty
+  mov   rax, SUCCESS_CODE
+  mov   rsi, [rdi]
+  test  rsi, rsi
+  jz    .return
+
+  ; save temp
+  mov   [rsp+0x10], rsi
+
+  ; check if temp->next is empty
+  mov   rdi, [rsp+0x10]
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  test  rax, rax
+  jnz   .loop
+
+  ; linked list is one node long
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
+  call  _linked_list_free_node
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   qword [rdi], 0
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.loop:
+  mov   rdi, [rsp+0x10]
+  call  _linked_list_get_node_next_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  ; if temp->next->next is null, remove node
+  test  rax, rax
+  jz    .remove_node
+
+  mov   rdi, [rsp+0x10]
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x10], rax
+
+  jmp   .loop
+
+.remove_node:
+  ; free(temp->next)
+  mov   rdi, [rsp+0x10]
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  _linked_list_free_node
+  cmp   rax, 0
+  jl    .error
+
+  ; temp->next = 0
+  mov   rdi, [rsp+0x10]
+  xor   rsi, rsi
+  call  _linked_list_set_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; removes the first node with a specific value in the linked list
+; the data is also free with a specific function if passed in rsi
+; @param  rdi: pointer to pointer to the head
+; @param  rsi: value to look for
+; @param  rdx: (optional) free function for the data
+; @return rax: return code
+linked_list_delete_from_value:
   sub   rsp, 0x28
 
   ; STACK USAGE
-  ; [rsp]       -> pointer to the linked list
-  ; [rsp+0x8]   -> free function for the entries
-  ; [rsp+0x10]  -> next offset value
-  ; [rsp+0x18]  -> pointer to curr entry
-  ; [rsp+0x20]  -> pointer to next entry
+  ; [rsp]       -> pointer to the pointer to the head
+  ; [rsp+0x8]   -> value to look for
+  ; [rsp+0x10]  -> optional free func for the data
+  ; [rsp+0x18]  -> temp
+  ; [rsp+0x20]  -> temp->next->next
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
-  jl    .error
-
-  ; check if linked list is empty
-  mov   rdi, [rsp]
-  cmp   qword [rdi], 0
-  je    .loop_end
-
-  ; load first entry
+  ; check if the list is already empty
+  mov   rax, SUCCESS_CODE
   mov   rsi, [rdi]
+  test  rsi, rsi
+  jz    .return
+
+  ; save temp
   mov   [rsp+0x18], rsi
 
-.loop:
-  ; get route next
-  mov   rdi, [rsp+0x18]
-  mov   rdx, [rsp+0x10]
-  mov   rax, [rdi+rdx]
+  ; check first node
+  mov   rdi, rsi
+  call  _linked_list_get_node_data
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
 
-  mov   [rsp+0x20], rax
+  cmp   rax, [rsp+0x8]
+  jne   .loop
 
-  ; free the entry with custom free
+  ; get next
   mov   rdi, [rsp+0x18]
-  mov   rax, [rsp+0x8]
-  call  rax
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, [rsp]
+  mov   [rdi], rax
+
+  ; free node
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x10]
+  call  _linked_list_free_node
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x20]
-  test  rdi, rdi
-  jz    .loop_end
+  ; return
+  mov   rax, SUCCESS_CODE
+  jmp   .return
 
-  mov   [rsp+0x18], rdi
+.loop:
+  ; get next
+  mov   rdi, [rsp+0x18]
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  ; check if temp data is equal to the target value
+  mov   rdi, rax
+  call  _linked_list_get_node_data
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  cmp   rax, [rsp+0x8]
+  je    .remove_node
+
+  mov   rdi, [rsp+0x18]
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x18], rax
 
   jmp   .loop
-.loop_end:
-  mov   rax, SUCCESS_CODE
 
+.remove_node:
+  ; get (temp->next->next)
+  mov   rdi, [rsp+0x18]
+  call  _linked_list_get_node_next_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x20], rax
+
+  ; free(temp->next)
+  mov   rdi, [rsp+0x18]
+  call  _linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, rax
+  mov   rsi, [rsp+0x10]
+  call  _linked_list_free_node
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x20]
+  call  _linked_list_set_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -376,6 +477,60 @@ linked_list_free:
 
 .return:
   add   rsp, 0x28
+  ret
+
+; frees all the node from the linked list
+; the data is also free with a specific function if passed in rsi
+linked_list_free:
+  ret
+
+; frees a node from the linked list
+; the data is also free with a specific function if passed in rsi
+; @param  rdi: pointer to the node
+; @param  rsi: (optional) free function for the data
+; @return rax: return code
+_linked_list_free_node:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the node
+  ; [rsp+0x8] -> free function for the data
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  ; if a free function is passed, we free the data
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .skip_free_func
+
+  mov   rdi, [rsp]
+  call  _linked_list_get_node_data
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  rsi
+
+.skip_free_func:
+  ; free temp
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; sets the next property of a node
@@ -399,7 +554,29 @@ _linked_list_set_node_next:
 .return:
   ret
 
-; returns the data property of a node
+; returns the next next property of a node
+; @param  rdi: pointer to the node
+; @return rax: pointer to next next node
+_linked_list_get_node_next_next:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rsi, [rdi+NODE_OFF_NEXT]
+  test  rsi, rsi
+  jz    .error
+
+  mov   rax, [rsi+NODE_OFF_NEXT]
+  mov   byte [_linked_list_errno], FALSE
+
+  jmp   .return
+
+.error:
+  mov   byte [_linked_list_errno], TRUE
+
+.return:
+  ret
+
+; returns the next property of a node
 ; @param  rdi: pointer to the node
 ; @return rax: pointer to next node
 _linked_list_get_node_next:
