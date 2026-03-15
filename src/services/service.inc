@@ -12,7 +12,6 @@ service_t:
   .start        resq 1  ; ptr to the func starting the service
   .stop         resq 1  ; ptr to the func stopping the service
   .group        resq 1  ; ptr to the server group with all the routes
-  .next         resq 1
 service_t_end:
 
 section .data
@@ -29,7 +28,6 @@ SERVICE_OFF_UNREGISTER  equ SERVICE_OFF_REGISTER + 0x8
 SERVICE_OFF_START       equ SERVICE_OFF_UNREGISTER + 0x8
 SERVICE_OFF_STOP        equ SERVICE_OFF_START + 0x8
 SERVICE_OFF_GRP         equ SERVICE_OFF_STOP + 0x8
-SERVICE_OFF_NEXT        equ SERVICE_OFF_GRP + 0x8
 
 service_key:
   .uuid         db "uuid", NULL_CHAR
@@ -156,8 +154,7 @@ service_register:
 
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
-  mov   rdx, SERVICE_OFF_NEXT
-  call  linked_list_add_entry
+  call  linked_list_insert_at_end
   cmp   rax, 0
   jl    .internal_server_error
 
@@ -217,8 +214,8 @@ service_register:
   ; remove service from ll
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
-  mov   rdx, SERVICE_OFF_NEXT
-  call  linked_list_remove_entry
+  mov   rdx, service_free
+  call  linked_list_delete_from_value
 
 .free_json_response:
   mov   rdi, [rsp+0x18]
@@ -308,12 +305,6 @@ service_init:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [rsp+0x8]
-  xor   rsi, rsi
-  call  service_set_next
-  cmp   rax, 0
-  jl    .error
-
   ; get the type of the service
   mov   rdi, [rsp+0x10]
   mov   rsi, service_key.type
@@ -352,14 +343,14 @@ service_list:
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to json array
-  ; [rsp+0x10]  -> dynamic pointer to go through the service ll
-  ; [rsp+0x18]  -> service json
+  ; [rsp+0x10]  -> temp head
+  ; [rsp+0x18]  -> service to json
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
 
-  cmp   rdi, 0
-  jle    .error
+  test  rdi, rdi
+  jz    .error
 
   call  json_array_create
   cmp   rax, 0
@@ -374,6 +365,11 @@ service_list:
 
 .loop:
   mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, rax
   call  service_to_json
   cmp   rax, 0
   jl    .error
@@ -394,10 +390,12 @@ service_list:
   jl    .error
 
   mov   rdi, [rsp+0x10]
-  call  service_get_next
-  cmp   rax, 0
-  jl    .error
-  je    .loop_end
+  call  linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  test  rax, rax
+  jz    .loop_end
 
   mov   [rsp+0x10], rax
 
@@ -517,8 +515,8 @@ service_unregister:
   ; remove service from the linked list
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
-  mov   rdx, SERVICE_OFF_NEXT
-  call  linked_list_remove_entry
+  mov   rdx, service_free
+  call  linked_list_delete_from_value
   cmp   rax, 0
   jl    .error
 
@@ -1025,11 +1023,12 @@ service_stop:
 ; @param  rdi: uuid of the service
 ; @return rax: pointer to the service struct
 service_get_by_uuid:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   ; STACK USAGE
-  ; [rsp]     -> id of the service
-  ; [rsp+0x8] -> pointer to current service
+  ; [rsp]       -> id of the service
+  ; [rsp+0x8]   -> temp linked list
+  ; [rsp+0x10]  -> temp service
 
   mov   [rsp], rdi
 
@@ -1044,12 +1043,16 @@ service_get_by_uuid:
   mov   [rsp+0x8], rdi
 
 .loop:
+  ; get node data
   mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_data
+  cmp   byte [_linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x10], rax
 
   ; get the uuid of the service
-  mov   rax, [rdi+SERVICE_OFF_UUID]
-
-  mov   rdi, rax
+  lea   rdi, [rax+SERVICE_OFF_UUID]
   mov   rsi, [rsp]
   call  strcmp
   cmp   rax, 0
@@ -1059,16 +1062,19 @@ service_get_by_uuid:
 
   ; go to next
   mov   rdi, [rsp+0x8]
-  mov   rsi, [rdi+SERVICE_OFF_NEXT]
-  cmp   rsi, 0
+  call  linked_list_get_node_next
+  cmp   byte [_linked_list_errno], TRUE
   je    .error
 
-  mov   [rsp+0x8], rsi
+  test  rax, rax
+  jz    .loop_end
+
+  mov   [rsp+0x8], rax
 
   jmp   .loop
 
 .loop_end:
-  mov   rax, [rsp+0x8]
+  mov   rax, [rsp+0x10]
 
   jmp   .return
 
@@ -1076,7 +1082,7 @@ service_get_by_uuid:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; returns the type of the service
@@ -1224,45 +1230,6 @@ service_set_name:
   jl    .error
 
   mov   [rdi+SERVICE_OFF_NAME], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the next pointer of the service
-; @param  rdi: pointer to the service struct
-; @return rax: pointer to the next service in the linked list
-service_get_next:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+SERVICE_OFF_NEXT]
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the next pointer of the service
-; @param  rdi: pointer to the service struct
-; @param  rsi: pointer to the service struct
-; @return rax: return code
-service_set_next:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   [rdi+SERVICE_OFF_NEXT], rsi
 
   mov   rax, SUCCESS_CODE
 
