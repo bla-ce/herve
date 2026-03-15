@@ -1,2 +1,2 @@
-%include "array_inc"
+%include "array.inc"
 %include "linked_list.inc"

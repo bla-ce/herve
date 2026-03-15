@@ -128,19 +128,20 @@ herve/
 │   ├── http_models/    # CRUD endpoint generation
 │   ├── auth/           # Authentication
 │   └── middlewares/    # Logger, proxy, CSRF
-├── lib/            # Core libraries
-│   ├── malloc/     # Memory allocator
-│   ├── net/        # Sockets, epoll, select
-│   ├── encoding/   # JSON, Base64
-│   ├── crypto/     # bcrypt implementation (yes, you read it right)
-│   ├── hash_table/ # Key-value storage
-│   ├── model/      # Data model system
-│   ├── utils/      # Strings, linked lists, arrays
-│   ├── logan/      # Logging
-│   ├── uuid/       # UUID generation
-│   └── boeuf/      # Dynamic buffers
+├── lib/                    # Core libraries
+│   ├── malloc/             # Memory allocator
+│   ├── net/                # Sockets, epoll, select
+│   ├── data_structures/    # Linked list, array
+│   ├── encoding/           # JSON, Base64
+│   ├── crypto/             # bcrypt implementation (yes, you read it right)
+│   ├── hash_table/         # Key-value storage
+│   ├── model/              # Data model system
+│   ├── utils/              # Strings, syscalls, time
+│   ├── logan/              # Logging
+│   ├── uuid/               # UUID generation
+│   └── boeuf/              # Dynamic buffers
 ├── examples/   # Working examples
-└── tests/  # Unit tests
+└── tests/      # Unit tests
 ```
 
 ## Examples
