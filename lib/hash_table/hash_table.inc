@@ -320,7 +320,7 @@ ht_get:
   ; go to index
   mov   rax, qword [rsp+0x10]
 
-  mov   rdi, qword [rsi+rax*8]
+  mov   rdi, [rsi+rax*8]
 
   ; if rdi is 0, this key does not exist
   test  rdi, rdi
@@ -348,10 +348,10 @@ ht_get:
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
-  test  rdi, rdi
+  test  rax, rax
   jz    .does_not_exist
 
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x18], rax
 
   jmp   .loop
 
@@ -394,11 +394,11 @@ ht_del:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; get index from string
   mov   rdi, [rsp+0x8]
@@ -460,9 +460,14 @@ ht_del:
   jmp   .loop
 
 .loop_end:
-  ; remove entry
+; remove entry
   mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   rsi, rax
+  mov   rdi, [rsp+0x10]
   mov   rdx, ht_entry_free
   call  linked_list_delete_from_value
   cmp   byte [linked_list_errno], TRUE
@@ -493,11 +498,8 @@ ht_get_bucket_by_index:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   ; get number of bucket
   mov   rdi, [rsp]
@@ -514,16 +516,8 @@ ht_get_bucket_by_index:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-
-  xor   rdx, rdx
-  mov   rax, [rsp+0x8]
-  mov   rbx, 8
-  mul   rbx
-
-  add   rdi, rax
-
-  mov   rax, rdi
+  mov   rdi, [rsp+0x8]
+  lea   rax, [rax+rdi*8]
 
   jmp   .return
 
@@ -556,11 +550,11 @@ ht_insert:
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; check key length
   mov   rdi, [rsp+0x8]
