@@ -100,7 +100,7 @@ group_create:
   add   rdi, SERVER_OFF_GROUPS
   mov   rsi, rax
   call  linked_list_insert_at_first
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rax, [rsp+0x20]
@@ -163,7 +163,7 @@ group_exist:
 .loop:
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   ; check that the prefix does not already exist
@@ -185,7 +185,7 @@ group_exist:
 .not_equal:
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   test  rax, rax
@@ -368,7 +368,7 @@ get_group_from_ctx:
 .loop:
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   [rsp+0x18], rax
@@ -412,7 +412,7 @@ get_group_from_ctx:
 .skip_root:
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   test  rax, rax
@@ -529,7 +529,6 @@ group_free_routes:
   mov   rdi, [rsp]
   add   rdi, GRP_OFF_ROUTES
   mov   rsi, route_free
-  mov   rdx, ROUTE_OFF_GRP_NEXT
   call  linked_list_free
   cmp   rax, 0
   jl    .error

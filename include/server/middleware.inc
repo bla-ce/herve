@@ -113,7 +113,7 @@ middleware_add:
   lea   rdi, [rdi+GRP_OFF_MIDDLEWARES]
   mov   rsi, [rsp+0x10]
   call  linked_list_insert_at_first
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rax, SUCCESS_CODE
@@ -162,7 +162,7 @@ middleware_run_chain:
 .loop:
   mov   rdi, [rsp+0x18]
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   [rsp+0x20], rax
@@ -189,7 +189,7 @@ middleware_run_chain:
 .skip:
   mov   rdi, [rsp+0x18]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   test  rax, rax

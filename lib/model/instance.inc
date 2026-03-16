@@ -2,8 +2,6 @@ section .bss
 
 instance_t:
   .instance_ht    resq 1  ; pointer to the hash table
-  .instance_next  resq 1  ; pointer to the next instance
-  .instance_prev  resq 1  ; pointer to the prev instance
 instance_t_end:
 
 section .data
@@ -12,8 +10,6 @@ INSTANCE_T_LEN equ instance_t_end - instance_t
 
 ; offsets
 INSTANCE_OFF_HT   equ 0
-INSTANCE_OFF_NEXT equ INSTANCE_OFF_HT + 0x8
-INSTANCE_OFF_PREV equ INSTANCE_OFF_NEXT + 0x8
 
 MODEL_INSTANCE_ERR dq 0
 

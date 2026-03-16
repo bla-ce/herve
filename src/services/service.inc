@@ -366,7 +366,7 @@ service_list:
 .loop:
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rdi, rax
@@ -391,7 +391,7 @@ service_list:
 
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   test  rax, rax
@@ -1046,7 +1046,7 @@ service_get_by_uuid:
   ; get node data
   mov   rdi, [rsp+0x8]
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   [rsp+0x10], rax
@@ -1063,7 +1063,7 @@ service_get_by_uuid:
   ; go to next
   mov   rdi, [rsp+0x8]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   test  rax, rax

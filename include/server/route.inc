@@ -7,8 +7,6 @@ route_t:
   .group              resq 1
   .active             resq 1
   .arg1               resq 1
-  .next_server_route  resq 1  ; route linked list of the server
-  .next_group_route   resq 1  ; route linked list of the group
 route_t_end:
 
 section .data
@@ -22,8 +20,6 @@ ROUTE_OFF_GROUP       equ ROUTE_OFF_CALLBACK + 0x8
 ROUTE_OFF_SERVER      equ ROUTE_OFF_GROUP + 0x8
 ROUTE_OFF_ACTIVE      equ ROUTE_OFF_SERVER + 0x8
 ROUTE_OFF_ARG1        equ ROUTE_OFF_ACTIVE + 0x8
-ROUTE_OFF_SERVER_NEXT equ ROUTE_OFF_ARG1 + 0x8
-ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_SERVER_NEXT + 0x8
 
 log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
@@ -139,8 +135,6 @@ route_create:
   jl    .error
 
   mov   rax, [rsp+0x28]
-  mov   qword [rax+ROUTE_OFF_SERVER_NEXT], 0
-  mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
 
   ; free concatenated url
   mov   rdi, [rsp+0x38]
@@ -646,7 +640,7 @@ route_add_directory:
 ; @param  rsi: pointer to the route
 ; @return rax: (bool) route exists
 route_exists:
-  sub   rsp, 0x28
+  sub   rsp, 0x30
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the server struct
@@ -654,6 +648,7 @@ route_exists:
   ; [rsp+0x10]  -> pointer to the route url
   ; [rsp+0x18]  -> pointer to the route method
   ; [rsp+0x20]  -> pointer to routes linked list
+  ; [rsp+0x28]  -> temp routes
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -681,18 +676,21 @@ route_exists:
 
   ; load server routes
   mov   rdi, [rsp]
-  call  server_get_routes
-  cmp   rax, 0
-  jl    .error
-  je    .loop_end
+  lea   rax, [rdi+SERVER_OFF_ROUTES]
 
   ; save route address
   mov   [rsp+0x20], rax
 
 .loop:
-  ; for each route
-  ; check if the url is the same
   mov   rdi, [rsp+0x20]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x28], rax
+
+  ; check if the url is the same
+  mov   rdi, [rsp+0x28]
   call  route_get_url
   cmp   rax, 0
   jl    .error
@@ -705,7 +703,7 @@ route_exists:
   cmp   rax, TRUE
   jne   .not_equal
 
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   call  route_get_method
   cmp   rax, 0
   jl    .error
@@ -719,12 +717,14 @@ route_exists:
   ; go to next
 .not_equal:
   mov   rdi, [rsp+0x20]
-  mov   rsi, [rdi+ROUTE_OFF_SERVER_NEXT]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  test  rsi, rsi
+  test  rax, rax
   jz    .loop_end
 
-  mov   [rsp+0x20], rsi
+  mov   [rsp+0x20], rax
 
   jmp   .loop
 
@@ -740,7 +740,7 @@ route_exists:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x30
   ret
 
 ; adds a route to the server
@@ -866,10 +866,9 @@ route_link_to_server:
 
   ; get route offset to check if routes are init
   add   rdi, SERVER_OFF_ROUTES
-  mov   rdx, ROUTE_OFF_SERVER_NEXT
-  call  linked_list_add_entry
-  cmp   rax, 0
-  jl    .error
+  call  linked_list_insert_at_first
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -893,11 +892,9 @@ route_link_to_group:
 
   ; get route offset to check if routes are init
   add   rdi, GRP_OFF_ROUTES
-
-  mov   rdx, ROUTE_OFF_GRP_NEXT
-  call  linked_list_add_entry
-  cmp   rax, 0
-  jl    .error
+  call  linked_list_insert_at_first
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -1420,11 +1417,10 @@ route_free:
   jl    .error
 
   ; remove route from server ll
-  mov   rdi, rax
-  add   rdi, SERVER_OFF_ROUTES
+  lea   rdi, [rax+SERVER_OFF_ROUTES]
   mov   rsi, [rsp]
-  mov   rdx, ROUTE_OFF_SERVER_NEXT
-  call  linked_list_remove_entry
+  mov   rdx, NO_ARG
+  call  linked_list_delete_from_value
   cmp   rax, 0
   jl    .error
 
@@ -1436,11 +1432,10 @@ route_free:
   je    .skip_group
 
   ; remove route from group ll
-  mov   rdi, rax
-  add   rdi, GRP_OFF_ROUTES
+  lea   rdi, [rax+GRP_OFF_ROUTES]
   mov   rsi, [rsp]
-  mov   rdx, ROUTE_OFF_GRP_NEXT
-  call  linked_list_remove_entry
+  mov   rdx, NO_ARG
+  call  linked_list_delete_from_value
   cmp   rax, 0
   jl    .error
 
@@ -1520,80 +1515,6 @@ route_set_url:
   jz    .error
 
   mov   [rdi+ROUTE_OFF_URL], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the next pointer in the server ll
-; @param  rdi: pointer to the route struct
-; @return rax: next of the route
-route_get_server_next:
-  test  rdi, rdi
-  jz    .error
-
-  mov   rax, [rdi+ROUTE_OFF_SERVER_NEXT]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the route next pointer in the server ll
-; @param  rdi: pointer to the route
-; @param  rsi: next of the route
-; @return rax: return code
-route_set_server_next:
-  test  rdi, rdi
-  jz    .error
-
-  mov   [rdi+ROUTE_OFF_SERVER_NEXT], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the next pointer in the group ll
-; @param  rdi: pointer to the route struct
-; @return rax: next of the route
-route_get_group_next:
-  test  rdi, rdi
-  jz    .error
-
-  mov   rax, [rdi+ROUTE_OFF_GRP_NEXT]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the route next pointer in the group ll
-; @param  rdi: pointer to the route
-; @param  rsi: next of the route
-; @return rax: return code
-route_set_group_next:
-  test  rdi, rdi
-  jz    .error
-
-  mov   [rdi+ROUTE_OFF_GRP_NEXT], rsi
 
   mov   rax, SUCCESS_CODE
 

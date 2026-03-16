@@ -3,7 +3,6 @@ section .bss
 ht_entry_t:
   .ht_entry_key   resq 1
   .ht_entry_value resq 1
-  .ht_entry_next  resq 1
 ht_entry_t_end:
 
 section .data
@@ -12,7 +11,6 @@ HT_ENTRY_STRUCT_LEN equ ht_entry_t_end - ht_entry_t
 
 HT_ENTRY_OFF_KEY    equ 0
 HT_ENTRY_OFF_VALUE  equ HT_ENTRY_OFF_KEY + 0x8
-HT_ENTRY_OFF_NEXT   equ HT_ENTRY_OFF_VALUE + 0x8
 
 HT_ENTRY_KEY_MAX_LENGTH   equ 0xFF
 

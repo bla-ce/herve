@@ -1049,9 +1049,9 @@ verify_request:
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to the server struct
-  ; [rsp+0x10]  -> pointer to the array of routes
+  ; [rsp+0x10]  -> pointer to the linked list of routes
   ; [rsp+0x18]  -> pointer to the request struct
-  ; [rsp+0x20]  -> dynamic pointer to the route
+  ; [rsp+0x20]  -> temp route
 
   mov   [rsp], rdi
 
@@ -1067,13 +1067,12 @@ verify_request:
 
   ; get routes server
   mov   rdi, rax
-  call  server_get_routes
-  cmp   rax, 0
-  jl    .internal_server_error
+  lea   rax, [rdi+SERVER_OFF_ROUTES]
+
+  cmp   qword [rax], 0
   je    .not_found
 
   mov   [rsp+0x10], rax
-  mov   [rsp+0x20], rax
 
   ; get ctx request
   mov   rdi, [rsp]
@@ -1096,6 +1095,13 @@ verify_request:
   jle   .internal_server_error
 
 .loop:
+  mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x20], rax
+
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
   call  route_match_request
@@ -1104,13 +1110,15 @@ verify_request:
   jg    .loop_end ; route is valid
 
   ; go to next route in server ll
-  mov   rsi, [rsp+0x20]
-  mov   rdi, [rsi+ROUTE_OFF_SERVER_NEXT]
+  mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  cmp   rdi, 0
-  je    .not_found
+  test  rax, rax
+  jz    .not_found
 
-  mov   [rsp+0x20], rdi
+  mov   [rsp+0x10], rax
 
   jmp   .loop
 

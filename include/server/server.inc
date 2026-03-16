@@ -76,7 +76,7 @@ server_get_root_group:
 .loop:
   mov   rdi, [rsp+0x8]
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   ; rsi points to the address of current group
@@ -86,7 +86,7 @@ server_get_root_group:
   ; go to next offset
   mov   rdi, [rsp+0x8]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   test  rax, rax
@@ -98,7 +98,7 @@ server_get_root_group:
 .loop_end:
   mov   rdi, [rsp+0x8]
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   jmp   .return
@@ -189,31 +189,35 @@ log_server_init:
 
   ; print available routes
   mov   rdi, [rsp]
-  call  server_get_routes
-  cmp   rax, 0
-  jl    .error
+  lea   rax, [rdi+SERVER_OFF_ROUTES]
 
   mov   [rsp+0x8], rax
 
-  test  rax, rax
-  jz    .loop_end
+  cmp   qword [rax], 0
+  je    .loop_end
 
 .loop:
   mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, rax
   call  route_log
   cmp   rax, 0
   jl    .error
 
-  mov   rax, [rsp+0x8]
-  mov   rdi, [rax+ROUTE_OFF_SERVER_NEXT]
-  test  rdi, rdi
-  jz    .loop_end
+  mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  mov   [rsp+0x8], rdi
+  mov   [rsp+0x8], rax
 
-  jmp   .loop
+  test  rax, rax
+  jnz   .loop
+
 .loop_end:
-
   mov   rdi, LINE_FEED
   call  print_char
   cmp   rax, 0

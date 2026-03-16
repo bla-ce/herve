@@ -1,9 +1,3 @@
-section .bss
-method_t:
-  .method_str   resq 1
-  .method_next  resq 1
-method_t_end:
-
 section .data
   ; methods
   align 8
@@ -24,11 +18,6 @@ section .data
   TRACE   db "TRACE", NULL_CHAR
   align 8
   CONNECT db "CONNECT", NULL_CHAR
-
-  METHOD_STRUCT_LEN equ method_t_end - method_t
-
-  METHOD_OFF_STR    equ 0x0
-  METHOD_OFF_NEXT   equ METHOD_OFF_STR + 0x8
 
 section .text
 ; checks if method is a valid method

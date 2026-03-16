@@ -12,7 +12,7 @@ NODE_STRUCT_LEN equ _node_t_end - _node_t
 NODE_OFF_DATA equ 0x0
 NODE_OFF_NEXT equ NODE_OFF_DATA + 0x8
 
-_linked_list_errno  db 0
+linked_list_errno  db 0
 
 section .text
 
@@ -39,13 +39,13 @@ _linked_list_new_node:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]
   call  _linked_list_set_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rdi, [rsp+0x8]
   mov   rsi, NO_ARG
   call  _linked_list_set_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rax, [rsp+0x8]
@@ -97,7 +97,7 @@ linked_list_insert_at_first:
   mov   rdx, [rsp]
   mov   rsi, [rdx]
   call  _linked_list_set_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   ; set the node at the new head
@@ -168,7 +168,7 @@ linked_list_insert_at_end:
   ; get temp next
   mov   rdi, [rsp+0x18]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   ; if next is null, insert node
@@ -184,7 +184,7 @@ linked_list_insert_at_end:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x10]
   call  _linked_list_set_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rax, SUCCESS_CODE
@@ -235,7 +235,7 @@ linked_list_delete_from_first:
 
   mov   rdi, rsi
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   ; *head = temp->next;
@@ -289,7 +289,7 @@ linked_list_delete_from_end:
   ; check if temp->next is empty
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   test  rax, rax
@@ -310,7 +310,7 @@ linked_list_delete_from_end:
 .loop:
   mov   rdi, [rsp+0x10]
   call  _linked_list_get_node_next_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   ; if temp->next->next is null, remove node
@@ -319,7 +319,7 @@ linked_list_delete_from_end:
 
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   [rsp+0x10], rax
@@ -330,7 +330,7 @@ linked_list_delete_from_end:
   ; free(temp->next)
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rdi, rax
@@ -343,7 +343,7 @@ linked_list_delete_from_end:
   mov   rdi, [rsp+0x10]
   xor   rsi, rsi
   call  _linked_list_set_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rax, SUCCESS_CODE
@@ -391,7 +391,7 @@ linked_list_delete_from_value:
   ; check first node
   mov   rdi, rsi
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   cmp   rax, [rsp+0x8]
@@ -400,7 +400,7 @@ linked_list_delete_from_value:
   ; get next
   mov   rdi, [rsp+0x18]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rdi, [rsp]
@@ -421,13 +421,13 @@ linked_list_delete_from_value:
   ; get next
   mov   rdi, [rsp+0x18]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   ; check if temp data is equal to the target value
   mov   rdi, rax
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   cmp   rax, [rsp+0x8]
@@ -435,7 +435,7 @@ linked_list_delete_from_value:
 
   mov   rdi, [rsp+0x18]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   [rsp+0x18], rax
@@ -446,7 +446,7 @@ linked_list_delete_from_value:
   ; get (temp->next->next)
   mov   rdi, [rsp+0x18]
   call  _linked_list_get_node_next_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   [rsp+0x20], rax
@@ -454,7 +454,7 @@ linked_list_delete_from_value:
   ; free(temp->next)
   mov   rdi, [rsp+0x18]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rdi, rax
@@ -466,7 +466,7 @@ linked_list_delete_from_value:
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x20]
   call  _linked_list_set_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rax, SUCCESS_CODE
@@ -510,7 +510,7 @@ linked_list_free:
 .loop:
   mov   rdi, [rsp+0x10]
   call  linked_list_get_node_next
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   ; *head = temp->next;
@@ -567,7 +567,7 @@ _linked_list_free_node:
 
   mov   rdi, [rsp]
   call  linked_list_get_node_data
-  cmp   byte [_linked_list_errno], TRUE
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
   mov   rdi, rax
@@ -602,12 +602,12 @@ _linked_list_set_node_next:
   mov   [rdi+NODE_OFF_NEXT], rsi
 
   mov   rax, SUCCESS_CODE
-  mov   byte [_linked_list_errno], FALSE
+  mov   byte [linked_list_errno], FALSE
 
   jmp   .return
 
 .error:
-  mov   byte [_linked_list_errno], TRUE
+  mov   byte [linked_list_errno], TRUE
 
 .return:
   ret
@@ -624,12 +624,12 @@ _linked_list_get_node_next_next:
   jz    .error
 
   mov   rax, [rsi+NODE_OFF_NEXT]
-  mov   byte [_linked_list_errno], FALSE
+  mov   byte [linked_list_errno], FALSE
 
   jmp   .return
 
 .error:
-  mov   byte [_linked_list_errno], TRUE
+  mov   byte [linked_list_errno], TRUE
 
 .return:
   ret
@@ -642,12 +642,12 @@ linked_list_get_node_next:
   jz    .error
 
   mov   rax, [rdi+NODE_OFF_NEXT]
-  mov   byte [_linked_list_errno], FALSE
+  mov   byte [linked_list_errno], FALSE
 
   jmp   .return
 
 .error:
-  mov   byte [_linked_list_errno], TRUE
+  mov   byte [linked_list_errno], TRUE
 
 .return:
   ret
@@ -663,12 +663,12 @@ _linked_list_set_node_data:
   mov   [rdi+NODE_OFF_DATA], rsi
 
   mov   rax, SUCCESS_CODE
-  mov   byte [_linked_list_errno], FALSE
+  mov   byte [linked_list_errno], FALSE
 
   jmp   .return
 
 .error:
-  mov   byte [_linked_list_errno], TRUE
+  mov   byte [linked_list_errno], TRUE
 
 .return:
   ret
@@ -681,12 +681,12 @@ linked_list_get_node_data:
   jz    .error
 
   mov   rax, [rdi+NODE_OFF_DATA]
-  mov   byte [_linked_list_errno], FALSE
+  mov   byte [linked_list_errno], FALSE
 
   jmp   .return
 
 .error:
-  mov   byte [_linked_list_errno], TRUE
+  mov   byte [linked_list_errno], TRUE
 
 .return:
   ret
