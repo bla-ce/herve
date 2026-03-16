@@ -36,6 +36,8 @@ section .data
   CRLF_delim        db CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
   DOUBLE_CRLF_delim db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
 
+  data_key db "data", NULL_CHAR
+
 section .text
 ; frees the response structure and all associated resources
 ; @param  rdi: pointer to the response

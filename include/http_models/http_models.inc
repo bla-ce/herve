@@ -10,8 +10,6 @@ http_model_err:
 http_model_msg:
   .model_deleted db " model: instance has been deleted", NULL_CHAR
 
-data_key    db "data", NULL_CHAR
-
 http_model_route_root db "/", NULL_CHAR
 http_model_route_id   db "/:id", NULL_CHAR
 

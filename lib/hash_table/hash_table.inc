@@ -49,7 +49,7 @@ ht_get_keys:
   ; [rsp+0x8]   -> number of entries
   ; [rsp+0x10]  -> pointer to the array of keys
   ; [rsp+0x18]  -> pointer to the array of entries
-  ; [rsp+0x20]  -> pointer to the entry
+  ; [rsp+0x20]  -> temp entry
   ; [rsp+0x28]  -> counter
 
   mov   [rsp], rdi
@@ -130,17 +130,12 @@ ht_get_keys:
 
   ; check if the key has next populated
 .inner_loop:
-  ; save position
-  mov   rsi, [rsp+0x20]
-
-  cmp   qword [rsi+HT_ENTRY_OFF_NEXT], 0
-  je    .inner_loop_end
+  mov   rdi, [rsp+0x20]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   xor   r10, r10
-  mov   rax, [rsi+HT_ENTRY_OFF_NEXT]
-
-  ; save new position
-  mov   [rsp+0x20], rax
 
   ; save key
   mov   rdi, [rax+HT_ENTRY_OFF_KEY]
@@ -156,7 +151,15 @@ ht_get_keys:
 
   inc   qword [rsp+0x28]
 
-  jmp   .inner_loop
+  mov   rdi, [rsp+0x20]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x20], rax
+
+  test  rax, rax
+  jnz   .inner_loop
 
 .inner_loop_end:
 
@@ -288,11 +291,11 @@ ht_get:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; hash string key
   mov   rdi, [rsp+0x8]
@@ -317,32 +320,36 @@ ht_get:
   ; go to index
   mov   rax, qword [rsp+0x10]
 
-  mov   rdi, [rsi+rax*8]
+  mov   rdi, qword [rsi+rax*8]
 
   ; if rdi is 0, this key does not exist
-  cmp   rdi, 0
-  je    .does_not_exist
+  test  rdi, rdi
+  jz    .does_not_exist
 
   ; save entry
   mov   [rsp+0x18], rdi
 
 .loop:
+  mov   rdi, [rsp+0x18]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
   ; get key
-  mov   rsi, [rdi+HT_ENTRY_OFF_KEY]
   mov   rdi, [rsp+0x8]
-  ; compare with wanted key
+  mov   rsi, [rax+HT_ENTRY_OFF_KEY]
   call  strcmp
   cmp   rax, TRUE
   ; if equal, jmp to the end of the loop
   je    .loop_end
 
   mov   rdi, [rsp+0x18]
-  mov   rsi, [rdi+HT_ENTRY_OFF_NEXT]
-  cmp   rsi, 0
-  je    .does_not_exist
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  ; go to the next node on the linked list
-  mov   rdi, rsi
+  test  rdi, rdi
+  jz    .does_not_exist
 
   mov   [rsp+0x18], rdi
 
@@ -350,9 +357,13 @@ ht_get:
 
 .loop_end:
   mov   rdi, [rsp+0x18]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   ; get value from entry
-  mov   rax, [rdi+HT_ENTRY_OFF_VALUE]
+  mov   rdi, [rax+HT_ENTRY_OFF_VALUE]
+  mov   rax, rdi
 
   jmp   .return
 
@@ -372,18 +383,16 @@ ht_get:
 ; @param  rsi: pointer to the key
 ; @param  rax: return value
 ht_del:
-  sub   rsp, 0x28
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the key
-  ; [rsp+0x10]  -> pointer to the previous entry
-  ; [rsp+0x18]  -> pointer to the bucket
-  ; [rsp+0x20]  -> pointer to the current entry
+  ; [rsp+0x10]  -> pointer to the bucket
+  ; [rsp+0x18]  -> temp entry entry
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x10], 0
 
   cmp   rdi, 0
   jle   .error
@@ -409,18 +418,22 @@ ht_del:
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x10], rax
+
   ; check bucket empty
-  cmp   qword [rax], 0
-  je    .error
-
-  mov   [rsp+0x18], rax
-
-  ; get the first entry of the bucket
   mov   rdi, [rax]
-  mov   [rsp+0x20], rdi
+  test  rdi, rdi
+  jz    .error
+
+  mov   [rsp+0x18], rdi
 
 .loop:
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x18]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, rax
   call  ht_entry_get_key
   cmp   rax, 0
   jl    .error
@@ -434,47 +447,26 @@ ht_del:
   cmp   rax, TRUE
   je    .loop_end
 
-  ; save prev
-  mov   rdi, [rsp+0x20]
-  mov   [rsp+0x10], rdi
+  mov   rdi, [rsp+0x18]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  ; get next
-  call  ht_entry_get_next
-  cmp   rax, 0
-  jle   .error ; error or not found
+  mov   [rsp+0x18], rax
 
-  mov   [rsp+0x20], rax
+  test  rax, rax
+  jz    .error
+
   jmp   .loop
 
 .loop_end:
-  ; get curr next
-  mov   rdi, [rsp+0x20]
-  call  ht_entry_get_next
-  cmp   rax, 0
-  jl    .error
-
-  cmp   qword [rsp+0x10], 0
-  je    .root   ; entry to free is root
-
-  ; update prev next
-  mov   rdi, [rsp+0x10]
-  mov   rsi, rax
-  call  ht_entry_set_next
-  cmp   rax, 0
-  jl    .error
-
-  jmp   .free_entry
-
-.root:
+  ; remove entry
   mov   rdi, [rsp+0x18]
-  mov   [rdi], rax
-
-.free_entry:
-  ; free entry
-  mov   rdi, [rsp+0x20]
-  call  ht_entry_free
-  cmp   rax, 0
-  jl    .error
+  mov   rsi, [rsp+0x10]
+  mov   rdx, ht_entry_free
+  call  linked_list_delete_from_value
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, SUCCESS_CODE
 
@@ -484,7 +476,7 @@ ht_del:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x20
   ret
 
 ; returns the address of a bucket by its index
@@ -776,51 +768,14 @@ ht_bucket_free:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   qword [rdi], 0
-  je    .done  ; nothing to free
+  mov   rsi, ht_entry_free
+  call  linked_list_free
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  ; get the first entry of the bucket
-  mov   rax, [rdi]
-  mov   [rsp+0x8], rax
-
-.loop:
-  ; get the next entry of the current one
-  mov   rdi, [rsp+0x8]
-  call  ht_entry_get_next
-  cmp   rax, 0
-  jl    .error
-
-  ; if next is empty, we just need to free the current one and
-  ; return
-  test  rax, rax
-  jz    .loop_end
-
-  ; we need to save the next
-  mov   [rsp+0x10], rax
-
-  ; free current entry
-  mov   rdi, [rsp+0x8]
-  call  ht_entry_free
-  cmp   rax, 0
-  jl    .error
-
-  ; next is now the current entry
-  mov   rdi, [rsp+0x10]
-  mov   [rsp+0x8], rdi
-
-  jmp   .loop
-
-.loop_end:
-  ; free current entry
-  mov   rdi, [rsp+0x8]
-  call  ht_entry_free
-  cmp   rax, 0
-  jl    .error
-
-.done:
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -837,15 +792,11 @@ ht_bucket_free:
 ; @param  rsi: pointer to the entry
 ; @return rax: return code
 ht_add_entry:
-  sub   rsp, 0x30
+  sub   rsp, 0x10
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the hash table struct
   ; [rsp+0x8]   -> pointer to the entry
-  ; [rsp+0x10]  -> key of the entry
-  ; [rsp+0x18]  -> pointer to the hash table elements
-  ; [rsp+0x20]  -> address where the entry will be stored
-  ; [rsp+0x28]  -> pointer to the entry
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -862,10 +813,8 @@ ht_add_entry:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
   ; hash string
-  mov   rdi, [rsp+0x10]
+  mov   rdi, rax
   call  ht_hash_key
   cmp   rax, 0
   jl   .error
@@ -883,40 +832,12 @@ ht_add_entry:
   cmp   rax, 0
   jl    .error
 
+  ; add entry to the linked list
   mov   rdi, rax
-
-  ; [rdi] points to the first address or is null
-  ; we need to save rdi because it will be the pointer where we
-  ; will store the entry
-  mov   [rsp+0x20], rdi
-  cmp   qword [rdi], 0
-  je    .loop_end
-
-  ; store the pointer to the entry
-  mov   rax, qword [rdi]
-  mov   [rsp+0x28], rax
-
-  ; we need to go to the end of the linked list
-.loop:
-  ; save the new address where the entry would be saved
-  mov   rdi, [rsp+0x28]
-  add   rdi, HT_ENTRY_OFF_NEXT
-
-  mov   [rsp+0x20], rdi
-
-  mov   rax, [rdi]
-  mov   [rsp+0x28], rax
-
-  test  rax, rax
-  jz    .loop_end
-
-  jmp   .loop
-
-.loop_end:
-  ; store entry
-  mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x8]
-  mov   [rdi], rsi
+  call  linked_list_insert_at_first
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   ; increase the number of entry
   mov   rdi, [rsp]
@@ -930,7 +851,7 @@ ht_add_entry:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x10
   ret
 
 ; returns the number of buckets in the hash table
