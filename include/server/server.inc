@@ -61,8 +61,8 @@ server_get_root_group:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; get group offset to check if groups are init
   mov   rax, [rdi+SERVER_OFF_GROUPS]
@@ -95,7 +95,10 @@ server_get_root_group:
 
   jmp   .loop
 .loop_end:
-  mov   rax, [rsp+0x8]
+  mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   jmp   .return
 

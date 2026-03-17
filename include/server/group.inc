@@ -45,11 +45,11 @@ group_create:
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jl    .error
+  test  rsi, rsi
+  jz    .error
 
   ; make sure prefix starts with a slash
   mov   rdi, [rsp+0x8]
@@ -97,7 +97,7 @@ group_create:
 
   ; add the group to the server
   mov   rdi, [rsp]
-  add   rdi, SERVER_OFF_GROUPS
+  lea   rdi, [rdi+SERVER_OFF_GROUPS]
   mov   rsi, rax
   call  linked_list_insert_at_first
   cmp   byte [linked_list_errno], TRUE

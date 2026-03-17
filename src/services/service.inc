@@ -154,7 +154,7 @@ service_register:
 
   mov   rdi, hv_services
   mov   rsi, [rsp+0x8]
-  call  linked_list_insert_at_end
+  call  linked_list_insert_at_first
   cmp   rax, 0
   jl    .internal_server_error
 
