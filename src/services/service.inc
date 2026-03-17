@@ -467,8 +467,8 @@ service_unregister:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle    .error
+  test  rdi, rdi
+  jz    .error
 
   ; get the request struct
   mov   rdi, [rsp]
@@ -521,12 +521,6 @@ service_unregister:
   jl    .error
 
   dec   qword [service_count]
-
-  ; free the service
-  mov   rdi, [rsp+0x8]
-  call  service_free
-  cmp   rax, 0
-  jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, OK

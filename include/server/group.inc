@@ -526,7 +526,7 @@ group_free_routes:
 
   ; get routes ll
   mov   rdi, [rsp]
-  add   rdi, GRP_OFF_ROUTES
+  lea   rdi, [rdi+GRP_OFF_ROUTES]
   mov   rsi, route_free
   call  linked_list_free
   cmp   rax, 0

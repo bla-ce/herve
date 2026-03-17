@@ -1420,7 +1420,7 @@ route_free:
   jl    .error
 
   ; remove route from server ll
-  mov   rdi, [rax+SERVER_OFF_ROUTES]
+  lea   rdi, [rax+SERVER_OFF_ROUTES]
   mov   rsi, [rsp]
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
@@ -1435,7 +1435,7 @@ route_free:
   je    .skip_group
 
   ; remove route from group ll
-  mov   rdi, [rax+GRP_OFF_ROUTES]
+  lea   rdi, [rax+GRP_OFF_ROUTES]
   mov   rsi, [rsp]
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
