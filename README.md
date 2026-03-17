@@ -21,6 +21,13 @@ To gain a deeper knowledge of computer architecture, networking and how the CPU 
 
 After one year and ~30,000 lines of Assembly code, I decided to move away from a library to an actual project. The goal: a cloud platform in x86 to compete (lol) against AWS, GCP, Azure and so on.
 
+## Stats because numbers are cool
+
+I ran `wrk` for 10 minutes, hitting the `/health` endpoint.
+
+- 34 millions of requests, no error.
+- 198GB allocated with custom `malloc`, no memory leak (endless nights tracking memory leaks are now in the past)
+
 ## Building
 
 Requires NASM and GNU LD.
