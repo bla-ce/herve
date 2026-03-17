@@ -37,12 +37,15 @@ ht_get_length:
 .return:
   ret
 
-; returns an array of keys. Users have to deal with freeing the pointer
-; (might change)
+; returns an array of keys
+; user is responsible for freeing the array
 ; @param  rdi: pointer to hash table
 ; @return rax: pointer to array
 ht_get_keys:
-  sub   rsp, 0x30
+  push   r9
+  push   rbx
+
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
@@ -50,107 +53,86 @@ ht_get_keys:
   ; [rsp+0x10]  -> pointer to the array of keys
   ; [rsp+0x18]  -> pointer to the array of entries
   ; [rsp+0x20]  -> temp entry
-  ; [rsp+0x28]  -> counter
 
   mov   [rsp], rdi
-
-  ; init values to 0
   mov   qword [rsp+0x10], 0
-  mov   qword [rsp+0x28], 0 ; counter
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; save the number of entries
-  mov   rax, qword [rdi+HT_OFF_NENTRY]
+  mov   rax, [rdi+HT_OFF_NENTRY]
   mov   qword [rsp+0x8], rax
 
   test  rax, rax
   jz    .ht_empty
 
-  ; malloc an array of n_entry keys (array of pointers)
+  ; create an array of n_entry keys (array of pointers)
   mov   rdi, qword [rsp+0x8]
   mov   rsi, 8
-  call  calloc
+  call  array_create
   cmp   rax, 0
   jl    .error
-  je    .ht_empty
 
   ; save array of keys
   mov   [rsp+0x10], rax
 
   xor   r9, r9
 
-  ; load hash table entries
+  ; load hash table entries (array of pointers)
   mov   rsi, [rsp]
   mov   rdi, [rsi+HT_OFF_TABLE]
 
   mov   [rsp+0x18], rdi
 
-.loop:
-  ; load hash table entries
-  mov   rdi, [rsp+0x18]
+.outer_loop:
+  ; get next entry
+  mov   rax, [rsp+0x18]
+  mov   rdi, [rax+r9*8]
 
-  ; get offset from the counter
-  xor   rdx, rdx
-  mov   rax, r9
-  mov   rbx, 8
-  mul   rbx
+  test  rdi, rdi
+  jz    .inner_loop_end
 
-  ; go to entry position
-  add   rdi, rax
+  ; save temp entry
+  mov   [rsp+0x20], rdi
 
-  ; load entry address
-  mov   rsi, [rdi]
+  ; get key of the entry
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  test  rsi, rsi
-  jz    .empty
+  lea   rsi, [rax+HT_ENTRY_OFF_KEY]
 
-  ; save position
-  mov   [rsp+0x20], rsi
+  mov   rdi, [rsp+0x10]
+  call  array_push
+  cmp   rax, 0
+  jl    .error
 
-  ; get the key from the entry
-  mov   rdi, [rsi+HT_ENTRY_OFF_KEY]
+  ; check if entry has next
+  mov   rdi, [rsp+0x20]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  ; get array
-  mov   rsi, [rsp+0x10]
+  mov   [rsp+0x20], rax
 
-  ; get the offset
-  xor   rdx, rdx
-  mov   rax, qword [rsp+0x28]
-  mov   rbx, 8
-  mul   rbx
+  test  rax, rax
+  jz    .inner_loop_end
 
-  add   rsi, rax
-
-  ; save key into the array
-  mov   [rsi], rdi
-
-  inc   qword [rsp+0x28]
-
-  ; check if the key has next populated
 .inner_loop:
+  ; go through linked list
   mov   rdi, [rsp+0x20]
   call  linked_list_get_node_data
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
-  xor   r10, r10
+  lea   rsi, [rax+HT_ENTRY_OFF_KEY]
+  mov   rdi, [rsp+0x10]
+  call  array_push
+  cmp   rax, 0
+  jl    .error
 
-  ; save key
-  mov   rdi, [rax+HT_ENTRY_OFF_KEY]
-
-  mov   rsi, [rsp+0x10]
-  xor   rdx, rdx
-  mov   rax, qword [rsp+0x28]
-  mov   rbx, 8
-  mul   rbx
-
-  add   rsi, rax
-  mov   [rsi], rdi
-
-  inc   qword [rsp+0x28]
-
+  ; go to next
   mov   rdi, [rsp+0x20]
   call  linked_list_get_node_next
   cmp   byte [linked_list_errno], TRUE
@@ -162,20 +144,15 @@ ht_get_keys:
   jnz   .inner_loop
 
 .inner_loop_end:
-
-.empty:
   inc   r9
 
-  ; compare index with number of buckets
   mov   rdi, [rsp]
   mov   rax, qword [rdi+HT_OFF_NBUCKET]
 
   cmp   r9, rax
-  jge   .loop_end
+  jl    .outer_loop
 
-  jmp   .loop
-
-.loop_end:
+.outer_loop_end:
   mov   rax, [rsp+0x10]
   jmp   .return
 
@@ -188,13 +165,17 @@ ht_get_keys:
   test  rdi, rdi
   jz    .no_free
 
-  call  free
+  call  array_free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x28
+
+  pop   rbx
+  pop   r9
+
   ret
 
 ; hash function to map values to key

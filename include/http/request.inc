@@ -1055,8 +1055,8 @@ verify_request:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .internal_server_error
+  test  rdi, rdi
+  jz    .internal_server_error
 
   ; get context server
   call  ctx_get_server
@@ -1066,13 +1066,12 @@ verify_request:
   mov   [rsp+0x8], rax
 
   ; get routes server
-  mov   rdi, rax
-  lea   rax, [rdi+SERVER_OFF_ROUTES]
+  mov   rdi, [rax+SERVER_OFF_ROUTES]
 
-  cmp   qword [rax], 0
-  je    .not_found
+  test  rdi, rdi
+  jz    .not_found
 
-  mov   [rsp+0x10], rax
+  mov   [rsp+0x10], rdi
 
   ; get ctx request
   mov   rdi, [rsp]

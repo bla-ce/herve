@@ -40,6 +40,8 @@ FORM_ENCODED db "application/x-www-form-urlencoded", NULL_CHAR
 
 CRLF  db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
 
+HEADER_SEPARATOR db ": ", NULL_CHAR
+
 section .text
 ; parses the headers string into a hash table
 ; @param  rdi: pointer to headers string
@@ -224,39 +226,40 @@ parse_headers:
   ret
 
 ; load the headers into the response
+; user is responsible for freeing the header string
 ; @param  rdi: pointer to headers hash table
 ; @return rax: pointer to string
 stringify_headers:
-  sub   rsp, 0x38
+  push  r9
+
+  sub   rsp, 0x20
+  sub   rsp, HEADERS_MAX_LEN
 
   ; STACK USAGE
   ; [rsp]       -> pointer to headers hash table
   ; [rsp+0x8]   -> headers count
-  ; [rsp+0x10]  -> array of keys
-  ; [rsp+0x18]  -> key address
-  ; [rsp+0x20]  -> headers string dynamic size
-  ; [rsp+0x28]  -> pointer to headers string
-  ; [rsp+0x30]  -> dynamic pointer headers string
+  ; [rsp+0x10]  -> pointer to the array of ht keys
+  ; [rsp+0x18]  -> dynamic pointer for stringified headers
+  ; [rsp+0x20]  -> temp entry
+  ; [rsp+0x28]  -> pointer to the stringified headers
 
   mov   [rsp], rdi
   mov   qword [rsp+0x10], 0
-  mov   qword [rsp+0x20], 0
-  mov   [rsp+0x28], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
+
+  lea   rax, [rsp+0x28]
+  mov   [rsp+0x18], rax
 
   ; get hash table length
   mov   rdi, [rsp]
   call  ht_get_length
   cmp   rax, 0
-  jl    .error
+  jle   .error
 
-  mov   rbx, HEADERS_MAX_COUNT
-
-  ; make sure length does not exceed HEADERS_MAX_COUNT
-  cmp   rax, rbx
-  cmovg rax, rbx
+  cmp   rax, HEADERS_MAX_COUNT
+  jge   .error
 
   mov   qword [rsp+0x8], rax
 
@@ -270,137 +273,88 @@ stringify_headers:
 
   xor   r9, r9
 
-  ; get total length of the headers
 .loop:
-  cmp   r9, qword [rsp+0x8]
-  jge   .loop_end
-
-  ; get array of keys
-  mov   rsi, [rsp+0x10]
-
-  ; load key
-  mov   rdi, [rsi+r9*8]
-
-  ; save key address
-  mov   [rsp+0x18], rdi
-
-  ; get key length
-  mov   rdi, [rsp+0x18]
-  call  strlen
-  cmp   rax, 0
-  jl    .empty_header
-
-  add   qword [rsp+0x20], rax
-  add   qword [rsp+0x20], 2     ; colon and space
-
-  ; get value
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x18]
-  call  ht_get
-  cmp   rax, 0
-  jle   .error
-
-  ; get value length
-  mov   rdi, rax
-  call  strlen
+  ; get key
+  mov   rdi, [rsp+0x10]
+  mov   rsi, r9
+  call  array_get
   cmp   rax, 0
   jl    .error
 
-  add   qword [rsp+0x20], rax
-  add   qword [rsp+0x20], 2     ; CRLF
+  mov   [rsp+0x20], rax
 
-.empty_header:
-  inc   r9
-
-  jmp   .loop
-.loop_end:
-
-  mov   rax, [rsp+0x28]
-  mov   [rsp+0x30], rax
-
-  xor   r9, r9
-
-  ; for each key
-.loop2:
-  cmp   r9, qword [rsp+0x8]
-  jge   .loop_end2
-
-  ; get array of keys
-  mov   rsi, [rsp+0x10]
-
-  ; load key
-  mov   rdi, [rsi+r9*8]
-
-  ; save key address
-  mov   [rsp+0x18], rdi
-
-  ; copy key
-  mov   rdi, [rsp+0x30]
-  mov   rsi, [rsp+0x18]
-  call  strcpy
-
-  cmp   rax, 0
-  jl    .empty_header2
-
-  ; load ':'
-  mov   rdi, rax
-  mov   rax, COLON
-  stosb
-
-  ; load ' '
-  mov   rax, SPACE
-  stosb
-
-  mov   [rsp+0x30], rdi
-
-  ; get value
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x18]
-  call  ht_get
-  cmp   rax, 0
-  jle   .error
-
-  ; load value
-  mov   rdi, [rsp+0x30]
+  ; copy it
+  mov   rdi, [rsp+0x18]
   mov   rsi, rax
   call  strcpy
   cmp   rax, 0
   jl    .error
 
-  ; load new line
-  mov   rdi, rax
-  mov   rax, CARRIAGE_RETURN
-  stosb
+  mov   [rsp+0x18], rax
 
-  mov   rax, LINE_FEED
-  stosb
-
-.empty_header2:
-  inc   r9
-
-  mov   [rsp+0x30], rdi
-
-  jmp   .loop2
-.loop_end2:
-
-  ; load post headers
-  mov   rdi, [rsp+0x30]
-  mov   rax, CARRIAGE_RETURN
-  stosb
-
-  mov   rax, LINE_FEED
-  stosb
-
-  mov   rax, NULL_CHAR
-  stosb
-
-  ; free list of keys
-  mov   rdi, [rsp+0x10]
-  call  free
+  ; copy delimitor
+  mov   rdi, [rsp+0x18]
+  mov   rsi, HEADER_SEPARATOR
+  mov   rdx, 2
+  call  strncpy
   cmp   rax, 0
   jl    .error
 
-  mov   rax, SUCCESS_CODE
+  mov   [rsp+0x18], rax
+
+  ; get value
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x20]
+  call  ht_get
+  cmp   rax, 0
+  jl    .error
+
+  ; copy value
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  strcpy
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; copy CRLF
+  mov   rdi, rax
+  mov   rsi, CRLF
+  mov   rdx, 2
+  call  strncpy
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  inc   r9
+
+  cmp   r9, [rsp+0x8]
+  jl    .loop
+
+.loop_end:
+  ; copy 2 bytes of CRLF
+  mov   rdi, rax
+  mov   rsi, CRLF
+  mov   rdx, 2
+  call  strncpy
+  cmp   rax, 0
+  jl    .error
+
+  mov   byte [rax], NULL_CHAR
+
+  ; free list of keys
+  mov   rdi, [rsp+0x10]
+  call  array_free
+  cmp   rax, 0
+  jl    .error
+
+  ; copy str header
+  lea   rdi, [rsp+0x28]
+  call  strdup
+  cmp   rax, 0
+  jl    .error
 
   jmp   .return
 
@@ -409,13 +363,17 @@ stringify_headers:
   test  rdi, rdi
   jz    .no_free
 
-  call  free
+  call  array_free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x20
+  add   rsp, HEADERS_MAX_LEN
+
+  pop   r9
+
   ret
 
 ; set the headers

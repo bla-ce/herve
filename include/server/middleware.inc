@@ -109,8 +109,8 @@ middleware_add:
   mov   [rsp+0x8], rax
 
 .no_root_group:
-  mov   rdi, [rsp+0x8]
-  lea   rdi, [rdi+GRP_OFF_MIDDLEWARES]
+  mov   rax, [rsp+0x8]
+  lea   rdi, [rax+GRP_OFF_MIDDLEWARES]
   mov   rsi, [rsp+0x10]
   call  linked_list_insert_at_first
   cmp   byte [linked_list_errno], TRUE
@@ -153,11 +153,11 @@ middleware_run_chain:
   test  rsi, rsi
   jz    .error
 
-  lea   rax, [rdi+GRP_OFF_MIDDLEWARES]
+  mov   rax, [rdi+GRP_OFF_MIDDLEWARES]
   mov   [rsp+0x18], rax
 
-  mov   qword [rax], 0
-  je    .end
+  test  rax, rax
+  jz    .end
 
 .loop:
   mov   rdi, [rsp+0x18]

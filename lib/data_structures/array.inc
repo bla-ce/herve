@@ -37,11 +37,11 @@ array_create:
   mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; malloc array struct
   mov   rdi, ARRAY_T_LEN
@@ -138,6 +138,8 @@ array_free:
 ; @param  rsi: pointer to the new element
 ; @return rax: return code
 array_push:
+  push  rbx
+
   sub   rsp, 0x28
 
   ; STACK USAGE
@@ -247,6 +249,9 @@ array_push:
 
 .return:
   add   rsp, 0x28
+
+  pop   rbx
+
   ret
 
 ; pops the last element of the array and returns it
@@ -288,6 +293,8 @@ array_pop:
 ; @param  rsi: index of the element to get
 ; @return rax: return code
 array_get:
+  push  rbx
+
   sub   rsp, 0x10
 
   ; STACK USAGE
@@ -325,4 +332,7 @@ array_get:
 
 .return:
   add   rsp, 0x10
+
+  pop   rbx
+
   ret

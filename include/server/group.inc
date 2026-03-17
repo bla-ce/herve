@@ -469,8 +469,7 @@ group_free:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-  add   rdi, SERVER_OFF_GROUPS
+  lea   rdi, [rax+SERVER_OFF_GROUPS]
   mov   rsi, [rsp]
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value

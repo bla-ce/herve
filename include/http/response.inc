@@ -410,8 +410,7 @@ get_response_body:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
 stringify_response:
-  sub   rsp, 0x18
-  sub   rsp, HEADERS_MAX_LEN
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the response struct
@@ -421,9 +420,10 @@ stringify_response:
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   ; get context protocol
   call  get_response_protocol
@@ -481,20 +481,25 @@ stringify_response:
   jl    .error
 
   mov   rdi, rax
-  lea   rsi, [rsp+0x18]
   call  stringify_headers
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x18], rax
+
+  test  rax, rax
+  jz    .skip_headers
+
   ; append headers
   mov   rdi, [rsp+0x8]
-  lea   rsi, [rsp+0x18]
+  mov   rsi, rax
   call  boeuf_append
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x8], rax
 
+.skip_headers:
   ; get body
   mov   rdi, [rsp]
   call  get_response_body
@@ -526,6 +531,13 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
+  ; free headers string
+  mov   rdi, [rsp+0x18]
+  call  free
+  mov   qword [rsp+0x18], 0
+  cmp   rax, 0
+  jl    .error
+
   ; return response
   mov   rax, [rsp+0x8]
 
@@ -533,19 +545,24 @@ stringify_response:
 
 .error:
   ; free response string
-  mov   rax, [rsp+0x8]
-  test  rax, rax
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .free_headers
+
+  call  boeuf_free
+
+.free_headers:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
   jz    .no_free
 
-  mov   rdi, rax
-  call  boeuf_free
+  call  free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, HEADERS_MAX_LEN
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; sends a response without content
@@ -651,14 +668,14 @@ send_json:
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
-  cmp   rdx, 0
-  jle   .error
+  test  rdx, rdx
+  jz    .error
 
   ; validate status code
   mov   rdi, qword [rsp+0x8]

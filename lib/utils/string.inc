@@ -418,6 +418,31 @@ strncmp_const_time:
 .return:
   ret
 
+; copy n bytes from src to dst
+; @param  rdi: dst
+; @param  rsi: src
+; @param  rdx: n bytes
+; @return rax: pointer to dst after copy
+strncpy:
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
+
+  mov   rcx, rdx
+  rep   movsb
+
+  mov   rax, rdi
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; copy the string pointed to by src, into a string at the buffer pointed to by dst
 ; @param  rdi: dst
 ; @param  rsi: src
@@ -432,21 +457,19 @@ strcpy:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   mov   rdi, rsi
   call  strlen
-  mov   rcx, rax
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  rep   movsb
-
-  mov   rax, rdi
+  mov   rdx, rax
+  call  strncpy
 
   jmp   .return
 

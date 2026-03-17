@@ -1052,7 +1052,7 @@ service_get_by_uuid:
   mov   [rsp+0x10], rax
 
   ; get the uuid of the service
-  lea   rdi, [rax+SERVICE_OFF_UUID]
+  mov   rdi, [rax+SERVICE_OFF_UUID]
   mov   rsi, [rsp]
   call  strcmp
   cmp   rax, 0

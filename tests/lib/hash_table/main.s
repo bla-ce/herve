@@ -17,6 +17,7 @@ value4  db "application/x-www-form-urlencoded", NULL_CHAR
 value5  dq "36", NULL_CHAR
 
 hash_table dq 0
+ht_keys    dq 0
 
 section .text
 
@@ -141,6 +142,36 @@ _start:
   call  ht_get
   test  rax, rax
   jnz   .error
+
+  mov   rdi, [hash_table]
+  call  ht_get_keys
+  cmp   rax, 0
+  jl    .error
+
+  mov   [ht_keys], rax
+
+  xor   r9, r9
+
+.loop:
+  mov   rdi, [ht_keys]
+  mov   rsi, r9
+  call  array_get
+  cmp   rax, 0
+  jl    .loop_end
+
+  mov   rdi, rax
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  inc   r9
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [ht_keys]
+  call  array_free
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [hash_table]
   call  ht_free

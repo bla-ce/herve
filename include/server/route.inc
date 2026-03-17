@@ -676,7 +676,10 @@ route_exists:
 
   ; load server routes
   mov   rdi, [rsp]
-  lea   rax, [rdi+SERVER_OFF_ROUTES]
+  mov   rax, [rdi+SERVER_OFF_ROUTES]
+
+  test  rax, rax
+  jz    .does_not_exist
 
   ; save route address
   mov   [rsp+0x20], rax
@@ -722,13 +725,13 @@ route_exists:
   je    .error
 
   test  rax, rax
-  jz    .loop_end
+  jz    .does_not_exist
 
   mov   [rsp+0x20], rax
 
   jmp   .loop
 
-.loop_end:
+.does_not_exist:
   mov   rax, FALSE
   jmp   .return
 
@@ -858,14 +861,14 @@ route_add:
 ; @param  rsi: pointer to route struct
 ; @return rax: return code
 route_link_to_server:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; get route offset to check if routes are init
-  add   rdi, SERVER_OFF_ROUTES
+  lea   rdi, [rdi+SERVER_OFF_ROUTES]
   call  linked_list_insert_at_first
   cmp   byte [linked_list_errno], TRUE
   je    .error
@@ -884,14 +887,14 @@ route_link_to_server:
 ; @param  rsi: pointer to route struct
 ; @return rax: return code
 route_link_to_group:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; get route offset to check if routes are init
-  add   rdi, GRP_OFF_ROUTES
+  lea   rdi, [rdi+GRP_OFF_ROUTES]
   call  linked_list_insert_at_first
   cmp   byte [linked_list_errno], TRUE
   je    .error
@@ -1417,7 +1420,7 @@ route_free:
   jl    .error
 
   ; remove route from server ll
-  lea   rdi, [rax+SERVER_OFF_ROUTES]
+  mov   rdi, [rax+SERVER_OFF_ROUTES]
   mov   rsi, [rsp]
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
@@ -1432,7 +1435,7 @@ route_free:
   je    .skip_group
 
   ; remove route from group ll
-  lea   rdi, [rax+GRP_OFF_ROUTES]
+  mov   rdi, [rax+GRP_OFF_ROUTES]
   mov   rsi, [rsp]
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value

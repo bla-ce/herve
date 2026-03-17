@@ -65,13 +65,12 @@ server_get_root_group:
   jle   .error
 
   ; get group offset to check if groups are init
-  mov   rdi, [rsp]
-  add   rdi, SERVER_OFF_GROUPS
+  mov   rax, [rdi+SERVER_OFF_GROUPS]
 
-  mov   [rsp+0x8], rdi
+  mov   [rsp+0x8], rax
 
-  cmp   qword [rdi], 0
-  je    .error
+  test  rax, rax
+  jz    .error
 
 .loop:
   mov   rdi, [rsp+0x8]
@@ -96,10 +95,7 @@ server_get_root_group:
 
   jmp   .loop
 .loop_end:
-  mov   rdi, [rsp+0x8]
-  call  linked_list_get_node_data
-  cmp   byte [linked_list_errno], TRUE
-  je    .error
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 
@@ -122,8 +118,8 @@ server_enable_logger:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   call  get_logger_middleware
   cmp   rax, 0
@@ -189,12 +185,12 @@ log_server_init:
 
   ; print available routes
   mov   rdi, [rsp]
-  lea   rax, [rdi+SERVER_OFF_ROUTES]
+  mov   rax, [rdi+SERVER_OFF_ROUTES]
 
   mov   [rsp+0x8], rax
 
-  cmp   qword [rax], 0
-  je    .loop_end
+  test  rax, rax
+  jz    .loop_end
 
 .loop:
   mov   rdi, [rsp+0x8]
