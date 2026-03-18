@@ -5,6 +5,7 @@ middleware_t:
   .arg2     resq 1
   .arg3     resq 1
   .post_req resq 1
+  .next     resq 1
 middleware_t_end:
 
 section .data
@@ -16,6 +17,7 @@ MIDDLEWARE_OFF_ARG1     equ MIDDLEWARE_OFF_ADDR + 0x8
 MIDDLEWARE_OFF_ARG2     equ MIDDLEWARE_OFF_ARG1 + 0x8
 MIDDLEWARE_OFF_ARG3     equ MIDDLEWARE_OFF_ARG2 + 0x8
 MIDDLEWARE_OFF_POST_REQ equ MIDDLEWARE_OFF_ARG3 + 0x8
+MIDDLEWARE_OFF_NEXT     equ MIDDLEWARE_OFF_POST_REQ + 0x8
 
 section .text
 ; creates a middleware structure - dev is responsible of freeing
@@ -63,6 +65,7 @@ middleware_create:
   mov   qword [rax+MIDDLEWARE_OFF_ARG2], rdx
   mov   qword [rax+MIDDLEWARE_OFF_ARG3], rcx
   mov   qword [rax+MIDDLEWARE_OFF_POST_REQ], r9
+  mov   qword [rax+MIDDLEWARE_OFF_NEXT], 0
 
   jmp   .return
 
@@ -90,11 +93,11 @@ middleware_add:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  test  rdi, rdi
-  jz    .error
+  cmp   rdi, 0
+  jle   .error
 
-  test  rdx, rdx
-  jz    .error
+  cmp   rdx, 0
+  jle   .error
 
   ; get the root group if the value is 0
   mov   rdi, [rsp+0x8]
@@ -107,14 +110,38 @@ middleware_add:
   jl    .error
 
   mov   [rsp+0x8], rax
+  mov   rdi, rax
 
 .no_root_group:
-  mov   rax, [rsp+0x8]
-  lea   rdi, [rax+GRP_OFF_MIDDLEWARES]
-  mov   rsi, [rsp+0x10]
-  call  linked_list_insert_at_first
-  cmp   byte [linked_list_errno], TRUE
-  je    .error
+  add   rdi, GRP_OFF_MIDDLEWARES
+
+  cmp   qword [rdi], 0
+  je    .add
+
+  ; check if first middleware is null
+  mov   rsi, [rdi]
+  mov   rdi, rsi
+
+.loop:
+  ; go to *next
+  add   rdi, MIDDLEWARE_OFF_NEXT
+
+  ; check if the address in rdi is null
+  cmp   qword [rdi], 0
+  je    .add
+
+  ; rdi contains the address of next
+  ; needs to contain the address pointed by next
+  mov   rsi, rdi
+  mov   rdi, [rsi]
+
+  jmp   .loop
+
+.add:
+  mov   rax, [rsp+0x10]
+
+  ; mov middleware struct inside rdi
+  mov   [rdi], rax
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -132,53 +159,46 @@ middleware_add:
 ; @param  rdx: run post middlewares (bool)
 ; @return rax: return code
 middleware_run_chain:
-  push  rbx
-
-  sub   rsp, 0x28
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the group struct
   ; [rsp+0x8]   -> pointer to the context struct
   ; [rsp+0x10]  -> run post middlewares (bool)
-  ; [rsp+0x18]  -> middleware linked list
-  ; [rsp+0x20]  -> pointer to temp middleware
+  ; [rsp+0x18]  -> pointer to middleware address
+
+  cmp   rdi, 0
+  jl    .error
+  je    .end
+
+  cmp   rsi, 0
+  jle   .error
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  test  rdi, rdi
-  jz    .end
+  call  group_get_middleware
+  cmp   rax, 0
+  jl    .error
+  je    .end
 
-  test  rsi, rsi
-  jz    .error
-
-  mov   rax, [rdi+GRP_OFF_MIDDLEWARES]
   mov   [rsp+0x18], rax
-
-  test  rax, rax
-  jz    .end
 
 .loop:
   mov   rdi, [rsp+0x18]
-  call  linked_list_get_node_data
-  cmp   byte [linked_list_errno], TRUE
-  je    .error
-
-  mov   [rsp+0x20], rax
-
-  mov   rdi, [rax+MIDDLEWARE_OFF_POST_REQ]
+  mov   rax, qword [rdi+MIDDLEWARE_OFF_POST_REQ]
   mov   rbx, qword [rsp+0x10]
-  cmp   rdi, rbx
+  cmp   rax, rbx
   jne   .skip
 
   ; rdi contains the address of middleware_struct
+  mov   rax, [rdi+MIDDLEWARE_OFF_ADDR]
+  mov   rsi, [rdi+MIDDLEWARE_OFF_ARG1]  ; load first argument
+  mov   rdx, [rdi+MIDDLEWARE_OFF_ARG2]  ; load second argument
+  mov   rcx, [rdi+MIDDLEWARE_OFF_ARG3]  ; load third argument
   mov   rdi, [rsp+0x8]
-  mov   rsi, [rax+MIDDLEWARE_OFF_ARG1]  ; load first argument
-  mov   rdx, [rax+MIDDLEWARE_OFF_ARG2]  ; load second argument
-  mov   rcx, [rax+MIDDLEWARE_OFF_ARG3]  ; load third argument
-  mov   rbx, [rax+MIDDLEWARE_OFF_ADDR]
-  call  rbx
+  call  rax
 
   ; check if the context has been aborted
   mov   rdi, [rsp+0x8]
@@ -187,15 +207,17 @@ middleware_run_chain:
   je    .end
 
 .skip:
-  mov   rdi, [rsp+0x18]
-  call  linked_list_get_node_next
-  cmp   byte [linked_list_errno], TRUE
-  je    .error
+  mov   rdi, [rsp+0x18]  ; load address of middleware struct
 
-  test  rax, rax
-  jz    .end
+  add   rdi, MIDDLEWARE_OFF_NEXT
+  cmp   qword [rdi], 0
+  je    .end
 
-  mov   [rsp+0x18], rax
+  ; rdi contains the address of next
+  ; needs to contains the address pointer by next
+  mov   rsi, [rdi]
+
+  mov   [rsp+0x18], rsi
 
   jmp   .loop
 
@@ -211,8 +233,5 @@ middleware_run_chain:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
-
-  pop   rbx
-
+  add   rsp, 0x20
   ret
