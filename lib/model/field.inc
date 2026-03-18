@@ -5,6 +5,7 @@ field_t:
   .field_type     resq 1     ; field type
   .field_arg      resq 1     ; specific argument for the field
   .field_required resq 1  ; whether the field is required for POST
+  .field_next     resq 1     ; next field
 field_t_end:
 
 section .data
@@ -18,6 +19,7 @@ FIELD_OFF_NAME      equ 0
 FIELD_OFF_TYPE      equ FIELD_OFF_NAME + 0x8
 FIELD_OFF_ARG       equ FIELD_OFF_TYPE + 0x8
 FIELD_OFF_REQUIRED  equ FIELD_OFF_ARG + 0x8
+FIELD_OFF_NEXT      equ FIELD_OFF_REQUIRED + 0x8
 
 ; field types
 FIELD_TYPE_INTEGER  equ 0
