@@ -6,7 +6,7 @@
 %include "hash_table.inc"
 %include "logan.inc"
 %include "malloc.inc"
-; %include "model.inc"
+%include "model.inc"
 %include "net.inc"
 %include "rand.inc"
 %include "test.inc"
