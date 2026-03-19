@@ -229,12 +229,19 @@ _start:
   xor   r9, r9
 
 .loop:
-  cmp   r9, 20
+  cmp   r9, 500
   jge   .loop_end
 
   mov   rdi, head
   mov   rsi, r9
-  call  linked_list_insert_at_end
+  call  linked_list_insert_at_first
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, head
+  mov   rsi, r9
+  mov   rdx, NO_ARG
+  call  linked_list_delete_from_value
   cmp   rax, 0
   jl    .error
 

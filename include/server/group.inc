@@ -7,7 +7,6 @@ group_t:
   .is_root      resq 1
   .active       resq 1
   .server       resq 1
-  .next         resq 1
 group_t_end:
 
 section .data
@@ -21,7 +20,6 @@ GRP_OFF_PREFIX      equ GRP_OFF_MIDDLEWARES + 0x8
 GRP_OFF_IS_ROOT     equ GRP_OFF_PREFIX + 0x8
 GRP_OFF_ACTIVE      equ GRP_OFF_IS_ROOT + 0x8
 GRP_OFF_SERVER      equ GRP_OFF_ACTIVE + 0x8
-GRP_OFF_NEXT        equ GRP_OFF_SERVER + 0x8
 
 ROOT_GRP_PREFIX db "/", NULL_CHAR
 
@@ -88,7 +86,6 @@ group_create:
   mov   qword [rax+GRP_OFF_ROUTES], 0
   mov   qword [rax+GRP_OFF_MIDDLEWARES], 0
   mov   qword [rax+GRP_OFF_ACTIVE], TRUE
-  mov   qword [rax+GRP_OFF_NEXT], 0
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x18]
@@ -98,14 +95,12 @@ group_create:
   mov   [rax+GRP_OFF_PREFIX], rsi
   mov   [rax+GRP_OFF_IS_ROOT], rdx
 
-  ; add the group to the server
   mov   rdi, [rsp]
-  add   rdi, SERVER_OFF_GROUPS
+  lea   rdi, [rdi+SERVER_OFF_GROUPS]
   mov   rsi, rax
-  mov   rdx, GRP_OFF_NEXT
-  call  linked_list_add_entry
-  cmp   rax, 0
-  jl    .error
+  call  linked_list_insert_at_first
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [rsp+0x20]
 
@@ -156,17 +151,22 @@ group_exist:
 
   ; load server routes
   mov   rdi, [rsp]
-  call  server_get_groups
-  cmp   rax, 0
-  jl    .error
-  je    .loop_end
+  mov   rax, [rdi+SERVER_OFF_GROUPS]
 
   ; save group address
   mov   [rsp+0x10], rax
 
+  test  rax, rax
+  jz    .loop_end
+
 .loop:
-  ; check that the prefix does not already exist
   mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  ; check that the prefix does not already exist
+  mov   rdi, rax
   call  group_get_prefix
   cmp   rax, 0
   jl    .error
@@ -183,12 +183,14 @@ group_exist:
   ; go to next
 .not_equal:
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rdi+GRP_OFF_NEXT]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  test  rsi, rsi
+  test  rax, rax
   jz    .loop_end
 
-  mov   [rsp+0x10], rsi
+  mov   [rsp+0x10], rax
 
   jmp   .loop
 
@@ -341,9 +343,10 @@ get_group_from_ctx:
 
   ; get the groups from the server
   mov   rdi, [rsp]
-  call  server_get_groups
-  cmp   rax, 0
-  jle   .error
+  mov   rax, [rdi+SERVER_OFF_GROUPS]
+
+  test  rax, rax
+  jz    .error
 
   mov   [rsp+0x10], rax
 
@@ -362,11 +365,15 @@ get_group_from_ctx:
 
 .loop:
   mov   rdi, [rsp+0x10]
-  cmp   qword [rdi+GRP_OFF_IS_ROOT], TRUE
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  jz    .error
+
+  cmp   qword [rax+GRP_OFF_IS_ROOT], TRUE
   je    .skip_root
 
   ; get the prefix of the group
-  mov   rdi, [rsp+0x10]
+  mov   rdi, rax
   call  group_get_prefix
   cmp   rax, 0
   jl    .error
@@ -400,21 +407,22 @@ get_group_from_ctx:
 
 .skip_root:
   mov   rdi, [rsp+0x10]
-
-  ; go to next offset
-  add   rdi, GRP_OFF_NEXT
-  cmp   qword [rdi], 0
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
-  ; rdi contains the address of the group
-  mov   rsi, [rdi]
+  test  rax, rax
+  jz    .error
 
-  mov   [rsp+0x10], rsi
+  mov   [rsp+0x10], rax
 
   jmp   .loop
 
 .loop_end:
   mov   rax, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   jmp   .return
 
@@ -461,11 +469,10 @@ group_free:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, rax
-  add   rdi, SERVER_OFF_GROUPS
+  lea   rdi, [rax+SERVER_OFF_GROUPS]
   mov   rsi, [rsp]
-  mov   rdx, GRP_OFF_NEXT
-  call  linked_list_remove_entry
+  mov   rdx, NO_ARG
+  call  linked_list_delete_from_value
   cmp   rax, 0
   jl    .error
 

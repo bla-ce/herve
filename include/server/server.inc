@@ -53,10 +53,11 @@ section .text
 ; @param  rdi: pointer to the server
 ; @return rax: pointer to the root group
 server_get_root_group:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   ; STACK USAGE
-  ; [rsp] -> pointer to the server struct
+  ; [rsp]     -> pointer to the server struct
+  ; [rsp+0x8] -> temp group
 
   mov   [rsp], rdi
 
@@ -65,30 +66,38 @@ server_get_root_group:
 
   ; get group offset to check if groups are init
   mov   rdi, [rsp]
-  add   rdi, SERVER_OFF_GROUPS
+  mov   rax, [rdi+SERVER_OFF_GROUPS]
 
-  cmp   qword [rdi], 0
-  je    .error
+  test  rax, rax
+  jz    .error
+
+  mov   [rsp+0x8], rax
 
 .loop:
-  ; get group
-  mov   rsi, [rdi]
-
-  ; rsi points to the address of current group
-  cmp   qword [rsi+GRP_OFF_IS_ROOT], TRUE
-  je    .loop_end
-
-  ; go to next offset
-  add   rsi, GRP_OFF_NEXT
-  cmp   qword [rsi], 0
+  mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
   je    .error
 
-  mov   rdi, rsi
+  cmp   qword [rax+GRP_OFF_IS_ROOT], TRUE
+  je    .loop_end
+
+  mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  test  rax, rax
+  jz    .error
+
+  mov   [rsp+0x8], rax
 
   jmp   .loop
 .loop_end:
-
-  mov   rax, rsi
+  mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   jmp   .return
 
@@ -96,7 +105,7 @@ server_get_root_group:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; enables logger globally
