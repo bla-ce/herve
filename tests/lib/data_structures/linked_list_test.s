@@ -14,14 +14,14 @@ _start:
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, head
   mov   rsi, 8
   call  linked_list_insert_at_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
@@ -35,8 +35,8 @@ _start:
   mov   rdi, head
   mov   rsi, 10
   call  linked_list_insert_at_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
@@ -52,14 +52,14 @@ _start:
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, [head]
   call  assert_is_zero
@@ -67,8 +67,8 @@ _start:
   mov   rdi, head
   mov   rsi, 8
   call  linked_list_insert_at_end
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
@@ -82,8 +82,8 @@ _start:
   mov   rdi, head
   mov   rsi, 10
   call  linked_list_insert_at_end
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
@@ -104,8 +104,8 @@ _start:
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
@@ -115,8 +115,8 @@ _start:
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_end
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, [head]
   call  assert_is_zero
@@ -124,8 +124,8 @@ _start:
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_end
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, [head]
   call  assert_is_zero
@@ -133,20 +133,20 @@ _start:
   mov   rdi, head
   mov   rsi, 10
   call  linked_list_insert_at_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, head
   mov   rsi, 8
   call  linked_list_insert_at_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_end
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
@@ -160,20 +160,20 @@ _start:
   mov   rdi, head
   mov   rsi, 8
   call  linked_list_insert_at_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, head
   mov   rsi, 14
   call  linked_list_insert_at_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, head
   mov   rsi, 21
   call  linked_list_insert_at_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
@@ -184,8 +184,8 @@ _start:
   mov   rsi, 14
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rsi, [rax+NODE_OFF_NEXT]
@@ -197,15 +197,15 @@ _start:
   mov   rsi, 8
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, head
   mov   rsi, 8
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
@@ -220,8 +220,8 @@ _start:
   mov   rsi, 21
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, [head]
   call  assert_is_zero
@@ -235,15 +235,15 @@ _start:
   mov   rdi, head
   mov   rsi, r9
   call  linked_list_insert_at_first
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, head
   mov   rsi, r9
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   inc   r9
 
@@ -253,8 +253,8 @@ _start:
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_free_v2
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rdi, [mallocd]
   cmp   [freed], rdi
