@@ -11,7 +11,6 @@ echo_svc_t:
   .start        dq echo_svc_start
   .stop         dq echo_svc_stop
   .group        dq 0  ; set by the central server
-  .next         dq 0  ; set by the central server
 echo_svc_t_end:
 
 echo_svc_msg:

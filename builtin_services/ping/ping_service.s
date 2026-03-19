@@ -11,7 +11,6 @@ ping_svc_t:
   .start        dq ping_svc_start
   .stop         dq ping_svc_stop
   .group        dq 0  ; set by the central server
-  .next         dq 0  ; set by the central server
 ping_svc_t_end:
 
 ping_svc_msg:

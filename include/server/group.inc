@@ -473,8 +473,8 @@ group_free:
   mov   rsi, [rsp]
   mov   rdx, NO_ARG
   call  linked_list_delete_from_value
-  cmp   rax, 0
-  jl    .error
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   ; remove all the routes from the server route
   mov   rdi, [rsp]

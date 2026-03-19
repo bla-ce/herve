@@ -11,7 +11,6 @@ auth_svc_t:
   .start        dq auth_svc_start
   .stop         dq auth_svc_stop
   .group        dq 0  ; set by the central server
-  .next         dq 0  ; set by the central server
 auth_svc_t_end:
 
 auth_svc_msg:
