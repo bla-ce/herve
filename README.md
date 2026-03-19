@@ -112,7 +112,6 @@ Custom services must implement the Herve service contract. A service is defined 
 | start       | Function pointer to start the service            | Service implementation   |
 | stop        | Function pointer to stop the service             | Service implementation   |
 | group       | Pointer to the server group with all the routes  | Central server           |
-| next        | Pointer to the next service (linked list)        | Central server           |
 
 ## Project Structure
 
@@ -128,17 +127,18 @@ herve/
 │   ├── http_models/    # CRUD endpoint generation
 │   ├── auth/           # Authentication
 │   └── middlewares/    # Logger, proxy, CSRF
-├── lib/            # Core libraries
-│   ├── malloc/     # Memory allocator
-│   ├── net/        # Sockets, epoll, select
-│   ├── encoding/   # JSON, Base64
-│   ├── crypto/     # bcrypt implementation (yes, you read it right)
-│   ├── hash_table/ # Key-value storage
-│   ├── model/      # Data model system
-│   ├── utils/      # Strings, linked lists, arrays
-│   ├── logan/      # Logging
-│   ├── uuid/       # UUID generation
-│   └── boeuf/      # Dynamic buffers
+├── lib/                    # Core libraries
+│   ├── malloc/             # Memory allocator
+│   ├── net/                # Sockets, epoll, select
+│   ├── encoding/           # JSON, Base64
+│   ├── data-structures/    # linked list, array
+│   ├── crypto/             # bcrypt implementation (yes, you read it right)
+│   ├── hash_table/         # Key-value storage
+│   ├── model/              # Data model system
+│   ├── utils/              # Strings, files, syscalls, times
+│   ├── logan/              # Logging
+│   ├── uuid/               # UUID generation
+│   └── boeuf/              # Dynamic buffers
 ├── examples/   # Working examples
 └── tests/  # Unit tests
 ```
