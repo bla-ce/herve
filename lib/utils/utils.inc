@@ -1,5 +1,4 @@
 %include "ansi.inc"
-%include "array.inc"
 %include "ascii.inc"
 %include "constants.inc"
 %include "file.inc"

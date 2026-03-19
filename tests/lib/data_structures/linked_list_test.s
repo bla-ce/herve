@@ -245,7 +245,7 @@ _start:
 
   mov   rdi, head
   mov   rsi, NO_ARG
-  call  linked_list_free
+  call  linked_list_free_v2
   cmp   rax, 0
   jl    .error
 
