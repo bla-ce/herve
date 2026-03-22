@@ -26,7 +26,7 @@ After one year and ~30,000 lines of Assembly code, I decided to move away from a
 I ran `wrk` for 10 minutes, hitting the `/health` endpoint.
 
 - 34 millions of requests, no error.
-- 198GB allocated with custom `malloc`, no memory leak (endless nights tracking memory leaks are now in the past)
+- 198GB allocated with custom `malloc`, no memory leaked (endless nights tracking memory leaks are now in the past, (are they?))
 
 ## Building
 

@@ -441,26 +441,23 @@ group_free:
 
   ; STACK USAGE
   ; [rsp]     -> pointer to the group struct
-  ; [rsp+0x8] -> middleware next pointer
+  ; [rsp+0x8] -> temp middleware
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  je    .error
+  test  rdi, rdi
+  jz    .error
 
   ; free the middlewares
-  mov   rsi, [rsp]
-  add   rsi, GRP_OFF_MIDDLEWARES
+  lea   rdi, [rdi+GRP_OFF_MIDDLEWARES]
 
-  cmp   qword [rsi], 0
-  je    .skip_middlewares
+  test  rdi, rdi
+  jz    .skip_middlewares
 
-  mov   rdi, rsi
   mov   rsi, free
-  mov   rdx, MIDDLEWARE_OFF_NEXT
-  call  linked_list_free
-  cmp   rax, 0
-  jl    .error
+  call  linked_list_free_v2
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
 .skip_middlewares:
   ; remove group from the server
