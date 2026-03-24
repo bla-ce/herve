@@ -440,7 +440,10 @@ linked_list_delete_from_value:
 
   mov   [rsp+0x18], rax
 
-  jmp   .loop
+  test  rax, rax
+  jnz   .loop
+
+  jmp   .error
 
 .remove_node:
   ; get (temp->next->next)
