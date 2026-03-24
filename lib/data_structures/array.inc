@@ -335,3 +335,20 @@ array_get:
   pop   rbx
 
   ret
+
+; return the number of elements in the array
+; @param  rdi: pointer to the array
+; @return rax: length of the array
+array_get_length:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+ARRAY_OFF_INDEX]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return
+  ret
