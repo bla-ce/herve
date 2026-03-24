@@ -323,7 +323,6 @@ array_get:
   mov   rsi, [rdi+ARRAY_OFF_EL]
   add   rsi, rax
 
-  xor   rax, rax
   mov   rax, [rsi]
   jmp   .return
 
