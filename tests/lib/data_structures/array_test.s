@@ -57,6 +57,14 @@ _start:
   jl    .error
 
   mov   rdi, [rsp]
+  call  array_get_length
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, 4
+  jne   .error
+
+  mov   rdi, [rsp]
   mov   rsi, 1
   call  array_get
 
