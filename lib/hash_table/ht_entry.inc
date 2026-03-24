@@ -3,7 +3,6 @@ section .bss
 ht_entry_t:
   .ht_entry_key   resq 1
   .ht_entry_value resq 1
-  .ht_entry_next  resq 1
 ht_entry_t_end:
 
 section .data
@@ -12,7 +11,6 @@ HT_ENTRY_STRUCT_LEN equ ht_entry_t_end - ht_entry_t
 
 HT_ENTRY_OFF_KEY    equ 0
 HT_ENTRY_OFF_VALUE  equ HT_ENTRY_OFF_KEY + 0x8
-HT_ENTRY_OFF_NEXT   equ HT_ENTRY_OFF_VALUE + 0x8
 
 HT_ENTRY_KEY_MAX_LENGTH   equ 0xFF
 
@@ -134,13 +132,6 @@ ht_entry_create:
   cmp   rax, 0
   jl    .error
 
-  ; set next as 0
-  mov   rdi, [rsp+0x20]
-  xor   rsi, rsi
-  call  ht_entry_set_next
-  cmp   rax, 0
-  jl    .error
-
   mov   rax, [rsp+0x20]
 
   jmp   .return
@@ -171,46 +162,6 @@ ht_entry_create:
 
 .return:
   add   rsp, 0x28
-  ret
-
-; sets the next entry of a ht entry
-; @param  rdi: pointer to the ht entry
-; @param  rsi: pointer to next
-; @return rax: return code
-ht_entry_set_next:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  mov   [rdi+HT_ENTRY_OFF_NEXT], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the next entry of a ht entry
-; @param  rdi: pointer to the ht entry
-; @return rax: pointer to next
-ht_entry_get_next:
-  cmp   rdi, 0
-  jle   .error
-
-  mov   rax, [rdi+HT_ENTRY_OFF_NEXT]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
   ret
 
 ; returns the key of a ht entry
