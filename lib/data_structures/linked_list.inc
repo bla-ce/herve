@@ -487,7 +487,7 @@ linked_list_delete_from_value:
 ; @param  rdi: pointer to the head
 ; @param  rsi: (optional) free function for the data
 ; @return rax: return code
-linked_list_free_v2:
+linked_list_free:
   sub   rsp, 0x18
 
   ; STACK USAGE

@@ -252,7 +252,7 @@ _start:
 
   mov   rdi, head
   mov   rsi, NO_ARG
-  call  linked_list_free_v2
+  call  linked_list_free
   cmp   byte [linked_list_errno], TRUE
   je    .error
 

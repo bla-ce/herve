@@ -728,7 +728,7 @@ ht_bucket_free:
   jz    .error
 
   mov   rsi, ht_entry_free
-  call  linked_list_free_v2
+  call  linked_list_free
 
 .done:
   mov   rax, SUCCESS_CODE

@@ -455,7 +455,7 @@ group_free:
   jz    .skip_middlewares
 
   mov   rsi, free
-  call  linked_list_free_v2
+  call  linked_list_free
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
@@ -525,7 +525,7 @@ group_free_routes:
   mov   rdi, [rsp]
   add   rdi, GRP_OFF_ROUTES
   mov   rsi, route_free
-  call  linked_list_free_v2
+  call  linked_list_free
   cmp   rax, 0
   jl    .error
 
