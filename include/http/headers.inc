@@ -276,13 +276,14 @@ stringify_headers:
   jge   .loop_end
 
   ; get array of keys
-  mov   rsi, [rsp+0x10]
-
-  ; load key
-  mov   rdi, [rsi+r9*8]
+  mov   rdi, [rsp+0x10]
+  mov   rsi, r9
+  call  array_get
+  cmp   rax, 0
+  jl    .error
 
   ; save key address
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x18], rax
 
   ; get key length
   mov   rdi, [rsp+0x18]
@@ -326,13 +327,14 @@ stringify_headers:
   jge   .loop_end2
 
   ; get array of keys
-  mov   rsi, [rsp+0x10]
-
-  ; load key
-  mov   rdi, [rsi+r9*8]
+  mov   rdi, [rsp+0x10]
+  mov   rsi, r9
+  call  array_get
+  cmp   rax, 0
+  jl    .error
 
   ; save key address
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x18], rax
 
   ; copy key
   mov   rdi, [rsp+0x30]
@@ -396,7 +398,7 @@ stringify_headers:
 
   ; free list of keys
   mov   rdi, [rsp+0x10]
-  call  free
+  call  array_free
   cmp   rax, 0
   jl    .error
 
@@ -409,7 +411,7 @@ stringify_headers:
   test  rdi, rdi
   jz    .no_free
 
-  call  free
+  call  array_free
 
 .no_free:
   mov   rax, FAILURE_CODE

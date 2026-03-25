@@ -350,5 +350,5 @@ array_get_length:
 .error:
   mov   rax, FAILURE_CODE
 
-.return
+.return:
   ret

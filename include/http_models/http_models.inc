@@ -521,6 +521,9 @@ http_model_patch:
 ; @param  rsi: pointer to the model struct
 ; @return rax: return code
 http_model_post:
+  push  r9
+  push  r8
+
   sub   rsp, 0x48
 
   ; STACK USAGE
@@ -587,12 +590,14 @@ http_model_post:
   cmp   qword [rsp+0x18], 0
   jl    .loop_end
 
-  mov   rsi, [rsp+0x20]
-
   mov   r9, qword [rsp+0x18]
 
   ; go to the key
-  mov   rax, [rsi+r9*8]
+  mov   rdi, [rsp+0x20]
+  mov   rsi, r9
+  call  array_get
+  cmp   rax, 0
+  jl    .error
 
   mov   [rsp+0x30], rax
 
@@ -660,7 +665,7 @@ http_model_post:
 
   ; free list of keys
   mov   rdi, [rsp+0x20]
-  call  free
+  call  array_free
   cmp   rax, 0
   jl    .error
 
@@ -690,7 +695,7 @@ http_model_post:
   test  rdi, rdi
   jz    .free_json_instance
 
-  call  free
+  call  array_free
 
 .free_json_instance:
   mov   rdi, [rsp+0x40]
@@ -704,6 +709,10 @@ http_model_post:
 
 .return:
   add   rsp, 0x48
+
+  pop   r8
+  pop   r9
+
   ret
 
 ; removes an instance of the model from its id
