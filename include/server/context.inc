@@ -182,8 +182,6 @@ ctx_process_request:
   mov   rsi, rax
   mov   rax, [rsp+0x30]
   call  rax
-  cmp   rax, 0
-  jl    .internal_server_error
 
 .post_request_middlewares:
   ; set request end time

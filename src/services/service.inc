@@ -461,6 +461,8 @@ service_list:
 ; @param  rdi: context struct
 ; @return rax: return code
 service_unregister:
+  push  r8
+
   sub   rsp, 0x10
 
   ; STACK USAGE
@@ -558,6 +560,9 @@ service_unregister:
 
 .return:
   add   rsp, 0x10
+
+  pop   r8
+
   ret
 
 ; returns a service json response
