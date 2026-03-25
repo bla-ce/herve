@@ -198,20 +198,26 @@ log_server_init:
 
 .loop:
   mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, rax
   call  route_log
   cmp   rax, 0
   jl    .error
 
-  mov   rax, [rsp+0x8]
-  mov   rdi, [rax+ROUTE_OFF_SERVER_NEXT]
-  test  rdi, rdi
-  jz    .loop_end
+  mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  mov   [rsp+0x8], rdi
+  mov   [rsp+0x8], rax
 
-  jmp   .loop
+  test  rax, rax
+  jnz   .loop
+
 .loop_end:
-
   mov   rdi, LINE_FEED
   call  print_char
   cmp   rax, 0

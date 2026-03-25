@@ -1055,8 +1055,8 @@ verify_request:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .internal_server_error
+  test  rdi, rdi
+  jz    .internal_server_error
 
   ; get context server
   call  ctx_get_server
@@ -1073,7 +1073,6 @@ verify_request:
   je    .not_found
 
   mov   [rsp+0x10], rax
-  mov   [rsp+0x20], rax
 
   ; get ctx request
   mov   rdi, [rsp]
@@ -1096,23 +1095,32 @@ verify_request:
   jle   .internal_server_error
 
 .loop:
+  mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x20], rax
+
   mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x20]
+  mov   rsi, rax
   call  route_match_request
   cmp   rax, 0
   jl    .internal_server_error
   jg    .loop_end ; route is valid
 
   ; go to next route in server ll
-  mov   rsi, [rsp+0x20]
-  mov   rdi, [rsi+ROUTE_OFF_SERVER_NEXT]
+  mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  cmp   rdi, 0
-  je    .not_found
+  mov   [rsp+0x10], rax
 
-  mov   [rsp+0x20], rdi
+  test  rax, rax
+  jnz   .loop
 
-  jmp   .loop
+  jmp   .not_found
 
 .loop_end:
   ; check if the route is active
