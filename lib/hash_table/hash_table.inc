@@ -242,13 +242,12 @@ ht_get_bucket_from_hash:
 ; @param  rsi: pointer to the key
 ; @return rax: pointer to the value or 0 if it does not exist
 ht_get:
-  sub   rsp, 0x20
+  sub   rsp, 0x18
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the key
-  ; [rsp+0x10]  -> hash value of the key
-  ; [rsp+0x18]  -> temp entry
+  ; [rsp+0x10]  -> temp entry
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -279,10 +278,10 @@ ht_get:
   jz    .does_not_exist
 
   ; save entry
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x10], rdi
 
 .loop:
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x10]
   call  linked_list_get_node_data
   cmp   byte [linked_list_errno], TRUE
   je    .error
@@ -296,12 +295,12 @@ ht_get:
   ; if equal, jmp to the end of the loop
   je    .loop_end
 
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x10]
   call  linked_list_get_node_next
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x10], rax
 
   test  rax, rax
   jnz   .loop
@@ -309,7 +308,7 @@ ht_get:
   jmp   .does_not_exist
 
 .loop_end:
-  mov   rdi, [rsp+0x18]
+  mov   rdi, [rsp+0x10]
   call  linked_list_get_node_data
   cmp   byte [linked_list_errno], TRUE
   je    .error
@@ -327,7 +326,7 @@ ht_get:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x18
   ret
 
 ; deletes an entry from the hash table
@@ -496,27 +495,24 @@ ht_get_bucket_by_index:
 ; @param  rdx: value
 ; @return rax: return value
 ht_insert:
-  sub   rsp, 0x38
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the hash table
   ; [rsp+0x8]   -> pointer to the key
   ; [rsp+0x10]  -> value
   ; [rsp+0x18]  -> pointer to the new entry
-  ; [rsp+0x20]  -> hash value of the key
-  ; [rsp+0x28]  -> index of the entry
-  ; [rsp+0x30]  -> pointer to the array of entry at the index
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; check key length
   mov   rdi, [rsp+0x8]
@@ -569,7 +565,7 @@ ht_insert:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x38
+  add   rsp, 0x20
   ret
 
 ; returns a hash table of n buckets
@@ -738,12 +734,11 @@ ht_bucket_free:
 ; @param  rsi: pointer to the entry
 ; @return rax: return code
 ht_add_entry:
-  sub   rsp, 0x18
+  sub   rsp, 0x10
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the hash table struct
   ; [rsp+0x8]   -> pointer to the entry
-  ; [rsp+0x10]  -> key of the entry
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -760,10 +755,8 @@ ht_add_entry:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
   ; hash string
-  mov   rdi, [rsp+0x10]
+  mov   rdi, rax
   call  ht_hash_key
   cmp   rax, 0
   jl   .error
@@ -793,7 +786,7 @@ ht_add_entry:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x10
   ret
 
 ; returns the number of buckets in the hash table
