@@ -193,7 +193,7 @@ ht_hash_key:
 ; @param  rdi: pointer to the hash table struct
 ; @param  rsi: hash
 ; @return rax: index of the key
-ht_get_bucket_idx_from_hash:
+ht_get_bucket_from_hash:
   sub   rsp, 0x10
 
   ; STACK USAGE
@@ -221,6 +221,12 @@ ht_get_bucket_idx_from_hash:
   div   rbx
 
   mov   rax, rdx
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  ht_get_bucket_by_index
+  cmp   rax, 0
+  jl    .error
 
   jmp   .return
 
@@ -262,19 +268,11 @@ ht_get:
   ; get index from hash
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  ht_get_bucket_idx_from_hash
+  call  ht_get_bucket_from_hash
   cmp   rax, 0
   jl    .error
 
-  ; store index
-  mov   qword [rsp+0x10], rax
-
-  ; get table
-  mov   rdi, [rsp]
-  mov   rsi, [rdi+HT_OFF_TABLE]
-
-  ; go to index
-  mov   rdi, [rsi+rax*8]
+  mov   rdi, [rax]
 
   ; if rdi is 0, this key does not exist
   test  rdi, rdi
@@ -362,13 +360,7 @@ ht_del:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  ht_get_bucket_idx_from_hash
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  ht_get_bucket_by_index
+  call  ht_get_bucket_from_hash
   cmp   rax, 0
   jl    .error
 
@@ -779,13 +771,7 @@ ht_add_entry:
   ; get number of bucket
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  ht_get_bucket_idx_from_hash
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp]
-  mov   rsi, rax
-  call  ht_get_bucket_by_index
+  call  ht_get_bucket_from_hash
   cmp   rax, 0
   jl    .error
 
