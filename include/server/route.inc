@@ -7,7 +7,6 @@ route_t:
   .group              resq 1
   .active             resq 1
   .arg1               resq 1
-  .next_group_route   resq 1  ; route linked list of the group
 route_t_end:
 
 section .data
@@ -21,7 +20,6 @@ ROUTE_OFF_GROUP       equ ROUTE_OFF_CALLBACK + 0x8
 ROUTE_OFF_SERVER      equ ROUTE_OFF_GROUP + 0x8
 ROUTE_OFF_ACTIVE      equ ROUTE_OFF_SERVER + 0x8
 ROUTE_OFF_ARG1        equ ROUTE_OFF_ACTIVE + 0x8
-ROUTE_OFF_GRP_NEXT    equ ROUTE_OFF_ARG1 + 0x8
 
 log_pre_routes  db SPACE, SPACE, NULL_CHAR
 
@@ -137,7 +135,6 @@ route_create:
   jl    .error
 
   mov   rax, [rsp+0x28]
-  mov   qword [rax+ROUTE_OFF_GRP_NEXT], 0
 
   ; free concatenated url
   mov   rdi, [rsp+0x38]
@@ -891,19 +888,17 @@ route_link_to_server:
 ; @param  rsi: pointer to route struct
 ; @return rax: return code
 route_link_to_group:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; get route offset to check if routes are init
   add   rdi, GRP_OFF_ROUTES
-
-  mov   rdx, ROUTE_OFF_GRP_NEXT
-  call  linked_list_add_entry
-  cmp   rax, 0
-  jl    .error
+  call  linked_list_insert_at_first
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -1441,13 +1436,11 @@ route_free:
   je    .skip_group
 
   ; remove route from group ll
-  mov   rdi, rax
-  add   rdi, GRP_OFF_ROUTES
+  lea   rdi, [rax+GRP_OFF_ROUTES]
   mov   rsi, [rsp]
-  mov   rdx, ROUTE_OFF_GRP_NEXT
-  call  linked_list_remove_entry
-  cmp   rax, 0
-  jl    .error
+  call  linked_list_delete_from_value
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
 .skip_group:
   ; free url
@@ -1525,43 +1518,6 @@ route_set_url:
   jz    .error
 
   mov   [rdi+ROUTE_OFF_URL], rsi
-
-  mov   rax, SUCCESS_CODE
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; returns the next pointer in the group ll
-; @param  rdi: pointer to the route struct
-; @return rax: next of the route
-route_get_group_next:
-  test  rdi, rdi
-  jz    .error
-
-  mov   rax, [rdi+ROUTE_OFF_GRP_NEXT]
-
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  ret
-
-; sets the route next pointer in the group ll
-; @param  rdi: pointer to the route
-; @param  rsi: next of the route
-; @return rax: return code
-route_set_group_next:
-  test  rdi, rdi
-  jz    .error
-
-  mov   [rdi+ROUTE_OFF_GRP_NEXT], rsi
 
   mov   rax, SUCCESS_CODE
 

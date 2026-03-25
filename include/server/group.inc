@@ -525,8 +525,7 @@ group_free_routes:
   mov   rdi, [rsp]
   add   rdi, GRP_OFF_ROUTES
   mov   rsi, route_free
-  mov   rdx, ROUTE_OFF_GRP_NEXT
-  call  linked_list_free
+  call  linked_list_free_v2
   cmp   rax, 0
   jl    .error
 
