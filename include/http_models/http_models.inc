@@ -318,6 +318,7 @@ http_model_put:
   mov   r9, TRUE
   call  model_http_response
 
+  ; parse form data
   mov   rdi, [rsp+0x18]
   call  ht_free
   cmp   rax, 0
@@ -669,6 +670,12 @@ http_model_post:
   cmp   rax, 0
   jl    .error
 
+  ; free form data
+  mov   rdi, [rsp+0x10]
+  call  ht_free
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -700,9 +707,16 @@ http_model_post:
 .free_json_instance:
   mov   rdi, [rsp+0x40]
   test  rdi, rdi
-  jz    .no_free
+  jz    .free_form_data
 
   call  json_free
+
+.free_form_data:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  ht_free
 
 .no_free:
   mov   rax, FAILURE_CODE
