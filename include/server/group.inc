@@ -451,8 +451,8 @@ group_free:
   ; free the middlewares
   lea   rdi, [rdi+GRP_OFF_MIDDLEWARES]
 
-  test  rdi, rdi
-  jz    .skip_middlewares
+  cmp   qword [rdi], 0
+  je    .skip_middlewares
 
   mov   rsi, free
   call  linked_list_free
@@ -518,11 +518,10 @@ group_free_routes:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; get routes ll
-  mov   rdi, [rsp]
   add   rdi, GRP_OFF_ROUTES
   mov   rsi, route_free
   call  linked_list_free

@@ -88,8 +88,8 @@ service_register:
   mov   [rsp], rdi
   mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
-  jle    .internal_server_error
+  test  rdi, rdi
+  jz    .internal_server_error
 
   mov   rax, qword [service_count]
   inc   rax
@@ -471,8 +471,8 @@ service_unregister:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle    .error
+  test  rdi, rdi
+  jz    .error
 
   ; get the request struct
   mov   rdi, [rsp]

@@ -1438,6 +1438,7 @@ route_free:
   ; remove route from group ll
   lea   rdi, [rax+GRP_OFF_ROUTES]
   mov   rsi, [rsp]
+  mov   rdx, NO_ARG
   call  linked_list_delete_from_value
   cmp   byte [linked_list_errno], TRUE
   je    .error
