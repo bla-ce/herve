@@ -26,6 +26,10 @@ models:
 	ld -o $(BIN_DIR)/$(EXEC) $(BUILD_DIR)/$(EXEC).o
 
 run:
+	mkdir -p $(BUILD_DIR) $(BIN_DIR)
+	nasm -o $(BUILD_DIR)/$(EXEC).o $(SRC_DIR)/$(EXEC).s \
+		$(INCLUDE_FLAGS) $(DEBUG_FLAGS) $(BASE_FLAGS)
+	ld -o $(BIN_DIR)/$(EXEC) $(BUILD_DIR)/$(EXEC).o
 	./$(BIN_DIR)/$(EXEC)
 
 .PHONY: clean

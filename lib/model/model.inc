@@ -42,18 +42,21 @@ model_field_exist:
   mov   [rsp+0x8], rsi
 
   ; get fields
-  add   rdi, MODEL_OFF_FIELDS
+  mov   rax, [rdi+MODEL_OFF_FIELDS]
 
-  mov   [rsp+0x10], rdi
+  mov   [rsp+0x10], rax
 
 .loop:
-  mov   rax, [rsp+0x10]
-  cmp   qword [rax], 0
+  cmp   qword [rsp+0x10], 0
   je    .loop_end
 
+  mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
   ; compare fields
-  mov   rsi, [rax]
-  mov   rdi, [rsi+FIELD_OFF_NAME]
+  mov   rdi, [rax+FIELD_OFF_NAME]
   mov   rsi, [rsp+0x8]
   call  strcmp
   cmp   rax, 0
@@ -62,11 +65,12 @@ model_field_exist:
   cmp   rax, TRUE
   je    .exist
 
-  ; go to next
-  mov   rax, [rsp+0x10]
-  mov   rdi, [rax]
-  add   rdi, FIELD_OFF_NEXT
-  mov   [rsp+0x10], rdi
+  mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x10], rax
 
   jmp   .loop
 
@@ -76,8 +80,10 @@ model_field_exist:
 
 .exist:
   mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  mov   rax, [rdi]
   jmp   .return
 
 .error:
@@ -184,11 +190,11 @@ model_remove_instance_by_id:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jl    .error
+  test  rsi, rsi
+  jz    .error
 
   ; get instance by its id
   call  model_get_instance_by_id
@@ -298,11 +304,11 @@ model_add_field:
   mov   [rsp+0x18], rcx
   mov   [rsp+0x20], r8
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; check field type
   mov   rdi, [rsp+0x10]
@@ -370,42 +376,16 @@ model_add_field:
 ; @param  rsi: pointer to the field struct
 ; @return rax: return code
 _model_add_field_to_list:
-  sub   rsp, 0x18
+  test  rdi, rdi
+  jz    .error
 
-  ; STACK USAGE
-  ; [rsp]       -> pointer to the model struct
-  ; [rsp+0x8]   -> pointer to the field struct
-  ; [rsp+0x10]  -> pointer to the linked list
+  test  rsi, rsi
+  jz    .error
 
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  mov   rdi, [rsp]
-  add   rdi, MODEL_OFF_FIELDS
-  mov   [rsp+0x10], rdi
-
-.loop:
-  mov   rdi, [rsp+0x10]
-  cmp   qword [rdi], 0
-  je    .insert
-
-  ; go to next
-  mov   rsi, [rdi]
-  add   rsi, FIELD_OFF_NEXT
-
-  mov   [rsp+0x10], rsi
-
-  jmp   .loop
-
-.insert:
-  mov   rsi, [rsp+0x8]
-  mov   [rdi], rsi
+  lea   rdi, [rdi+MODEL_OFF_FIELDS]
+  call  linked_list_insert_at_end
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -414,7 +394,6 @@ _model_add_field_to_list:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
   ret
 
 ; creates a model
@@ -507,7 +486,7 @@ model_create:
 ; @param  rdi: pointer to the model struct
 ; @return rax: return code
 model_free:
-  sub   rsp, 0x10
+  sub   rsp, 0x8
 
   ; STACK USAGE
   ; [rsp]     -> pointer to the model struct
@@ -515,33 +494,16 @@ model_free:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; free fields
   add   rdi, MODEL_OFF_FIELDS
-  mov   [rsp+0x8], rdi
+  mov   rsi, free
+  call  linked_list_free
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-.loop:
-  mov   rax, [rsp+0x8]
-  cmp   qword [rax], 0
-  je    .loop_end
-
-  ; get field struct
-  mov   rdi, [rax]
-  mov   [rsp+0x8], rdi
-  call  free
-  cmp   rax, 0
-  jl    .error
-
-  ; go to next
-  mov   rdi, [rsp+0x8]
-  add   rdi, FIELD_OFF_NEXT
-  mov   [rsp+0x8], rdi
-
-  jmp   .loop
-
-.loop_end:
   ; free struct
   mov   rdi, [rsp]
   call  free
@@ -551,7 +513,7 @@ model_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x8
   ret
 
 ; sets the linked list of instances

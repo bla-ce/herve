@@ -23,7 +23,7 @@ section .text
 ; @param  rcx: values need to be converted from str (bool)
 ; @return rax: return code
 model_instance_update:
-  sub   rsp, 0x30
+  sub   rsp, 0x38
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
@@ -31,21 +31,22 @@ model_instance_update:
   ; [rsp+0x10]  -> hash table containing the updates
   ; [rsp+0x18]  -> values need to be converted from string
   ; [rsp+0x20]  -> pointer to the fields linked list
-  ; [rsp+0x28]  -> pointer to the name of the field
+  ; [rsp+0x28]  -> temp field
+  ; [rsp+0x30]  -> pointer to the name of the field
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rcx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
-  cmp   rdx, 0
-  jle   .error
+  test  rdx, rdx
+  jz    .error
 
   ; TODO: validate bool arg
 
@@ -57,33 +58,39 @@ model_instance_update:
   mov   [rsp+0x20], rax
 
 .loop:
+  cmp   qword [rsp+0x20], 0
+  je    .loop_end
+
   mov   rdi, [rsp+0x20]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x28], rax
+
+  mov   rdi, rax
   call  field_get_name
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x28], rax
+  mov   [rsp+0x30], rax
 
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x28]
+  mov   rsi, [rsp+0x30]
   call  ht_get
   cmp   rax, 0
   jle   .skip_update
 
-  cmp   qword [rsp+0x20], FALSE
-  je    .skip_conversion
-
   ; convert the value to the right type
-  mov   rdi, [rsp+0x20]
+  mov   rdi, [rsp+0x28]
   mov   rsi, rax
   call  field_convert_str_to_value
   cmp   rax, 0
   jl    .error
 
-.skip_conversion:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  mov   rdx, [rsp+0x28]
+  mov   rdx, [rsp+0x30]
   mov   rcx, rax
   call  model_instance_set_value
   cmp   rax, 0
@@ -91,12 +98,12 @@ model_instance_update:
 
 .skip_update:
   ; go to next field
-  mov   rsi, [rsp+0x20]
-  mov   rdi, qword [rsi+FIELD_OFF_NEXT]
-  mov   [rsp+0x20], rdi
+  mov   rdi, [rsp+0x20]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  test  rdi, rdi
-  jz    .loop_end
+  mov   [rsp+0x20], rax
 
   jmp   .loop
 
@@ -122,7 +129,7 @@ model_instance_update:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x30
+  add   rsp, 0x38
   ret
 
 ; validates and saves an instance to the model
@@ -185,7 +192,6 @@ model_instance_save:
   cmp   rax, 0
   jl    .error
 
-
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -202,29 +208,26 @@ model_instance_save:
 ; @param  rsi: pointer to the instance
 ; @return rax:
   ; TRUE: instance is valid
-; @return rax:
-  ; TRUE: instance is valid
-  ; FALSE: instance is invalid
-  ; -1 if an error occurs
   ; FALSE: instance is invalid
   ; -1 if an error occurs
 model_instance_validate:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance
   ; [rsp+0x10]  -> linked list of model fields
-  ; [rsp+0x18]  -> value of the field being validated
+  ; [rsp+0x18]  -> temp field
+  ; [rsp+0x20]  -> value of the field being validated
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; get list of fields
   call  model_get_fields
@@ -234,8 +237,18 @@ model_instance_validate:
   mov   [rsp+0x10], rax
 
 .loop:
-  ; get the name of the field
+  cmp   qword [rsp+0x10], 0
+  je    .loop_end
+
   mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   [rsp+0x18], rax
+
+  ; get the name of the field
+  mov   rdi, [rsp+0x18]
   call  field_get_name
   cmp   rax, 0
   jl    .error
@@ -247,10 +260,10 @@ model_instance_validate:
   call  model_instance_get_value
   ; will check global after
 
-  mov   [rsp+0x18], rax
+  mov   [rsp+0x20], rax
 
   ; check if the field is required
-  mov   rdi, [rsp+0x10]
+  mov   rdi, [rsp+0x18]
   call  field_get_required
   cmp   rax, 0
   jl    .error
@@ -266,7 +279,7 @@ model_instance_validate:
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  mov   rdx, [rsp+0x18]
+  mov   rdx, [rsp+0x20]
   call  _model_instance_validate_field
   cmp   rax, 0
   jl    .error
@@ -275,10 +288,9 @@ model_instance_validate:
 .skip_validation:
   ; go to next
   mov   rdi, [rsp+0x10]
-  call  field_get_next
-  cmp   rax, 0
-  jl    .error
-  je    .loop_end
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   [rsp+0x10], rax
 
@@ -298,7 +310,7 @@ model_instance_validate:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; validates a specific field of an instance

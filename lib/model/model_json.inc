@@ -129,11 +129,11 @@ model_instance_to_json:
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x10], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   call  json_create
   cmp   rax, 0
@@ -143,18 +143,20 @@ model_instance_to_json:
 
   ; get fields of the model
   mov   rdi, [rsp]
-  add   rdi, MODEL_OFF_FIELDS
+  mov   rax, [rdi+MODEL_OFF_FIELDS]
 
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x18], rax
 
 .loop:
-  mov   rdi, [rsp+0x18]
-  cmp   qword [rdi], 0
+  cmp   qword [rsp+0x18], 0
   je    .loop_end
 
-  mov   rax, [rdi]
+  mov   rdi, [rsp+0x18]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
   mov   [rsp+0x20], rax
-  mov   [rsp+0x18], rax
 
   ; get name of the field
   mov   rdi, [rsp+0x20]
@@ -249,11 +251,13 @@ model_instance_to_json:
   jmp   .go_next
 
 .go_next:
-  ; go to next field
   mov   rdi, [rsp+0x18]
-  add   rdi, FIELD_OFF_NEXT
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  mov   [rsp+0x18], rdi
+  mov   [rsp+0x18], rax
+
   jmp   .loop
 
 .loop_end:
