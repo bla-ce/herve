@@ -11,12 +11,14 @@ head dq 0
 section .text
 
 _start:
+  ; []
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_first
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
+  ; 8->
   mov   rdi, head
   mov   rsi, 8
   call  linked_list_insert_at_first
@@ -32,6 +34,11 @@ _start:
   mov   rdi, [rax+NODE_OFF_NEXT]
   call  assert_is_zero
 
+  mov   rax, [head]
+  mov   rdi, [rax+NODE_OFF_PREV]
+  call  assert_is_zero
+
+  ; 10->8->
   mov   rdi, head
   mov   rsi, 10
   call  linked_list_insert_at_first
@@ -44,17 +51,29 @@ _start:
   call  assert_equal
 
   mov   rax, [head]
+  mov   rdi, [rax+NODE_OFF_PREV]
+  call  assert_is_zero
+
+  mov   rax, [head]
   mov   rsi, [rax+NODE_OFF_NEXT]
   mov   rdi, [rsi+NODE_OFF_DATA]
   mov   rsi, 8
   call  assert_equal
 
+  mov   rax, [head]
+  mov   rsi, [rax+NODE_OFF_NEXT]
+  mov   rdi, [rsi+NODE_OFF_PREV]
+  mov   rsi, [head]
+  call  assert_equal
+
+  ; 10->
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_first
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
+  ; []
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_first
@@ -64,6 +83,7 @@ _start:
   mov   rdi, [head]
   call  assert_is_zero
 
+  ; 8->
   mov   rdi, head
   mov   rsi, 8
   call  linked_list_insert_at_end
@@ -79,6 +99,11 @@ _start:
   mov   rdi, [rax+NODE_OFF_NEXT]
   call  assert_is_zero
 
+  mov   rax, [head]
+  mov   rdi, [rax+NODE_OFF_PREV]
+  call  assert_is_zero
+
+  ; 8->10->
   mov   rdi, head
   mov   rsi, 10
   call  linked_list_insert_at_end
@@ -94,6 +119,12 @@ _start:
   mov   rsi, [rax+NODE_OFF_NEXT]
   mov   rdi, [rsi+NODE_OFF_DATA]
   mov   rsi, 10
+  call  assert_equal
+
+  mov   rax, [head]
+  mov   rsi, [rax+NODE_OFF_NEXT]
+  mov   rdi, [rsi+NODE_OFF_PREV]
+  mov   rsi, [head]
   call  assert_equal
 
   mov   rax, [head]
@@ -101,6 +132,7 @@ _start:
   mov   rdi, [rsi+NODE_OFF_NEXT]
   call  assert_is_zero
 
+  ; 10->
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_first
@@ -112,6 +144,11 @@ _start:
   mov   rsi, 10
   call  assert_equal
 
+  mov   rax, [head]
+  mov   rdi, [rax+NODE_OFF_PREV]
+  call  assert_is_zero
+
+  ; []
   mov   rdi, head
   mov   rsi, NO_ARG
   call  linked_list_delete_from_end
@@ -155,6 +192,10 @@ _start:
 
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_NEXT]
+  call  assert_is_zero
+
+  mov   rax, [head]
+  mov   rdi, [rax+NODE_OFF_PREV]
   call  assert_is_zero
 
   mov   rdi, head
@@ -178,6 +219,14 @@ _start:
   mov   rax, [head]
   mov   rdi, [rax+NODE_OFF_DATA]
   mov   rsi, 21
+  call  assert_equal
+
+  mov   rax, [head]
+  mov   rdi, [rax+NODE_OFF_NEXT]
+  mov   rsi, [rdi+NODE_OFF_NEXT]
+  mov   rdi, [rsi+NODE_OFF_PREV]
+  mov   rsi, [rdi+NODE_OFF_DATA]
+  mov   rdi, 14
   call  assert_equal
 
   mov   rdi, head
@@ -257,8 +306,8 @@ _start:
   je    .error
 
   mov   rdi, [mallocd]
-  cmp   [freed], rdi
-  jne   .error
+  mov   rsi, [freed]
+  call  assert_equal
 
   mov   rdi, SUCCESS_CODE
   call  exit

@@ -3,6 +3,7 @@ section .bss
 _node_t:
   .data resq 1
   .next resq 1
+  .prev resq 1
 _node_t_end:
 
 section .data
@@ -11,6 +12,7 @@ NODE_STRUCT_LEN equ _node_t_end - _node_t
 
 NODE_OFF_DATA equ 0x0
 NODE_OFF_NEXT equ NODE_OFF_DATA + 0x8
+NODE_OFF_PREV equ NODE_OFF_NEXT + 0x8
 
 linked_list_errno  db 0
 
@@ -45,6 +47,12 @@ _linked_list_new_node:
   mov   rdi, [rsp+0x8]
   mov   rsi, NO_ARG
   call  _linked_list_set_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, NO_ARG
+  call  _linked_list_set_node_prev
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
@@ -92,6 +100,18 @@ linked_list_insert_at_first:
 
   mov   [rsp+0x10], rax
 
+  ; set next's prev
+  mov   rsi, [rsp+0x10]
+  mov   rdx, [rsp]
+  mov   rdi, [rdx]
+  test  rdi, rdi
+  jz    .skip
+
+  call  _linked_list_set_node_prev
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+.skip:
   ; set the current head as node's next
   mov   rdi, [rsp+0x10]
   mov   rdx, [rsp]
@@ -187,6 +207,16 @@ linked_list_insert_at_end:
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
+  cmp   qword [rsp+0x10], 0
+  je    .skip
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x18]
+  call  _linked_list_set_node_prev
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+.skip:
   mov   rax, SUCCESS_CODE
 
   jmp   .return
@@ -211,12 +241,13 @@ linked_list_insert_at_end:
 ; @param  rsi: (optional) free function for the data
 ; @return rax: return code
 linked_list_delete_from_first:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the pointer to the head
   ; [rsp+0x8]   -> optional free func for the data
   ; [rsp+0x10]  -> temp
+  ; [rsp+0x18]  -> new head
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -238,6 +269,8 @@ linked_list_delete_from_first:
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
+  mov   [rsp+0x18], rax
+
   ; *head = temp->next;
   mov   rdi, [rsp]
   mov   [rdi], rax
@@ -248,6 +281,16 @@ linked_list_delete_from_first:
   cmp   rax, 0
   jl    .error
 
+  cmp   qword [rsp+0x18], 0
+  je    .skip
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, NO_ARG
+  call  _linked_list_set_node_prev
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+.skip:
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -255,7 +298,7 @@ linked_list_delete_from_first:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; removes the last node of the linked list
@@ -472,6 +515,16 @@ linked_list_delete_from_value:
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
+  cmp   qword [rsp+0x20], 0
+  je    .skip
+
+  mov   rdi, [rsp+0x20]
+  mov   rsi, [rsp+0x18]
+  call  _linked_list_set_node_prev
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+.skip:
   mov   rax, SUCCESS_CODE
   jmp   .return
 
@@ -592,6 +645,45 @@ _linked_list_free_node:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; sets the prev property of a node
+; @param  rdi: pointer to the node
+; @param  rsi: pointer to prev node
+; @return rax: return code
+_linked_list_set_node_prev:
+  test  rdi, rdi
+  jz    .error
+
+  mov   [rdi+NODE_OFF_PREV], rsi
+
+  mov   rax, SUCCESS_CODE
+  mov   byte [linked_list_errno], FALSE
+
+  jmp   .return
+
+.error:
+  mov   byte [linked_list_errno], TRUE
+
+.return:
+  ret
+
+; returns the prev property of a node
+; @param  rdi: pointer to the node
+; @return rax: pointer to prev node
+linked_list_get_node_prev:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+NODE_OFF_PREV]
+  mov   byte [linked_list_errno], FALSE
+
+  jmp   .return
+
+.error:
+  mov   byte [linked_list_errno], TRUE
+
+.return:
   ret
 
 ; sets the next property of a node
