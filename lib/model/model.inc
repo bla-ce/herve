@@ -233,13 +233,10 @@ model_remove_instance:
   test  rsi, rsi
   jz    .error
 
-  call  model_get_instances
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, rax
+  lea   rdi, [rdi+MODEL_OFF_INSTANCES]
   mov   rsi, [rsp+0x8]
   mov   rdx, model_instance_free
+  call  linked_list_delete_from_value
   cmp   byte [linked_list_errno], TRUE
   je    .error
 
