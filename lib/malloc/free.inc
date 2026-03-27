@@ -228,6 +228,7 @@ free:
   mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
 
   add   qword [freed], rbx
+.b1:
 
   mov   [rsp], rdi
 

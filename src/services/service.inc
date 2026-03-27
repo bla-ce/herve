@@ -131,13 +131,6 @@ service_register:
 
   mov   [rsp+0x10], rax
 
-  ; create default route for the service
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
-  call  service_init_routes
-  cmp   rax, 0
-  jl    .internal_server_error
-
   ; register service
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
@@ -745,82 +738,6 @@ service_to_json:
   add   rsp, 0x10
   ret
 
-; initialises the start and stop route for the service
-; @param  rdi: pointer to the context struct
-; @param  rsi: pointer to the service struct
-service_init_routes:
-  sub   rsp, 0x20
-
-  ; STACK USAGE
-  ; [rsp]       -> pointer to the context struct
-  ; [rsp+0x8]   -> pointer to the service struct
-  ; [rsp+0x10]  -> pointer to the server struct
-  ; [rsp+0x18]  -> pointer to group prefix
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  ; get server from context struct
-  mov   rdi, [rsp]
-  call  ctx_get_server
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-
-  mov   rdi, [rsp+0x8]
-  call  service_get_group
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  ; get start function
-  mov   rsi, [rsp+0x8]
-  mov   rax, [rsi+SERVICE_OFF_START]
-
-  ; add endpoints to the server
-  mov   rdi, [rsp+0x10]
-  mov   rsi, GET
-  mov   rdx, service_endpoint.start
-  mov   rcx, rax
-  mov   r8, [rsp+0x18]
-  mov   r9, [rsp+0x8]
-  call  route_add
-  cmp   rax, 0
-  jl    .error
-
-  ; get stop function
-  mov   rsi, [rsp+0x8]
-  mov   rax, [rsi+SERVICE_OFF_STOP]
-
-  ; add endpoints to the server
-  mov   rdi, [rsp+0x10]
-  mov   rsi, GET
-  mov   rdx, service_endpoint.stop
-  mov   rcx, rax
-  mov   r8, [rsp+0x18]
-  mov   r9, [rsp+0x8]
-  call  route_add
-  cmp   rax, 0
-  jl    .error
-
-  mov   rax, SUCCESS_CODE
-  jmp   .return
-
-.error:
-  mov   rax, FAILURE_CODE
-
-.return:
-  add   rsp, 0x20
-  ret
-
 ; starts a service if it exists
 ; @param  rdi: pointer to the context struct
 service_start:
@@ -1303,24 +1220,22 @@ service_get_group:
 ; @return rax: return code
 service_set_group:
   sub   rsp, 0x20
-  sub   rsp, TO_STRING_MAX_STR_SIZE
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the service struct
   ; [rsp+0x8]   -> pointer to the server struct
   ; [rsp+0x10]  -> pointer to the group prefix
   ; [rsp+0x18]  -> pointer to the group struct
-  ; [rsp+0x20]  -> pointer to uuid
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x10], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; get uuid of the service
   mov   rdi, [rsp]
@@ -1371,7 +1286,6 @@ service_set_group:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, TO_STRING_MAX_STR_SIZE
   add   rsp, 0x20
   ret
 
@@ -1386,8 +1300,8 @@ service_free:
 
   mov  [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; free the uuid
   mov   rdi, [rsp]
