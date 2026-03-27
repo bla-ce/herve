@@ -123,11 +123,16 @@ model_get_instance_by_id:
   ; loop over the instances and check the id
 .loop:
   cmp   qword [rsp+0x10], 0
-  je    .loop_end
+  je    .does_not_exist
+
+  mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   ; get id of this instance
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x10]
+  mov   rsi, rax
   mov   rdx, id_field_name
   call  model_instance_get_value
   cmp   qword [MODEL_INSTANCE_ERR], TRUE
@@ -138,17 +143,24 @@ model_get_instance_by_id:
 
   ; get next instance
   mov   rdi, [rsp+0x10]
-  call  model_instance_get_next
-  cmp   rax, 0
-  jl    .error
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   [rsp+0x10], rax
 
   jmp   .loop
 
 .loop_end:
-  mov   rax, [rsp+0x10]
+  mov   rdi, [rsp+0x10]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
+  jmp   .return
+
+.does_not_exist:
+  xor   rax, rax
   jmp   .return
 
 .error:
@@ -206,74 +218,30 @@ model_remove_instance_by_id:
 ; @param  rsi: pointer to the instance struct
 ; @return rax: return code
 model_remove_instance:
-  sub   rsp, 0x20
+  sub   rsp, 0x10
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the instance struct
-  ; [rsp+0x10]  -> pointer to the prev instance
-  ; [rsp+0x18]  -> pointer to the next instance
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  mov   rdi, [rsp+0x8]
-  call  model_instance_get_next
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x10], rax
-
-  mov   rdi, [rsp+0x8]
-  call  model_instance_get_prev
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x18], rax
-
-  cmp   qword [rsp+0x18], 0
-  je    .skip_set_next
-
-  ; update next prev instance
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x10]
-  call  model_instance_set_next
-  cmp   rax, 0
-  jl    .error
-
-.skip_set_next:
-  cmp   qword [rsp+0x10], 0
-  je    .skip_set_prev
-
-  mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x18]
-  call  model_instance_set_prev
-  cmp   rax, 0
-  jl    .error
-
-.skip_set_prev:
-  mov   rdi, [rsp+0x18]
   test  rdi, rdi
-  jnz   .skip_update_head
+  jz    .error
 
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x10]
-  call  model_set_instances
+  test  rsi, rsi
+  jz    .error
+
+  call  model_get_instances
   cmp   rax, 0
   jl    .error
 
-.skip_update_head:
-  ; free instance
-  mov   rdi, [rsp+0x8]
-  call  model_instance_free
-  cmp   rax, 0
-  jl    .error
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  mov   rdx, model_instance_free
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, SUCCESS_CODE
 
@@ -283,7 +251,7 @@ model_remove_instance:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x10
   ret
 
 ; add an instance to the linked list of the model
@@ -291,52 +259,15 @@ model_remove_instance:
 ; @param  rsi: pointer to the instance struct
 ; @return rax: return code
 model_add_instance:
-  sub   rsp, 0x20
+  test  rdi, rdi
+  jz    .error
 
-  ; STACK USAGE
-  ; [rsp]       -> pointer to the model struct
-  ; [rsp+0x8]   -> pointer to the instance struct
-  ; [rsp+0x10]  -> pointer to the linked list
-  ; [rsp+0x18]  -> pointer to the prev instance
+  test  rsi, rsi
 
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-  mov   qword [rsp+0x18], 0
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
-  mov   rdi, [rsp]
-  add   rdi, MODEL_OFF_INSTANCES
-  mov   [rsp+0x10], rdi
-
-.loop:
-  mov   rdi, [rsp+0x10]
-  cmp   qword [rdi], 0
-  je    .insert
-
-  ; go to next
-  mov   rsi, [rdi]
-  mov   [rsp+0x18], rsi   ; save prev
-
-  add   rsi, INSTANCE_OFF_NEXT
-
-  mov   [rsp+0x10], rsi
-
-  jmp   .loop
-
-.insert:
-  mov   rsi, [rsp+0x8]  ; pointer to the instance struct
-  mov   [rdi], rsi      ; next pointer of prev instance
-
-  mov   rdi, rsi
-  mov   rsi, [rsp+0x18]
-  call  model_instance_set_prev
-  cmp   rax, 0
-  jl    .error
+  lea   rdi, [rdi+MODEL_OFF_INSTANCES]
+  call  linked_list_insert_at_end
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -345,7 +276,6 @@ model_add_instance:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
   ret
 
 ; generic function to insert any field to the model

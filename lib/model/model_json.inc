@@ -4,25 +4,20 @@ section .text
 ; @param  rdi: pointer to the model struct
 ; @return rax: pointer to the json object
 model_instances_to_json:
-  sub   rsp, 0x28
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the linked list of instances
   ; [rsp+0x10]  -> pointer to the json object
   ; [rsp+0x18]  -> pointer to nested json object
-  ; [rsp+0x20]  -> pointer to current instance
 
   mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
   mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; get instances linked list
   mov   rdi, [rsp]
@@ -31,7 +26,6 @@ model_instances_to_json:
   jl    .error
 
   mov   [rsp+0x8], rax
-  mov   [rsp+0x20], rax
 
   ; create json array
   call  json_array_create
@@ -41,12 +35,17 @@ model_instances_to_json:
   mov   [rsp+0x10], rax
 
 .loop:
-  cmp   qword [rsp+0x20], 0
+  cmp   qword [rsp+0x8], 0
   je    .loop_end
+
+  mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_data
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
   ; convert instance to json object
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x20]
+  mov   rsi, rax
   call  model_instance_to_json
   cmp   rax, 0
   jl    .error
@@ -69,14 +68,15 @@ model_instances_to_json:
   jl    .error
 
   ; get next instance
-  mov   rdi, [rsp+0x20]
-  call  model_instance_get_next
-  cmp   rax, 0
-  jl    .error
+  mov   rdi, [rsp+0x8]
+  call  linked_list_get_node_next
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
 
-  mov   [rsp+0x20], rax
+  mov   [rsp+0x8], rax
 
-  jmp   .loop
+  test  rax, rax
+  jnz   .loop
 
 .loop_end:
   mov   rdi, [rsp+0x10]
@@ -104,7 +104,7 @@ model_instances_to_json:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x28
+  add   rsp, 0x20
   ret
 
 ; converts the model instance into a json object
