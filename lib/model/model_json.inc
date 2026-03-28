@@ -179,7 +179,7 @@ model_instance_to_json:
   mov   rsi, [rsp+0x8]
   mov   rdx, [rsp+0x28]
   call  model_instance_get_value
-  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  cmp   byte [model_instance_errno], TRUE
   je    .go_next
 
   mov   [rsp+0x38], rax

@@ -11,7 +11,7 @@ INSTANCE_T_LEN equ instance_t_end - instance_t
 ; offsets
 INSTANCE_OFF_HT   equ 0
 
-MODEL_INSTANCE_ERR dq 0
+model_instance_errno db 0
 
 section .text
 ; updates an instance of the model
@@ -270,11 +270,11 @@ model_instance_validate:
   cmp   rax, FALSE
   je    .not_required
 
-  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  cmp   byte [model_instance_errno], TRUE
   je    .is_invalid
 
 .not_required:
-  cmp   qword [MODEL_INSTANCE_ERR], TRUE
+  cmp   byte [model_instance_errno], TRUE
   je    .skip_validation
 
   mov   rdi, [rsp]
@@ -636,11 +636,11 @@ model_instance_get_value:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [MODEL_INSTANCE_ERR], FALSE
+  mov   byte [model_instance_errno], FALSE
   jmp   .return
 
 .error:
-  mov   qword [MODEL_INSTANCE_ERR], TRUE
+  mov   byte [model_instance_errno], TRUE
   mov   rax, FAILURE_CODE
 
 .return:
