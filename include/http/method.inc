@@ -5,30 +5,30 @@ method_t:
 method_t_end:
 
 section .data
-  ; methods
-  align 8
-  GET     db "GET", NULL_CHAR
-  align 8
-  POST    db "POST", NULL_CHAR
-  align 8
-  PUT     db "PUT", NULL_CHAR
-  align 8
-  DELETE  db "DELETE", NULL_CHAR
-  align 8
-  HEAD    db "HEAD", NULL_CHAR
-  align 8
-  OPTIONS db "OPTIONS", NULL_CHAR
-  align 8
-  PATCH   db "PATCH", NULL_CHAR
-  align 8
-  TRACE   db "TRACE", NULL_CHAR
-  align 8
-  CONNECT db "CONNECT", NULL_CHAR
 
-  METHOD_STRUCT_LEN equ method_t_end - method_t
+; methods
+align 8
+GET     db "GET", NULL_CHAR
+align 8
+POST    db "POST", NULL_CHAR
+align 8
+PUT     db "PUT", NULL_CHAR
+align 8
+DELETE  db "DELETE", NULL_CHAR
+align 8
+HEAD    db "HEAD", NULL_CHAR
+align 8
+OPTIONS db "OPTIONS", NULL_CHAR
+align 8
+PATCH   db "PATCH", NULL_CHAR
+align 8
+TRACE   db "TRACE", NULL_CHAR
+align 8
+CONNECT db "CONNECT", NULL_CHAR
 
-  METHOD_OFF_STR    equ 0x0
-  METHOD_OFF_NEXT   equ METHOD_OFF_STR + 0x8
+METHOD_STRUCT_LEN equ method_t_end - method_t
+
+METHOD_OFF_STR    equ 0x0
 
 section .text
 ; checks if method is a valid method

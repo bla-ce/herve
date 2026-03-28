@@ -120,10 +120,10 @@ server_enable_logger:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  call  get_logger_middleware
+  call  logger_create_middleware
   cmp   rax, 0
   jl    .error
 

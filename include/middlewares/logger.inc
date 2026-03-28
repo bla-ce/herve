@@ -11,9 +11,9 @@ section .data
 
 section .text
 
-; returns a middleware struct with log_ctx
+; create a logging middleware with the default logan struct
 ; @return rax: pointer to the middleware struct
-get_logger_middleware:
+logger_create_middleware:
   ; get default logger
   call  logan_init
   cmp   rax, 0

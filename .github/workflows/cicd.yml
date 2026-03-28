@@ -136,7 +136,7 @@ jobs:
           sleep 2
 
       - name: Run wrk benchmark
-        run: wrk -c400 -d32s -t12 --latency http://localhost:5000/health
+        run: wrk -c400 -d32s -t12 --latency -H "Authorization: Basic YWRtaW46cGFzc3dvcmQ=" http://localhost:5000/health
 
       - name: Stop herve
         if: always()
