@@ -7,6 +7,8 @@ section .text
 ; @param    rsi: new size
 ; @return   rax: pointer to the new memory chunk
 realloc:
+  push  rbx
+
   sub   rsp, 0x20
 
   ; STACK USAGE
@@ -18,12 +20,10 @@ realloc:
   mov   [rsp], rdi
   mov   qword [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jl    .error
-  je    .malloc
+  test  rdi, rdi
+  jz    .malloc
 
-  cmp   rsi, 0
-  jl    .error
+  test  rsi, rsi
   je    .free
 
   mov   rdi, [rsp]
@@ -85,4 +85,7 @@ realloc:
 
 .return:
   add   rsp, 0x20
+
+  pop   rbx
+
   ret

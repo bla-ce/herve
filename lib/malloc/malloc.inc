@@ -15,31 +15,32 @@ chunk_metadata_t:
 chunk_metadata_t_end:
 
 section .data
-  heap_start  dq 0
 
-  CHUNK_METADATA_LEN  equ chunk_metadata_t_end - chunk_metadata_t
+heap_start  dq 0
 
-  CHUNK_OFFSET_MAGIC  equ 0
-  CHUNK_OFFSET_SIZE   equ CHUNK_OFFSET_MAGIC + 0x8
-  CHUNK_OFFSET_INUSE  equ CHUNK_OFFSET_SIZE + 0x8
-  CHUNK_OFFSET_NEXT   equ CHUNK_OFFSET_INUSE + 0x8
-  CHUNK_OFFSET_PREV   equ CHUNK_OFFSET_NEXT + 0x8
-  CHUNK_OFFSET_DATA   equ CHUNK_OFFSET_PREV + 0x8
+CHUNK_METADATA_LEN  equ chunk_metadata_t_end - chunk_metadata_t
 
-  ; magic value on top of each header making sure the heap is not
-  ; corrupted
-  MAGIC_VAL_HEAP_CORRUPT        equ 0xBEEFEE
+CHUNK_OFFSET_MAGIC  equ 0
+CHUNK_OFFSET_SIZE   equ CHUNK_OFFSET_MAGIC + 0x8
+CHUNK_OFFSET_INUSE  equ CHUNK_OFFSET_SIZE + 0x8
+CHUNK_OFFSET_NEXT   equ CHUNK_OFFSET_INUSE + 0x8
+CHUNK_OFFSET_PREV   equ CHUNK_OFFSET_NEXT + 0x8
+CHUNK_OFFSET_DATA   equ CHUNK_OFFSET_PREV + 0x8
 
-  ; min size is 8 bytes which gives a result of 3 with 'bsr'
-  ; instruction.
-  FIRST_BIN_BSR_INDEX equ 0x3
-  N_BINS              equ 0xC
+; magic value on top of each header making sure the heap is not
+; corrupted
+MAGIC_VAL_HEAP_CORRUPT        equ 0xBEEFEE
 
-  seg_free_list times N_BINS dq 0
+; min size is 8 bytes which gives a result of 3 with 'bsr'
+; instruction.
+FIRST_BIN_BSR_INDEX equ 0x3
+N_BINS              equ 0xC
 
-  mallocd dq 0
-  freed   dq 0
-  mmapd   dq 0
+seg_free_list times N_BINS dq 0
+
+mallocd dq 0
+freed   dq 0
+mmapd   dq 0
 
 section .text
 ; returns the pointer to the header of the chunk
@@ -68,10 +69,10 @@ can_split:
   xor   rax, rax
 
   ; needs to remove header size from the chunk
-  mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
-  sub   rbx, CHUNK_METADATA_LEN
+  mov   rdx, qword [rdi+CHUNK_OFFSET_SIZE]
+  sub   rdx, CHUNK_METADATA_LEN
 
-  cmp   rbx, rsi
+  cmp   rdx, rsi
   setg  al
   movzx rax, al
 
@@ -110,10 +111,10 @@ _split:
   mov   qword [rdi+CHUNK_OFFSET_INUSE], FALSE
 
   ; get second chunk size
-  mov   rbx, qword [rsp+0x10]
-  sub   rbx, qword [rsp+0x8]
+  mov   rdx, qword [rsp+0x10]
+  sub   rdx, qword [rsp+0x8]
 
-  mov   qword [rdi+CHUNK_OFFSET_SIZE], rbx
+  mov   qword [rdi+CHUNK_OFFSET_SIZE], rdx
 
   ; set prev and next to 0 to avoid garbage data from prev malloc
   mov   qword [rdi+CHUNK_OFFSET_NEXT], 0
@@ -189,8 +190,8 @@ search_chunk:
   jmp   .loop
 
 .first_fit:
-  mov   rbx, qword [rsp]
-  cmp   qword [rdi+CHUNK_OFFSET_SIZE], rbx
+  mov   rdx, qword [rsp]
+  cmp   qword [rdi+CHUNK_OFFSET_SIZE], rdx
   jge   .found
 
   cmp   qword [rdi+CHUNK_OFFSET_NEXT], 0
@@ -350,9 +351,9 @@ malloc:
   mov   qword [rax+CHUNK_OFFSET_PREV],  0
   mov   qword [rax+CHUNK_OFFSET_INUSE], TRUE
 
-  mov   rbx, qword [rax+CHUNK_OFFSET_SIZE]
+  mov   rdx, qword [rax+CHUNK_OFFSET_SIZE]
 
-  add   qword [mallocd], rbx
+  add   qword [mallocd], rdx
 .b1:
 
   add   rax, CHUNK_OFFSET_DATA

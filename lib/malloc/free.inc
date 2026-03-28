@@ -60,14 +60,14 @@ get_bin:
   bsr   rax, rdi
   sub   rax, FIRST_BIN_BSR_INDEX
 
-  mov   rbx, N_BINS-1
+  mov   rdx, N_BINS-1
 
-  cmp   rax, rbx
-  cmovge rax, rbx
+  cmp   rax, rdx
+  cmovge rax, rdx
 
-  mov   rbx, 0
-  cmp   rax, rbx
-  cmovl rax, rbx
+  mov   rdx, 0
+  cmp   rax, rdx
+  cmovl rax, rdx
 
   ret
 
@@ -91,8 +91,8 @@ remove_from_free_list:
   cmp   rdi, [rsp]
   je    .remove
 
-  cmp   rdi, 0
-  je    .return
+  test  rdi, rdi
+  jz    .return
 
   mov   rsi, qword [rdi+CHUNK_OFFSET_NEXT]
   mov   rdi, rsi
@@ -109,20 +109,20 @@ remove_from_free_list:
 
   ; update both prev and next
   mov   rax, qword [rsi+CHUNK_OFFSET_NEXT]
-  mov   rbx, qword [rsi+CHUNK_OFFSET_PREV]
+  mov   rdx, qword [rsi+CHUNK_OFFSET_PREV]
 
   ; update prev
-  mov   qword [rbx+CHUNK_OFFSET_NEXT], rax
+  mov   qword [rdx+CHUNK_OFFSET_NEXT], rax
 
   ; update next
-  mov   qword [rax+CHUNK_OFFSET_PREV], rbx
+  mov   qword [rax+CHUNK_OFFSET_PREV], rdx
 
   jmp   .return
 
 .last_chunk:
   ; remove prev next pointer
-  mov   rbx, qword [rsi+CHUNK_OFFSET_PREV]
-  mov   qword [rbx+CHUNK_OFFSET_NEXT], 0
+  mov   rdx, qword [rsi+CHUNK_OFFSET_PREV]
+  mov   qword [rdx+CHUNK_OFFSET_NEXT], 0
 
   jmp   .return
 
@@ -134,9 +134,9 @@ remove_from_free_list:
   mov   qword [seg_free_list+0x8*rax], 0
 
   ; move next one at the beginning of the free list
-  mov   rbx, qword [rsi+CHUNK_OFFSET_NEXT]
-  mov   qword [rbx+CHUNK_OFFSET_PREV], 0
-  mov   qword [seg_free_list+0x8*rax], rbx
+  mov   rdx, qword [rsi+CHUNK_OFFSET_NEXT]
+  mov   qword [rdx+CHUNK_OFFSET_PREV], 0
+  mov   qword [seg_free_list+0x8*rax], rdx
 
   jmp   .return
 
@@ -173,10 +173,10 @@ add_to_free_list:
   je    .init_free_list
 
   mov   rdi, [rsp]
-  mov   rbx, [rsi]
+  mov   rdx, [rsi]
 
-  mov   qword [rdi+CHUNK_OFFSET_NEXT], rbx
-  mov   qword [rbx+CHUNK_OFFSET_PREV], rdi
+  mov   qword [rdi+CHUNK_OFFSET_NEXT], rdx
+  mov   qword [rdx+CHUNK_OFFSET_PREV], rdi
 
   ; update free_list top - LIFO
   mov   rax, qword [rsp+0x8]
@@ -216,8 +216,8 @@ free:
 
   mov   rdi, rax
 
-  mov   rbx, qword [rdi+CHUNK_OFFSET_MAGIC]
-  cmp   rbx, MAGIC_VAL_HEAP_CORRUPT
+  mov   rdx, qword [rdi+CHUNK_OFFSET_MAGIC]
+  cmp   rdx, MAGIC_VAL_HEAP_CORRUPT
   jne   .error
 
   ; make sure the chunk needs to be freed
@@ -225,16 +225,15 @@ free:
   cmp   rax, FALSE
   je    .return
 
-  mov   rbx, qword [rdi+CHUNK_OFFSET_SIZE]
+  mov   rdx, qword [rdi+CHUNK_OFFSET_SIZE]
 
-  add   qword [freed], rbx
+  add   qword [freed], rdx
 .b1:
 
   mov   [rsp], rdi
 
   ; check if adjacent chunk is free for coalescing
   call  can_coalesce
-
   cmp   rax, 0
   je    .free_chunk
 
