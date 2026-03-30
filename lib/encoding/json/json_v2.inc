@@ -61,7 +61,7 @@ json_add_entry_to_object:
   ; set entry key
   mov   rdi, rsi
   mov   rsi, rdx
-  call  _json_entry_set_key
+  call  _json_set_key
   cmp   rax, 0
   jl    .error
 
@@ -142,25 +142,25 @@ _json_create_entry:
 
   mov   rdi, rax
   mov   rsi, [rsp]
-  call  _json_entry_set_data
+  call  _json_set_data
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
-  call  _json_entry_set_type
+  call  _json_set_type
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x10]
   xor   rsi, rsi
-  call  _json_entry_set_child
+  call  _json_set_child
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp+0x10]
   xor   rsi, rsi
-  call  _json_entry_set_key
+  call  _json_set_key
   cmp   rax, 0
   jl    .error
 
@@ -325,7 +325,7 @@ _json_validate_type:
 ; @param  rdi: pointer to the json entry
 ; @param  rsi: data
 ; @return rax: return code
-_json_entry_set_data:
+_json_set_data:
   test  rdi, rdi
   jz    .error
 
@@ -344,7 +344,7 @@ _json_entry_set_data:
 ; @param  rdi: pointer to the json entry
 ; @param  rsi: pointer to the key
 ; @return rax: return code
-_json_entry_set_key:
+_json_set_key:
   test  rdi, rdi
   jz    .error
 
@@ -363,7 +363,7 @@ _json_entry_set_key:
 ; @param  rdi: pointer to the json entry
 ; @param  rsi: type
 ; @return rax: return code
-_json_entry_set_type:
+_json_set_type:
   test  rdi, rdi
   jz    .error
 
@@ -382,7 +382,7 @@ _json_entry_set_type:
 ; @param  rdi: pointer to the json entry
 ; @param  rsi: pointer to the child
 ; @return rax: return code
-_json_entry_set_child:
+_json_set_child:
   test  rdi, rdi
   jz    .error
 
