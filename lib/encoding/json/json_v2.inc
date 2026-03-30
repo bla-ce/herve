@@ -124,7 +124,45 @@ _json_create_entry:
   add   rsp, 0x18
   ret
 
-; adds a boolean entry to the json
+; creates a json entry with string type
+; @param  rdi: pointer to the string
+; @return rax: pointer to the json entry
+json_create_string:
+  sub   rsp, 0x8
+
+  test  rdi, rdi
+  jz    .error
+
+  ; duplicate string
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  mov   rdi, rax
+  mov   rsi, JSON_TYPE_STRING
+  call  _json_create_entry
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; creates a json entry with boolean type
 ; @param  rdi: bool value (JSON_TRUE, JSON_FALSE)
 ; @return rax: pointer to the json entry
 json_create_bool:
@@ -168,7 +206,6 @@ _json_validate_type:
 .not_valid:
   mov   rax, FALSE
   ret
-
 
 ; sets the data of the json entry
 ; @param  rdi: pointer to the json entry
