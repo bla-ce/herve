@@ -26,13 +26,13 @@ JSON_ENTRY_STRUCT_LEN equ _json_entry_t_end - _json_entry_t
 JSON_OFF_DATA equ 0x0
 
 ; types
-JSON_BOOL   equ 0x0
-JSON_STRING equ 0x1
-JSON_NUMBER equ 0x2
-JSON_DOUBLE equ 0x3
-JSON_ARRAY  equ 0x4
-JSON_OBJECT equ 0x5
-JSON_NULL   equ 0x6
+JSON_TYPE_BOOL   equ 0x0
+JSON_TYPE_STRING equ 0x1
+JSON_TYPE_NUMBER equ 0x2
+JSON_TYPE_DOUBLE equ 0x3
+JSON_TYPE_ARRAY  equ 0x4
+JSON_TYPE_OBJECT equ 0x5
+JSON_TYPE_NULL   equ 0x6
 
 JSON_FALSE equ 0x0
 JSON_TRUE  equ 0x1
@@ -99,7 +99,24 @@ json_create_bool:
 
 .return:
   add   rsp, 0x10
+; validates the type
+; @param  rdi: type value
+; @return rax: type is valid
+_json_validate_type:
+  cmp   rdi, JSON_TYPE_BOOL
+  jl    .not_valid
+
+  cmp   rdi, JSON_TYPE_NULL
+  jg    .not_valid
+  
+.valid:
+  mov   rax, TRUE
   ret
+
+.not_valid:
+  mov   rax, FALSE
+  ret
+
 
 ; sets the data of the json entry
 ; @param  rdi: pointer to the json entry
@@ -126,9 +143,6 @@ _json_entry_set_data:
 ; @return rax: return code
 _json_entry_set_key:
   test  rdi, rdi
-  jz    .error
-
-  test  rsi, rsi
   jz    .error
 
   mov   [rdi+JSON_ENTRY_OFF_KEY], rsi
@@ -158,11 +172,6 @@ _json_entry_set_type:
 
   test  rdi, rdi
   jz    .error
-
-  mov   rdi, rsi
-  call  _json_validate_type
-  cmp   rax, 0
-  jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
