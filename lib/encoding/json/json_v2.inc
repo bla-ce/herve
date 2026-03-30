@@ -1,20 +1,20 @@
 section .bss
 
-_json_entry_t:
-  .data   resq 0
-  .child  resq 0
-  .key    resq 0
-  .type   resb 0
-_json_entry_t_end:
+_json_t:
+  .data   resq 1
+  .child  resq 1
+  .key    resq 1
+  .type   resb 1
+_json_t_end:
 
 section .data
 
-JSON_ENTRY_OFF_DATA   equ 0x0
-JSON_ENTRY_OFF_CHILD  equ JSON_ENTRY_OFF_DATA + 0x8
-JSON_ENTRY_OFF_KEY    equ JSON_ENTRY_OFF_CHILD + 0x8
-JSON_ENTRY_OFF_TYPE   equ JSON_ENTRY_OFF_KEY + 0x8
+JSON_OFF_DATA   equ 0x0
+JSON_OFF_CHILD  equ JSON_OFF_DATA + 0x8
+JSON_OFF_KEY    equ JSON_OFF_CHILD + 0x8
+JSON_OFF_TYPE   equ JSON_OFF_KEY + 0x8
 
-JSON_ENTRY_STRUCT_LEN equ _json_entry_t_end - _json_entry_t
+JSON_STRUCT_LEN equ _json_t_end - _json_t
 
 ; types
 JSON_TYPE_BOOL   equ 0x0
@@ -58,16 +58,22 @@ json_add_entry_to_object:
   test  rdx, rdx
   jz    .error
 
+  ; duplicate the key
+  mov   rdi, rdx
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
   ; set entry key
-  mov   rdi, rsi
-  mov   rsi, rdx
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
   call  _json_set_key
   cmp   rax, 0
   jl    .error
 
   ; get children
   mov   rax, [rsp]
-  lea   rdi, [rax+JSON_ENTRY_OFF_CHILD]
+  lea   rdi, [rax+JSON_OFF_CHILD]
   mov   rsi, [rsp+0x8]
   call  linked_list_insert_at_end
   cmp   byte [linked_list_errno], TRUE
@@ -84,6 +90,109 @@ json_add_entry_to_object:
   add   rsp, 0x18
   ret
 
+; recursively frees the json struct and all nested entries
+; @param  rdi: pointer to the the parent json entry
+; @return rax: return code
+json_free:
+  sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp]   -> pointer to the parent json entry
+
+  mov   [rsp], rdi
+
+  test  rdi, rdi
+  jz    .return
+
+  ; frees children; oohhhh recursion, getting fancy here
+  ; segfault expected within the next 3 commits
+  lea   rdi, [rdi+JSON_OFF_CHILD]
+  cmp   qword [rdi], 0
+  je    .free_entry
+
+  mov   rsi, json_free
+  call  linked_list_free
+  cmp   rax, 0
+  jl    .error
+
+.free_entry:
+  mov   rdi, [rsp]
+  call  _json_entry_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; frees a json entry
+; @param  rdi: pointer to the json entry
+; @return rax: return code
+_json_entry_free:
+  sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp]   -> pointer to the json entry
+
+  mov   [rsp], rdi
+
+  test  rdi, rdi
+  jz    .error
+
+  ; if the entry is of type string, free the value
+  call  _json_get_type
+  cmp   rax, 0
+  jl    .error
+
+  cmp   al, JSON_TYPE_STRING
+  jne   .free_key
+
+  mov   rdi, [rsp]
+  call  _json_get_data
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+.free_key:
+  ; free the key
+  mov   rdi, [rsp]
+  call  _json_get_key
+  cmp   rax, 0
+  jl    .error
+  je    .free_entry
+
+  mov   rdi, rax
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+.free_entry:
+  ; free the entry
+  mov   rdi, [rsp]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
 ; adds a new entry to a json array
 ; @param  rdi: pointer to the json structure
 ; @param  rsi: pointer to the entry to add
@@ -96,8 +205,7 @@ json_add_entry_to_array:
   jz    .error
 
   ; get children
-  lea   rdi, [rdi+JSON_ENTRY_OFF_CHILD]
-  mov   rsi, [rsp+0x8]
+  lea   rdi, [rdi+JSON_OFF_CHILD]
   call  linked_list_insert_at_end
   cmp   byte [linked_list_errno], TRUE
   je    .error
@@ -133,7 +241,7 @@ _json_create_entry:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, JSON_ENTRY_STRUCT_LEN
+  mov   rdi, JSON_STRUCT_LEN
   call  malloc
   cmp   rax, 0
   jl    .error
@@ -165,6 +273,8 @@ _json_create_entry:
   jl    .error
 
   mov   rax, [rsp+0x10]
+
+  jmp   .return
 
 .error:
   mov   rdi, [rsp+0x10]
@@ -263,6 +373,12 @@ json_create_string:
   test  rdi, rdi
   jz    .error
 
+  ; duplicate the string
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
   mov   rsi, JSON_TYPE_STRING
   call  _json_create_entry
   cmp   rax, 0
@@ -329,7 +445,7 @@ _json_set_data:
   test  rdi, rdi
   jz    .error
 
-  mov   [rdi+JSON_ENTRY_OFF_DATA], rsi
+  mov   [rdi+JSON_OFF_DATA], rsi
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -348,7 +464,7 @@ _json_set_key:
   test  rdi, rdi
   jz    .error
 
-  mov   [rdi+JSON_ENTRY_OFF_KEY], rsi
+  mov   [rdi+JSON_OFF_KEY], rsi
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -367,7 +483,7 @@ _json_set_type:
   test  rdi, rdi
   jz    .error
 
-  mov   byte [rdi+JSON_ENTRY_OFF_TYPE], sil
+  mov   byte [rdi+JSON_OFF_TYPE], sil
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -386,9 +502,73 @@ _json_set_child:
   test  rdi, rdi
   jz    .error
 
-  mov   [rdi+JSON_ENTRY_OFF_CHILD], rsi
+  mov   [rdi+JSON_OFF_CHILD], rsi
 
   mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the child of the json entry
+; @param  rdi: pointer to the json entry
+; @return rax: child of the entry
+_json_get_child:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+JSON_OFF_CHILD]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the key of the json entry
+; @param  rdi: pointer to the json entry
+; @return rax: pointer to the key of the entry
+_json_get_key:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+JSON_OFF_KEY]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the type of the json entry
+; @param  rdi: pointer to the json entry
+; @return rax: type of the entry
+_json_get_type:
+  test  rdi, rdi
+  jz    .error
+
+  mov   al, byte [rdi+JSON_OFF_TYPE]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the data of the json entry
+; @param  rdi: pointer to the json entry
+; @return rax: data of the entry
+_json_get_data:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rax, [rdi+JSON_OFF_DATA]
   jmp   .return
 
 .error:

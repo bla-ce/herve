@@ -5,7 +5,7 @@ LIB_DIR = $(ROOT_DIR)/lib
 BIN_DIR = bin
 BUILD_DIR = build
 
-JSON_PATH = json_test
+JSON_PATH = json_v2_test
 
 INCLUDE_DIRS = \
 	$(shell find $(INCLUDE_DIR) -type d -printf '-I$(INCLUDE_DIR)/%P ')

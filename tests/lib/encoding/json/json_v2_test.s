@@ -35,13 +35,49 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, [json_string]
-  call  free
+  mov   rdi, JSON_TRUE
+  call  json_create_bool
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [person_json]
+  mov   rsi, rax
+  mov   rdx, is_alive_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, JSON_FALSE
+  call  json_create_bool
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [person_json]
+  mov   rsi, rax
+  mov   rdx, is_working_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, 27
+  call  json_create_number
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [person_json]
+  mov   rsi, rax
+  mov   rdx, age_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [person_json]
+  call  json_free
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [freed]
-  mov   rsi, [malloc]
+  mov   rsi, [mallocd]
   call  assert_equal
 
   mov   rdi, SUCCESS_CODE
