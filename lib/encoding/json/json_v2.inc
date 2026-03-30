@@ -38,16 +38,18 @@ section .text
 ; @param  rdx: key of the entry
 ; @return rax: return code
 json_add_entry_to_object:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the json structure
   ; [rsp+0x8]   -> pointer to the entry to add
   ; [rsp+0x10]  -> pointer to the key of the entry
+  ; [rsp+0x18]  -> pointer to the dup key
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
 
   test  rdi, rdi
   jz    .error
@@ -63,6 +65,8 @@ json_add_entry_to_object:
   call  strdup
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp+0x18], rax
 
   ; set entry key
   mov   rdi, [rsp+0x8]
@@ -84,10 +88,17 @@ json_add_entry_to_object:
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; recursively frees the json struct and all nested entries

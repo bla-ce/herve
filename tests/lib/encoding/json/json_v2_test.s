@@ -71,6 +71,113 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  call  json_create_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   [address_json], rax
+
+  mov   rdi, [person_json]
+  mov   rsi, [address_json]
+  mov   rdx, address_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, street_address_value
+  call  json_create_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [address_json]
+  mov   rsi, rax
+  mov   rdx, street_address_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, city_value
+  call  json_create_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [address_json]
+  mov   rsi, rax
+  mov   rdx, city_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, state_value
+  call  json_create_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [address_json]
+  mov   rsi, rax
+  mov   rdx, state_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, postal_code_value
+  call  json_create_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [address_json]
+  mov   rsi, rax
+  mov   rdx, postal_code_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  call  json_create_array
+  cmp   rax, 0
+  jl    .error
+
+  mov   [children_array], rax
+
+  mov   rdi, [person_json]
+  mov   rsi, rax
+  mov   rdx, children_key
+  call  json_add_entry_to_object
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, children1_value
+  call  json_create_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [children_array]
+  mov   rsi, rax
+  call  json_add_entry_to_array
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, children2_value
+  call  json_create_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [children_array]
+  mov   rsi, rax
+  call  json_add_entry_to_array
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, children3_value
+  call  json_create_string
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [children_array]
+  mov   rsi, rax
+  call  json_add_entry_to_array
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, [person_json]
   call  json_free
   cmp   rax, 0
@@ -88,7 +195,9 @@ _start:
   call  exit
 
 section .data
-  person_json dq 0
+  person_json     dq 0
+  address_json    dq 0
+  children_array  dq 0
 
   first_name_key      db "first_name", NULL_CHAR
   last_name_key       db "last_name", NULL_CHAR
