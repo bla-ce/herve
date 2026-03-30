@@ -29,13 +29,15 @@ JSON_OFF_DATA equ 0x0
 JSON_TYPE_BOOL   equ 0x0
 JSON_TYPE_STRING equ 0x1
 JSON_TYPE_NUMBER equ 0x2
-JSON_TYPE_DOUBLE equ 0x3
-JSON_TYPE_ARRAY  equ 0x4
-JSON_TYPE_OBJECT equ 0x5
-JSON_TYPE_NULL   equ 0x6
+JSON_TYPE_ARRAY  equ 0x3
+JSON_TYPE_OBJECT equ 0x4
+JSON_TYPE_NULL   equ 0x5
 
 JSON_FALSE equ 0x0
 JSON_TRUE  equ 0x1
+
+JSON_NUMBER_MAX equ 10000000000
+JSON_NUMBER_MIN equ -10000000000
 
 section .text
 
@@ -160,6 +162,29 @@ json_create_string:
 
 .return:
   add   rsp, 0x8
+  ret
+
+; creates a json entry with number type
+; @param  rdi: number value
+; @return rax: pointer to the json entry
+json_create_number:
+  cmp   rdi, JSON_NUMBER_MAX
+  jg    .error
+
+  cmp   rdi, JSON_NUMBER_MIN
+  jl    .error
+
+  mov   rsi, JSON_TYPE_NUMBER
+  call  _json_create_entry
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
 
 ; creates a json entry with boolean type
