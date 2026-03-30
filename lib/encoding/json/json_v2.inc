@@ -7,14 +7,7 @@ _json_entry_t:
   .type   resb 0
 _json_entry_t_end:
 
-_json_t:
-  .data dq 0
-  ; TODO: check what can be added here
-_json_t_end:
-
 section .data
-
-JSON_STRUCT_LEN equ _json_t_end - _json_t
 
 JSON_ENTRY_OFF_DATA   equ 0x0
 JSON_ENTRY_OFF_CHILD  equ JSON_ENTRY_OFF_DATA + 0x8
@@ -23,15 +16,13 @@ JSON_ENTRY_OFF_TYPE   equ JSON_ENTRY_OFF_KEY + 0x8
 
 JSON_ENTRY_STRUCT_LEN equ _json_entry_t_end - _json_entry_t
 
-JSON_OFF_DATA equ 0x0
-
 ; types
 JSON_TYPE_BOOL   equ 0x0
 JSON_TYPE_STRING equ 0x1
 JSON_TYPE_NUMBER equ 0x2
-JSON_TYPE_ARRAY  equ 0x3
-JSON_TYPE_OBJECT equ 0x4
-JSON_TYPE_NULL   equ 0x5
+JSON_TYPE_NULL   equ 0x3
+JSON_TYPE_ARRAY  equ 0x4
+JSON_TYPE_OBJECT equ 0x5
 
 JSON_NULL   equ 0x0
 JSON_FALSE  equ 0x0
@@ -41,16 +32,78 @@ JSON_NUMBER_MAX equ 10000000000
 JSON_NUMBER_MIN equ -10000000000
 
 section .text
+; adds a new entry to a json object
+; @param  rdi: pointer to the json structure
+; @param  rsi: pointer to the entry to add
+; @param  rdx: key of the entry
+; @return rax: return code
+json_add_entry_to_object:
+  sub   rsp, 0x18
 
-; creates an json struct
-; @return rax: pointer to the json struct
-json_create:
-  mov   rdi, JSON_STRUCT_LEN
-  call  malloc
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the json structure
+  ; [rsp+0x8]   -> pointer to the entry to add
+  ; [rsp+0x10]  -> pointer to the key of the entry
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
+
+  test  rdx, rdx
+  jz    .error
+
+  ; set entry key
+  mov   rdi, rsi
+  mov   rsi, rdx
+  call  _json_entry_set_key
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rax+JSON_OFF_DATA], 0
+  ; get children
+  mov   rax, [rsp]
+  lea   rdi, [rax+JSON_ENTRY_OFF_CHILD]
+  mov   rsi, [rsp+0x8]
+  call  linked_list_insert_at_end
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
+; adds a new entry to a json array
+; @param  rdi: pointer to the json structure
+; @param  rsi: pointer to the entry to add
+; @return rax: return code
+json_add_entry_to_array:
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
+
+  ; get children
+  lea   rdi, [rdi+JSON_ENTRY_OFF_CHILD]
+  mov   rsi, [rsp+0x8]
+  call  linked_list_insert_at_end
+  cmp   byte [linked_list_errno], TRUE
+  je    .error
+
+  mov   rax, SUCCESS_CODE
+
   jmp   .return
 
 .error:
@@ -127,6 +180,40 @@ _json_create_entry:
   add   rsp, 0x18
   ret
 
+; creates a json object
+; @return rax: pointer to the json entry
+json_create_object:
+  mov   rdi, NO_ARG
+  mov   rsi, JSON_TYPE_OBJECT
+  call  _json_create_entry
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; creates a json array
+; @return rax: pointer to the json entry
+json_create_array:
+  mov   rdi, NO_ARG
+  mov   rsi, JSON_TYPE_ARRAY
+  call  _json_create_entry
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
 ; creates a json entry with null value
 ; @return rax: pointer to the json entry
 json_create_null:
@@ -148,13 +235,35 @@ json_create_null:
 ; @param  rdi: number value
 ; @return rax: pointer to the json entry
 json_create_number:
-  cmp   rdi, JSON_NUMBER_MAX
+  mov   rax, JSON_NUMBER_MAX
+  cmp   rdi, rax
   jg    .error
 
-  cmp   rdi, JSON_NUMBER_MIN
+  mov   rax, JSON_NUMBER_MIN
+  cmp   rdi, rax
   jl    .error
 
   mov   rsi, JSON_TYPE_NUMBER
+  call  _json_create_entry
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; creates a json entry with a string
+; @param  rdi: pointer to the string
+; @return rax: pointer to the json entry
+json_create_string:
+  test  rdi, rdi
+  jz    .error
+
+  mov   rsi, JSON_TYPE_STRING
   call  _json_create_entry
   cmp   rax, 0
   jl    .error
@@ -198,10 +307,10 @@ json_create_bool:
 ; @param  rdi: type value
 ; @return rax: type is valid
 _json_validate_type:
-  cmp   rdi, JSON_TYPE_BOOL
+  cmp   dil, JSON_TYPE_BOOL
   jl    .not_valid
 
-  cmp   rdi, JSON_TYPE_NULL
+  cmp   dil, JSON_TYPE_NULL
   jg    .not_valid
 
 .valid:
@@ -255,22 +364,10 @@ _json_entry_set_key:
 ; @param  rsi: type
 ; @return rax: return code
 _json_entry_set_type:
-  sub   rsp, 0x10
-
-  ; STACK USAGE
-  ; [rsp]     -> pointer to the json entry
-  ; [rsp+0x8] -> type of the value
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
   test  rdi, rdi
   jz    .error
 
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
-
-  mov   [rdi+JSON_ENTRY_OFF_TYPE], rsi
+  mov   byte [rdi+JSON_ENTRY_OFF_TYPE], sil
 
   mov   rax, SUCCESS_CODE
   jmp   .return
