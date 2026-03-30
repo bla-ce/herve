@@ -56,15 +56,78 @@ json_create:
 .return:
   ret
 
+; creates a json entry with data and type
+; key and child is defined later with json_add_item_to_... methods
+; @param  rdi: data
+; @param  rsi: type
+; @return rax: pointer to the json entry
+_json_create_entry:
+  sub   rsp, 0x18
+
+  ; [rsp]       -> data of the entry
+  ; [rsp+0x8]   -> type of the entry
+  ; [rsp+0x10]  -> pointer to the json entry
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+
+  mov   rdi, rsi
+  call  _json_validate_type
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, JSON_ENTRY_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
+
+  mov   rdi, rax
+  mov   rsi, [rsp]
+  call  _json_entry_set_data
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rsp+0x8]
+  call  _json_entry_set_type
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  xor   rsi, rsi
+  call  _json_entry_set_child
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
+  xor   rsi, rsi
+  call  _json_entry_set_key
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x10]
+
+.error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
+  ret
+
 ; adds a boolean entry to the json
 ; @param  rdi: bool value (JSON_TRUE, JSON_FALSE)
 ; @return rax: pointer to the json entry
 json_create_bool:
-  sub   rsp, 0x10
-
-  ; [rsp]     -> boolean value
-  ; [rsp+0x8] -> pointer to the json entry
-
   cmp   rdi, JSON_FALSE
   je    .init_stack
 
@@ -75,30 +138,19 @@ json_create_bool:
   jmp   .error
 
 .init_stack:
-  mov   [rsp], rdi
-  mov   qword [rsp+0x8], 0
-
-  mov   rdi, JSON_ENTRY_STRUCT_LEN
-  call  malloc
+  mov   rsi, JSON_TYPE_BOOL
+  call  _json_create_entry
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
-  mov   rdi,
+  jmp   .return
 
 .error:
-  mov   rdi, [rsp+0x8]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  ret
+
 ; validates the type
 ; @param  rdi: type value
 ; @return rax: type is valid
@@ -108,7 +160,7 @@ _json_validate_type:
 
   cmp   rdi, JSON_TYPE_NULL
   jg    .not_valid
-  
+
 .valid:
   mov   rax, TRUE
   ret
