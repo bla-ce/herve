@@ -33,8 +33,9 @@ JSON_TYPE_ARRAY  equ 0x3
 JSON_TYPE_OBJECT equ 0x4
 JSON_TYPE_NULL   equ 0x5
 
-JSON_FALSE equ 0x0
-JSON_TRUE  equ 0x1
+JSON_NULL   equ 0x0
+JSON_FALSE  equ 0x0
+JSON_TRUE   equ 0x1
 
 JSON_NUMBER_MAX equ 10000000000
 JSON_NUMBER_MIN equ -10000000000
@@ -126,24 +127,11 @@ _json_create_entry:
   add   rsp, 0x18
   ret
 
-; creates a json entry with string type
-; @param  rdi: pointer to the string
+; creates a json entry with null value
 ; @return rax: pointer to the json entry
-json_create_string:
-  sub   rsp, 0x8
-
-  test  rdi, rdi
-  jz    .error
-
-  ; duplicate string
-  call  strdup
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp], rax
-
-  mov   rdi, rax
-  mov   rsi, JSON_TYPE_STRING
+json_create_null:
+  mov   rdi, JSON_NULL
+  mov   rsi, JSON_TYPE_NULL
   call  _json_create_entry
   cmp   rax, 0
   jl    .error
@@ -151,17 +139,9 @@ json_create_string:
   jmp   .return
 
 .error:
-  mov   rdi, [rsp]
-  test  rdi, rdi
-  jz    .no_free
-
-  call  free
-
-.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
   ret
 
 ; creates a json entry with number type
