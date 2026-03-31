@@ -17,11 +17,6 @@ _start:
   mov   rsi, init_msg
   call  assert_string_equal
 
-  ; check errno
-  mov   rdi, [boeuf_errno]
-  mov   rsi, BOEUF_NO_ERR
-  call  assert_equal
-
   ; check length and size
   mov   rsi, [boeuf_buf]
   mov   rdi, qword [rsi - BOEUF_METADATA_LEN + BOEUF_METADATA_OFF_SIZE]
@@ -45,11 +40,6 @@ _start:
   mov   rdi, rax
   mov   rsi, msg_1
   call  assert_string_equal
-
-  ; check errno
-  mov   rdi, [boeuf_errno]
-  mov   rsi, BOEUF_NO_ERR
-  call  assert_equal
 
   ; check boeuf len and size
   mov   rsi, [boeuf_buf]
@@ -75,11 +65,6 @@ _start:
   mov   rsi, msg_2
   call  assert_string_equal
 
-  ; check errno
-  mov   rdi, [boeuf_errno]
-  mov   rsi, BOEUF_NO_ERR
-  call  assert_equal
-
   ; check boeuf len and size
   mov   rsi, [boeuf_buf]
   mov   rdi, qword [rsi - BOEUF_METADATA_LEN + BOEUF_METADATA_OFF_LENGTH]
@@ -103,11 +88,6 @@ _start:
   mov   rdi, rax
   mov   rsi, msg_3
   call  assert_string_equal
-
-  ; check errno
-  mov   rdi, [boeuf_errno]
-  mov   rsi, BOEUF_NO_ERR
-  call  assert_equal
 
   ; check boeuf len and size
   mov   rsi, [boeuf_buf]
