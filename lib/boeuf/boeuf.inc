@@ -1,5 +1,3 @@
-%include "boeuf_errors.inc"
-
 section .bss
 
 boeuf_metadata_t:
@@ -30,17 +28,16 @@ section .text
 boeuf_ncreate:
   sub   rsp, 0x18
 
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the string
+  ; [rsp+0x8]   -> length of the string
+  ; [rsp+0x10]  -> pointer to the boeuf buffer
+
   cmp   rdi, 0
   jle   .error
 
   cmp   rsi, 0
   jle   .error
-
-  ; STACK USAGE
-  ; [rsp]       -> pointer to the string
-  ; [rsp+0x8]   -> length of the string
-  ; [rsp+0x10]  -> pointer to the boeuf buffer
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -79,8 +76,6 @@ boeuf_ncreate:
   mov   rax, NULL_CHAR
   stosb
 
-  mov   qword [boeuf_errno], BOEUF_NO_ERR
-
   mov   rax, [rsp+0x10]
   jmp   .return
 
@@ -97,19 +92,16 @@ boeuf_ncreate:
 boeuf_create:
   sub   rsp, 0x8
 
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
-  cmp   rdi, 0
-  jle   .error
-
   ; STACK USAGE
   ; [rsp]       -> pointer to the string
 
   mov   [rsp], rdi
 
+  test  rdi, rdi
+  jz    .error
+
   ; get length of the string
   call  strlen
-
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
   cmp   rax, 0
   jle   .error
 
@@ -117,8 +109,6 @@ boeuf_create:
   mov   rdi, [rsp]
   mov   rsi, rax
   call  boeuf_ncreate
-
-  mov   qword [boeuf_errno], BOEUF_NO_ERR
   jmp   .return
 
 .error:
@@ -152,17 +142,14 @@ boeuf_nappend:
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rdi
 
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rdi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
-
-  cmp   rdx, 0
-  jl    .error
-  je    .return   ; return same boeuf
+  test  rdx, rdx
+  jz    .error
 
   ; check if we need to grow the boeuf buffer
   ; get length and size of current boeuf buffer
@@ -266,13 +253,6 @@ boeuf_nappend:
 boeuf_append:
   sub   rsp, 0x10
 
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
   ; STACK USAGE
   ; [rsp]       -> pointer to the boeuf buffer
   ; [rsp+0x8]   -> pointer to the string
@@ -280,11 +260,15 @@ boeuf_append:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
+
   ; get length of string to be appended
   mov   rdi, [rsp+0x8]
   call  strlen
-
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
   cmp   rax, 0
   jl    .error
 
@@ -292,8 +276,6 @@ boeuf_append:
   mov   rsi, [rsp+0x8]
   mov   rdx, rax
   call  boeuf_nappend
-
-  mov   qword [boeuf_errno], BOEUF_NO_ERR
   jmp   .return
 
 .error:
@@ -310,15 +292,15 @@ boeuf_free:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rbx, qword [BOEUF_MAGIC_VALUE]
+  mov   rdx, qword [BOEUF_MAGIC_VALUE]
 
-  mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
-  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
+  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rdx
   jne   .error
 
   call  free
+  cmp   rax, 0
+  jl    .error
 
-  mov   qword [boeuf_errno], BOEUF_NO_ERR
   jmp   .return
 
 .error:
@@ -331,9 +313,8 @@ boeuf_free:
 ; @param  rdi: pointer to the boeuf buffer
 ; @return rax: return code
 boeuf_reset:
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
-  cmp   rdi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   ; add null char at the beginning of the string
   mov   rax, NULL_CHAR
@@ -343,15 +324,12 @@ boeuf_reset:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rbx, qword [BOEUF_MAGIC_VALUE]
-  mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
-  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
+  mov   rdx, qword [BOEUF_MAGIC_VALUE]
+  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rdx
   jne   .error
 
   ; set length to 0
   mov   qword [rdi+BOEUF_METADATA_OFF_LENGTH], 0
-
-  mov   qword [boeuf_errno], BOEUF_NO_ERR
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -366,19 +344,15 @@ boeuf_reset:
 ; @param  rdi: pointer to the boeuf buffer
 ; @return rax: length of the boeuf buffer
 boeuf_len:
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
-  cmp   rdi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rbx, qword [BOEUF_MAGIC_VALUE]
-  mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
-  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
+  mov   rdx, qword [BOEUF_MAGIC_VALUE]
+  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rdx
   jne   .error
-
-  mov   qword [boeuf_errno], BOEUF_NO_ERR
 
   mov   rax, qword [rdi+BOEUF_METADATA_OFF_LENGTH]
   jmp   .return
@@ -396,13 +370,6 @@ boeuf_len:
 boeuf_set_len:
   sub   rsp, 0x10
 
-  mov   qword [boeuf_errno], BOEUF_INVALID_ARG
-  cmp   rdi, 0
-  jl    .error
-
-  cmp   rsi, 0
-  jl    .error
-
   ; STACK USAGE
   ; [rsp]     -> pointer to the boeuf buffer
   ; [rsp+0x8] -> new size of the boeuf buffer
@@ -410,15 +377,19 @@ boeuf_set_len:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
+
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rbx, qword [BOEUF_MAGIC_VALUE]
-  mov   qword [boeuf_errno], BOEUF_CORRUPTED_BUF
-  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
+  mov   rdx, qword [BOEUF_MAGIC_VALUE]
+  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rdx
   jne   .error
 
-  mov   qword [boeuf_errno], BOEUF_NO_ERR
   cmp   rsi, qword [rdi+BOEUF_METADATA_OFF_LENGTH]
   jge   .return
 
@@ -428,8 +399,6 @@ boeuf_set_len:
 
   mov   rax, NULL_CHAR
   stosb
-
-  mov   qword [boeuf_errno], BOEUF_NO_ERR
 
   mov   rax, SUCCESS_CODE
   jmp   .return

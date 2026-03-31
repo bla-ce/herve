@@ -31,7 +31,63 @@ JSON_TRUE   equ 0x1
 JSON_NUMBER_MAX equ 10000000000
 JSON_NUMBER_MIN equ -10000000000
 
+; json string
+JSON_BEGIN      db "{", NULL_CHAR
+JSON_END        db "}", NULL_CHAR
+
+JSON_ARRAY_BEGIN  db "[", NULL_CHAR
+JSON_ARRAY_END    db "]", NULL_CHAR
+
+JSON_STR_QUOTES db DOUBLE_QUOTES, NULL_CHAR
+JSON_KV_DELIM   db ":", NULL_CHAR
+JSON_KEYS_DELIM db ",", NULL_CHAR
+
+JSON_BOOL_FALSE db "false", NULL_CHAR
+JSON_BOOL_TRUE  db "true", NULL_CHAR
+
+JSON_NULL db "null", NULL_CHAR
+
+JSON_FLOAT_DOT db ".", NULL_CHAR
+
 section .text
+; stringifies a json entry
+; the user is responsible for freeing the string
+; @param  rdi: pointer to the json struct
+; @return rax: pointer to the allocated string
+json_to_string:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the json struct
+  ; [rsp+0x8] -> pointer to the boeuf buffer
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  test  rdi, rdi
+  jz    .error
+
+  ; stringify value
+
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  boeuf_free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; adds a new entry to a json object
 ; @param  rdi: pointer to the json structure
 ; @param  rsi: pointer to the entry to add
