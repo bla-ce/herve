@@ -85,6 +85,7 @@ boeuf_free:
   jl    .error
 
   mov   rax, SUCCESS_CODE
+  jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
@@ -100,7 +101,7 @@ boeuf_is_corrupted:
   test  rdi, rdi
   jz    .error
 
-  cmp   [rdi+_BOEUF_OFF_MAGIC_VALUE], _BOEUF_MAGIC_VALUE
+  cmp   qword [rdi+_BOEUF_OFF_MAGIC_VALUE], _BOEUF_MAGIC_VALUE
   jne   .error
 
   mov   rax, FALSE
@@ -141,3 +142,8 @@ boeuf_get_data:
 .return:
   add   rsp, 0x8
   ret
+
+boeuf_append:
+boeuf_nappend:
+boeuf_create:
+boeuf_ncreate:
