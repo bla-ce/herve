@@ -11,7 +11,7 @@ section .data
 
 BOEUF_MAGIC_VALUE equ 0xC0FFEE
 
-BOEUF_LEN equ boeuf_t_end - boeuf_t
+BOEUF_STRUCT_LEN equ boeuf_t_end - boeuf_t
 
 ; offsets
 BOEUF_OFF_MAGIC_VALUE  equ 0
@@ -41,31 +41,34 @@ boeuf_reset_limit:
 ; @param  rsi: n bytes
 ; @return rax: pointer to the buffer
 boeuf_ncreate:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the string
   ; [rsp+0x8]   -> length of the string
-  ; [rsp+0x10]  -> pointer to the boeuf buffer
+  ; [rsp+0x10]  -> pointer to the boeuf struct
+  ; [rsp+0x18]  -> pointer to the boeuf data
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], 0
+  mov   qword [rsp+0x18], 0
 
   cmp   rsi, qword [boeuf_max_size]
   jge   .error
 
-  ; add metadata struct length
-  mov   rdi, rsi
-  add   rdi, BOEUF_METADATA_LEN
-  inc   rdi  ; add one for null_char
-
+  ; allocate memory for the boeuf struct
+  mov   rdi, BOEUF_STRUCT_LEN
   call  malloc
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x10], rax
+
   ; init metadata
   mov   qword [rax+BOEUF_OFF_MAGIC_VALUE], BOEUF_MAGIC_VALUE
 
+  inc   qword [rsp+0x8]
   mov   rdx, qword [rsp+0x8]
   inc   rdx ; add the null char
 
@@ -73,34 +76,47 @@ boeuf_ncreate:
   mov   [rax+BOEUF_OFF_LENGTH], rdx
   mov   qword [rax+BOEUF_OFF_DATA], 0
 
-  ; return pointer to the data
-  add   rax, BOEUF_OFF_DATA
-
-  ; save pointer to the data
-  mov   [rsp+0x10], rax
-
   cmp   qword [rsp+0x8], 0
   je    .skip_copy
 
-  ; copy string to the boeuf buffer
-  mov   rdi, rax
-  mov   rsi, [rsp]
-  mov   rcx, qword [rsp+0x8]
-  rep   movsb
+  ; allocate memory for the string
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  strndup
+  cmp   rax, 0
+  jl    .error
 
-  ; add null char
-  mov   rax, NULL_CHAR
-  stosb
+  mov   [rsp+0x18], rax
+
+  mov   rdi, [rsp+0x10]
+  mov   rsi, rax
+  call  _boeuf_set_data
+  cmp   rax, 0
+  jl    .error
 
 .skip_copy:
   mov   rax, [rsp+0x10]
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .free_data
+
+  call  free
+
+.free_data:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; creates a growing buffer
@@ -418,4 +434,49 @@ boeuf_set_len:
 
 .return:
   add   rsp, 0x10
+  ret
+
+; sets the data of the boeuf buffer struct
+; @param  rdi: pointer to the boeuf struct
+; @param  rsi: pointer to the data
+; @return rax: return code
+_boeuf_set_data:
+  test  rdi, rdi
+  jz    .error
+
+  ; validate the integrity of the boeuf struct
+  mov   rax, [boeuf_max_size]
+  cmp   [rdi+BOEUF_OFF_MAGIC_VALUE], rax
+  jne   .error
+
+  mov   [rdi+BOEUF_OFF_DATA], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns a pointer to the data of the boeuf buffer struct
+; @param  rdi: pointer to the boeuf struct
+; @return rax: pointer to the data
+boeuf_get_data:
+  test  rdi, rdi
+  jz    .error
+
+  ; validate the integrity of the boeuf struct
+  mov   rax, [boeuf_max_size]
+  cmp   [rdi+BOEUF_OFF_MAGIC_VALUE], rax
+  jne   .error
+
+  mov   rax, [rdi+BOEUF_OFF_DATA]
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
   ret
