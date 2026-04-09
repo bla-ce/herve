@@ -38,6 +38,28 @@ _start:
   mov   rsi, _BOEUF_DEFAULT_MAX_CAPACITY
   call  assert_equal
 
+  mov   rdi, str_1
+  call  strdup
+  cmp   rax, 0
+  jl    .error
+
+  ; fake append
+  mov   rdi, [boeuf_buf]
+  mov   qword [rdi+_BOEUF_OFF_DATA], rax
+  mov   qword [rdi+_BOEUF_OFF_LENGTH], str_1_len
+  call  boeuf_clear
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [boeuf_buf]
+  mov   rdi, [rax+_BOEUF_OFF_LENGTH]
+  call  assert_is_zero
+
+  mov   rax, [boeuf_buf]
+  mov   rsi, [rax+_BOEUF_OFF_DATA]
+  movzx rdi, byte [rsi]
+  call  assert_is_zero
+
   mov   rdi, [boeuf_buf]
   call  boeuf_free
   cmp   rax, 0
@@ -57,3 +79,6 @@ _start:
 section .data
 
 boeuf_buf dq 0
+
+str_1     db "Hello, sir", NULL_CHAR
+str_1_len equ $ - str_1
