@@ -8,7 +8,7 @@ boeuf_metadata_t_end:
 
 section .data
 
-BOEUF_MAGIC_VALUE dq 0xC0FFEE
+BOEUF_MAGIC_VALUE equ 0xC0FFEE
 
 BOEUF_METADATA_LEN equ boeuf_metadata_t_end - boeuf_metadata_t
 
@@ -52,8 +52,7 @@ boeuf_ncreate:
   jl    .error
 
   ; init metadata
-  mov   rbx, qword [BOEUF_MAGIC_VALUE]
-  mov   qword [rax+BOEUF_METADATA_OFF_MAGIC_VALUE], rbx
+  mov   qword [rax+BOEUF_METADATA_OFF_MAGIC_VALUE], BOEUF_MAGIC_VALUE
 
   mov   rbx, qword [rsp+0x8]
   inc   rbx ; add the null char
@@ -146,9 +145,6 @@ boeuf_nappend:
   jz    .error
 
   test  rsi, rsi
-  jz    .error
-
-  test  rdx, rdx
   jz    .error
 
   ; check if we need to grow the boeuf buffer
@@ -292,9 +288,7 @@ boeuf_free:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rdx, qword [BOEUF_MAGIC_VALUE]
-
-  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rdx
+  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], BOEUF_MAGIC_VALUE
   jne   .error
 
   call  free
@@ -324,8 +318,7 @@ boeuf_reset:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rdx, qword [BOEUF_MAGIC_VALUE]
-  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rdx
+  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], BOEUF_MAGIC_VALUE
   jne   .error
 
   ; set length to 0
@@ -350,8 +343,7 @@ boeuf_len:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rdx, qword [BOEUF_MAGIC_VALUE]
-  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rdx
+  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], BOEUF_MAGIC_VALUE
   jne   .error
 
   mov   rax, qword [rdi+BOEUF_METADATA_OFF_LENGTH]
@@ -386,8 +378,7 @@ boeuf_set_len:
   sub   rdi, BOEUF_METADATA_LEN
 
   ; make sure of the integrity of the boeuf buffer
-  mov   rdx, qword [BOEUF_MAGIC_VALUE]
-  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], rdx
+  cmp   qword [rdi+BOEUF_METADATA_OFF_MAGIC_VALUE], BOEUF_MAGIC_VALUE
   jne   .error
 
   cmp   rsi, qword [rdi+BOEUF_METADATA_OFF_LENGTH]
