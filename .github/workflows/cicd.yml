@@ -27,6 +27,7 @@ jobs:
             lib:
               - 'lib/**'
             include:
+              - 'lib/**'
               - 'include/**'
             herve:
               - 'include/**'

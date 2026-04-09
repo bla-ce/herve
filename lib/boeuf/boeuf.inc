@@ -36,16 +36,10 @@ boeuf_ncreate:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  test  rdi, rdi
-  jz    .error
-
-  test  rsi, rsi
-  jz    .error
-
   ; add metadata struct length
   mov   rdi, rsi
   add   rdi, BOEUF_METADATA_LEN
-  inc   rdi   ; add one for null_char
+  inc   rdi  ; add one for null_char
 
   call  malloc
   cmp   rax, 0
@@ -59,12 +53,16 @@ boeuf_ncreate:
 
   mov   [rax+BOEUF_METADATA_OFF_SIZE], rdx
   mov   [rax+BOEUF_METADATA_OFF_LENGTH], rdx
+  mov   qword [rax+BOEUF_METADATA_OFF_DATA], 0
 
   ; return pointer to the data
   add   rax, BOEUF_METADATA_OFF_DATA
 
   ; save pointer to the data
   mov   [rsp+0x10], rax
+
+  cmp   qword [rsp+0x8], 0
+  je    .skip_copy
 
   ; copy string to the boeuf buffer
   mov   rdi, rax
@@ -76,6 +74,7 @@ boeuf_ncreate:
   mov   rax, NULL_CHAR
   stosb
 
+.skip_copy:
   mov   rax, [rsp+0x10]
   jmp   .return
 

@@ -172,7 +172,33 @@ _start:
   mov   rsi, 0
   call  assert_equal
 
-  mov   rdi, qword [boeuf_buf]
+  mov   rdi, [boeuf_buf]
+  call  boeuf_free
+  cmp   rax, 0
+  jl    .error
+
+  ; create empty boeuf
+  mov   rdi, NO_ARG
+  mov   rsi, NO_ARG
+  call  boeuf_ncreate
+  cmp   rax, 0
+  jl    .error
+
+  mov   [boeuf_buf], rax
+
+  mov   rdi, [boeuf_buf]
+  mov   rsi, second_msg
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [boeuf_buf], rax
+
+  mov   rdi, [boeuf_buf]
+  mov   rsi, second_msg
+  call  assert_string_equal
+
+  mov   rdi, [boeuf_buf]
   call  boeuf_free
   cmp   rax, 0
   jl    .error
