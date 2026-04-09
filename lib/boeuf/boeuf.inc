@@ -18,9 +18,23 @@ BOEUF_METADATA_OFF_SIZE         equ BOEUF_METADATA_OFF_MAGIC_VALUE + 0x8
 BOEUF_METADATA_OFF_LENGTH       equ BOEUF_METADATA_OFF_SIZE + 0x8
 BOEUF_METADATA_OFF_DATA         equ BOEUF_METADATA_OFF_LENGTH + 0x8
 
-MAX_BOEUF_BUF_SIZE equ 1000000 ; 1MB
+BOEUF_DEFAULT_MAX_SIZE equ 1000000 ; 1MB
+
+boeuf_max_size dq BOEUF_DEFAULT_MAX_SIZE
 
 section .text
+; sets the new limit for a buffer
+; @param  rdi: new size
+boeuf_set_limit:
+  mov   [boeuf_max_size], rdi
+  ret
+
+
+; sets the original limit for a buffer
+boeuf_reset_limit:
+  mov   qword [boeuf_max_size], BOEUF_DEFAULT_MAX_SIZE
+  ret
+
 ; creates a growing buffer, specifying the number of bytes to copy
 ; @param  rdi: pointer to the string
 ; @param  rsi: n bytes
@@ -35,6 +49,9 @@ boeuf_ncreate:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+
+  cmp   rsi, qword [boeuf_max_size]
+  jge   .error
 
   ; add metadata struct length
   mov   rdi, rsi
@@ -173,6 +190,9 @@ boeuf_nappend:
   mov   rdi, [rsp+0x28]
   add   rdi, [rsp+0x10] ; new length
   mov   [rsp+0x38], rdi
+
+  cmp   rdi, qword [boeuf_max_size]
+  jge   .error
 
   cmp   rdi, qword [rsp+0x20]
   jle   .copy
