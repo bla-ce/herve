@@ -23,6 +23,55 @@ _BOEUF_MAGIC_VALUE equ 0xC0FFEE
 _BOEUF_DEFAULT_MAX_CAPACITY equ 4096 ; 4kb
 
 section .text
+; converts the data into a null-terminated string
+; user is responsible for having a valid string in data
+; user is responsible for freeing the string
+; @param  rdi: pointer to the boeuf struct
+; @return rax: pointer to the allocated string
+boeuf_to_str:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf struct
+  ; [rsp+0x8] -> pointer to the data
+
+  mov   [rsp], rdi
+
+  test  rdi, rdi
+  jz    .error
+
+  ; make sure that the boeuf is not corrupted
+  call  boeuf_is_corrupted
+  cmp   rax, FALSE
+  jne   .error
+
+  mov   rdi, [rsp]
+  call  boeuf_get_data
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; get boeuf length
+  mov   rdi, [rsp]
+  call  boeuf_get_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  strndup
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
 
 ; clears boeuf data
 ; @param  rdi: pointer to the boeuf struct
@@ -34,6 +83,9 @@ boeuf_clear:
   ; [rsp]     -> pointer to the boeuf struct
 
   mov   [rsp], rdi
+
+  test  rdi, rdi
+  jz    .error
 
   ; make sure that the boeuf is not corrupted
   call  boeuf_is_corrupted
@@ -71,6 +123,12 @@ boeuf_append_str:
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
 
   ; make sure that the boeuf is not corrupted
   call  boeuf_is_corrupted
