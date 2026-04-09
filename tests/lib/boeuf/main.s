@@ -47,6 +47,19 @@ _start:
   mov   rdi, [boeuf_buf]
   mov   qword [rdi+_BOEUF_OFF_DATA], rax
   mov   qword [rdi+_BOEUF_OFF_LENGTH], str_1_len
+
+  mov   rdi, [boeuf_buf]
+  call  boeuf_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [boeuf_str], rax
+
+  mov   rdi, rax
+  mov   rsi, str_1
+  call  assert_string_equal
+
+  mov   rdi, [boeuf_buf]
   call  boeuf_clear
   cmp   rax, 0
   jl    .error
@@ -59,6 +72,11 @@ _start:
   mov   rsi, [rax+_BOEUF_OFF_DATA]
   movzx rdi, byte [rsi]
   call  assert_is_zero
+
+  mov   rdi, [boeuf_str]
+  call  free
+  cmp   rax, 0
+  jl    .error
 
   mov   rdi, [boeuf_buf]
   call  boeuf_free
@@ -79,6 +97,8 @@ _start:
 section .data
 
 boeuf_buf dq 0
+
+boeuf_str dq 0
 
 str_1     db "Hello, sir", NULL_CHAR
 str_1_len equ $ - str_1
