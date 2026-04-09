@@ -31,6 +31,13 @@ _start:
   mov   rax, [boeuf_buf]
   mov   qword [rax+_BOEUF_OFF_MAGIC_VALUE], _BOEUF_MAGIC_VALUE
 
+  mov   rdi, rax
+  call  boeuf_get_max_cap
+
+  mov   rdi, rax
+  mov   rsi, _BOEUF_DEFAULT_MAX_CAPACITY
+  call  assert_equal
+
   mov   rdi, [boeuf_buf]
   call  boeuf_free
   cmp   rax, 0
