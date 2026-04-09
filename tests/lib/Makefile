@@ -1,7 +1,6 @@
 .PHONY: test-lib
 
 test-lib:
-	$(MAKE) -C boeuf
 	$(MAKE) -C crypto/bcrypt
 	$(MAKE) -C data_structures program=array_test
 	$(MAKE) -C data_structures program=linked_list_test
