@@ -98,6 +98,7 @@ boeuf_nappend:
   jl    .error
 
   ; copy the bytes
+  mov   rdi, rax
   add   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x8]
   mov   rcx, [rsp+0x10]
@@ -146,6 +147,7 @@ boeuf_nappend:
 
   ; copy new data
   mov   rdi, [rsp+0x38]
+  add   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x8]
   mov   rcx, [rsp+0x10]
   rep   movsb
