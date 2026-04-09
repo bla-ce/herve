@@ -34,8 +34,6 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [boeuf_buf], rax
-
   ; check boeuf content
   mov   rdi, rax
   mov   rsi, msg_1
@@ -58,8 +56,6 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [boeuf_buf], rax
-
   ; check boeuf content
   mov   rdi, rax
   mov   rsi, msg_2
@@ -81,8 +77,6 @@ _start:
   call  boeuf_append
   cmp   rax, 0
   jl    .error
-
-  mov   [boeuf_buf], rax
 
   ; check boeuf content
   mov   rdi, rax
@@ -191,8 +185,6 @@ _start:
   call  boeuf_append
   cmp   rax, 0
   jl    .error
-
-  mov   [boeuf_buf], rax
 
   mov   rdi, [boeuf_buf]
   mov   rsi, second_msg
