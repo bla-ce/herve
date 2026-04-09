@@ -23,6 +23,164 @@ _BOEUF_MAGIC_VALUE equ 0xC0FFEE
 _BOEUF_DEFAULT_MAX_CAPACITY equ 4096 ; 4kb
 
 section .text
+; appends n bytes to the boeuf data which is reallocated if needed
+; @param  rdi: pointer to the boeuf struct
+; @param  rsi: pointer to the bytes
+; @param  rdx: number of bytes to copy
+; @return rax: return code
+boeuf_nappend:
+  sub   rsp, 0x40
+
+  ; STACK USAGE
+  ; [rsp]       -> pointer to the boeuf struct
+  ; [rsp+0x8]   -> pointer to the bytes
+  ; [rsp+0x10]  -> number of bytes to copy
+  ; [rsp+0x18]  -> old length of the data
+  ; [rsp+0x20]  -> new length of the data
+  ; [rsp+0x28]  -> old capacity of the boeuf
+  ; [rsp+0x30]  -> new capacity of the boeuf
+  ; [rsp+0x38]  -> pointer to the new data
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   qword [rsp+0x38], 0
+
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .done
+
+  test  rdx, rdx
+  jz    .done
+
+  ; make sure that the boeuf is not corrupted
+  call  boeuf_is_corrupted
+  cmp   rax, FALSE
+  jne   .error
+
+  ; get the new length of the data
+  mov   rdi, [rsp]
+  call  boeuf_get_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+  add   rax, [rsp+0x10]
+  mov   [rsp+0x20], rax
+
+  ; check if new length exceed boeuf max capacity
+  mov   rdi, [rsp]
+  call  boeuf_get_max_cap
+  cmp   rax, 0
+  jl    .error
+
+  cmp   [rsp+0x20], rax
+  jge   .error
+
+  ; check against current capacity to check if reallocating is
+  ; necessary
+  mov   rdi, [rsp]
+  call  boeuf_get_cap
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x28], rax
+
+  cmp   [rsp+0x20], rax
+  jg    .realloc
+
+  ; we can just copy the bytes
+  mov   rdi, [rsp]
+  call  boeuf_get_data
+  cmp   rax, 0
+  jl    .error
+
+  ; copy the bytes
+  add   rdi, [rsp+0x18]
+  mov   rsi, [rsp+0x8]
+  mov   rcx, [rsp+0x10]
+  rep   movsb
+
+  ; update length of the data
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x20]
+  call  boeuf_set_len
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .done
+
+.realloc:
+  ; double cap size until it's greater than the new length
+  mov   rax, [rsp+0x28]
+  inc   rax ; add one as initial cap is 0
+
+.loop:
+  shl   rax, 1
+
+  cmp   rax, [rsp+0x20]
+  jl    .loop
+.loop_end:
+  mov   [rsp+0x30], rax
+
+  mov   rdi, [rsp]
+  call  boeuf_get_data
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, [rsp+0x30]
+  call  realloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x38], rax
+
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  boeuf_set_data
+  cmp   rax, 0
+  jl    .error
+
+  ; copy new data
+  mov   rdi, [rsp+0x38]
+  mov   rsi, [rsp+0x8]
+  mov   rcx, [rsp+0x10]
+  rep   movsb
+
+  ; update new len and new capacity
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x20]
+  call  boeuf_set_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x30]
+  call  boeuf_set_cap
+  cmp   rax, 0
+  jl    .error
+
+.done:
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x38]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x40
+  ret
+
 ; converts the data into a null-terminated string
 ; user is responsible for having a valid string in data
 ; user is responsible for freeing the string
@@ -144,7 +302,7 @@ boeuf_append_str:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov   rdx, rax
-  call  boeuf_append
+  call  boeuf_nappend
   cmp   rax, 0
   jl    .error
 
@@ -248,6 +406,41 @@ boeuf_is_corrupted:
 .return:
   ret
 
+; sets the data of the boeuf struct
+; @param  rdi: pointer to the boeuf struct
+; @param  rsi: pointer to the data
+; @return rax: return code
+boeuf_set_data:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf struct
+  ; [rsp+0x8] -> pointer to the data
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  call  boeuf_is_corrupted
+  cmp   rax, FALSE
+  jne   .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   [rdi+_BOEUF_OFF_DATA], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; returns the data of the boeuf struct
 ; @param  rdi: pointer to the boeuf struct
 ; @return rax: pointer to the data
@@ -277,6 +470,41 @@ boeuf_get_data:
   add   rsp, 0x8
   ret
 
+; sets the length of the boeuf struct
+; @param  rdi: pointer to the boeuf struct
+; @param  rsi: length
+; @return rax: return code
+boeuf_set_len:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf struct
+  ; [rsp+0x8] -> length
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  call  boeuf_is_corrupted
+  cmp   rax, FALSE
+  jne   .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   [rdi+_BOEUF_OFF_LENGTH], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
 ; returns the length of the boeuf struct
 ; @param  rdi: pointer to the boeuf struct
 ; @return rax: length
@@ -304,6 +532,41 @@ boeuf_get_len:
 
 .return:
   add   rsp, 0x8
+  ret
+
+; sets the capacity of the boeuf struct
+; @param  rdi: pointer to the boeuf struct
+; @param  rsi: capacity
+; @return rax: return code
+boeuf_set_cap:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf struct
+  ; [rsp+0x8] -> capacity
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  call  boeuf_is_corrupted
+  cmp   rax, FALSE
+  jne   .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   [rdi+_BOEUF_OFF_CAPACITY], rsi
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 ; returns the capacity of the boeuf struct
@@ -364,7 +627,6 @@ boeuf_get_max_cap:
   add   rsp, 0x8
   ret
 
-boeuf_append:
-boeuf_nappend:
 boeuf_create:
+boeuf_append:
 boeuf_ncreate:
