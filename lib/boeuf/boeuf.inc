@@ -23,6 +23,41 @@ _BOEUF_MAGIC_VALUE equ 0xC0FFEE
 _BOEUF_DEFAULT_MAX_CAPACITY equ 4096 ; 4kb
 
 section .text
+
+; clears boeuf data
+; @param  rdi: pointer to the boeuf struct
+; @return rax: return code
+boeuf_clear:
+  sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf struct
+
+  mov   [rsp], rdi
+
+  ; make sure that the boeuf is not corrupted
+  call  boeuf_is_corrupted
+  cmp   rax, FALSE
+  jne   .error
+
+  mov   rdi, [rsp]
+  mov   qword [rdi+_BOEUF_OFF_LENGTH], 0
+
+  ; set the first byte as null
+  mov   rax, [rdi+_BOEUF_OFF_DATA]
+  mov   byte [rax], NULL_CHAR
+
+  mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
 ; appends an assumed null terminated string to the boeuf data
 ; @param  rdi: pointer to the boeuf struct
 ; @param  rsi: pointer to the null terminated string
