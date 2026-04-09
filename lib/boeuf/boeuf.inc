@@ -33,14 +33,14 @@ boeuf_ncreate:
   ; [rsp+0x8]   -> length of the string
   ; [rsp+0x10]  -> pointer to the boeuf buffer
 
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jle   .error
-
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  test  rsi, rsi
+  jz    .error
 
   ; add metadata struct length
   mov   rdi, rsi
@@ -54,15 +54,16 @@ boeuf_ncreate:
   ; init metadata
   mov   qword [rax+BOEUF_METADATA_OFF_MAGIC_VALUE], BOEUF_MAGIC_VALUE
 
-  mov   rbx, qword [rsp+0x8]
-  inc   rbx ; add the null char
-  mov   qword [rax+BOEUF_METADATA_OFF_SIZE], rbx
+  mov   rdx, qword [rsp+0x8]
+  inc   rdx ; add the null char
 
-  mov   qword [rax+BOEUF_METADATA_OFF_LENGTH], rbx
+  mov   [rax+BOEUF_METADATA_OFF_SIZE], rdx
+  mov   [rax+BOEUF_METADATA_OFF_LENGTH], rdx
 
   ; return pointer to the data
   add   rax, BOEUF_METADATA_OFF_DATA
 
+  ; save pointer to the data
   mov   [rsp+0x10], rax
 
   ; copy string to the boeuf buffer
@@ -182,11 +183,9 @@ boeuf_nappend:
   mov   rax, [rsp+0x20]
 
 .loop:
-  xor   rdx, rdx
-  mov   rbx, 2
-  mul   rbx
+  shl   rax, 1
 
-  cmp   rax, qword [rsp+0x38]
+  cmp   rax, [rsp+0x38]
   jl    .loop
 .loop_end:
 
@@ -226,19 +225,19 @@ boeuf_nappend:
   sub   rax, BOEUF_METADATA_LEN
 
   ; update size and length of the boeuf
-  mov   rbx, [rsp+0x38]
-  mov   qword [rax+BOEUF_METADATA_OFF_LENGTH], rbx
+  mov   rdx, [rsp+0x38]
+  mov   qword [rax+BOEUF_METADATA_OFF_LENGTH], rdx
 
-  mov   rbx, [rsp+0x40]
-  mov   qword [rax+BOEUF_METADATA_OFF_SIZE], rbx
+  mov   rdx, [rsp+0x40]
+  mov   qword [rax+BOEUF_METADATA_OFF_SIZE], rdx
 
-.return:
   mov   rax, [rsp+0x18]
-  add   rsp, 0x48
-  ret
+  jmp   .return
 
 .error:
   mov   rax, FAILURE_CODE
+
+.return:
   add   rsp, 0x48
   ret
 
