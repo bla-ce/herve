@@ -38,15 +38,11 @@ _start:
   mov   rsi, _BOEUF_DEFAULT_MAX_CAPACITY
   call  assert_equal
 
-  mov   rdi, str_1
-  call  strdup
+  mov   rdi, [boeuf_buf]
+  mov   rsi, str_1
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  ; fake append
-  mov   rdi, [boeuf_buf]
-  mov   qword [rdi+_BOEUF_OFF_DATA], rax
-  mov   qword [rdi+_BOEUF_OFF_LENGTH], str_1_len
 
   mov   rdi, [boeuf_buf]
   call  boeuf_to_str
@@ -100,5 +96,7 @@ boeuf_buf dq 0
 
 boeuf_str dq 0
 
-str_1     db "Hello, sir", NULL_CHAR
-str_1_len equ $ - str_1
+str_1     db "Hello, sir! ", NULL_CHAR
+str_2     db "How are you?", NULL_CHAR
+
+str_1_2   db "Hello, sir! How are you?", NULL_CHAR
