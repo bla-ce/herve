@@ -435,9 +435,6 @@ boeuf_shrink:
   add   rsp, 0x10
   ret
 
-boeuf_set_max_cap:
-  ret
-
 ; clears boeuf data
 ; @param  rdi: pointer to the boeuf struct
 ; @return rax: return code
@@ -745,6 +742,38 @@ _boeuf_get_max_cap:
   mov   rax, FAILURE_CODE
 
 .return:
+  ret
+
+; sets the max capacity of the boeuf
+; @param  rdi: pointer to the boeuf struct
+; @param  rsi: new max capacity of the boeuf
+boeuf_set_max_cap:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf struct
+  ; [rsp+0x8] -> new max capacity of the boeuf
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  call  boeuf_is_corrupted
+  cmp   rax, FALSE
+  jne   .error
+
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  mov   [rdi+_BOEUF_OFF_MAX_CAPACITY], rsi
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 boeuf_create:
