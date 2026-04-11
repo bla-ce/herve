@@ -1,6 +1,9 @@
 section .data
-  DELIMITER db "%%", NULL_CHAR
-  DELIMITER_LENGTH equ $ - DELIMITER - 1 ; minus null char
+
+DELIMITER db "%%", NULL_CHAR
+DELIMITER_LENGTH equ $ - DELIMITER - 1 ; minus null char
+
+TEMPLATE_DEFAULT_SIZE equ 0x1000
 
 section .text
 
@@ -9,13 +12,7 @@ section .text
 ; @param  rsi: pointer to the hash table
 ; @return rax: pointer to the template parsed
 template_parse:
-  sub   rsp, 0x50
-
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0  ; hash table can be null
-  jl    .error
+  sub   rsp, 0x58
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the file path
@@ -28,12 +25,18 @@ template_parse:
   ; [rsp+0x38]  -> pointer to the boeuf buffer
   ; [rsp+0x40]  -> duplicated string
   ; [rsp+0x48]  -> encoded string
+  ; [rsp+0x50]  -> boeuf to string
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x20], 0
+  mov   qword [rsp+0x38], 0
   mov   qword [rsp+0x40], 0
   mov   qword [rsp+0x48], 0
+  mov   qword [rsp+0x50], 0
+
+  test  rdi, rdi
+  jz    .error
 
   ; make sure the file has a .apl extension
   call  get_content_type
@@ -51,7 +54,7 @@ template_parse:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x10], rax
+  mov   [rsp+0x10], rax
 
   ; get the length of the file
   mov   rdi, rax
@@ -59,7 +62,7 @@ template_parse:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x18], rax
+  mov   [rsp+0x18], rax
 
   mov   rdi, rax
   call  malloc
@@ -68,12 +71,11 @@ template_parse:
 
   mov   [rsp+0x20], rax
   mov   [rsp+0x28], rax ; dynamic pointer
-  mov   qword [rsp+0x38], 0 ; pointer to the boeuf buffer
 
   ; read file
-  mov   rdi, qword [rsp+0x10]
+  mov   rdi, [rsp+0x10]
   mov   rsi, rax
-  mov   rdx, qword [rsp+0x18]
+  mov   rdx, [rsp+0x18]
   call  read_file
   cmp   rax, 0
   jl    .error
@@ -84,6 +86,19 @@ template_parse:
   mov   rax, NULL_CHAR
   stosb
 
+  ; init boeuf buffer
+  call  boeuf_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x38], rax
+
+  mov   rdi, rax
+  mov   rsi, TEMPLATE_DEFAULT_SIZE
+  call  boeuf_reserve
+  cmp   rax, 0
+  jl    .error
+
 .loop:
   mov   rdi, [rsp+0x28]
   mov   rsi, DELIMITER
@@ -91,35 +106,21 @@ template_parse:
   cmp   rax, 0
   jl    .loop_end
 
-  mov   qword [rsp+0x30], rax    ; save delimiter position
+  mov   [rsp+0x30], rax
 
-  cmp   qword [rsp+0x38], 0
-  jne   .skip_boeuf_create
-
-  mov   rdi, [rsp+0x28]
-  mov   rsi, rax
-  call  boeuf_ncreate
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x38], rax
-
-  jmp   .copy_value
-
-.skip_boeuf_create:
   mov   rdi, [rsp+0x38]
   mov   rsi, [rsp+0x28]
-  mov   rdx, qword [rsp+0x30]
+  mov   rdx, rax
   call  boeuf_nappend
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x38], rax
+  jmp   .copy_value
 
 .copy_value:
   ; go after start delimiter
   mov   rdi, [rsp+0x28]
-  add   rdi, qword [rsp+0x30]
+  add   rdi, [rsp+0x30]
   add   rdi, DELIMITER_LENGTH
 
   mov   [rsp+0x28], rdi
@@ -131,7 +132,7 @@ template_parse:
   jl    .error
 
   ; save delimiter position
-  mov   qword [rsp+0x30], rax
+  mov   [rsp+0x30], rax
 
   ; duplicate string so we can get a null terminated string
   mov   rdi, [rsp+0x28]
@@ -140,7 +141,7 @@ template_parse:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x40], rax
+  mov   [rsp+0x40], rax
 
   ; get hash table value
   mov   rdi, [rsp+0x8]
@@ -160,15 +161,13 @@ template_parse:
   ; append the value
   mov   rdi, [rsp+0x38]
   mov   rsi, [rsp+0x48]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x38], rax
-
   ; go after the delimiter
   mov   rdi, [rsp+0x28]
-  add   rdi, qword [rsp+0x30]
+  add   rdi, [rsp+0x30]
   add   rdi, DELIMITER_LENGTH
 
   mov   [rsp+0x28], rdi
@@ -191,11 +190,9 @@ template_parse:
   ; append end of the file
   mov   rdi, [rsp+0x38]
   mov   rsi, [rsp+0x28]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x38], rax
 
   ; free original file content
   mov   rdi, [rsp+0x20]
@@ -205,7 +202,20 @@ template_parse:
   mov   rdi, qword [rsp+0x10]
   call  close_file
 
-  mov   rax, [rsp+0x38]
+  ; get str from boeuf and free boeuf struct
+  mov   rdi, [rsp+0x38]
+  call  boeuf_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x50], rax
+
+  mov   rdi, [rsp+0x38]
+  call  boeuf_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp+0x50]
 
   jmp   .return
 
@@ -218,6 +228,20 @@ template_parse:
 
 .free_dup_string:
   mov   rdi, [rsp+0x40]
+  test  rdi, rdi
+  jz    .free_boeuf
+
+  call  free
+
+.free_boeuf:
+  mov   rdi, [rsp+0x38]
+  test  rdi, rdi
+  jz    .free_boeuf_str
+
+  call  boeuf_free
+
+.free_boeuf_str:
+  mov   rdi, [rsp+0x50]
   test  rdi, rdi
   jz    .free_encoded
 
@@ -234,5 +258,5 @@ template_parse:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x50
+  add   rsp, 0x58
   ret
