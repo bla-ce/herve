@@ -40,15 +40,15 @@ _start:
   jl    .error
 
   mov   rdi, [boeuf_buf]
-  call  boeuf_get_len
+  call  _boeuf_get_len
 
   mov   rdi, rax
   mov   rsi, 12 ; "Hello, sir! " is 12 chars
   call  assert_equal
 
-  ; boeuf_get_cap is non-zero after append
+  ; _boeuf_get_cap is non-zero after append
   mov   rdi, [boeuf_buf]
-  call  boeuf_get_cap
+  call  _boeuf_get_cap
 
   mov   rdi, rax
   call  assert_is_not_zero
@@ -75,9 +75,9 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; boeuf_get_len returns correct length after second append
+  ; _boeuf_get_len returns correct length after second append
   mov   rdi, [boeuf_buf]
-  call  boeuf_get_len
+  call  _boeuf_get_len
 
   mov   rdi, rax
   mov   rsi, 24 ; "Hello, sir! How are you?" is 24 chars
@@ -115,9 +115,9 @@ _start:
   movzx rdi, byte [rsi]
   call  assert_is_zero
 
-  ; boeuf_get_cap is preserved after clear
+  ; _boeuf_get_cap is preserved after clear
   mov   rdi, [boeuf_buf]
-  call  boeuf_get_cap
+  call  _boeuf_get_cap
 
   mov   rdi, rax
   call  assert_is_not_zero
@@ -158,7 +158,7 @@ _start:
   jl    .error
 
   mov   rdi, [boeuf_buf]
-  call  boeuf_get_len
+  call  _boeuf_get_len
 
   mov   rdi, rax
   mov   rsi, 5
