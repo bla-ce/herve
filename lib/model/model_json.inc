@@ -4,17 +4,19 @@ section .text
 ; @param  rdi: pointer to the model struct
 ; @return rax: pointer to the json object
 model_instances_to_json:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the model struct
   ; [rsp+0x8]   -> pointer to the linked list of instances
   ; [rsp+0x10]  -> pointer to the json object
   ; [rsp+0x18]  -> pointer to nested json object
+  ; [rsp+0x20]  -> pointer to stringified nested json object
 
   mov   [rsp], rdi
   mov   qword [rsp+0x10], 0
   mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
 
   test  rdi, rdi
   jz    .error
@@ -52,18 +54,29 @@ model_instances_to_json:
 
   mov   [rsp+0x18], rax
 
+  mov   rdi, rax
+  call  json_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
   ; add json object
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rsp+0x18]
+  mov   rsi, rax
   call  json_array_insert_object
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
   ; free json object
   mov   rdi, [rsp+0x18]
   call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  ; free json to str
+  mov   rdi, [rsp+0x20]
+  call  free
   cmp   rax, 0
   jl    .error
 
@@ -84,9 +97,18 @@ model_instances_to_json:
   cmp   rax, 0
   jl    .error
 
+  mov   rax, [rsp+0x10]
+
   jmp   .return
 
 .error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .free_json_object
+
+  call  free
+
+.free_json_object:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
   jz    .free_array
@@ -104,7 +126,7 @@ model_instances_to_json:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; converts the model instance into a json object
@@ -210,8 +232,6 @@ model_instance_to_json:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
   jmp   .go_next
 
 .insert_string:
@@ -221,8 +241,6 @@ model_instance_to_json:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x10], rax
 
   jmp   .go_next
 
@@ -234,8 +252,6 @@ model_instance_to_json:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
   jmp   .go_next
 
 .insert_float:
@@ -245,8 +261,6 @@ model_instance_to_json:
   call  json_insert_float
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x10], rax
 
   jmp   .go_next
 
@@ -266,7 +280,7 @@ model_instance_to_json:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  mov   rax, [rsp+0x10]
 
   jmp   .return
 

@@ -868,14 +868,14 @@ model_http_response:
   mov   qword [rsp+0x30], 0
   mov   qword [rsp+0x38], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
-  cmp   rdx, 0
-  jle   .error
+  test  rdx, rdx
+  jz    .error
 
   cmp   rcx, 0
   jl    .error
