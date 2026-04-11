@@ -331,19 +331,22 @@ service_init:
 ; returns a list of available services
 ; @param  rdi: context struct
 service_list:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the context struct
   ; [rsp+0x8]   -> pointer to json array
   ; [rsp+0x10]  -> dynamic pointer to go through the service ll
   ; [rsp+0x18]  -> service json
+  ; [rsp+0x20]  -> stringified json
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
 
-  cmp   rdi, 0
-  jle    .error
+  test  rdi, rdi
+  jz    .error
 
   call  json_array_create
   cmp   rax, 0
@@ -371,16 +374,26 @@ service_list:
 
   mov   [rsp+0x18], rax
 
+  mov   rdi, rax
+  call  json_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
   mov   rdi, [rsp+0x8]
-  mov   rsi, [rsp+0x18]
+  mov   rsi, rax
   call  json_array_insert_object
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x18]
   call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x20]
+  call  free
   cmp   rax, 0
   jl    .error
 
@@ -401,8 +414,6 @@ service_list:
   call  json_array_end
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   mov   rdi, [rsp]
   mov   rsi, OK
@@ -429,6 +440,13 @@ service_list:
   call  send_no_content
 
 .error:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .free_json_object
+
+  call  free
+
+.free_json_object:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
   jz    .free_json_array
@@ -446,7 +464,7 @@ service_list:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; unregisters an existing service and removes it from the service
@@ -635,8 +653,8 @@ service_to_json:
   ; [rsp]     -> pointer to the service struct
   ; [rsp+0x8] -> pointer to the json
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
@@ -659,8 +677,6 @@ service_to_json:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp]
   call  service_get_name
   cmp   rax, 0
@@ -672,8 +688,6 @@ service_to_json:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   mov   rdi, [rsp]
   call  service_get_description
@@ -687,8 +701,6 @@ service_to_json:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp]
   call  service_get_status
   cmp   rax, 0
@@ -700,8 +712,6 @@ service_to_json:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   mov   rdi, [rsp]
   call  service_get_type
@@ -715,12 +725,12 @@ service_to_json:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   call  json_end
   cmp   rax, 0
   jl    .error
+
+  mov   rax, [rsp+0x8]
 
   jmp   .return
 

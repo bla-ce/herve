@@ -1395,29 +1395,25 @@ serve_dir:
 ; @param  rdx: pointer to the object or 0
 ; @return rax: pointer to the json response object
 create_json_response:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   ; STACK USAGE
   ; [rsp]       -> success
   ; [rsp+0x8]   -> pointer to the message
-  ; [rsp+0x10]  -> pointer to the object
-  ; [rsp+0x18]  -> pointer to the response object
+  ; [rsp+0x10]  -> pointer to the json object
+  ; [rsp+0x18]  -> pointer to the stringified json object
+  ; [rsp+0x20]  -> pointer to the response object
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   qword [rsp+0x18], 0
+  mov   qword [rsp+0x20], 0
 
   cmp   rdi, FALSE
   jl    .error
   cmp   rdi, TRUE
   jg    .error
-
-  cmp   rsi, 0
-  jl    .error
-
-  cmp   rdx, 0
-  jl    .error
 
   call  json_create
   cmp   rax, 0
@@ -1447,9 +1443,24 @@ create_json_response:
   test  rdx, rdx
   jz    .skip_data
 
+  ; data to string
+  mov   rdi, [rsp+0x10]
+  call  json_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x20], rax
+
   mov   rdi, [rsp+0x18]
   mov   rsi, data_key
+  mov   rdx, rax
   call  json_insert_object
+  cmp   rax, 0
+  jl    .error
+
+  ; free json to str
+  mov   rdi, [rsp+0x20]
+  call  free
   cmp   rax, 0
   jl    .error
 
@@ -1459,18 +1470,27 @@ create_json_response:
   cmp   rax, 0
   jl    .error
 
+  mov   rax, [rsp+0x18]
+
   jmp   .return
 
 .error:
   mov   rdi, [rsp+0x18]
   test  rdi, rdi
-  jz    .no_free
+  jz    .free_json_str
 
   call  json_free
+
+.free_json_str:
+  mov   rdi, [rsp+0x20]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
