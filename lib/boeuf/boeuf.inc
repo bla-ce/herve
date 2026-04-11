@@ -375,7 +375,64 @@ boeuf_resize:
   add   rsp, 0x10
   ret
 
+; shrinks the boeuf, always reallocating the correct number of bytes
+; the new capacity becomes the length of the boeuf
+; @param  rdi: pointer to the boeuf
+; @return rax: return code
 boeuf_shrink:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf
+  ; [rsp+0x8] -> length of the boeuf
+
+  mov   [rsp], rdi
+
+  test  rdi, rdi
+  jz    .error
+
+  ; get the length of the data
+  call  _boeuf_get_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  ; get data
+  mov   rdi, [rsp]
+  call  boeuf_get_data
+  cmp   rax, 0
+  jl    .error
+
+  ; realloc
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  realloc
+  cmp   rax, 0
+  jl    .error
+
+  ; save new ptr to the data
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  _boeuf_set_data
+  cmp   rax, 0
+  jl    .error
+
+  ; set new capacity
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  _boeuf_set_cap
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 boeuf_set_max_cap:
