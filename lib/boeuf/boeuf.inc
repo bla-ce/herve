@@ -775,7 +775,3 @@ boeuf_set_max_cap:
 .return:
   add   rsp, 0x10
   ret
-
-boeuf_create:
-boeuf_append:
-boeuf_ncreate:

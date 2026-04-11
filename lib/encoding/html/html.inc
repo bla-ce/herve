@@ -1,5 +1,3 @@
-%include "html_errors.inc"
-
 section .data
 
 char_to_esc db DOUBLE_QUOTES,
@@ -36,10 +34,14 @@ escape_html:
   mov   qword [rsp+0x18], 0
   mov   qword [rsp+0x20], 0
 
-  mov   qword [html_errno], HTML_INVALID_ARG
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rdi, 0
-  jle   .error
+  call  boeuf_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
 
 .loop:
   mov   rsi, [rsp]
@@ -56,9 +58,9 @@ escape_html:
 
   ; copy what does not need to be escaped into the boeuf buffer
   mov   rax, [rsp+0x18] ; current position
-  mov   rbx, [rsp+0x20] ; position of the last char copied
+  mov   rdx, [rsp+0x20] ; position of the last char copied
 
-  sub   rax, rbx    ; get number of bytes to copy
+  sub   rax, rdx    ; get number of bytes to copy
 
   cmp   rax, 0
   je    .copy_esc_char
@@ -67,18 +69,6 @@ escape_html:
   cmp   qword [rsp+0x8], 0
   jne   .append
 
-  mov   rdi, [rsp]
-  add   rdi, [rsp+0x20]
-  mov   rsi, rax
-  call  boeuf_ncreate
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  jmp   .copy_esc_char
-
-.append:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]
   add   rsi, [rsp+0x20]
@@ -86,8 +76,6 @@ escape_html:
   call  boeuf_nappend
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
 .copy_esc_char:
   ; get escaped character
@@ -100,38 +88,17 @@ escape_html:
   cmp   rax, 0
   jl    .error
 
-  cmp   qword [rsp+0x8], 0
-  jne   .append_esc
-
-  mov   rdi, rax
-  call  boeuf_create
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  ; update position of the last char copied
-  mov   rax, [rsp+0x18]
-  inc   rax
-  mov   [rsp+0x20], rax
-
-  jmp   .no_escaping
-
-.append_esc:
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; update position of the last char copied
   mov   rax, [rsp+0x18]
   inc   rax
   mov   [rsp+0x20], rax
 
-.no_escaping:
   inc   qword [rsp+0x18]
 
   mov   rdi, [rsp]
@@ -141,31 +108,15 @@ escape_html:
 
 .loop_end:
   mov   rax, [rsp+0x18] ; current position
-  mov   rbx, [rsp+0x20] ; position of the last char copied
+  mov   rdx, [rsp+0x20] ; position of the last char copied
 
   mov   rdi, [rsp]
-  add   rdi, rbx
+  add   rdi, rdx
   cmp   byte [rdi], NULL_CHAR
   je    .copy_boeuf
 
-  sub   rax, rbx    ; get number of bytes to copy
+  sub   rax, rdx    ; get number of bytes to copy
 
-  ; check if we need to create or append
-  cmp   qword [rsp+0x8], 0
-  jne   .append_end
-
-  mov   rdi, [rsp]
-  add   rdi, [rsp+0x20]
-  mov   rsi, rax
-  call  boeuf_ncreate
-  cmp   rax, 0
-  jl    .error
-
-  mov   [rsp+0x8], rax
-
-  jmp   .copy_boeuf
-
-.append_end:
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]
   add   rsi, [rsp+0x20]
@@ -174,12 +125,10 @@ escape_html:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
 .copy_boeuf:
   ; copy the boeuf buffer into a string
   mov   rdi, [rsp+0x8]
-  call  strdup
+  call  boeuf_to_str
   cmp   rax, 0
   jl    .error
 
@@ -191,8 +140,6 @@ escape_html:
   jl    .error
 
   mov   rax, [rsp+0x10]
-
-  mov   qword [html_errno], HTML_NO_ERR
 
   jmp   .return
 
@@ -266,8 +213,6 @@ get_html_esc_char:
   cmp   dil, LESS_THAN
   je    .less_than
 
-  mov   qword [html_errno], HTML_INVALID_CHAR
-
   ; invalid character
   jmp   .error
 
@@ -296,5 +241,4 @@ get_html_esc_char:
   ret
 
 .return:
-  mov   qword [html_errno], HTML_NO_ERR
   ret
