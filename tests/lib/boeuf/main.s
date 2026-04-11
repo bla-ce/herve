@@ -229,6 +229,96 @@ _start:
   mov   rsi, [saved_cap]
   call  assert_equal
 
+  ; setup for boeuf_resize tests: clear and add known content
+  mov   rdi, [boeuf_buf]
+  call  boeuf_clear
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [boeuf_buf]
+  mov   rsi, str_1
+  call  boeuf_append_str
+  cmp   rax, 0
+  jl    .error
+
+  ; boeuf_resize returns success when resizing
+  mov   rdi, [boeuf_buf]
+  mov   rsi, 128
+  call  boeuf_resize
+
+  mov   rdi, rax
+  mov   rsi, SUCCESS_CODE
+  call  assert_equal
+
+  ; boeuf_resize sets capacity to exact value
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_cap
+
+  mov   rdi, rax
+  mov   rsi, 128
+  call  assert_equal
+
+  ; boeuf_resize sets length to new capacity
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_len
+
+  mov   rdi, rax
+  mov   rsi, 128
+  call  assert_equal
+
+  ; boeuf_resize can shrink and truncate the buffer
+  mov   rdi, [boeuf_buf]
+  call  boeuf_clear
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [boeuf_buf]
+  mov   rsi, str_1
+  call  boeuf_append_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [boeuf_buf]
+  mov   rsi, 5 ; truncate "Hello, sir! " to "Hello"
+  call  boeuf_resize
+
+  mov   rdi, rax
+  mov   rsi, SUCCESS_CODE
+  call  assert_equal
+
+  ; boeuf_resize shrinking updates capacity correctly
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_cap
+
+  mov   rdi, rax
+  mov   rsi, 5
+  call  assert_equal
+
+  ; boeuf_resize shrinking updates length correctly
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_len
+
+  mov   rdi, rax
+  mov   rsi, 5
+  call  assert_equal
+
+  ; boeuf_resize truncates string content correctly
+  mov   rdi, [boeuf_buf]
+  call  boeuf_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [boeuf_str], rax
+
+  mov   rdi, rax
+  mov   rsi, str_hello
+  call  assert_string_equal
+
+  mov   rdi, [boeuf_str]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   ; restore magic value for cleanup
   mov   rax, [boeuf_buf]
   mov   qword [rax+_BOEUF_OFF_MAGIC_VALUE], _BOEUF_MAGIC_VALUE

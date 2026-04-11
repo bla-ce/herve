@@ -250,7 +250,16 @@ boeuf_reserve:
   test  rdi, rdi
   jz    .error
 
+  ; make sure the new cap does not exceed max cap size
+  call  _boeuf_get_max_cap
+  cmp   rax, 0
+  jl    .error
+
+  cmp   [rsp+0x8], rax
+  jge   .error
+
   ; check if we need to realloc
+  mov   rdi, [rsp]
   call  _boeuf_get_cap
   cmp   rax, 0
   jl    .error
@@ -278,6 +287,13 @@ boeuf_reserve:
   cmp   rax, 0
   jl    .error
 
+  ; set new cap
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  _boeuf_set_cap
+  cmp   rax, 0
+  jl    .error
+
 .done:
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -289,7 +305,74 @@ boeuf_reserve:
   add   rsp, 0x10
   ret
 
+; resizes the boeuf, always reallocating the correct number of bytes
+; the boeuf will be truncated if new cap is lower than the length
+; @param  rdi: pointer to the boeuf
+; @param  rsi: new capacity
+; @return rax: return code
 boeuf_resize:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf
+  ; [rsp+0x8] -> new capacity
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  ; make sure the new cap does not exceed max cap size
+  call  _boeuf_get_max_cap
+  cmp   rax, 0
+  jl    .error
+
+  cmp   [rsp+0x8], rax
+  jge   .error
+
+  ; get data
+  mov   rdi, [rsp]
+  call  boeuf_get_data
+  cmp   rax, 0
+  jl    .error
+
+  ; realloc
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  realloc
+  cmp   rax, 0
+  jl    .error
+
+  ; save new ptr to the data
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  _boeuf_set_data
+  cmp   rax, 0
+  jl    .error
+
+  ; set new capacity
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  _boeuf_set_cap
+  cmp   rax, 0
+  jl    .error
+
+  ; set new length
+  mov   rdi, [rsp]
+  mov   rsi, [rsp+0x8]
+  call  _boeuf_set_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
   ret
 
 boeuf_shrink:
