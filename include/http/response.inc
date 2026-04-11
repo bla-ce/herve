@@ -705,22 +705,21 @@ send_json:
   cmp   rax, 0
   jl    .error
 
-  ; get json length
+  ; json to string
   mov   rdi, [rsp+0x10]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  mov   qword [rsp+0x30], rax
-
-  ; duplicate string
-  mov   rdi, [rsp+0x10]
-  mov   rsi, qword [rsp+0x30]
-  call  strndup
+  call  json_to_str
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x18], rax
+
+  ; get json length
+  mov   rdi, rax
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x30], rax
 
   mov   rdi, [rsp+0x20]
   mov   rsi, qword [rsp+0x30]
@@ -1433,8 +1432,6 @@ create_json_response:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
-
   mov   rdx, [rsp+0x8]
   test  rdx, rdx
   jz    .skip_message
@@ -1444,8 +1441,6 @@ create_json_response:
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x18], rax
 
 .skip_message:
   mov   rdx, [rsp+0x10]
@@ -1457,8 +1452,6 @@ create_json_response:
   call  json_insert_object
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x18], rax
 
 .skip_data:
   mov   rdi, [rsp+0x18]
