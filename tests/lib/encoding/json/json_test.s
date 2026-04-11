@@ -28,8 +28,6 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   mov   rdi, [rsp]
   mov   rsi, last_name_key
   mov   rdx, last_name_value
@@ -37,16 +35,12 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   mov   rdi, [rsp]
   mov   rsi, is_alive_key
   mov   rdx, TRUE
   call  json_insert_bool
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   mov   rdi, [rsp]
   mov   rsi, is_working_key
@@ -56,16 +50,12 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   mov   rdi, [rsp]
   mov   rsi, age_key
   mov   rdx, 27
   call  json_insert_integer
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   ; create second object
   call  json_create
@@ -81,16 +71,12 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   mov   rsi, city_key
   mov   rdx, city_value
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   mov   rdi, [rsp+0x8]
   mov   rsi, state_key
@@ -99,8 +85,6 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   mov   rsi, postal_code_key
   mov   rdx, postal_code_value
@@ -108,30 +92,36 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   call  json_end
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  ; json to string nested object
+  mov   rdi, [rsp+0x8]
+  call  json_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [json_str], rax
 
   ; insert nested object
   mov   rdi, [rsp]
   mov   rsi, address_key
-  mov   rdx, [rsp+0x8]
+  mov   rdx, rax
   call  json_insert_object
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   ; free nested object
   mov   rdi, [rsp+0x8]
   call  json_free
   cmp   rax, 0
   jl    .error
+
+  ; free json_str
+  mov   rdi, [json_str]
+  call  free
 
   ; create array
   call  json_array_create
@@ -146,15 +136,11 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
   mov   rdi, [rsp+0x10]
   mov   rsi, children2_value
   call  json_array_insert_string
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x10], rax
 
   mov   rdi, [rsp+0x10]
   mov   rsi, children3_value
@@ -162,31 +148,36 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
-
   ; end array
   mov   rdi, [rsp+0x10]
   call  json_array_end
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x10], rax
+  ; array to str
+  mov   rdi, [rsp+0x10]
+  call  json_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [json_str], rax
 
   ; insert array
   mov   rdi, [rsp]
   mov   rsi, children_key
-  mov   rdx, [rsp+0x10]
+  mov   rdx, rax
   call  json_insert_array
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   ; free array
   mov   rdi, [rsp+0x10]
   call  json_array_free
   cmp   rax, 0
   jl    .error
+
+  mov   rdi, [json_str]
+  call  free
 
   ; create phone number array
   call  json_array_create
@@ -209,16 +200,12 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
-
   mov   rdi, [rsp+0x20]
   mov   rsi, number_key
   mov   rdx, number_value1
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
   mov   rsi, id_key
@@ -227,29 +214,33 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
-
   mov   rdi, [rsp+0x20]
   call  json_end
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
-
-  ; insert object
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x20]
-  call  json_array_insert_object
+  mov   rdi, [rsp+0x20]
+  call  json_to_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [json_str], rax
+
+  ; insert object
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  json_array_insert_object
+  cmp   rax, 0
+  jl    .error
 
   ; free object
   mov   rdi, [rsp+0x20]
   call  json_free
   cmp   rax, 0
   jl    .error
+
+  mov   rdi, [json_to_str]
+  call  free
 
   ; create second phone number object
   call  json_create
@@ -265,16 +256,12 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
-
   mov   rdi, [rsp+0x20]
   mov   rsi, number_key
   mov   rdx, number_value2
   call  json_insert_string
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
   mov   rsi, id_key
@@ -283,23 +270,24 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
-
   mov   rdi, [rsp+0x20]
   call  json_end
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x20], rax
-
-  ; insert object
-  mov   rdi, [rsp+0x18]
-  mov   rsi, [rsp+0x20]
-  call  json_array_insert_object
+  mov   rdi, [rsp+0x20]
+  call  json_to_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   [json_str], rax
+
+  ; insert object
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  call  json_array_insert_object
+  cmp   rax, 0
+  jl    .error
 
   ; free object
   mov   rdi, [rsp+0x20]
@@ -307,28 +295,37 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  mov   rdi, [json_str]
+  call  free
+
   mov   rdi, [rsp+0x18]
   call  json_array_end
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x18], rax
+  mov   rdi, [rsp+0x18]
+  call  json_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [json_str], rax
 
   ; insert array
   mov   rdi, [rsp]
   mov   rsi, phone_numbers_key
-  mov   rdx, [rsp+0x18]
+  mov   rdx, rax
   call  json_insert_array
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   ; free array
   mov   rdi, [rsp+0x18]
   call  json_array_free
   cmp   rax, 0
   jl    .error
+
+  mov   rdi, [json_str]
+  call  free
 
   mov   rdi, [rsp]
   mov   rsi, personal_income_key
@@ -338,42 +335,36 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   mov   rdi, [rsp]
   mov   rsi, spouse_key
   call  json_insert_null
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   mov   rdi, [rsp]
   call  json_end
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   mov   rdi, [rsp]
-  call  println
+  call  json_to_str
   cmp   rax, 0
   jl    .error
+
+  mov   [json_str], rax
 
   ; compare both strings
-  mov   rdi, [rsp]
+  mov   rdi, [json_str]
   mov   rsi, target_json
-  call  strcmp
-  cmp   rax, 0
-  jl    .error
-
-  cmp   rax, TRUE
-  jne   .error
+  call  assert_string_equal
 
   mov   rdi, [rsp]
   call  json_free
   cmp   rax, 0
   jl    .error
+
+  mov   rdi, [json_str]
+  call  free
 
   mov   rdi, SUCCESS_CODE
   call  exit
@@ -383,6 +374,8 @@ _start:
   call  exit
 
 section .data
+  json_str dq 0
+
   first_name_key      db "first_name", NULL_CHAR
   last_name_key       db "last_name", NULL_CHAR
   is_alive_key        db "is_alive", NULL_CHAR

@@ -55,11 +55,12 @@ json_create:
 ; @param  rsi: pointer to the key
 ; @return rax: return code
 json_insert_key:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the json object
   ; [rsp+0x8]   -> pointer to the key
+  ; [rsp+0x10]  -> pointer to the boeuf data
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
@@ -70,13 +71,18 @@ json_insert_key:
   test  rsi, rsi
   jz    .error
 
-  ; check the character before if '{' or '[', don't add comma
-  mov   rdi, [rsp]
-  call  strlen
+  call  boeuf_get_data
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x10], rax
+
   mov   rdi, [rsp]
+  call  _boeuf_get_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x10]
   add   rdi, rax
   dec   rdi
 
@@ -130,7 +136,7 @@ json_insert_key:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret
 
 ; inserts an integer into the json object
@@ -327,8 +333,6 @@ json_insert_bool:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   cmp   qword [rsp+0x10], FALSE
   je    .insert_false
 
@@ -395,8 +399,6 @@ json_insert_float:
   call  json_insert_key
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   ; insert integer part
   cvttsd2si rdi, [rsp+0x10]
@@ -468,7 +470,7 @@ json_insert_float:
 
 .return:
   add   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; inserts a null value into the json object
@@ -942,23 +944,29 @@ json_insert_array:
 ; @param  rdi: pointer to the json array
 ; @return rax: return code
 json_array_end:
-  sub   rsp, 0x8
+  sub   rsp, 0x10
 
   ; STACK USAGE
-  ; [rsp]   -> pointer to the json array
+  ; [rsp]     -> pointer to the json array
+  ; [rsp+0x8] -> pointer to boeuf data
 
   mov   [rsp], rdi
 
   test  rdi, rdi
   jz    .error
 
-  ; go at the end of the boeuf
-  mov   rdi, [rsp]
-  call  strlen
+  call  boeuf_get_data
   cmp   rax, 0
   jl    .error
 
+  mov   [rsp+0x8], rax
+
   mov   rdi, [rsp]
+  call  _boeuf_get_len
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x8]
   add   rdi, rax
   dec   rdi
 
@@ -989,7 +997,7 @@ json_array_end:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
+  add   rsp, 0x10
   ret
 
 ; frees the json array
@@ -1009,6 +1017,23 @@ json_end:
   jl    .error
 
   mov   rax, SUCCESS_CODE
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
+
+; returns the stringified json
+; @param  rdi: pointer to the boeuf struct
+; @return rax: str(json)
+json_to_str:
+  test  rdi, rdi
+  jz    .error
+
+  call  boeuf_to_str
 
   jmp   .return
 
