@@ -12,29 +12,32 @@ response_t:
 end_response_t:
 
 section .data
-  RESPONSE_STRUCT_LEN equ end_response_t - response_t
 
-  RESPONSE_MAX_LEN equ 0x8000
+RESPONSE_STRUCT_LEN equ end_response_t - response_t
 
-  ; offsets
-  RESPONSE_OFF_STR              equ 0x0
-  RESPONSE_OFF_CLIENT           equ RESPONSE_OFF_STR + 0x8
-  RESPONSE_OFF_LEN              equ RESPONSE_OFF_CLIENT + 0x8
-  RESPONSE_OFF_PROTO            equ RESPONSE_OFF_LEN + 0x8
-  RESPONSE_OFF_HEADERS          equ RESPONSE_OFF_PROTO + 0x8
-  RESPONSE_OFF_BODY             equ RESPONSE_OFF_HEADERS + 0x8
-  RESPONSE_OFF_CONTENT_LEN      equ RESPONSE_OFF_BODY + 0x8
-  RESPONSE_OFF_CONTENT_LEN_STR  equ RESPONSE_OFF_CONTENT_LEN + 0x8
-  RESPONSE_OFF_STATUS_CODE      equ RESPONSE_OFF_CONTENT_LEN_STR + 0x8
+RESPONSE_MAX_LEN equ 0x8000
 
-  STR_CONTENT_LENGTH_MAX_LENGTH equ 7 ; add one for null char
+RESPONSE_DEFAULT_LEN equ 0x1000
 
-  EMPTY_CONTENT db "0", NULL_CHAR
+; offsets
+RESPONSE_OFF_STR              equ 0x0
+RESPONSE_OFF_CLIENT           equ RESPONSE_OFF_STR + 0x8
+RESPONSE_OFF_LEN              equ RESPONSE_OFF_CLIENT + 0x8
+RESPONSE_OFF_PROTO            equ RESPONSE_OFF_LEN + 0x8
+RESPONSE_OFF_HEADERS          equ RESPONSE_OFF_PROTO + 0x8
+RESPONSE_OFF_BODY             equ RESPONSE_OFF_HEADERS + 0x8
+RESPONSE_OFF_CONTENT_LEN      equ RESPONSE_OFF_BODY + 0x8
+RESPONSE_OFF_CONTENT_LEN_STR  equ RESPONSE_OFF_CONTENT_LEN + 0x8
+RESPONSE_OFF_STATUS_CODE      equ RESPONSE_OFF_CONTENT_LEN_STR + 0x8
 
-  ; delimiters
-  space_delim       db " ", NULL_CHAR
-  CRLF_delim        db CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
-  DOUBLE_CRLF_delim db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
+STR_CONTENT_LENGTH_MAX_LENGTH equ 7 ; add one for null char
+
+EMPTY_CONTENT db "0", NULL_CHAR
+
+; delimiters
+space_delim       db " ", NULL_CHAR
+CRLF_delim        db CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
+DOUBLE_CRLF_delim db CARRIAGE_RETURN, LINE_FEED, CARRIAGE_RETURN, LINE_FEED, NULL_CHAR
 
 section .text
 ; frees the response structure and all associated resources
@@ -55,7 +58,7 @@ free_response:
   mov   rdi, [rsp]
   call  get_response_headers
   cmp   rax, 0
-  jl    .free_response_boeuf
+  jl    .free_response_str
 
   ; free headers hash table
   mov   rdi, rax
@@ -63,14 +66,14 @@ free_response:
   cmp   rax, 0
   jl    .error
 
-.free_response_boeuf:
+.free_response_str:
   mov   rdi, [rsp]
   call  get_response_str
   cmp   rax, 0
   jle   .free_response_body
 
   mov   rdi, rax
-  call  boeuf_free
+  call  free
   cmp   rax, 0
   jl    .error
 
@@ -103,8 +106,8 @@ free_response:
 ; @param  rdi: pointer to response struct
 ; @return rax: length of the response content
 get_response_content_len:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+RESPONSE_OFF_CONTENT_LEN]
 
@@ -121,11 +124,8 @@ get_response_content_len:
 ; @param  rsi: content length
 ; @return rax: return code
 set_response_content_len:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error    ; content length can be null
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+RESPONSE_OFF_CONTENT_LEN], rsi
 
@@ -143,11 +143,8 @@ set_response_content_len:
 ; @param  rsi: pointer to the string
 ; @return rax: return code
 set_response_str:
-  cmp   rdi, 0
-  jle   .error
-
-  cmp   rsi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+RESPONSE_OFF_STR], rsi
 
@@ -164,8 +161,8 @@ set_response_str:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to the string
 get_response_str:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+RESPONSE_OFF_STR]
 
@@ -181,8 +178,8 @@ get_response_str:
 ; @param  rdi: pointer to response
 ; @return  rax: pointer to string
 get_response_content_len_str:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+RESPONSE_OFF_CONTENT_LEN_STR]
 
@@ -199,11 +196,11 @@ get_response_content_len_str:
 ; @param  rsi: pointer to string
 ; @return rax: return code
 set_response_content_len_str:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   mov   [rdi+RESPONSE_OFF_CONTENT_LEN_STR], rsi
 
@@ -228,8 +225,8 @@ get_response_protocol:
 ; @param  rdi: pointer to response
 ; @param  rax: pointer to response headers
 get_response_headers:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+RESPONSE_OFF_HEADERS]
   jmp   .return
@@ -244,8 +241,8 @@ get_response_headers:
 ; @param  rdi: pointer to response
 ; @param  rax: pointer to response status code
 get_response_status_code:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rax, [rdi+RESPONSE_OFF_STATUS_CODE]
   jmp   .return
@@ -327,11 +324,11 @@ response_init:
 ; @param  rsi: pointer to the headers array
 ; @return rax: return code
 set_response_headers:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   mov   [rdi+RESPONSE_OFF_HEADERS], rsi
 
@@ -349,11 +346,11 @@ set_response_headers:
 ; @param  rsi: pointer to the string status code
 ; @return rax: return code
 set_response_status_code:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   mov   [rdi+RESPONSE_OFF_STATUS_CODE], rsi
 
@@ -371,10 +368,8 @@ set_response_status_code:
 ; @param  rsi: pointer to body
 ; @return rax: return code
 set_response_body:
-  cmp   rdi, 0
-  jle   .error
-
-  ; body can be 0
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+RESPONSE_OFF_BODY], rsi
 
@@ -391,10 +386,9 @@ set_response_body:
 ; @param  rdi: pointer to the response struct
 ; @return rax: pointer to the body (can be null)
 get_response_body:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  ; check if body is 0
   mov   rax, [rdi+RESPONSE_OFF_BODY]
   jmp   .return
 
@@ -408,41 +402,54 @@ get_response_body:
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
 stringify_response:
-  sub   rsp, 0x18
+  sub   rsp, 0x20
   sub   rsp, HEADERS_MAX_LEN
 
   ; STACK USAGE
   ; [rsp]       -> pointer to the response struct
   ; [rsp+0x8]   -> pointer to the boeuf holding the stringified response
   ; [rsp+0x10]  -> pointer to the response body
-  ; [rsp+0x18]  -> pointer to the response headers
+  ; [rsp+0x18]  -> pointer to the response string
+  ; [rsp+0x20]  -> pointer to the response headers
 
   mov   [rsp], rdi
   mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
+  test  rdi, rdi
+  jz    .error
+
+  ; init boeuf
+  call  boeuf_init
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  mov   rdi, rax
+  mov   rsi, RESPONSE_DEFAULT_LEN
+  call  boeuf_reserve
+  cmp   rax, 0
   jl    .error
 
   ; get context protocol
+  mov   rdi, [rsp]
   call  get_response_protocol
   cmp   rax, 0
   jl    .error
 
   ; create dynamic buffer
-  mov   rdi, rax
-  call  boeuf_create
+  mov   rdi, [rsp+0x8]
+  mov   rsi, rax
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   mov   rsi, space_delim
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; get status code
   mov   rdi, [rsp]
@@ -458,19 +465,15 @@ stringify_response:
 
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   mov   rsi, CRLF_delim
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; get headers
   mov   rdi, [rsp]
@@ -479,19 +482,17 @@ stringify_response:
   jl    .error
 
   mov   rdi, rax
-  lea   rsi, [rsp+0x18]
+  lea   rsi, [rsp+0x20]
   call  stringify_headers
   cmp   rax, 0
   jl    .error
 
   ; append headers
   mov   rdi, [rsp+0x8]
-  lea   rsi, [rsp+0x18]
-  call  boeuf_append
+  lea   rsi, [rsp+0x20]
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; get body
   mov   rdi, [rsp]
@@ -514,36 +515,53 @@ stringify_response:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
 .skip_body:
+  mov   rdi, [rsp+0x8]
+  call  boeuf_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
   ; save response str
   mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
+  mov   rsi, rax
   call  set_response_str
   cmp   rax, 0
   jl    .error
 
+  ; free boeuf
+  mov   rdi, [rsp+0x8]
+  call  boeuf_free
+  cmp   rax, 0
+  jl    .error
+
   ; return response
-  mov   rax, [rsp+0x8]
+  mov   rax, [rsp+0x18]
 
   jmp   .return
 
 .error:
-  ; free response string
-  mov   rax, [rsp+0x8]
-  test  rax, rax
+  ; free response boeuf
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .free_boeuf_str
+
+  call  boeuf_free
+
+.free_boeuf_str:
+  mov   rdi, [rsp+0x18]
+  test  rdi, rdi
   jz    .no_free
 
-  mov   rdi, rax
-  call  boeuf_free
+  call  free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
   add   rsp, HEADERS_MAX_LEN
-  add   rsp, 0x18
+  add   rsp, 0x20
   ret
 
 ; sends a response without content
@@ -553,8 +571,8 @@ stringify_response:
 send_no_content:
   sub   rsp, 0x18
 
-  cmp   rdi, 0
-  jl    .error
+  test  rdi, rdi
+  jz    .error
 
   ; default status code is 204 No Content
   mov   rax, NO_CONTENT
