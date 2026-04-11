@@ -27,10 +27,19 @@ json_create:
   ; STACK USAGE
   ; [rsp] -> pointer to the json object
 
-  mov   rdi, JSON_BEGIN
-  call  boeuf_create
+  call  boeuf_init
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp], rax
+
+  mov   rdi, rax
+  mov   rsi, JSON_BEGIN
+  call  boeuf_append_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp]
 
   jmp   .return
 
@@ -44,7 +53,7 @@ json_create:
 ; inserts the key of the kv pair
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the key
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_insert_key:
   sub   rsp, 0x10
 
@@ -55,11 +64,11 @@ json_insert_key:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; check the character before if '{' or '[', don't add comma
   mov   rdi, [rsp]
@@ -80,40 +89,40 @@ json_insert_key:
   ; insert comma
   mov   rdi, [rsp]
   mov   rsi, JSON_KEYS_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
 .no_comma:
   ; insert double quote
   mov   rdi, [rsp]
   mov   rsi, JSON_STR_QUOTES
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert string
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert double quote
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_STR_QUOTES
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert delim
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_KV_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
+
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
@@ -128,7 +137,7 @@ json_insert_key:
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the key
 ; @param  rdx: integer
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_insert_integer:
   sub   rsp, 0x18
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
@@ -143,18 +152,16 @@ json_insert_integer:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; insert key
   call  json_insert_key
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   mov   rdi, [rsp+0x10]
   lea   rsi, [rsp+0x18]
@@ -165,11 +172,11 @@ json_insert_integer:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -184,7 +191,7 @@ json_insert_integer:
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the key
 ; @param  rdx: pointer to the json object to insert
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_insert_object:
   sub   rsp, 0x18
 
@@ -197,30 +204,29 @@ json_insert_object:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
-  cmp   rdx, 0
-  jle   .error
+  test  rdx, rdx
+  jz    .error
 
   ; insert key
   call  json_insert_key
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   ; insert json object
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
+
   jmp   .return
 
 .error:
@@ -234,7 +240,7 @@ json_insert_object:
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the key
 ; @param  rdx: pointer to the value
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_insert_string:
   sub   rsp, 0x18
 
@@ -247,44 +253,43 @@ json_insert_string:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
-  cmp   rdx, 0
-  jle   .error
+  test  rdx, rdx
+  jz    .error
 
   ; insert key
   call  json_insert_key
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   ; insert double quote
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_STR_QUOTES
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert second string
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert double quote
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_STR_QUOTES
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
+
   jmp   .return
 
 .error:
@@ -298,7 +303,7 @@ json_insert_string:
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the key
 ; @param  rdx: TRUE (1) | FALSE (0)
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_insert_bool:
   sub   rsp, 0x18
 
@@ -311,11 +316,11 @@ json_insert_bool:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; insert key
   call  json_insert_key
@@ -330,18 +335,22 @@ json_insert_bool:
 .insert_true:
   mov   rdi, [rsp]
   mov   rsi, JSON_BOOL_TRUE
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
+
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
 .insert_false:
   mov   rdi, [rsp]
   mov   rsi, JSON_BOOL_FALSE
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
+
+  mov   rax, SUCCESS_CODE
 
   ; return
   jmp   .return
@@ -358,7 +367,7 @@ json_insert_bool:
 ; @param  rsi: pointer to the key
 ; @param  rdx: float value
 ; @param  rcx: precision
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_insert_float:
   sub   rsp, 0x28
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
@@ -376,11 +385,11 @@ json_insert_float:
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rcx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; insert key
   call  json_insert_key
@@ -399,18 +408,16 @@ json_insert_float:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert dot
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_FLOAT_DOT
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   ; get decimal part
   mov   rax, 1
@@ -448,9 +455,11 @@ json_insert_float:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
+
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
@@ -465,7 +474,7 @@ json_insert_float:
 ; inserts a null value into the json object
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the key
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_insert_null:
   sub   rsp, 0x10
 
@@ -476,23 +485,21 @@ json_insert_null:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; insert key
   call  json_insert_key
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   ; insert double quote
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_NULL
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
@@ -514,10 +521,19 @@ json_array_create:
   ; STACK USAGE
   ; [rsp] -> pointer to the json object
 
-  mov   rdi, JSON_ARRAY_BEGIN
-  call  boeuf_create
+  call  boeuf_init
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp], rax
+
+  mov   rdi, rax
+  mov   rsi, JSON_ARRAY_BEGIN
+  call  boeuf_append_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp]
 
   jmp   .return
 
@@ -533,7 +549,7 @@ json_array_create:
 ; @param  rsi: pointer to the key
 ; @param  rdx: float value
 ; @param  rcx: precision
-; @return rax: pointer to the updated json array
+; @return rax: return code
 json_array_insert_float:
   sub   rsp, 0x20
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
@@ -549,8 +565,8 @@ json_array_insert_float:
   mov   [rsp+0x8], rdx
   mov   [rsp+0x10], rcx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; insert integer part
   cvttsd2si rdi, [rsp+0x8]
@@ -562,18 +578,16 @@ json_array_insert_float:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert dot
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_FLOAT_DOT
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   ; get decimal part
   mov   rax, 1
@@ -611,17 +625,18 @@ json_array_insert_float:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; add comma
   mov   rdi, [rsp]
   mov   rsi, JSON_KEYS_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -635,7 +650,7 @@ json_array_insert_float:
 ; inserts an integer into the json array
 ; @param  rdi: pointer to the json array
 ; @param  rsi: integer
-; @return rax: pointer to the updated json array
+; @return rax: return code
 json_array_insert_integer:
   sub   rsp, 0x10
   sub   rsp, SIGNED_LONG_LONG_MAX_STR_SIZE
@@ -648,8 +663,8 @@ json_array_insert_integer:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   rdi, [rsp+0x8]
   lea   rsi, [rsp+0x10]
@@ -660,20 +675,18 @@ json_array_insert_integer:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp], rax
 
   ; add comma
   mov   rdi, [rsp]
   mov   rsi, JSON_KEYS_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -687,7 +700,7 @@ json_array_insert_integer:
 ; inserts a json object into the json array
 ; @param  rdi: pointer to the json array
 ; @param  rsi: pointer to the json object to insert
-; @return rax: pointer to the updated json array
+; @return rax: return code
 json_array_insert_object:
   sub   rsp, 0x10
 
@@ -698,27 +711,27 @@ json_array_insert_object:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; insert json object
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; add comma
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_KEYS_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -731,7 +744,7 @@ json_array_insert_object:
 ; inserts a string into the json object
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the value
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_array_insert_string:
   sub   rsp, 0x10
 
@@ -742,41 +755,41 @@ json_array_insert_string:
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; insert double quote
   mov   rdi, [rsp]
   mov   rsi, JSON_STR_QUOTES
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert second string
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; insert double quote
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_STR_QUOTES
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; add comma
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_KEYS_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -789,7 +802,7 @@ json_array_insert_string:
 ; inserts a boolean into the json object
 ; @param  rdi: pointer to the json object
 ; @param  rsi: TRUE (1) | FALSE (0)
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_array_insert_bool:
   sub   rsp, 0x10
 
@@ -809,7 +822,7 @@ json_array_insert_bool:
 .insert_true:
   mov   rdi, [rsp]
   mov   rsi, JSON_BOOL_TRUE
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
@@ -818,18 +831,18 @@ json_array_insert_bool:
 .insert_false:
   mov   rdi, [rsp]
   mov   rsi, JSON_BOOL_FALSE
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
 .insert_comma:
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, JSON_KEYS_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -841,7 +854,7 @@ json_array_insert_bool:
 
 ; inserts a null value into the json object
 ; @param  rdi: pointer to the json object
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_array_insert_null:
   sub   rsp, 0x8
 
@@ -850,24 +863,24 @@ json_array_insert_null:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; insert double quote
   mov   rdi, [rsp]
   mov   rsi, JSON_NULL
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; insert omma
+  ; insert comma
   mov   rdi, [rsp]
   mov   rsi, JSON_KEYS_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -881,7 +894,7 @@ json_array_insert_null:
 ; @param  rdi: pointer to the json object
 ; @param  rsi: pointer to the key
 ; @param  rdx: pointer to the array
-; @return rax: pointer to the updated json object
+; @return rax: return code
 json_insert_array:
   sub   rsp, 0x18
 
@@ -894,30 +907,28 @@ json_insert_array:
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
-  cmp   rdx, 0
-  jle   .error
+  test  rdx, rdx
+  jz    .error
 
   ; insert key
   call  json_insert_key
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp], rax
-
   ; insert json array
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  ; return
+  mov   rax, SUCCESS_CODE
   jmp   .return
 
 .error:
@@ -929,7 +940,7 @@ json_insert_array:
 
 ; ends the json array
 ; @param  rdi: pointer to the json array
-; @return rax: pointer to the json array
+; @return rax: return code
 json_array_end:
   sub   rsp, 0x8
 
@@ -938,8 +949,8 @@ json_array_end:
 
   mov   [rsp], rdi
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; go at the end of the boeuf
   mov   rdi, [rsp]
@@ -957,9 +968,11 @@ json_array_end:
   ; append closing
   mov   rdi, [rsp]
   mov   rsi, JSON_ARRAY_END
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
+
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
@@ -968,7 +981,7 @@ json_array_end:
   mov   rax, CLOSING_BRACKET
   stosb
 
-  mov   rax, [rsp]
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
@@ -988,12 +1001,14 @@ json_array_free:
 
 ; ends the json object
 ; @param  rdi: pointer to the json object
-; @return rax: pointer to the json object
+; @return rax: return code
 json_end:
   mov   rsi, JSON_END
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
+
+  mov   rax, SUCCESS_CODE
 
   jmp   .return
 
