@@ -23,7 +23,7 @@ COOKIE_OFF_DOMAIN     equ COOKIE_OFF_SECURE + 0x8
 COOKIE_OFF_PATH       equ COOKIE_OFF_DOMAIN + 0x8
 COOKIE_OFF_SAMESITE   equ COOKIE_OFF_PATH + 0x8
 
-COOKIE_MAX_SIZE equ 0x1000
+COOKIE_DEFAULT_SIZE equ 0x100
 
 ATTRIBUTE_DELIM db "; ", NULL_CHAR
 
@@ -73,11 +73,11 @@ set_cookie:
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x10], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   mov   rdi, rsi
   call  serialize_cookie
@@ -97,7 +97,7 @@ set_cookie:
   jl    .error
 
   mov   rdi, rax
-  lea   rsi, [SET_COOKIE_HEADER]
+  mov   rsi, SET_COOKIE_HEADER
   mov   rdx, [rsp+0x10]
   call  set_header
   cmp   rax, 0
@@ -132,9 +132,6 @@ set_cookie:
 is_cookie_key_valid:
   sub   rsp, 0x10
 
-  cmp   rdi, 0
-  jl    .false
-
   ; STACK USAGE
   ; [rsp]     -> pointer to the key
   ; [rsp+0x8] -> key length
@@ -149,19 +146,19 @@ is_cookie_key_valid:
   mov   qword [rsp+0x8], rax
 
   mov   rdi, [rsp]
-  xor   r9, r9
+  xor   rdx, rdx
 
 .loop:
-  cmp   r9, qword [rsp+0x8]
+  cmp   rdx, qword [rsp+0x8]
   jge   .loop_end
 
   xor   rax, rax
-  mov   al, byte [rdi+r9]
+  mov   al, byte [rdi+rdx]
   movzx eax, byte [token_table + rax]
   cmp   eax, FALSE
   je    .false
 
-  inc   r9
+  inc   rdx
   jmp   .loop
 .loop_end:
 
@@ -193,11 +190,11 @@ create_cookie:
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x10], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; make sure cookie name is valid
   call  is_cookie_key_valid
@@ -238,8 +235,8 @@ create_cookie:
 ; @param  rsi: max age of the cookie
 ; @return rax: return code
 set_cookie_max_age:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+COOKIE_OFF_MAX_AGE], rsi
 
@@ -258,8 +255,8 @@ set_cookie_max_age:
 ; @param  rsi: domain of the cookie
 ; @return rax: return code
 set_cookie_domain:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+COOKIE_OFF_DOMAIN], rsi
 
@@ -278,8 +275,8 @@ set_cookie_domain:
 ; @param  rsi: secure attribute
 ; @return rax: return code
 set_cookie_secure:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+COOKIE_OFF_SECURE], rsi
 
@@ -298,8 +295,8 @@ set_cookie_secure:
 ; @param  rsi: path of the cookie
 ; @return rax: return code
 set_cookie_path:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+COOKIE_OFF_PATH], rsi
 
@@ -318,8 +315,8 @@ set_cookie_path:
 ; @param  rsi: http only attribute
 ; @return rax: return code
 set_cookie_http_only:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+COOKIE_OFF_HTTP_ONLY], rsi
 
@@ -338,8 +335,8 @@ set_cookie_http_only:
 ; @param  rsi: same site attribute
 ; @return rax: return code
 set_cookie_samesite:
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   mov   [rdi+COOKIE_OFF_SAMESITE], rsi
 
@@ -371,19 +368,31 @@ serialize_cookie:
   mov   qword [rsp+0x8], 0
   mov   qword [rsp+0x10], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  ; get cookie name
-  mov   rax, [rdi+COOKIE_OFF_NAME]
-
-  ; create boeuf buffer
-  mov   rdi, rax
-  call  boeuf_create
+  ; init boeuf buffer
+  call  boeuf_init
   cmp   rax, 0
   jl    .error
 
   mov   [rsp+0x8], rax
+
+  mov   rdi, rax
+  mov   rsi, COOKIE_DEFAULT_SIZE
+  call  boeuf_reserve
+  cmp   rax, 0
+  jl    .error
+
+  ; get cookie name
+  mov   rdi, [rsp]
+  mov   rsi, [rdi+COOKIE_OFF_NAME]
+
+  ; create boeuf buffer
+  mov   rdi, [rsp+0x8]
+  call  boeuf_append_str
+  cmp   rax, 0
+  jl    .error
 
   ; add equal
   mov   byte [rsp+0x18], EQUAL_SIGN
@@ -391,32 +400,26 @@ serialize_cookie:
 
   mov   rdi, [rsp+0x8]
   lea   rsi, [rsp+0x18]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; append cookie value
   mov   rdi, [rsp]
   mov   rsi, [rdi+COOKIE_OFF_VALUE]
-  mov   rdi, rax
-  call  boeuf_append
+  mov   rdi, [rsp+0x8]
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; add cookie delimiter
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   mov   rsi, ATTRIBUTE_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
-  mov   rdi, [rsp]
+  mov   rdi, [rsp+0x8]
   mov   rsi, [rdi+COOKIE_OFF_DOMAIN]
   cmp   rsi, 0
   je    .skip_domain
@@ -424,28 +427,24 @@ serialize_cookie:
   ; append domain key
   mov   rdi, [rsp+0x8]
   mov   rsi, DOMAIN_ATTR
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; add equal
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   lea   rsi, [rsp+0x18]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; add domain value
   mov   rdi, [rsp]
   mov   rsi, [rdi+COOKIE_OFF_DOMAIN]
   mov   rdi, [rsp+0x8]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
 .skip_domain:
   ; get max age attribute
@@ -457,25 +456,23 @@ serialize_cookie:
   ; append delimiter
   mov   rdi, [rsp+0x8]
   mov   rsi, ATTRIBUTE_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; append max age key
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   mov   rsi, MAX_AGE_ATTR
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; append equal
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   lea   rsi, [rsp+0x18]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; copy max age string
   mov   rsi, [rsp]
@@ -489,11 +486,9 @@ serialize_cookie:
   ; append max age attribute
   mov   rdi, [rsp+0x8]
   mov   rsi, rax
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
 .skip_max_age:
   ; http_only attribute
@@ -504,18 +499,16 @@ serialize_cookie:
 
   mov   rdi, [rsp+0x8]
   mov   rsi, ATTRIBUTE_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; add http only
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   mov   rsi, HTTP_ONLY_ATTR
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
 .skip_http_only:
   ; secure attribute
@@ -527,18 +520,16 @@ serialize_cookie:
   ; add '; '
   mov   rdi, [rsp+0x8]
   mov   rsi, ATTRIBUTE_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; add secure
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   mov   rsi, SECURE_ATTR
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
 .skip_secure:
   ; path attribute
@@ -550,37 +541,31 @@ serialize_cookie:
   ; add '; '
   mov   rdi, [rsp+0x8]
   mov   rsi, ATTRIBUTE_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   ; append path key
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   mov   rsi, PATH_ATTR
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; append equal
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   lea   rsi, [rsp+0x18]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; add path
   mov   rdi, [rsp]
   mov   rsi, [rdi+COOKIE_OFF_PATH]
   mov   rdi, [rsp+0x8]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
 .skip_path:
   ; samesite attribute
@@ -592,42 +577,35 @@ serialize_cookie:
   ; add '; '
   mov   rdi, [rsp+0x8]
   mov   rsi, ATTRIBUTE_DELIM
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   ; append samesite key
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   mov   rsi, SAMESITE_ATTR
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
   ; append equal
-  mov   rdi, rax
+  mov   rdi, [rsp+0x8]
   lea   rsi, [rsp+0x18]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   ; add samesite
   mov   rdi, [rsp]
   mov   rsi, [rdi+COOKIE_OFF_SAMESITE]
   mov   rdi, [rsp+0x8]
-  call  boeuf_append
+  call  boeuf_append_str
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
 .skip_samesite:
-  ; duplicate boeuf to return a string
   mov   rdi, [rsp+0x8]
-  call  strdup
+  call  boeuf_to_str
   cmp   rax, 0
   jl    .error
 
