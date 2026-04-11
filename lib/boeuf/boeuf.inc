@@ -20,7 +20,7 @@ _BOEUF_OFF_DATA         equ _BOEUF_OFF_MAX_CAPACITY + 0x8
 
 _BOEUF_MAGIC_VALUE equ 0xC0FFEE
 
-_BOEUF_DEFAULT_MAX_CAPACITY equ 4096 ; 4kb
+_BOEUF_DEFAULT_MAX_CAPACITY equ 1000000 ; 1MB
 
 section .text
 ; appends n bytes to the boeuf data which is reallocated if needed

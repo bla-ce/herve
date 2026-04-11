@@ -730,15 +730,19 @@ set_404_handler:
 ; returns 200 OK and amount of memory mallocd, freed and mmapd
 ; @param  rdi: pointer to the context struct
 health_check:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   ; STACK USAGE
-  ; [rsp] -> pointer to the context struct
+  ; [rsp]       -> pointer to the context struct
+  ; [rsp+0x8]   -> pointer to the json object
+  ; [rsp+0x10]  -> pointer to str(json)
 
   mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x10], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
   ; create json
   call  json_create
@@ -760,16 +764,12 @@ health_check:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   mov   rsi, mallocd_key
   mov   rdx, qword [mallocd]
   call  json_insert_integer
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   mov   rdi, [rsp+0x8]
   mov   rsi, freed_key
@@ -778,8 +778,6 @@ health_check:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   mov   rsi, mmapd_key
   mov   rdx, qword [mmapd]
@@ -787,18 +785,22 @@ health_check:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   call  json_end
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  ; json to str
+  mov   rdi, [rsp+0x8]
+  call  json_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
 
   mov   rdi, [rsp]
   mov   rsi, OK
-  mov   rdx, [rsp+0x8]
+  mov   rdx, rax
   call  send_json
   cmp   rax, 0
   jl    .error
@@ -806,6 +808,12 @@ health_check:
   ; free json
   mov   rdi, [rsp+0x8]
   call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  ; free json to str
+  mov   rdi, [rsp+0x10]
+  call  free
   cmp   rax, 0
   jl    .error
 
@@ -821,16 +829,12 @@ health_check:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   mov   rsi, mallocd_key
   mov   rdx, qword [mallocd]
   call  json_insert_integer
   cmp   rax, 0
   jl    .error
-
-  mov   [rsp+0x8], rax
 
   mov   rdi, [rsp+0x8]
   mov   rsi, freed_key
@@ -839,8 +843,6 @@ health_check:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   mov   rsi, mmapd_key
   mov   rdx, qword [mmapd]
@@ -848,24 +850,35 @@ health_check:
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
-
   mov   rdi, [rsp+0x8]
   call  json_end
   cmp   rax, 0
   jl    .error
 
-  mov   [rsp+0x8], rax
+  ; json to str
+  mov   rdi, [rsp+0x8]
+  call  json_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x10], rax
 
   mov   rdi, [rsp]
   mov   rsi, INTERNAL_SERVER_ERROR
-  mov   rdx, [rsp+0x8]
+  mov   rdx, rax
   call  send_json
   cmp   rax, 0
   jl    .error
 
+  ; free json
   mov   rdi, [rsp+0x8]
   call  json_free
+  cmp   rax, 0
+  jl    .error
+
+  ; free json to str
+  mov   rdi, [rsp+0x10]
+  call  free
   cmp   rax, 0
   jl    .error
 
@@ -875,13 +888,20 @@ health_check:
 .error:
   mov   rdi, [rsp+0x8]
   test  rdi, rdi
-  jz    .no_free
+  jz    .free_json_str
 
   call  json_free
+
+.free_json_str:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
 
 .no_free:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x18
   ret

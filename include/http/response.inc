@@ -1063,11 +1063,11 @@ send_response:
   mov   [rsp+0x8], rsi
   mov   qword [rsp+0x18], 0
 
-  cmp   rdi, 0
-  jle   .error
+  test  rdi, rdi
+  jz    .error
 
-  cmp   rsi, 0
-  jle   .error
+  test  rsi, rsi
+  jz    .error
 
   ; validate status code
   mov   rdi, qword [rsp+0x8]
