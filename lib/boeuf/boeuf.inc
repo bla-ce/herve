@@ -233,6 +233,71 @@ boeuf_to_str:
   add   rsp, 0x10
   ret
 
+; grows the capacity of the boeuf
+; @param  rdi: pointer to the boeuf
+; @param  rsi: new capacity
+; @return rax: return code
+boeuf_reserve:
+  sub   rsp, 0x10
+
+  ; STACK USAGE
+  ; [rsp]     -> pointer to the boeuf
+  ; [rsp+0x8] -> new capacity
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  test  rdi, rdi
+  jz    .error
+
+  ; check if we need to realloc
+  call  _boeuf_get_cap
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, [rsp+0x8]
+  jge   .done
+
+  ; get data
+  mov   rdi, [rsp]
+  call  boeuf_get_data
+  cmp   rax, 0
+  jl    .error
+
+  ; realloc
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  call  realloc
+  cmp   rax, 0
+  jl    .error
+
+  ; save new ptr to the data
+  mov   rdi, [rsp]
+  mov   rsi, rax
+  call  _boeuf_set_data
+  cmp   rax, 0
+  jl    .error
+
+.done:
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+boeuf_resize:
+  ret
+
+boeuf_shrink:
+  ret
+
+boeuf_set_max_cap:
+  ret
+
 ; clears boeuf data
 ; @param  rdi: pointer to the boeuf struct
 ; @return rax: return code

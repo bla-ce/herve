@@ -200,6 +200,35 @@ _start:
   mov   rsi, SUCCESS_CODE
   call  assert_equal
 
+  ; boeuf_reserve returns success when reserving
+  mov   rdi, [boeuf_buf]
+  mov   rsi, 256
+  call  boeuf_reserve
+
+  mov   rdi, rax
+  mov   rsi, SUCCESS_CODE
+  call  assert_equal
+
+  ; boeuf_reserve with smaller capacity is a no-op (preserves existing)
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_cap
+  mov   [saved_cap], rax
+
+  mov   rdi, [boeuf_buf]
+  mov   rsi, 10
+  call  boeuf_reserve
+
+  mov   rdi, rax
+  mov   rsi, SUCCESS_CODE
+  call  assert_equal
+
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_cap
+
+  mov   rdi, rax
+  mov   rsi, [saved_cap]
+  call  assert_equal
+
   ; restore magic value for cleanup
   mov   rax, [boeuf_buf]
   mov   qword [rax+_BOEUF_OFF_MAGIC_VALUE], _BOEUF_MAGIC_VALUE
@@ -225,6 +254,8 @@ section .data
 boeuf_buf dq 0
 
 boeuf_str dq 0
+
+saved_cap dq 0
 
 str_1     db "Hello, sir! ", NULL_CHAR
 str_2     db "How are you?", NULL_CHAR
