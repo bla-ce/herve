@@ -62,7 +62,7 @@ boeuf_nappend:
 
   ; get the new length of the data
   mov   rdi, [rsp]
-  call  boeuf_get_len
+  call  _boeuf_get_len
   cmp   rax, 0
   jl    .error
 
@@ -72,7 +72,7 @@ boeuf_nappend:
 
   ; check if new length exceed boeuf max capacity
   mov   rdi, [rsp]
-  call  boeuf_get_max_cap
+  call  _boeuf_get_max_cap
   cmp   rax, 0
   jl    .error
 
@@ -82,7 +82,7 @@ boeuf_nappend:
   ; check against current capacity to check if reallocating is
   ; necessary
   mov   rdi, [rsp]
-  call  boeuf_get_cap
+  call  _boeuf_get_cap
   cmp   rax, 0
   jl    .error
 
@@ -107,7 +107,7 @@ boeuf_nappend:
   ; update length of the data
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x20]
-  call  boeuf_set_len
+  call  _boeuf_set_len
   cmp   rax, 0
   jl    .error
 
@@ -141,7 +141,7 @@ boeuf_nappend:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  boeuf_set_data
+  call  _boeuf_set_data
   cmp   rax, 0
   jl    .error
 
@@ -155,13 +155,13 @@ boeuf_nappend:
   ; update new len and new capacity
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x20]
-  call  boeuf_set_len
+  call  _boeuf_set_len
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x30]
-  call  boeuf_set_cap
+  call  _boeuf_set_cap
   cmp   rax, 0
   jl    .error
 
@@ -214,7 +214,7 @@ boeuf_to_str:
 
   ; get boeuf length
   mov   rdi, [rsp]
-  call  boeuf_get_len
+  call  _boeuf_get_len
   cmp   rax, 0
   jl    .error
 
@@ -412,25 +412,10 @@ boeuf_is_corrupted:
 ; @param  rdi: pointer to the boeuf struct
 ; @param  rsi: pointer to the data
 ; @return rax: return code
-boeuf_set_data:
-  sub   rsp, 0x10
-
-  ; STACK USAGE
-  ; [rsp]     -> pointer to the boeuf struct
-  ; [rsp+0x8] -> pointer to the data
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
+_boeuf_set_data:
   test  rdi, rdi
   jz    .error
 
-  call  boeuf_is_corrupted
-  cmp   rax, FALSE
-  jne   .error
-
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
   mov   [rdi+_BOEUF_OFF_DATA], rsi
 
   mov   rax, SUCCESS_CODE
@@ -440,7 +425,6 @@ boeuf_set_data:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
   ret
 
 ; returns the data of the boeuf struct
@@ -476,25 +460,10 @@ boeuf_get_data:
 ; @param  rdi: pointer to the boeuf struct
 ; @param  rsi: length
 ; @return rax: return code
-boeuf_set_len:
-  sub   rsp, 0x10
-
-  ; STACK USAGE
-  ; [rsp]     -> pointer to the boeuf struct
-  ; [rsp+0x8] -> length
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
+_boeuf_set_len:
   test  rdi, rdi
   jz    .error
 
-  call  boeuf_is_corrupted
-  cmp   rax, FALSE
-  jne   .error
-
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
   mov   [rdi+_BOEUF_OFF_LENGTH], rsi
 
   mov   rax, SUCCESS_CODE
@@ -504,28 +473,15 @@ boeuf_set_len:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
   ret
 
 ; returns the length of the boeuf struct
 ; @param  rdi: pointer to the boeuf struct
 ; @return rax: length
-boeuf_get_len:
-  sub   rsp, 0x8
-
-  ; STACK USAGE
-  ; [rsp]   -> pointer to the boeuf struct
-
-  mov   [rsp], rdi
-
+_boeuf_get_len:
   test  rdi, rdi
   jz    .error
 
-  call  boeuf_is_corrupted
-  cmp   rax, FALSE
-  jne   .error
-
-  mov   rdi, [rsp]
   mov   rax, [rdi+_BOEUF_OFF_LENGTH]
   jmp   .return
 
@@ -533,32 +489,16 @@ boeuf_get_len:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
   ret
 
 ; sets the capacity of the boeuf struct
 ; @param  rdi: pointer to the boeuf struct
 ; @param  rsi: capacity
 ; @return rax: return code
-boeuf_set_cap:
-  sub   rsp, 0x10
-
-  ; STACK USAGE
-  ; [rsp]     -> pointer to the boeuf struct
-  ; [rsp+0x8] -> capacity
-
-  mov   [rsp], rdi
-  mov   [rsp+0x8], rsi
-
+_boeuf_set_cap:
   test  rdi, rdi
   jz    .error
 
-  call  boeuf_is_corrupted
-  cmp   rax, FALSE
-  jne   .error
-
-  mov   rdi, [rsp]
-  mov   rsi, [rsp+0x8]
   mov   [rdi+_BOEUF_OFF_CAPACITY], rsi
 
   mov   rax, SUCCESS_CODE
@@ -568,28 +508,15 @@ boeuf_set_cap:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
   ret
 
 ; returns the capacity of the boeuf struct
 ; @param  rdi: pointer to the boeuf struct
 ; @return rax: capacity
-boeuf_get_cap:
-  sub   rsp, 0x8
-
-  ; STACK USAGE
-  ; [rsp]   -> pointer to the boeuf struct
-
-  mov   [rsp], rdi
-
+_boeuf_get_cap:
   test  rdi, rdi
   jz    .error
 
-  call  boeuf_is_corrupted
-  cmp   rax, FALSE
-  jne   .error
-
-  mov   rdi, [rsp]
   mov   rax, [rdi+_BOEUF_OFF_CAPACITY]
   jmp   .return
 
@@ -597,28 +524,15 @@ boeuf_get_cap:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
   ret
 
 ; returns the max capacity of the boeuf struct
 ; @param  rdi: pointer to the boeuf struct
 ; @return rax: max capacity
-boeuf_get_max_cap:
-  sub   rsp, 0x8
-
-  ; STACK USAGE
-  ; [rsp]   -> pointer to the boeuf struct
-
-  mov   [rsp], rdi
-
+_boeuf_get_max_cap:
   test  rdi, rdi
   jz    .error
 
-  call  boeuf_is_corrupted
-  cmp   rax, FALSE
-  jne   .error
-
-  mov   rdi, [rsp]
   mov   rax, [rdi+_BOEUF_OFF_MAX_CAPACITY]
   jmp   .return
 
@@ -626,7 +540,6 @@ boeuf_get_max_cap:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x8
   ret
 
 boeuf_create:
