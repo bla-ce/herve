@@ -319,6 +319,77 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; setup for boeuf_shrink tests: reserve excess capacity and add content
+  mov   rdi, [boeuf_buf]
+  mov   rsi, 256
+  call  boeuf_reserve
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [boeuf_buf]
+  call  boeuf_clear
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [boeuf_buf]
+  mov   rsi, str_1
+  call  boeuf_append_str
+  cmp   rax, 0
+  jl    .error
+
+  ; verify capacity is greater than length before shrink
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_cap
+  mov   [saved_cap], rax
+
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_len
+
+  mov   rdi, [saved_cap]
+  mov   rsi, rax
+  call  assert_not_equal
+
+  ; boeuf_shrink returns success
+  mov   rdi, [boeuf_buf]
+  call  boeuf_shrink
+
+  mov   rdi, rax
+  mov   rsi, SUCCESS_CODE
+  call  assert_equal
+
+  ; boeuf_shrink sets capacity to length
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_cap
+
+  mov   rdi, rax
+  mov   rsi, 12 ; "Hello, sir! " is 12 chars
+  call  assert_equal
+
+  ; boeuf_shrink preserves length
+  mov   rdi, [boeuf_buf]
+  call  _boeuf_get_len
+
+  mov   rdi, rax
+  mov   rsi, 12
+  call  assert_equal
+
+  ; boeuf_shrink preserves string content
+  mov   rdi, [boeuf_buf]
+  call  boeuf_to_str
+  cmp   rax, 0
+  jl    .error
+
+  mov   [boeuf_str], rax
+
+  mov   rdi, rax
+  mov   rsi, str_1
+  call  assert_string_equal
+
+  mov   rdi, [boeuf_str]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   ; restore magic value for cleanup
   mov   rax, [boeuf_buf]
   mov   qword [rax+_BOEUF_OFF_MAGIC_VALUE], _BOEUF_MAGIC_VALUE
