@@ -65,10 +65,6 @@ escape_html:
   cmp   rax, 0
   je    .copy_esc_char
 
-  ; check if we need to create or append
-  cmp   qword [rsp+0x8], 0
-  jne   .append
-
   mov   rdi, [rsp+0x8]
   mov   rsi, [rsp]
   add   rsi, [rsp+0x20]
@@ -99,6 +95,7 @@ escape_html:
   inc   rax
   mov   [rsp+0x20], rax
 
+.no_escaping:
   inc   qword [rsp+0x18]
 
   mov   rdi, [rsp]
