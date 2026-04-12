@@ -92,7 +92,7 @@ set_cookie:
   jl    .error
 
   mov   rdi, rax
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
   jl    .error
 

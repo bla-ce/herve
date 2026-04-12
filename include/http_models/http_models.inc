@@ -336,14 +336,14 @@ http_model_put:
 .internal_server_error:
   mov   rdx, INTERNAL_SERVER_ERROR
   mov   rcx, http_model_err.internal_server
-  jmp   .send_response
+  jmp   .response_send
 
 .unprocessable_entity:
   ; TODO: specify why
   mov   rdx, UNPROCESSABLE_ENTITY
   mov   rcx, http_model_err.unprocessable_entity
 
-.send_response:
+.response_send:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov		r8, NO_ARG
@@ -475,19 +475,19 @@ http_model_patch:
 .internal_server_error:
   mov   rdx, INTERNAL_SERVER_ERROR
   mov   rcx, http_model_err.internal_server
-  jmp   .send_response
+  jmp   .response_send
 
 .unprocessable_entity:
   ; TODO: specify why
   mov   rdx, UNPROCESSABLE_ENTITY
   mov   rcx, http_model_err.unprocessable_entity
-  jmp   .send_response
+  jmp   .response_send
 
 .not_found:
   mov   rdx, NOT_FOUND
   mov   rcx, http_model_err.not_found
 
-.send_response:
+.response_send:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov		r8, NO_ARG
@@ -683,14 +683,14 @@ http_model_post:
   mov   rdx, INTERNAL_SERVER_ERROR
   mov   rcx, http_model_err.internal_server
 
-  jmp   .send_response
+  jmp   .response_send
 
 .unprocessable_entity:
   ; TODO: specify why
   mov   rdx, UNPROCESSABLE_ENTITY
   mov   rcx, http_model_err.unprocessable_entity
 
-.send_response:
+.response_send:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
   mov		r8, NO_ARG

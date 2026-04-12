@@ -111,7 +111,7 @@ log_ctx:
   jl    .error
 
   mov   rdi, rax
-  call  get_response_status_code
+  call  response_get_status_code
   cmp   rax, 0
   jl    .error
 

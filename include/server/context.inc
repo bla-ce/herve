@@ -255,7 +255,7 @@ ctx_free:
   jl    .error
 
   mov   rdi, rax
-  call  free_response
+  call  response_free
   cmp   rax, 0
   jl    .error
 

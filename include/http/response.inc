@@ -43,22 +43,22 @@ section .text
 ; frees the response structure and all associated resources
 ; @param  rdi: pointer to the response
 ; @return rax: return code
-free_response:
+response_free:
   sub   rsp, 0x8
-
-  cmp   rdi, 0
-  jl    .error
 
   ; STACK USAGE
   ; [rsp]     -> pointer to the response struct
 
   mov   [rsp], rdi
 
+  test  rdi, rdi
+  jz    .error
+
 .free_headers:
   mov   rdi, [rsp]
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
-  jl    .free_response_str
+  jl    .response_free_str
 
   ; free headers hash table
   mov   rdi, rax
@@ -66,20 +66,20 @@ free_response:
   cmp   rax, 0
   jl    .error
 
-.free_response_str:
+.response_free_str:
   mov   rdi, [rsp]
-  call  get_response_str
+  call  response_get_str
   cmp   rax, 0
-  jle   .free_response_body
+  jle   .response_free_body
 
   mov   rdi, rax
   call  free
   cmp   rax, 0
   jl    .error
 
-.free_response_body:
+.response_free_body:
   mov   rdi, [rsp]
-  call  get_response_body
+  call  response_get_body
   cmp   rax, 0
   jle   .free_struct
 
@@ -105,7 +105,7 @@ free_response:
 ; sets the length of the body of the response
 ; @param  rdi: pointer to response struct
 ; @return rax: length of the response content
-get_response_content_len:
+response_get_content_len:
   test  rdi, rdi
   jz    .error
 
@@ -123,7 +123,7 @@ get_response_content_len:
 ; @param  rdi: pointer to response struct
 ; @param  rsi: content length
 ; @return rax: return code
-set_response_content_len:
+response_set_content_len:
   test  rdi, rdi
   jz    .error
 
@@ -142,7 +142,7 @@ set_response_content_len:
 ; @param  rdi: pointer to response struct
 ; @param  rsi: pointer to the string
 ; @return rax: return code
-set_response_str:
+response_set_str:
   test  rdi, rdi
   jz    .error
 
@@ -160,7 +160,7 @@ set_response_str:
 ; returns the response string
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to the string
-get_response_str:
+response_get_str:
   test  rdi, rdi
   jz    .error
 
@@ -177,7 +177,7 @@ get_response_str:
 ; returns the response content length string
 ; @param  rdi: pointer to response
 ; @return  rax: pointer to string
-get_response_content_len_str:
+response_get_content_len_str:
   test  rdi, rdi
   jz    .error
 
@@ -195,7 +195,7 @@ get_response_content_len_str:
 ; @param  rdi: pointer to response
 ; @param  rsi: pointer to string
 ; @return rax: return code
-set_response_content_len_str:
+response_set_content_len_str:
   test  rdi, rdi
   jz    .error
 
@@ -217,14 +217,14 @@ set_response_content_len_str:
 ; returns the response protocol
 ; @param  rdi: pointer to response
 ; @param  rax: pointer to response headers
-get_response_protocol:
+response_get_protocol:
   lea   rax, [HTTP_1_1]
   ret
 
 ; returns the response headers
 ; @param  rdi: pointer to response
 ; @param  rax: pointer to response headers
-get_response_headers:
+response_get_headers:
   test  rdi, rdi
   jz    .error
 
@@ -240,7 +240,7 @@ get_response_headers:
 ; returns the response status code
 ; @param  rdi: pointer to response
 ; @param  rax: pointer to response status code
-get_response_status_code:
+response_get_status_code:
   test  rdi, rdi
   jz    .error
 
@@ -257,6 +257,9 @@ get_response_status_code:
 ; @return rax: pointer to response struct
 response_init:
   sub   rsp, 0x8
+
+  ; STACK USAGE
+  ; [rsp] -> pointer to the response struct
 
   mov   qword [rsp], 0
 
@@ -276,28 +279,28 @@ response_init:
 
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  set_response_headers
+  call  response_set_headers
   cmp   rax, 0
   jl    .error
 
   ; set body to 0
   mov   rdi, [rsp]
   mov   rsi, NO_ARG
-  call  set_response_body
+  call  response_set_body
   cmp   rax, 0
   jl    .error
 
   ; set response content length to 0
   mov   rdi, [rsp]
   mov   rsi, NO_ARG
-  call  set_response_content_len
+  call  response_set_content_len
   cmp   rax, 0
   jl    .error
 
   ; set response str to 0
   mov   rdi, [rsp]
   mov   rsi, NO_ARG
-  call  set_response_str
+  call  response_set_str
   cmp   rax, 0
   jl    .error
 
@@ -305,7 +308,7 @@ response_init:
   jmp   .return
 
 .error:
-  mov   rax, qword [rsp]
+  mov   rax, [rsp]
   test  rax, rax
   jz    .no_free
 
@@ -323,7 +326,7 @@ response_init:
 ; @param  rdi: pointer to the response struct
 ; @param  rsi: pointer to the headers array
 ; @return rax: return code
-set_response_headers:
+response_set_headers:
   test  rdi, rdi
   jz    .error
 
@@ -345,7 +348,7 @@ set_response_headers:
 ; @param  rdi: pointer to the response struct
 ; @param  rsi: pointer to the string status code
 ; @return rax: return code
-set_response_status_code:
+response_set_status_code:
   test  rdi, rdi
   jz    .error
 
@@ -367,7 +370,7 @@ set_response_status_code:
 ; @param  rdi: pointer to the response struct
 ; @param  rsi: pointer to body
 ; @return rax: return code
-set_response_body:
+response_set_body:
   test  rdi, rdi
   jz    .error
 
@@ -385,7 +388,7 @@ set_response_body:
 ; returns the body of the response
 ; @param  rdi: pointer to the response struct
 ; @return rax: pointer to the body (can be null)
-get_response_body:
+response_get_body:
   test  rdi, rdi
   jz    .error
 
@@ -401,7 +404,7 @@ get_response_body:
 ; stringifies the response struct
 ; @param  rdi: pointer to response struct
 ; @return rax: pointer to string representation of the response
-stringify_response:
+response_to_str:
   sub   rsp, 0x20
   sub   rsp, HEADERS_MAX_LEN
 
@@ -434,7 +437,7 @@ stringify_response:
 
   ; get context protocol
   mov   rdi, [rsp]
-  call  get_response_protocol
+  call  response_get_protocol
   cmp   rax, 0
   jl    .error
 
@@ -453,7 +456,7 @@ stringify_response:
 
   ; get status code
   mov   rdi, [rsp]
-  call  get_response_status_code
+  call  response_get_status_code
   cmp   rax, 0
   jl    .error
 
@@ -477,7 +480,7 @@ stringify_response:
 
   ; get headers
   mov   rdi, [rsp]
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -496,7 +499,7 @@ stringify_response:
 
   ; get body
   mov   rdi, [rsp]
-  call  get_response_body
+  call  response_get_body
   cmp   rax, 0
   jl    .error
   je    .skip_body
@@ -504,7 +507,7 @@ stringify_response:
   mov   [rsp+0x10], rax
 
   mov   rdi, [rsp]
-  call  get_response_content_len
+  call  response_get_content_len
   cmp   rax, 0
   jl    .error
 
@@ -526,7 +529,7 @@ stringify_response:
   ; save response str
   mov   rdi, [rsp]
   mov   rsi, rax
-  call  set_response_str
+  call  response_set_str
   cmp   rax, 0
   jl    .error
 
@@ -603,7 +606,7 @@ send_no_content:
 
   ; get response headers
   mov   rdi, [rsp+0x10]
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -618,14 +621,14 @@ send_no_content:
   ; set body to 0
   mov   rdi, [rsp+0x10]
   mov   rsi, 0
-  call  set_response_body
+  call  response_set_body
   cmp   rax, 0
   jl    .error
 
   ; send response
   mov   rdi, [rsp]
   mov   rsi, qword [rsp+0x8]
-  call  send_response
+  call  response_send
   cmp   rax, 0
   jl    .error
 
@@ -691,7 +694,7 @@ send_json:
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -723,7 +726,7 @@ send_json:
 
   mov   rdi, [rsp+0x20]
   mov   rsi, qword [rsp+0x30]
-  call  set_response_content_len
+  call  response_set_content_len
   cmp   rax, 0
   jl    .error
 
@@ -745,13 +748,13 @@ send_json:
   ; add json to body
   mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x18]
-  call  set_response_body
+  call  response_set_body
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  call  send_response
+  call  response_send
   cmp   rax, 0
   jl    .error
 
@@ -825,7 +828,7 @@ send_html:
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -858,7 +861,7 @@ send_html:
 
   mov   rdi, [rsp+0x20]
   mov   rsi, qword [rsp+0x30]
-  call  set_response_content_len
+  call  response_set_content_len
   cmp   rax, 0
   jl    .error
 
@@ -880,13 +883,13 @@ send_html:
   ; add string to body
   mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x18]
-  call  set_response_body
+  call  response_set_body
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  call  send_response
+  call  response_send
   cmp   rax, 0
   jl    .error
 
@@ -958,7 +961,7 @@ send_string:
   mov   [rsp+0x20], rax
 
   mov   rdi, [rsp+0x20]
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -991,7 +994,7 @@ send_string:
 
   mov   rdi, [rsp+0x20]
   mov   rsi, qword [rsp+0x30]
-  call  set_response_content_len
+  call  response_set_content_len
   cmp   rax, 0
   jl    .error
 
@@ -1013,13 +1016,13 @@ send_string:
   ; add string to body
   mov   rdi, [rsp+0x20]
   mov   rsi, [rsp+0x18]
-  call  set_response_body
+  call  response_set_body
   cmp   rax, 0
   jl    .error
 
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x8]
-  call  send_response
+  call  response_send
   cmp   rax, 0
   jl    .error
 
@@ -1048,7 +1051,7 @@ send_string:
 ; @param  rdi: pointer to context struct
 ; @param  rsi: status code (int)
 ; @return rax: return code
-send_response:
+response_send:
   sub   rsp, 0x30
 
   ; STACK USAGE
@@ -1084,7 +1087,7 @@ send_response:
 
   ; set connection header
   mov   rdi, [rsp+0x10]
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -1098,13 +1101,13 @@ send_response:
   ; set response status code
   mov   rdi, [rsp+0x10]
   mov   rsi, [rsp+0x8]
-  call  set_response_status_code
+  call  response_set_status_code
   cmp   rax, 0
   jl    .error
 
   ; stringify response
   mov   rdi, [rsp+0x10]
-  call  stringify_response
+  call  response_to_str
   cmp   rax, 0
   jl    .error
 
@@ -1207,7 +1210,7 @@ send_static_file:
 
   ; get response headers
   mov   rdi, [rsp+0x18]
-  call  get_response_headers
+  call  response_get_headers
   cmp   rax, 0
   jl    .error
 
@@ -1242,7 +1245,7 @@ send_static_file:
 
   mov   rdi, [rsp+0x18]
   mov   rsi, rax
-  call  set_response_content_len
+  call  response_set_content_len
   cmp   rax, 0
   jl    .error
 
@@ -1279,14 +1282,14 @@ send_static_file:
   ; add string to body
   mov   rdi, [rsp+0x18]
   mov   rsi, [rsp+0x30]
-  call  set_response_body
+  call  response_set_body
   cmp   rax, 0
   jl    .error
 
   ; send response
   mov   rdi, [rsp]
   mov   rsi, OK
-  call  send_response
+  call  response_send
   cmp   rax, 0
   jl    .error
 

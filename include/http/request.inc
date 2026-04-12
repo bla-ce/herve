@@ -1169,16 +1169,16 @@ verify_request:
 
 .not_found:
   mov   rsi, NOT_FOUND
-  jmp   .send_response
+  jmp   .response_send
 
 .internal_server_error:
   mov   rsi, INTERNAL_SERVER_ERROR
-  jmp   .send_response
+  jmp   .response_send
 
 .bad_request:
   mov   rsi, BAD_REQUEST
 
-.send_response:
+.response_send:
   mov   rdi, [rsp]
   call  send_no_content
 

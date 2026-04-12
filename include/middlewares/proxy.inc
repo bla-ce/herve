@@ -236,7 +236,7 @@ handle_proxy_request:
   mov   rdi, [rsp]
   mov   rsi, [rsp+0x10]
   mov   rdx, qword [rsp+0x18]
-  call  send_response_from_target
+  call  response_send_from_target
   cmp   rax, 0
   jl    .error
 
@@ -274,7 +274,7 @@ handle_proxy_request:
 
   mov   rdi, rax
   mov   rsi, qword [rsp+0x20]
-  call  set_response_status_code
+  call  response_set_status_code
   cmp   rax, 0
   jl    .error
 
@@ -311,7 +311,7 @@ handle_proxy_request:
 ; @param  rsi: pointer to the response
 ; @param  rdx: response length
 ; @return rax: return code
-send_response_from_target:
+response_send_from_target:
   sub   rsp, 0x18
 
   cmp   rdi, 0
